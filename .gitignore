@@ -1,0 +1,20 @@
+# Datos de sesiones y rides (no versionar — son datos personales)
+sessions/
+*.csv
+*.bak
+
+# Calibración local (específica de cada instalación)
+tps_cal.json
+vss_cal.json
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.swp
