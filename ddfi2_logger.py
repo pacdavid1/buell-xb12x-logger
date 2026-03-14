@@ -1039,6 +1039,21 @@ table.veg td:active{filter:brightness(1.6)}
     <div style="font-family:var(--mono);font-size:14px;color:#7df;margin-top:4px;font-weight:bold" id="cfgVersion">--</div>
     <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px">Buell XB12X DDFI2 · Pi Zero 2W · FT232RL</div>
   </div>
+  
+  <!-- BOTÓN DE DESCARGA DEL LOGGER -->
+  <div class="cfg-section">
+    <div class="cfg-title">Actualizar Logger</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">
+      Descarga la última versión desde GitHub.<br>
+      Reemplaza manualmente en /home/pi/buell/
+    </div>
+    <a href="https://raw.githubusercontent.com/pacdavid1/buell-xb12x-logger/main/ddfi2_logger.py" 
+       download="ddfi2_logger.py" 
+       style="display:inline-block;padding:8px 16px;background:#e94560;color:#fff;text-decoration:none;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:600">
+      ⬇ Descargar ddfi2_logger.py
+    </a>
+  </div>
+
   <div class="cfg-section">
     <div class="cfg-title">Estado ECU</div>
     <div class="status-row">
