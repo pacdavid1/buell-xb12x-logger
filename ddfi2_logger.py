@@ -7,6 +7,11 @@
   VERSION: ver constante LOGGER_VERSION (única fuente de verdad)
   CHANGELOG: últimas versiones con módulo y línea de cada cambio
   ─────────────────────────────────────────────────────────────────
+  v1.17.0  (2026-03-15)  — MODO FORENSE: catálogo MYSTERY_BYTES + columnas dirty_byte_hex, dirty_byte_name, forensic_event
+
+    [Python MYSTERY_BYTES]       ln 331+ — Diccionario para catalogar bytes sucios observados (0xFF,0x40,0x60,etc.)
+    [Python CSV_COLUMNS]         ln 338+ — Añadidas tres columnas al CSV para registrar el último byte sucio y su nombre
+    
   v1.16.1  (2026-03-13)  — DIAGNÓSTICO ECU + NOTAS AL CERRAR + VERSIÓN EN CSV
 
     [Python LOGGER_VERSION]        ln 301 — Bump a v1.16.1
@@ -328,8 +333,17 @@ from pathlib import Path
 from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
 import zlib
 
-LOGGER_VERSION = "v1.16.1"  # ← único lugar a cambiar en cada release
+LOGGER_VERSION = "v1.17.0-FORENSIC"  # ← único lugar a cambiar en cada release
 
+# NUEVO v1.17.0: Catálogo de bytes misteriosos de DDFI2
+MYSTERY_BYTES = {
+    0xFF: {"name": "EOH_or_IDLE", "desc": "End of Header o línea idle", "sospechoso": False},
+    0x01: {"name": "SOH", "desc": "Start of Header válido", "sospechoso": False},
+    0x40: {"name": "BIT6_TPS_HIGH", "desc": "Bit 6 - posible DTC TPS alto", "sospechoso": True},
+    0x60: {"name": "BITS_5_6_DUAL", "desc": "Bits 5+6 - error dual TPS", "sospechoso": True},
+    0x06: {"name": "ACK", "desc": "Acknowledge válido", "sospechoso": False},
+    0x00: {"name": "NULL_PAD", "desc": "Null padding", "sospechoso": True},
+}
 # ─────────────────────────────────────────────────────────────────
 # PROTOCOLO PDU
 # ─────────────────────────────────────────────────────────────────
@@ -390,6 +404,8 @@ CSV_COLUMNS = [
     "TPS_V","TPS_pct",
     # Velocidad y marcha
     "VSS_Count","VS_KPH","Fan_Duty_Pct","VSS_RPM_Ratio","Gear",
+    # NUEVO v1.17.0: Columnas forenses
+    "dirty_byte_hex","dirty_byte_name","forensic_event",
     # Flags decodificados — Flags1
     "fl_engine_run","fl_o2_active","fl_accel","fl_decel","fl_engine_stop","fl_wot","fl_ignition",
     # Flags2
@@ -1052,6 +1068,10 @@ table.veg td:active{filter:brightness(1.6)}
        style="display:inline-block;padding:8px 16px;background:#e94560;color:#fff;text-decoration:none;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:600">
       ⬇ Descargar ddfi2_logger.py
     </a>
+    <div style="margin-top:12px">
+      <button class="btn g" onclick="gitPull()" style="width:100%; padding:10px;">🔄 Git Pull (actualizar desde GitHub)</button>
+      <div id="gitPullStatus" style="font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:6px; text-align:center;"></div>
+    </div>
   </div>
 
   <div class="cfg-section">
@@ -2444,6 +2464,32 @@ async function loadVssCal(){
     }
   }catch(e){}
 }
+
+// NUEVA función para Git Pull
+async function gitPull() {
+  const status = document.getElementById('gitPullStatus');
+  status.textContent = 'Ejecutando git pull...';
+  status.style.color = 'var(--dim)';
+  try {
+    const res = await fetch('/git_pull', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      if (data.changes) {
+        status.innerHTML = '✅ Git pull completado. Hubo cambios.<br>Reinicia el logger para aplicarlos.';
+      } else {
+        status.textContent = '✅ Ya estaba actualizado.';
+      }
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = '❌ Error: ' + (data.error || 'desconocido');
+      status.style.color = 'var(--red)';
+    }
+    if (data.output) console.log(data.output);
+  } catch (e) {
+    status.textContent = 'Error de red: ' + e;
+    status.style.color = 'var(--red)';
+  }
+}
 async function saveVssCal(){
   const el=document.getElementById('vssFactorInput');
   const st=document.getElementById('vssCalStatus');
@@ -2815,9 +2861,37 @@ class LiveHandler(BaseHTTPRequestHandler):
             cal_path = os.path.join(self.dashboard.buell_dir,'vss_cal.json')
             with open(cal_path,'w') as _f: json.dump({'cpkm25':cpkm},_f)
             self._json({'ok':True,'cpkm25':cpkm})
+                elif self.path == '/git_pull':
+            try:
+                result = subprocess.run(
+                    ['git', 'pull'],
+                    cwd='/home/pi/buell',
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+                output = result.stdout + result.stderr
+                changes = 'Already up to date' not in output
+                self._json({'ok': result.returncode == 0, 'output': output, 'changes': changes})
+            except Exception as e:
+                self._json({'ok': False, 'error': str(e)})
         else:
             self._json({"error":"unknown endpoint"},404)
-
+             elif self.path == '/git_pull':
+         try:
+             result = subprocess.run(
+                 ['git', 'pull'],
+                 cwd='/home/pi/buell',
+                 capture_output=True,
+                 text=True,
+                 timeout=30
+             )
+             output = result.stdout + result.stderr
+             changes = 'Already up to date' not in output
+             self._json({'ok': result.returncode == 0, 'output': output, 'changes': changes})
+         except Exception as e:
+             self._json({'ok': False, 'error': str(e)})
+           
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header('Access-Control-Allow-Origin','*')
