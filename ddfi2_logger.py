@@ -2877,7 +2877,7 @@ class LiveHandler(BaseHTTPRequestHandler):
                 self._json({'ok': False, 'error': str(e)})
         else:
             self._json({"error":"unknown endpoint"},404)
-             elif self.path == '/git_pull':
+             
          try:
              result = subprocess.run(
                  ['git', 'pull'],
