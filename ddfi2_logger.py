@@ -332,6 +332,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
 import zlib
+import socket
 
 LOGGER_VERSION = "v1.17.0-FORENSIC"  # ← único lugar a cambiar en cada release
 
@@ -3188,6 +3189,35 @@ class NetworkManager:
     HOTSPOT_CON    = "buell-hotspot"
     WIFI_TIMEOUT_S = 60
     logger         = logging.getLogger("Network")
+  
+    @classmethod
+    def ensure_hotspot(cls):
+        """Crea el perfil buell-hotspot si no existe."""
+        ok, out = cls._run(["nmcli", "con", "show", cls.HOTSPOT_CON])
+        if ok:
+            cls.logger.debug("Perfil hotspot ya existe")
+            return True
+        # No existe, crearlo
+        cls.logger.info("Creando perfil hotspot...")
+        # Generar un SSID único basado en algo (ej. hostname)
+        ssid = f"buell-{socket.gethostname()[-4:]}"
+        password = "buell2024"
+        cmd = [
+            "sudo", "nmcli", "con", "add", "type", "wifi",
+            "ifname", "wlan0", "mode", "ap",
+            "con-name", cls.HOTSPOT_CON,
+            "ssid", ssid,
+            "password", password
+        ]
+        ok, out = cls._run(cmd, timeout=20)
+        if not ok:
+            cls.logger.error("No se pudo crear el perfil hotspot")
+            return False
+        # Configurar banda y método IP
+        cls._run(["sudo", "nmcli", "con", "modify", cls.HOTSPOT_CON, "802-11-wireless.band", "bg"])
+        cls._run(["sudo", "nmcli", "con", "modify", cls.HOTSPOT_CON, "ipv4.method", "shared"])
+        cls.logger.info(f"Hotspot creado: SSID={ssid} pass={password}")
+        return True
 
     @staticmethod
     def _run(cmd, timeout=10):
@@ -3211,17 +3241,18 @@ class NetworkManager:
         ok,out = cls._run(["nmcli","-t","-f","NAME,STATE","con","show","--active"])
         return ok and cls.HOTSPOT_CON in out
 
-    @classmethod
-    def setup(cls):
-        if cls._hotspot_active():
-            cls.logger.info("Hotspot ya activo — sin cambios"); return
-        if cls._wifi_connected():
-            cls.logger.info("WiFi activo — bajando para subir hotspot...")
-            cls._run(["sudo","nmcli","dev","disconnect","wlan0"]); time.sleep(1)
-        cls.logger.info("Activando hotspot...")
-        ok,_ = cls._run(["sudo","nmcli","con","up",cls.HOTSPOT_CON], timeout=15)
-        if ok: cls.logger.info("Hotspot activo: 10.42.0.1 | buell2024")
-        else:  cls.logger.warning("No se pudo activar hotspot")
+     @classmethod
+ def setup(cls):
+     cls.ensure_hotspot()
+     if cls._hotspot_active():
+         cls.logger.info("Hotspot ya activo — sin cambios"); return
+     if cls._wifi_connected():
+         cls.logger.info("WiFi activo — bajando para subir hotspot...")
+         cls._run(["sudo","nmcli","dev","disconnect","wlan0"]); time.sleep(1)
+     cls.logger.info("Activando hotspot...")
+     ok,_ = cls._run(["sudo","nmcli","con","up",cls.HOTSPOT_CON], timeout=15)
+     if ok: cls.logger.info("Hotspot activo: 10.42.0.1 | buell2024")
+     else:  cls.logger.warning("No se pudo activar hotspot")
 
     @classmethod
     def ssh_active(cls):
