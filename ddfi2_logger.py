@@ -3241,19 +3241,29 @@ class NetworkManager:
         ok,out = cls._run(["nmcli","-t","-f","NAME,STATE","con","show","--active"])
         return ok and cls.HOTSPOT_CON in out
 
-     @classmethod
- def setup(cls):
-     cls.ensure_hotspot()
-     if cls._hotspot_active():
-         cls.logger.info("Hotspot ya activo — sin cambios"); return
-     if cls._wifi_connected():
-         cls.logger.info("WiFi activo — bajando para subir hotspot...")
-         cls._run(["sudo","nmcli","dev","disconnect","wlan0"]); time.sleep(1)
-     cls.logger.info("Activando hotspot...")
-     ok,_ = cls._run(["sudo","nmcli","con","up",cls.HOTSPOT_CON], timeout=15)
-     if ok: cls.logger.info("Hotspot activo: 10.42.0.1 | buell2024")
-     else:  cls.logger.warning("No se pudo activar hotspot")
-
+    @classmethod
+    def setup(cls):
+        """Configura red al arrancar: crea hotspot si no hay WiFi, o deja WiFi si existe."""
+        cls.ensure_hotspot()  # Asegurar que el perfil hotspot existe
+        
+        # Si ya hay WiFi conectado, dejarlo así
+        if cls._wifi_connected():
+            cls.logger.info("WiFi ya conectado — manteniendo")
+            return
+            
+        # Si el hotspot ya está activo, todo bien
+        if cls._hotspot_active():
+            cls.logger.info("Hotspot ya activo")
+            return
+            
+        # Intentar activar hotspot (modo por defecto seguro)
+        cls.logger.info("Activando hotspot por defecto...")
+        ok, _ = cls._run(["sudo", "nmcli", "con", "up", cls.HOTSPOT_CON], timeout=15)
+        if ok:
+            cls.logger.info("Hotspot activo: SSID=buell-XXXX pass=buell2024")
+        else:
+            cls.logger.error("No se pudo activar hotspot — revisar nmcli")
+          
     @classmethod
     def ssh_active(cls):
         ok,out = cls._run(["ss","-tn","state","established","sport","=",":22"])
