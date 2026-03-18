@@ -334,6 +334,14 @@ from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
 import zlib
 import socket
 
+# ─────────────────────────────────────────────────────────────
+# WEB PATHS (frontend fuera del logger)
+# ─────────────────────────────────────────────────────────────
+WEB_DIR = Path(__file__).parent / "web"
+TEMPLATES_DIR = WEB_DIR / "templates"
+STATIC_DIR = WEB_DIR / "static"
+
+
 LOGGER_VERSION = "v1.17.0-FORENSIC"  # ← único lugar a cambiar en cada release
 
 # NUEVO v1.17.0: Catálogo de bytes misteriosos de DDFI2
@@ -765,12 +773,6 @@ class LiveHandler(BaseHTTPRequestHandler):
                 self._json(summary)
             else:
                 self._json({"error":"not found"}, 404)
-                
-        from pathlib import Path
-
-            WEB_DIR = Path(__file__).parent / "web"
-            TEMPLATES_DIR = WEB_DIR / "templates"
-            STATIC_DIR = WEB_DIR / "
 
     def do_POST(self):
         length = int(self.headers.get('Content-Length',0))
