@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Buell XB12X</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a0b;--panel:#111114;--border:#1e1e24;
+  --accent:#e8420a;--accent2:#f5a623;--green:#2cdd6e;
+  --blue:#3d9eff;--dim:#55555e;--text:#c8c8cc;
+  --red:#ff4444;--mono:'Share Tech Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;
+     font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+/* HEADER */
+.hdr{background:var(--panel);border-bottom:2px solid var(--accent);
+     padding:6px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.hdr-stats{display:flex;gap:0;flex:1;overflow:hidden}
+.hs{display:flex;flex-direction:column;align-items:center;padding:2px 8px;
+    border-right:1px solid var(--border);min-width:50px}
+.hs:last-child{border-right:none}
+.hs-label{font-family:var(--mono);font-size:7px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+.hs-val{font-size:22px;font-weight:900;line-height:1.1}
+.ac{color:var(--accent)} .gn{color:var(--green)} .bl{color:var(--blue)}
+.wh{color:#fff}          .yw{color:var(--accent2)}
+.pill{padding:3px 7px;font-family:var(--mono);font-size:8px;border:1px solid;
+      letter-spacing:.1em;text-transform:uppercase;flex-shrink:0}
+.pill.on{color:var(--green);border-color:var(--green)}
+.pill.off{color:var(--dim);border-color:var(--border)}
+.pill.yw{color:var(--accent2);border-color:var(--accent2)}
+.pill-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+.pill-dot.on{background:var(--green);animation:blink 1.4s ease-in-out infinite}
+.pill-dot.yw{background:var(--accent2);animation:blink 2.2s ease-in-out infinite}
+.pill-dot.off{background:#333}
+.rdot{width:5px;height:5px;border-radius:50%;background:var(--green);
+      display:inline-block;animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* TABS */
+.tabs{display:flex;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
+.tab{flex:1;padding:8px 2px;text-align:center;font-family:var(--mono);font-size:8px;
+     letter-spacing:.06em;text-transform:uppercase;color:var(--dim);cursor:pointer;
+     border-bottom:2px solid transparent;transition:all .15s}
+.tab.active{color:#fff;border-bottom-color:var(--accent)}
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;overflow-x:hidden}
+.pane{display:none;padding:8px}
+.pane.active{display:block}
+
+/* BIG DISPLAY */
+.big-display{display:flex;gap:8px;margin-bottom:8px}
+.big-card{flex:1;background:var(--panel);border:1px solid var(--border);
+          padding:8px 10px;display:flex;flex-direction:column;align-items:center;
+          border-top:2px solid var(--border)}
+.big-card.hot{border-top-color:var(--accent)}
+.big-card.tps{border-top-color:var(--blue)}
+.big-label{font-family:var(--mono);font-size:8px;color:var(--dim);
+           letter-spacing:.15em;text-transform:uppercase;margin-bottom:2px}
+.big-num{font-size:56px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.big-unit{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:2px}
+
+/* INDICADORES */
+.ind-row{display:flex;gap:6px;margin-bottom:8px}
+.ind{flex:1;background:var(--panel);padding:6px 8px;display:flex;align-items:center;
+     gap:6px;border:1px solid var(--border)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:var(--green)}.dot.warn{background:var(--accent2)}.dot.bad{background:var(--red)}
+.ind-text{font-size:11px;line-height:1.3}
+.ind-val{font-family:var(--mono);font-weight:700;color:#fff}
+
+/* OBJETIVOS — una línea */
+.obj-row-compact{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.obj-chip{display:flex;flex-direction:column;flex:1;min-width:80px;
+          background:var(--panel);border:1px solid var(--border);
+          border-left:3px solid var(--dim);padding:5px 8px;border-radius:0 3px 3px 0}
+.obj-chip.done{border-left-color:var(--green)}
+.obj-chip.partial{border-left-color:var(--accent2)}
+.obj-chip-label{font-family:var(--mono);font-size:7px;color:var(--dim);
+                text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.obj-chip-pct{font-size:20px;font-weight:900;font-family:var(--mono);color:#fff}
+.obj-chip-sub{font-family:var(--mono);font-size:7px;color:var(--dim);margin-top:1px}
+.obj-bar{height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-top:3px}
+.obj-fill{height:2px;border-radius:1px;background:var(--accent2);transition:width .5s}
+.obj-fill.done{background:var(--green)}
+
+/* VE GRID */
+.grid-section{margin-bottom:4px}
+.grid-label{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.15em;
+             text-transform:uppercase;margin-bottom:6px}
+.grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+table.veg{border-collapse:collapse;font-family:var(--mono);white-space:nowrap}
+table.veg th{font-size:7px;color:var(--dim);padding:2px 3px;text-align:center;font-weight:400;min-width:28px}
+table.veg th.rh{text-align:right;min-width:26px;padding-right:4px}
+table.veg td{width:32px;height:28px;border:1px solid rgba(255,255,255,.04);
+             text-align:center;vertical-align:middle;cursor:pointer;position:relative}
+table.veg td:active{filter:brightness(1.6)}
+.cv{font-size:8px;font-weight:700;line-height:1}
+.c0{background:#141417}.c1{background:#2a1f08}.c2{background:#3a3000}
+.c3{background:#0f2e0f}.c4{background:#0a420a}
+.ca{background:#3d0800 !important;animation:pulse .7s infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(2.2)}}
+
+/* LEYENDA */
+.legend{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--dim)}
+.leg-dot{width:10px;height:10px;flex-shrink:0}
+
+/* CONFIG */
+.cfg-section{margin-bottom:14px}
+.cfg-title{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.15em;
+           text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;
+           border-bottom:1px solid var(--border)}
+.cfg-textarea{width:100%;background:#0a0a0b;border:1px solid var(--border);
+              color:var(--text);font-family:var(--mono);font-size:10px;
+              padding:8px;resize:vertical;height:160px;border-radius:2px}
+.btn{display:inline-block;padding:6px 16px;background:transparent;
+     border:1px solid var(--border);color:var(--dim);font-family:var(--mono);
+     font-size:9px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;border-radius:2px}
+.btn:active{opacity:.7}
+.btn.p{border-color:var(--accent);color:var(--accent)}
+.btn.g{border-color:var(--green);color:var(--green)}
+.msq-drop{border:2px dashed var(--border);padding:16px;text-align:center;cursor:pointer;
+          font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em;border-radius:2px}
+.msq-drop.loaded{border-color:var(--green);color:var(--green)}
+.status-row{display:flex;align-items:center;gap:8px;padding:6px 0;
+            font-family:var(--mono);font-size:9px;color:var(--dim)}
+
+/* RIDES */
+.ride-item{background:var(--panel);border:1px solid var(--border);padding:8px 10px;
+           display:flex;justify-content:space-between;align-items:center;
+           margin-bottom:4px;transition:all .15s;cursor:pointer}
+.ride-item.selected{border-color:var(--accent2);background:rgba(245,166,35,.06)}
+.ride-item.disabled{opacity:.4;cursor:default}
+.ride-name{font-family:var(--mono);font-size:11px;color:#fff;font-weight:700}
+.ride-meta{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:2px}
+.ride-check{width:16px;height:16px;border:1px solid var(--border);border-radius:2px;
+            display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.ride-item.selected .ride-check{border-color:var(--accent2);color:var(--accent2);background:rgba(245,166,35,.12)}
+
+/* RED / SISTEMA */
+.net-row{display:flex;gap:8px;margin-bottom:8px}
+.btn-net{flex:1;padding:10px 4px;border:1px solid var(--border);background:var(--panel);
+         color:var(--dim);font-family:var(--mono);font-size:9px;cursor:pointer;
+         text-transform:uppercase;text-align:center;transition:all .2s}
+.btn-net.on{border-color:var(--green);color:var(--green);background:rgba(44,221,110,.07)}
+.btn-net:active{opacity:.6}
+.btn-danger{width:100%;padding:12px;background:transparent;border:1px solid var(--red);
+            color:var(--red);font-family:var(--mono);font-size:10px;cursor:pointer;
+            text-transform:uppercase;margin-top:6px;letter-spacing:.1em}
+.btn-danger:active{background:rgba(255,68,68,.12)}
+.net-status{font-family:var(--mono);font-size:9px;padding:4px 0 8px;color:var(--dim);
+            display:flex;align-items:center;gap:6px}
+
+/* GRÁFICAS */
+.chart-wrap{background:var(--panel);border:1px solid var(--border);
+            padding:8px;margin-bottom:8px;border-radius:2px}
+.chart-title{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.12em;
+             text-transform:uppercase;margin-bottom:6px}
+.chart-wrap canvas{width:100%!important;max-height:130px;height:130px}
+.gauge-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.gauge{flex:1;min-width:70px;background:var(--panel);border:1px solid var(--border);
+       padding:6px 8px;text-align:center;border-top:2px solid var(--border)}
+.gauge-label{font-family:var(--mono);font-size:7px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+.gauge-value{font-size:22px;font-weight:900;color:#fff;line-height:1.1}
+.gauge-unit{font-family:var(--mono);font-size:8px;color:var(--dim)}
+.chart-controls{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.range-wrap{flex:1;display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:var(--dim)}
+.range-wrap input{flex:1;accent-color:var(--accent)}
+.graph-warn{font-family:var(--mono);font-size:10px;color:var(--dim);
+            padding:30px;text-align:center}
+
+/* VE placeholder */
+.coming-soon{display:flex;flex-direction:column;align-items:center;justify-content:center;
+             min-height:200px;gap:12px;color:var(--dim);text-align:center}
+.coming-soon p{font-family:var(--mono);font-size:10px;letter-spacing:.1em;line-height:1.8}
+
+/* BOTTOM SHEET */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100}
+.overlay.open{display:flex;align-items:flex-end}
+.overlay-close{position:absolute;top:12px;right:16px;font-size:24px;color:#fff;cursor:pointer;z-index:101;padding:8px;}
+.sheet{background:#18181c;border-top:2px solid var(--accent);padding:16px;
+       width:100%;max-height:60vh;overflow-y:auto}
+.sheet-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;
+             display:flex;justify-content:space-between;align-items:center}
+.sheet-close{font-size:20px;color:var(--dim);cursor:pointer;padding:4px}
+.sheet-row{display:flex;justify-content:space-between;padding:5px 0;
+           border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px}
+.sheet-key{color:var(--dim)}.sheet-val{color:#fff;font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-stats">
+    <div class="hs"><div class="hs-label">EGO</div><div class="hs-val gn" id="hEGO">--</div></div>
+    <div class="hs"><div class="hs-label">MAT</div><div class="hs-val bl" id="hMAT">--</div></div>
+    <div class="hs"><div class="hs-label">Batt</div><div class="hs-val yw" id="hBatt">--</div></div>
+    <div class="hs"><div class="hs-label">ERR</div><div class="hs-val gn" id="hErr" title="Eventos de error del ride actual (dirty+timeout)">0</div></div>
+    <div class="hs"><div class="hs-label">Marcha</div><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
+    <div class="hs"><div class="hs-label" id="hRideLabel">Ride</div><div class="hs-val wh" id="hRide">--</div></div>
+  </div>
+  <div id="hPill" class="pill-dot off"></div>
+  <button id="btnCloseRide" onclick="closeRide()"
+    style="display:none;margin-left:8px;padding:4px 12px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">
+    ⏹ CERRAR RIDE
+  </button>
+  <span class="rdot"></span>
+</div>
+<div id="ecuLostBanner" style="display:none;pointer-events:none;background:#c0392b;color:#fff;text-align:center;
+  padding:8px;font-size:0.9rem;font-weight:bold;letter-spacing:1px;">
+  ⚠️ ECU SIN RESPUESTA — <span id="ecuLostSecs">0</span>s —
+  <span onclick="doReconnect()" style="cursor:pointer;text-decoration:underline;pointer-events:auto">RECONECTAR</span>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="showTab('ride');trackUsage('tab_ride')">Ride</div>
+  <div class="tab" onclick="showTab('rides');trackUsage('tab_sesiones')">Sesiones</div>
+  <div class="tab" onclick="showTab('graph');trackUsage('tab_graph')">Graf</div>
+  <div class="tab" onclick="showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()">VE</div>
+  <div class="tab" onclick="showTab('cfg');trackUsage('tab_config');loadUsageStats()">Config</div>
+  <div class="tab" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</div>
+</div>
+
+<!-- PANE RIDE -->
+<div class="pane active content" id="pane-ride">
+  <div class="big-display">
+    <div class="big-card hot">
+      <div class="big-label">CHT</div>
+      <div class="big-num ac" id="bigCHT">--</div>
+      <div class="big-unit">grados C</div>
+    </div>
+    <div class="big-card" style="border-top-color:#2ecc71">
+      <div class="big-label">KPH</div>
+      <div class="big-num" style="color:#2ecc71" id="bigKPH">--</div>
+      <div class="big-unit">km/h</div>
+    </div>
+    <div class="big-card tps">
+      <div class="big-label">TPS</div>
+      <div class="big-num bl" id="bigTPS">--%</div>
+      <div class="big-unit">apertura</div>
+      <div style="font-family:var(--mono);font-size:14px;color:var(--dim);margin-top:4px">
+        <span id="bigTPSPct" style="color:var(--blue);font-weight:700">--°</span>
+        <span style="font-size:9px">grados</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="ind-row" id="indicators"></div>
+
+  <div class="grid-section">
+    <div class="grid-label">Cobertura de celdas VE</div>
+    <div class="grid-wrap">
+      <table class="veg" id="veGrid"></table>
+    </div>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot c0"></div>Sin datos</div>
+      <div class="leg"><div class="leg-dot c1"></div>&lt;2s</div>
+      <div class="leg"><div class="leg-dot c2"></div>2-5s</div>
+      <div class="leg"><div class="leg-dot c3"></div>5-10s</div>
+      <div class="leg"><div class="leg-dot c4"></div>&gt;10s</div>
+      <div class="leg"><div class="leg-dot ca"></div>Activa</div>
+    </div>
+  </div>
+
+  <div class="obj-row-compact" id="objList"></div>
+</div>
+
+<!-- PANE RIDES -->
+<div class="pane content" id="pane-rides">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="cfg-title" style="margin:0;border:none;padding:0">Sesiones</div>
+    <button class="btn" onclick="loadSessions()">Actualizar</button>
+  </div>
+  <!-- Banner ride activo — aparece solo cuando hay ride en curso -->
+  <div id="liveRideBanner" style="display:none;background:rgba(44,221,110,.08);
+       border:1px solid var(--green);border-radius:4px;padding:8px 10px;margin-bottom:10px;
+       font-family:var(--mono);font-size:9px;color:var(--green)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span>● RIDE ACTIVO — <span id="liveRideNum">---</span></span>
+      <button class="btn" style="font-size:9px;padding:3px 8px;color:var(--green);
+              border-color:var(--green)" onclick="openLiveRideGraph()">Ver Graf</button>
+    </div>
+    <div style="color:var(--dim);font-size:8px;margin-top:3px">Los rides anteriores están disponibles abajo</div>
+  </div>
+  <div id="ridesList">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:20px;text-align:center">Cargando...</div>
+  </div>
+</div>
+
+<!-- Modal nota de ride -->
+<div id="noteModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+     background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#1a1a1a;border:1px solid var(--border);padding:16px;width:90%;max-width:360px;border-radius:4px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em;margin-bottom:8px" id="noteModalTitle">NOTA DEL RIDE</div>
+    <textarea id="noteText" style="width:100%;height:100px;background:#111;border:1px solid var(--border);
+              color:#fff;font-family:var(--mono);font-size:11px;padding:8px;resize:vertical;box-sizing:border-box"
+              placeholder="Escribe tus notas aquí..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn g" style="flex:1" onclick="saveNote()">Guardar</button>
+      <button class="btn" style="flex:1" onclick="closeNoteModal()">Cerrar</button>
+    </div>
+    <div id="noteStatus" style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:6px;min-height:12px"></div>
+  </div>
+</div>
+
+
+<!-- PANE GRAPH -->
+<div class="pane content" id="pane-graph">
+  <div class="chart-controls" style="display:none">
+    <select id="graphRideSelect" style="flex:1;background:var(--bg);border:1px solid var(--border);
+            color:#fff;font-family:var(--mono);font-size:10px;padding:6px 8px">
+      <option value="">-- Selecciona un ride --</option>
+    </select>
+    <button class="btn p" onclick="loadGraphRide()">&#9654; Ver</button>
+  </div>
+  <!-- Título del ride graficado — visible siempre arriba -->
+  <div id="graphRideTitle" style="font-family:var(--mono);font-size:11px;color:#7df;
+       font-weight:700;letter-spacing:.08em;padding:6px 0 2px;
+       border-bottom:1px solid rgba(125,223,255,0.2);margin-bottom:6px;display:none"></div>
+  <div id="graphStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
+       margin-bottom:6px;min-height:14px"></div>
+
+  <!-- Leyenda de marcadores -->
+  <div id="graphLegend" style="display:none;font-family:var(--mono);font-size:8px;
+       color:var(--dim);margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap">
+    <span><span style="color:#f80">●</span> fl_hot</span>
+    <span><span style="color:#f44">●</span> fl_kill</span>
+    <span><span style="color:#ff0">▲</span> DTC nuevo</span>
+    <span><span style="color:#8af">●</span> do_cel</span>
+    <span><span style="color:#0f8">●</span> WOT&gt;80%</span>
+    <span><span style="color:#a8f">●</span> Cambio marcha</span>
+  </div>
+
+  <!-- Chart 1: RPM + KPH + CLT triple eje -->
+  <div class="chart-wrap">
+    <div class="chart-title">RPM · VELOCIDAD · TEMPERATURA</div>
+    <canvas id="chartRPM" height="120"></canvas>
+  </div>
+  <!-- Chart 2: EGO + AFV + WUE + promedio -->
+  <div class="chart-wrap">
+    <div class="chart-title">CORRECCIONES COMBUSTIBLE — EGO · AFV · WUE · PROMEDIO</div>
+    <canvas id="chartFuel" height="100"></canvas>
+  </div>
+  <!-- Chart 3: TPS solo -->
+  <div class="chart-wrap">
+    <div class="chart-title">TPS %</div>
+    <canvas id="chartTPS" height="85"></canvas>
+  </div>
+  <!-- Chart 4: Spark + Pulse Width doble eje -->
+  <div class="chart-wrap">
+    <div class="chart-title">ENCENDIDO (°) · PULSO INYECTOR (ms)</div>
+    <canvas id="chartSPK" height="95"></canvas>
+  </div>
+  <!-- Chart 5: Batt V -->
+  <div class="chart-wrap">
+    <div class="chart-title">VOLTAJE BATERÍA (V)</div>
+    <canvas id="chartBatt" height="70"></canvas>
+  </div>
+</div>
+
+<!-- PANE VE -->
+<div class="pane content" id="pane-ve">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="cfg-title" style="margin:0;border:none;padding:0">Mapas EEPROM</div>
+    <button class="btn" onclick="loadMaps()">&#8635; Recargar</button>
+  </div>
+  <div id="veMapStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
+       margin-bottom:8px;min-height:12px">Conecta la ECU para cargar los mapas</div>
+
+  <!-- Selector de mapa -->
+  <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="btn" id="mapBtnFuelF" onclick="showMap('fuel_front')" style="font-size:9px;padding:4px 8px">Fuel Front</button>
+    <button class="btn" id="mapBtnFuelR" onclick="showMap('fuel_rear')"  style="font-size:9px;padding:4px 8px">Fuel Rear</button>
+    <button class="btn" id="mapBtnSpkF" onclick="showMap('spark_front')" style="font-size:9px;padding:4px 8px">Spark Front</button>
+    <button class="btn" id="mapBtnSpkR" onclick="showMap('spark_rear')"  style="font-size:9px;padding:4px 8px">Spark Rear</button>
+  </div>
+
+  <!-- Tabla del mapa -->
+  <div id="mapContainer" style="overflow-x:auto">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:20px">
+      Conecta la ECU · los mapas se leen del EEPROM al arrancar
+    </div>
+  </div>
+
+  <!-- Leyenda -->
+  <div id="mapLegend" style="display:none;margin-top:10px;font-family:var(--mono);font-size:8px;color:var(--dim)">
+    <span style="display:inline-block;width:12px;height:12px;background:#1a3a6a;margin-right:4px;vertical-align:middle"></span>bajo ·
+    <span style="display:inline-block;width:12px;height:12px;background:#c85000;margin-right:4px;margin-left:8px;vertical-align:middle"></span>alto ·
+    Eje X = RPM · Eje Y = TPS (Load)
+  </div>
+</div>
+
+<!-- PANE CONFIG -->
+<div class="pane content" id="pane-cfg">
+  <div class="cfg-section" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em">LOGGER VERSION</div>
+    <div style="font-family:var(--mono);font-size:14px;color:#7df;margin-top:4px;font-weight:bold" id="cfgVersion">--</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px">Buell XB12X DDFI2 · Pi Zero 2W · FT232RL</div>
+  </div>
+  
+  <!-- BOTÓN DE DESCARGA DEL LOGGER -->
+  <div class="cfg-section">
+    <div class="cfg-title">Actualizar Logger</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">
+      Descarga la última versión desde GitHub.<br>
+      Reemplaza manualmente en /home/pi/buell/
+    </div>
+    <a href="https://raw.githubusercontent.com/pacdavid1/buell-xb12x-logger/main/ddfi2_logger.py" 
+       download="ddfi2_logger.py" 
+       style="display:inline-block;padding:8px 16px;background:#e94560;color:#fff;text-decoration:none;border-radius:4px;font-family:var(--mono);font-size:10px;font-weight:600">
+      ⬇ Descargar ddfi2_logger.py
+    </a>
+    <div style="margin-top:12px">
+      <button class="btn g" onclick="gitPull()" style="width:100%; padding:10px;">🔄 Git Pull (actualizar desde GitHub)</button>
+      <div id="gitPullStatus" style="font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:6px; text-align:center;"></div>
+    </div>
+  </div>
+
+  <div class="cfg-section">
+    <div class="cfg-title">Estado ECU</div>
+    <div class="status-row">
+      <span class="rdot"></span>
+      <span id="cfgRide">Sin datos -- esperando conexion</span>
+    </div>
+    <div class="status-row" id="cfgVeStatus" style="color:var(--dim)">Mapa VE: no cargado</div>
+  </div>
+
+  <div class="cfg-section">
+    <div class="cfg-title">Mapa VE (opcional)</div>
+    <div class="msq-drop" id="msqDrop"
+         onclick="document.getElementById('msqInput').click()"
+         ondragover="event.preventDefault()"
+         ondrop="handleMsqDrop(event)">
+      Subir .msq -- si no hay EEPROM disponible
+    </div>
+    <input type="file" id="msqInput" accept=".msq,.xml" style="display:none"
+           onchange="handleMsqFile(this.files[0])">
+  </div>
+
+  <div class="cfg-section">
+    <div class="cfg-title">Objetivos del ride</div>
+    <textarea class="cfg-textarea" id="objJson" placeholder="Cargando..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn p" onclick="saveObj()">Guardar</button>
+      <button class="btn" onclick="loadObj()">Recargar</button>
+    </div>
+  </div>
+
+  <div class="cfg-section">
+    <div class="cfg-title">Calibracion TPS</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">Motor apagado, llave ON:<br>Acelerador cerrado = MIN &nbsp; WOT = MAX</div>
+    <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
+      <span style="font-family:var(--mono);font-size:9px;color:var(--dim);width:36px">MIN</span>
+      <input type="number" id="tpsMin" value="" min="0" max="1023" placeholder="135" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:13px;padding:7px 8px">
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+      <span style="font-family:var(--mono);font-size:9px;color:var(--dim);width:36px">MAX</span>
+      <input type="number" id="tpsMax" value="" min="0" max="1023" placeholder="929" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:13px;padding:7px 8px">
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <button class="btn g" onclick="saveTpsCal()">Guardar</button>
+      <button class="btn" id="btnTpsCapture" onclick="startTpsCapture()"
+        style="background:#8e44ad;flex:1;padding:7px 0">
+        ⏺ Captura Auto (10s)
+      </button>
+    </div>
+    <div id="tpsCaptureBar" style="display:none;margin-bottom:6px">
+      <div style="font-family:var(--mono);font-size:8px;color:#a8f;margin-bottom:4px" id="tpsCaptureMsg">Mueve el acelerador de MIN a MAX...</div>
+      <div style="background:#333;border-radius:3px;height:6px">
+        <div id="tpsCaptureProgress" style="background:#8e44ad;height:6px;border-radius:3px;width:0%;transition:width 0.5s"></div>
+      </div>
+    </div>
+    <span style="font-family:var(--mono);font-size:8px" id="tpsCalStatus"></span>
+  </div>
+
+  <div class="cfg-section">
+    <div class="cfg-title">Calibracion Velocidad</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">Factor VSS (pulsos/25km):<br>Cambia si cambias de llanta o rueda</div>
+    <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
+      <span style="font-family:var(--mono);font-size:9px;color:var(--dim);width:46px">CPKM25</span>
+      <input type="number" id="vssFactorInput" value="" min="100" max="9999" placeholder="1368" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:13px;padding:7px 8px">
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">Calibrado a 50mph (80.5 kph) — ride_015</div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn g" onclick="saveVssCal()">Guardar</button>
+      <span style="font-family:var(--mono);font-size:8px" id="vssCalStatus"></span>
+    </div>
+  </div>
+
+  <div class="cfg-section">
+    <div class="cfg-title">Sistema</div>
+    <button class="btn g" style="width:100%;padding:10px;margin-bottom:8px" onclick="doKeepalive()">
+      Mantener encendido (5 min)
+    </button>
+    <button class="btn p" style="width:100%;padding:10px;margin-bottom:8px" onclick="doReconnect()">
+      &#x21BA; Forzar reconexión ECU
+    </button>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
+      Reconexión completa: cierra puerto, espera 1s, reconecta, verifica ECU y relee EEPROM
+    </div>
+    <button class="btn" style="width:100%;padding:10px;margin-bottom:4px;background:#e67e22"
+      onclick="if(confirm('¿Reiniciar el logger? El ride activo se guardará.')) doRestartLogger()">
+      &#x1F504; Reiniciar Logger
+    </button>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
+      Reinicia solo el proceso — vuelve a detectar la ECU automáticamente
+    </div>
+    <button class="btn-danger" style="margin-bottom:4px" onclick="doRebootPi()">&#x1F501; Reiniciar Pi</button>
+    <button class="btn-danger" onclick="confirmShutdown()">Apagar Pi</button>
+  </div>
+
+  <div class="cfg-section">
+    <div class="cfg-title">Uso de funciones</div>
+    <div id="usageList" style="margin-bottom:8px">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--dim)">Cargando...</div>
+    </div>
+    <div style="display:flex;gap:6px">
+      <a href="/usage_stats" download="usage_stats.json"
+         style="flex:1;text-align:center;font-family:var(--mono);font-size:9px;color:var(--blue);
+                text-decoration:none;border:1px solid var(--blue);padding:6px 0"
+         onclick="trackUsage('btn_download_usage')">⬇ Descargar JSON</a>
+      <button class="btn" style="flex:1;font-size:9px" onclick="clearUsageStats()">Limpiar</button>
+    </div>
+  </div>
+
+  <div class="cfg-section">
+    <div class="cfg-title" style="cursor:pointer" onclick="toggleEcu()">
+      Config ECU
+      <span id="ecuToggleIcon" style="font-size:10px;color:var(--dim)">&#9660;</span>
+    </div>
+    <div id="ecuPanel">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:8px">
+        Leido de EEPROM al arrancar · <span id="ecuVersion" style="color:#8af">--</span>
+      </div>
+      <!-- Proteccion termica -->
+      <div style="font-family:var(--mono);font-size:9px;color:var(--amber);margin:8px 0 4px">TEMPERATURA</div>
+      <div id="ecuTempRows"></div>
+      <!-- RPM limites -->
+      <div style="font-family:var(--mono);font-size:9px;color:var(--amber);margin:8px 0 4px">RPM LIMITES</div>
+      <div id="ecuRpmRows"></div>
+      <!-- O2/EGO -->
+      <div style="font-family:var(--mono);font-size:9px;color:var(--amber);margin:8px 0 4px">O2 / EGO</div>
+      <div id="ecuEgoRows"></div>
+      <div style="margin-top:8px">
+        <button class="btn" style="font-size:9px;padding:5px 10px" onclick="loadEcu()">Refrescar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pane content" id="pane-net">
+  <!-- Estado de red -->
+  <div class="cfg-section">
+    <div class="cfg-title">Red activa</div>
+    <div class="net-status">
+      <span class="rdot" id="netDot" style="animation:none"></span>
+      <span id="netLabel">--</span>
+    </div>
+    <div class="net-row" style="margin-top:8px">
+      <div class="btn-net" id="btnWifi" onclick="switchNet('wifi')">WiFi</div>
+      <div class="btn-net" id="btnHotspot" onclick="switchNet('hotspot')">Hotspot</div>
+    </div>
+  </div>
+
+  <!-- Redes guardadas -->
+  <div class="cfg-section">
+    <div class="cfg-title">Redes guardadas</div>
+    <div id="savedList" style="margin-bottom:4px"></div>
+  </div>
+
+  <!-- Escanear -->
+  <div class="cfg-section">
+    <div class="cfg-title">Escanear redes</div>
+    <button class="btn" style="width:100%;padding:10px;margin-bottom:8px"
+            onclick="doWifiScan(event)">📶 Buscar redes</button>
+    <div id="scanList"></div>
+  </div>
+
+  <!-- Agregar red nueva -->
+  <div class="cfg-section">
+    <div class="cfg-title">Agregar red nueva</div>
+    <input id="newSsid" placeholder="Nombre de red (SSID)"
+           style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);
+                  color:#fff;font-family:var(--mono);font-size:11px;padding:8px;margin-bottom:6px">
+    <input id="newPass" type="password" placeholder="Contraseña"
+           style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);
+                  color:#fff;font-family:var(--mono);font-size:11px;padding:8px;margin-bottom:8px">
+    <button class="btn g" style="width:100%;padding:10px" onclick="doAddWifi()">
+      Conectar y guardar
+    </button>
+  </div>
+</div>
+
+<!-- BOTTOM SHEET -->
+<div class="overlay" id="overlay" onclick="closeSheet()">
+  <span class="overlay-close" onclick="closeSheet()">✕</span>
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-title">
+      <span id="sheetTitle">Celda</span>
+      <span class="sheet-close" onclick="closeSheet()">x</span>
+    </div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<script>
+const RPM_BINS  = [0,800,1000,1350,1900,2400,2900,3400,4000,5000,6000,7000,8000];
+const LOAD_BINS = [10,15,20,30,40,50,60,80,100,125,175,255];
+let lastData = null;
+
+// ── TABS ──────────────────────────────────────────────────────────
+function showTab(id) {
+  const ids = ['ride','rides','graph','ve','cfg'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
+  document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-'+id).classList.add('active');
+  if(id==='cfg')     { loadObj(); loadTpsCal(); loadVssCal(); loadEcu(); }
+  if(id==='rides')   loadRidesList();
+  if(id==='graph')   initGraphPane();
+}
+
+// ── GRID ──────────────────────────────────────────────────────────
+function buildGrid() {
+  const t = document.getElementById('veGrid');
+  let html = '<thead><tr><th class="rh">L\\R</th>';
+  for(const r of RPM_BINS)
+    html += `<th>${r===0?'0':r>=1000?(r/1000)+'k':r}</th>`;
+  html += '</tr></thead><tbody>';
+  for(let li=LOAD_BINS.length-1; li>=0; li--) {
+    html += `<tr><th class="rh">${LOAD_BINS[li]}</th>`;
+    for(let ri=0; ri<RPM_BINS.length; ri++) {
+      const key = `${RPM_BINS[ri]}_${LOAD_BINS[li]}`;
+      html += `<td id="c_${key}" class="c0" onclick="openSheet('${key}',${ri},${li})">
+        <div class="cv" id="s_${key}"></div></td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  t.innerHTML = html;
+}
+
+function updateGrid(cells, activeCell) {
+  for(let li=0; li<LOAD_BINS.length; li++) {
+    for(let ri=0; ri<RPM_BINS.length; ri++) {
+      const key = `${RPM_BINS[ri]}_${LOAD_BINS[li]}`;
+      const td  = document.getElementById(`c_${key}`);
+      if(!td) continue;
+      const secs = cells[key]?.seconds || 0;
+      td.className = key===activeCell ? 'ca' :
+                     secs<=0 ? 'c0' : secs<2  ? 'c1' :
+                     secs<5  ? 'c2' : secs<10 ? 'c3' : 'c4';
+      const sv = document.getElementById(`s_${key}`);
+      sv.textContent = secs>0 ? (secs<10?secs.toFixed(1):Math.round(secs))+'s' : '';
+    }
+  }
+}
+
+// ── BOTTOM SHEET ──────────────────────────────────────────────────
+function openSheet(key, ri, li) {
+  const cell = lastData?.cells?.[key];
+  document.getElementById('sheetTitle').textContent = `RPM ${RPM_BINS[ri]}  Load ${LOAD_BINS[li]}`;
+  let rows = '';
+  const add = (k,v) => rows += `<div class="sheet-row"><span class="sheet-key">${k}</span><span class="sheet-val">${v}</span></div>`;
+  if(cell) {
+    add('Tiempo', cell.seconds.toFixed(1)+' s');
+    add('EGO promedio', cell.ego_avg.toFixed(1)+' %');
+    const st = cell.ego_avg>106?'LEAN':cell.ego_avg<94?'RICH':'OK';
+    add('Estado EGO', st);
+  } else {
+    add('Estado','Sin datos este ride');
+  }
+  document.getElementById('sheetBody').innerHTML = rows;
+  document.getElementById('overlay').classList.add('open');
+}
+function closeSheet() { document.getElementById('overlay').classList.remove('open'); }
+
+// ── HEADER ────────────────────────────────────────────────────────
+function fmtTime(s){ return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
+
+function updateHeader(d) {
+  const lv = d.live || {};
+  document.getElementById('hEGO').textContent  = lv.EGO_Corr != null ? lv.EGO_Corr.toFixed(0)+'%' : '--';
+  document.getElementById('hMAT').textContent  = lv.MAT      != null ? lv.MAT.toFixed(0)+'`'        : '--';
+  document.getElementById('hBatt').textContent = lv.Batt_V   != null ? lv.Batt_V.toFixed(1)+'V'     : '--';
+  const errEl = document.getElementById('hErr');
+  if(errEl){
+    const re = d.ride_errors || {};
+    const total = re.total || 0;
+    const elapsedMin = (d.elapsed_s || 0) / 60;
+    const errPerMin = (d.ride_active && elapsedMin > 0.1) ? (total / elapsedMin) : 0;
+    errEl.textContent = d.ride_active ? total : '—';
+    errEl.className   = 'hs-val ' + (errPerMin > 5 ? 'ac' : errPerMin > 2 ? 'yw' : 'gn');
+    errEl.title = d.ride_active
+      ? `Dirty: ${re.dirty||0}  Timeout: ${re.timeout||0}  Serial: ${re.serial||0}  (${errPerMin.toFixed(1)}/min)`
+      : 'Sin ride activo';
+  }
+  const gearEl = document.getElementById('hGear');
+  if(gearEl){
+    const g = lv.Gear;
+    gearEl.textContent = (g!=null && g>0) ? g+'ª' : (g===0 ? 'N' : '--');
+  }
+  // Ride: muestra numero + timer cuando está activo
+  if(d.ride_active){
+    document.getElementById('hRideLabel').textContent = 'R'+String(d.ride_num||0).padStart(3,'0');
+    document.getElementById('hRide').textContent = fmtTime(d.elapsed_s||0);
+  } else {
+    document.getElementById('hRideLabel').textContent = 'Ride';
+    document.getElementById('hRide').textContent = d.ride_num ? 'R'+String(d.ride_num).padStart(3,'0') : '--';
+  }
+
+  const pill = document.getElementById('hPill');
+  if(d.ride_active)     { pill.textContent=''; pill.className='pill-dot on'; }
+  else if(d.waiting)    { pill.textContent=''; pill.className='pill-dot yw'; }
+  else                  { pill.textContent=''; pill.className='pill-dot off'; }
+
+  // Botón cerrar ride
+  const btnClose = document.getElementById('btnCloseRide');
+  if(btnClose) btnClose.style.display = d.ride_active ? 'inline-block' : 'none';
+
+  // EGO color
+  const egoEl = document.getElementById('hEGO');
+  if(lv.EGO_Corr != null)
+    egoEl.className = 'hs-val '+(lv.EGO_Corr>106?'ac':lv.EGO_Corr<94?'bl':'gn');
+
+  // Big CHT
+  const bcht = document.getElementById('bigCHT');
+  if(lv.CLT != null){
+    bcht.textContent = lv.CLT.toFixed(0);
+    bcht.className = 'big-num '+(lv.CLT>260?'ac':lv.CLT>220?'yw':'wh');
+  } else { bcht.textContent='--'; bcht.className='big-num ac'; }
+
+  // Big KPH
+  const bkph = document.getElementById('bigKPH');
+  if(bkph) bkph.textContent = lv.VS_KPH != null ? lv.VS_KPH.toFixed(0) : '--';
+
+  // Big TPS — muestra % (ya calibrado en Python) y grados
+  const tpsPct = lv.TPS_pct;
+  const tpsDeg = lv.TPD;
+  const bigTpsEl = document.getElementById('bigTPS');
+  const bigTpsPctEl = document.getElementById('bigTPSPct');
+  if(tpsPct != null){
+    bigTpsEl.textContent = tpsPct.toFixed(0)+'%';
+    bigTpsEl.style.color = tpsPct>80?'var(--accent)':tpsPct>50?'var(--accent2)':'var(--blue)';
+    if(bigTpsPctEl) bigTpsPctEl.textContent = tpsDeg!=null ? tpsDeg.toFixed(1)+'°' : '';
+  } else {
+    bigTpsEl.textContent='--';
+    if(bigTpsPctEl) bigTpsPctEl.textContent='';
+  }
+
+  // Config
+  document.getElementById('cfgRide').textContent =
+    d.ride_active ? `Ride R${d.ride_num} activo -- ${fmtTime(d.elapsed_s||0)}` : 'Standby -- esperando motor';
+  if(d.ve_loaded)
+    document.getElementById('cfgVeStatus').textContent = 'Mapa VE: cargado del EEPROM';
+}
+
+// ── OBJETIVOS compactos ───────────────────────────────────────────
+function renderObjectives(objs) {
+  const el = document.getElementById('objList');
+  if(!objs?.length){ el.innerHTML=''; return; }
+  el.innerHTML = objs.map(o => {
+    const pct = Math.min(100, Math.round(o.pct));
+    const cls = pct>=100?'done':pct>0?'partial':'';
+    const shortLabel = o.label.replace('Zona ','').replace('Calentamiento ','Cal. ');
+    return `<div class="obj-chip ${cls}">
+      <div class="obj-chip-label">${shortLabel}</div>
+      <div class="obj-chip-pct">${pct}%</div>
+      <div class="obj-bar"><div class="obj-fill ${pct>=100?'done':''}" style="width:${pct}%"></div></div>
+      <div class="obj-chip-sub">${o.done_cells}/${o.total_cells} &gt;=${o.target_s}s</div>
+    </div>`;
+  }).join('');
+}
+
+// ── INDICADORES ────────────────────────────────────────────────────
+function renderIndicators(ind) {
+  const el = document.getElementById('indicators');
+  if(!ind || !Object.keys(ind).length){ el.innerHTML=''; return; }
+  let html='';
+  if(ind.max_cht){
+    const cls=ind.max_cht.actual>260?'bad':ind.max_cht.actual>220?'warn':'ok';
+    html+=`<div class="ind"><div class="dot ${cls}"></div>
+      <div class="ind-text">CHT <span class="ind-val">${ind.max_cht.actual.toFixed(0)}</span>/${ind.max_cht.limit}</div></div>`;
+  }
+  if(ind.min_duration){
+    html+=`<div class="ind"><div class="dot ${ind.min_duration.ok?'ok':'warn'}"></div>
+      <div class="ind-text">Tiempo <span class="ind-val">${fmtTime(ind.min_duration.actual)}</span>/${fmtTime(ind.min_duration.limit)}</div></div>`;
+  }
+  el.innerHTML=html;
+}
+
+// ── FETCH LOOP ────────────────────────────────────────────────────
+async function fetchLive() {
+  if(window._viewingHistory) return;
+  try {
+    const r = await fetch('/live.json?t='+Date.now());
+    if(!r.ok) return;
+    const d = await r.json();
+    lastData = d;
+    updateHeader(d);
+    updateGrid(d.cells||{}, d.active_cell);
+    renderObjectives(d.objectives);
+    renderIndicators(d.indicators);
+    if(d.network_mode) updateNetStatus(d.network_mode);
+    if(d.logger_version){ const el=document.getElementById('cfgVersion'); if(el) el.textContent=d.logger_version; }
+    // Banner ECU desconectada
+    const banner = document.getElementById('ecuLostBanner');
+    if(banner){
+      const lost = !d.ecu_connected && d.ride_active;
+      banner.style.display = lost ? 'block' : 'none';
+      banner.style.pointerEvents = lost ? 'auto' : 'none';
+      if(lost) document.getElementById('ecuLostSecs').textContent = Math.round(d.ecu_lost_s||0);
+    }
+    // Banner ride activo en Sesiones
+    const liveBanner = document.getElementById('liveRideBanner');
+    if(liveBanner){
+      liveBanner.style.display = d.ride_active ? 'block' : 'none';
+      if(d.ride_active){
+        const el = document.getElementById('liveRideNum');
+        if(el) el.textContent = 'R'+String(d.ride_num||0).padStart(3,'0') + ' · ' + fmtTime(d.elapsed_s||0);
+      }
+    }
+  } catch(e){}
+}
+setInterval(fetchLive, 2000);
+
+// ── MAPAS EEPROM ──────────────────────────────────────────────────
+let _mapsData = null;
+let _activeMap = 'fuel_front';
+
+async function loadMaps(){
+  const status = document.getElementById('veMapStatus');
+  if(status) status.textContent = 'Leyendo EEPROM...';
+  try{
+    const r = await fetch('/maps?t='+Date.now());
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    _mapsData = await r.json();
+    if(_mapsData && _mapsData.error){
+      if(status) status.textContent = 'Error: '+_mapsData.error;
+      return;
+    }
+    if(!_mapsData || !_mapsData.fuel_front){
+      if(status) status.textContent = 'Sin mapas — conecta la ECU primero';
+      return;
+    }
+    if(status) status.textContent = 'Mapas leídos del EEPROM ✓';
+    document.getElementById('mapLegend').style.display='block';
+    showMap(_activeMap);
+  }catch(e){
+    if(status) status.textContent = 'Error: '+e;
+  }
+}
+
+function showMap(which){
+  _activeMap = which;
+  if(!_mapsData) return;
+  const axes  = _mapsData.axes || {};
+  const table = _mapsData[which];
+  if(!table){ return; }
+
+  // Ejes según tipo de mapa
+  const isFuel  = which.startsWith('fuel');
+  const unit    = isFuel ? '' : '°';
+  const label   = {'fuel_front':'Fuel Front (VE)','fuel_rear':'Fuel Rear (VE)',
+                   'spark_front':'Spark Advance Front (°)','spark_rear':'Spark Advance Rear (°)'}[which];
+  const rawXAxis = isFuel ? (axes.fuel_rpm  || []) : (axes.spark_rpm  || []);
+  const yAxis    = isFuel ? (axes.fuel_load || []) : (axes.spark_load || []);
+
+  // ── Ordenar columnas: eje RPM guardado como período (μs/rev)
+  //    Período > 0 → convertir a RPM real. Columnas con período=0 se descartan.
+  //    Ordenar por período DESCENDENTE = RPM ASCENDENTE (izq=bajo, der=alto).
+  const validColIdx = rawXAxis.map((v,i)=>i).filter(i=>rawXAxis[i]>0);
+  validColIdx.sort((a,b)=>rawXAxis[b]-rawXAxis[a]);   // desc período = asc RPM
+  const sortedRPM   = validColIdx.map(i=>Math.round(60000000/rawXAxis[i]));
+  const sortedTable = table.map(row=>validColIdx.map(i=>row[i]));
+
+  // Min/max para heatmap (ignorar ceros estructurales para escala de color)
+  const allVals = sortedTable.flat().filter(v=>v>0);
+  const vMin = allVals.length ? Math.min(...allVals) : 0;
+  const vMax = allVals.length ? Math.max(...allVals) : 1;
+
+  // Highlight botón activo
+  ['FuelF','FuelR','SpkF','SpkR'].forEach(k=>{
+    const btn = document.getElementById('mapBtn'+k);
+    if(btn) btn.style.borderColor = '';
+  });
+  const btnMap = {'fuel_front':'FuelF','fuel_rear':'FuelR','spark_front':'SpkF','spark_rear':'SpkR'};
+  const activeBtn = document.getElementById('mapBtn'+btnMap[which]);
+  if(activeBtn) activeBtn.style.borderColor = 'var(--accent2)';
+
+  // Construir tabla HTML
+  const cellW = 40, cellH = 22;
+  let html = `<div style="font-family:var(--mono);font-size:9px;color:#aaa;margin-bottom:6px">${label}</div>`;
+  html += '<table style="border-collapse:collapse;font-family:monospace;font-size:9px">';
+
+  // Header fila — RPM real
+  html += '<tr><td style="padding:2px 4px;color:var(--dim);font-size:8px">TPS↓ RPM→</td>';
+  for(const rpm of sortedRPM){
+    const rpmLabel = rpm>=1000 ? (rpm/1000).toFixed(1)+'k' : rpm;
+    html += `<td style="padding:2px 3px;color:var(--dim);font-size:8px;text-align:center;
+             min-width:${cellW}px">${rpmLabel}</td>`;
+  }
+  html += '</tr>';
+
+  // Filas — iterar de arriba hacia abajo (load alto arriba)
+  const yReversed    = [...yAxis].reverse();
+  const tableReversed= [...sortedTable].reverse();
+  for(let ri=0; ri<tableReversed.length; ri++){
+    const row     = tableReversed[ri];
+    const loadVal = yReversed[ri] !== undefined ? yReversed[ri] : ri;
+    html += '<tr>';
+    html += `<td style="padding:2px 4px;color:var(--dim);font-size:8px;white-space:nowrap">${loadVal}%</td>`;
+    for(const val of row){
+      if(val === 0){
+        // Celda sin datos en el EEPROM — fondo oscuro, sin número
+        html += `<td style="background:#1a1a22;color:#333;padding:1px 2px;text-align:center;
+                 min-width:${cellW}px;height:${cellH}px;border:1px solid rgba(255,255,255,0.04);
+                 font-size:7px" title="sin datos">·</td>`;
+      } else {
+        const t  = (val - vMin) / (vMax - vMin || 1);
+        const bg = heatColor(t);
+        const fg = t > 0.55 ? '#000' : '#fff';
+        html += `<td style="background:${bg};color:${fg};padding:1px 2px;text-align:center;
+                 min-width:${cellW}px;height:${cellH}px;border:1px solid rgba(255,255,255,0.06)">${val.toFixed(isFuel?0:1)}${unit}</td>`;
+      }
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+
+  const container = document.getElementById('mapContainer');
+  if(container) container.innerHTML = html;
+}
+
+function heatColor(t){
+  // Azul oscuro → naranja → rojo
+  const stops = [
+    [0.00, [10, 30, 80]],
+    [0.35, [20, 80,160]],
+    [0.60, [50,160, 80]],
+    [0.80, [200,120,  0]],
+    [1.00, [200, 30,  0]],
+  ];
+  let lo=stops[0], hi=stops[stops.length-1];
+  for(let i=0;i<stops.length-1;i++){
+    if(t>=stops[i][0] && t<=stops[i+1][0]){ lo=stops[i]; hi=stops[i+1]; break; }
+  }
+  const f=(t-lo[0])/(hi[0]-lo[0]||1);
+  const r=Math.round(lo[1][0]+(hi[1][0]-lo[1][0])*f);
+  const g=Math.round(lo[1][1]+(hi[1][1]-lo[1][1])*f);
+  const b=Math.round(lo[1][2]+(hi[1][2]-lo[1][2])*f);
+  return `rgb(${r},${g},${b})`;
+}
+
+// ── OBJETIVOS EDITOR ──────────────────────────────────────────────
+async function loadObj() {
+  try {
+    const d = await (await fetch('/live.json?t='+Date.now())).json();
+    document.getElementById('objJson').value = JSON.stringify(d.raw_objectives||{}, null, 2);
+  } catch(e){ document.getElementById('objJson').value='{}'; }
+}
+async function saveObj() {
+  try {
+    const v = JSON.parse(document.getElementById('objJson').value);
+    await fetch('/obj',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)});
+    showTab('ride');
+  } catch(e){ alert('JSON invalido: '+e); }
+}
+
+// ── MSQ ────────────────────────────────────────────────────────────
+function handleMsqDrop(e){ e.preventDefault(); handleMsqFile(e.dataTransfer.files[0]); }
+function handleMsqFile(file){
+  if(!file) return;
+  const r=new FileReader();
+  r.onload=e=>parseMsq(e.target.result,file.name);
+  r.readAsText(file);
+}
+function parseMsq(xml,fname){
+  try{
+    const doc=new DOMParser().parseFromString(xml,'text/xml');
+    let front=null,rear=null;
+    doc.querySelectorAll('*').forEach(el=>{
+      const n=el.getAttribute&&el.getAttribute('name');
+      if(n==='veBins1'&&!front) front=el.textContent.trim();
+      if(n==='veBins2'&&!rear)  rear =el.textContent.trim();
+    });
+    if(!front){alert('No se encontraron tablas VE');return;}
+    const parse=s=>{const nums=s.trim().split(/\s+/).map(Number);const rows=[];for(let i=0;i<nums.length;i+=13)rows.push(nums.slice(i,i+13));return rows;};
+    fetch('/ve',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({front:parse(front),rear:rear?parse(rear):parse(front),source:'msq',filename:fname})});
+    document.getElementById('msqDrop').textContent='Cargado: '+fname;
+    document.getElementById('msqDrop').className='msq-drop loaded';
+  }catch(err){alert('Error: '+err);}
+}
+
+// ── CERRAR RIDE ─────────────────────────────────────────────────────
+async function closeRide(){
+  if(!confirm('¿Cerrar el ride actual?')) return;
+  trackUsage('btn_close_ride');
+  try{
+    const r=await fetch('/close_ride',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const d=await r.json();
+    if(d.ok && d.session && d.ride_num){
+      setTimeout(()=>{ openNoteModal(d.session, d.ride_num); }, 800);
+    } else {
+      // El ride ya fue auto-cerrado (reconexión automática) — abrir notas del último ride
+      setTimeout(async()=>{
+        try{
+          const lr = await (await fetch('/rides?t='+Date.now())).json();
+          const rides = lr.rides || [];
+          if(rides.length){
+            const last = rides[rides.length-1];
+            openNoteModal(last.session, last.ride_num);
+          }
+        }catch(e){}
+      }, 800);
+    }
+  }catch(e){}
+  setTimeout(fetchLive,1000);
+}
+
+// ── RED ────────────────────────────────────────────────────────────
+async function switchNet(action){
+  const lbl=document.getElementById('netLabel');
+  if(lbl) lbl.textContent=action==='wifi'?'Buscando WiFi...':'Activando hotspot...';
+  try{await fetch('/network',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});}catch(e){}
+  setTimeout(fetchLive,5000);
+}
+function updateNetStatus(mode){
+  const label=document.getElementById('netLabel');
+  const dot  =document.getElementById('netDot');
+  if(!label) return;
+  document.getElementById('btnWifi')    ?.classList.toggle('on',mode==='wifi');
+  document.getElementById('btnHotspot') ?.classList.toggle('on',mode==='hotspot');
+  if(mode==='wifi')      {label.textContent='WiFi conectado';    dot.style.background='var(--green)';dot.style.animation='';}
+  else if(mode==='hotspot'){label.textContent='Hotspot 10.42.0.1';dot.style.background='var(--blue)'; dot.style.animation='';}
+  else                   {label.textContent='Sin red';           dot.style.background='var(--dim)'; dot.style.animation='none';}
+}
+
+async function loadNetPane(){
+  // Cargar redes guardadas
+  const sv = await fetch('/wifi/saved').then(r=>r.json()).catch(()=>({saved:[]}));
+  const el = document.getElementById('savedList');
+  if(!el) return;
+  if(!sv.saved.length){
+    el.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--dim)">Sin redes guardadas</div>';
+    return;
+  }
+  el.innerHTML = sv.saved.map(s=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:7px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <span style="font-family:var(--mono);font-size:10px">${s.ssid}</span>
+        <span style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-left:6px">${s.name}</span>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="btn g" style="font-size:9px;padding:4px 8px"
+          onclick="doConnect('${s.name.replace(/'/g,"\\'")}')">Conectar</button>
+        <button class="btn" style="font-size:9px;padding:4px 8px;color:var(--red)"
+          onclick="doForget('${s.name.replace(/'/g,"\\'")}','${s.ssid.replace(/'/g,"\\'")}')">✕</button>
+      </div>
+    </div>`).join('');
+}
+
+async function doConnect(profileName){
+  if(!confirm(`¿Conectar a "${profileName}"?\nEl hotspot se apagará.`)) return;
+  await fetch('/wifi/connect',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({profile:profileName})});
+  setTimeout(()=>{fetchLive();loadNetPane();}, 6000);
+}
+
+async function doForget(name, ssid){
+  if(!confirm(`¿Eliminar red "${ssid}"?`)) return;
+  await fetch('/wifi/forget',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name})});
+  setTimeout(loadNetPane, 1000);
+}
+
+async function doWifiScan(e){
+  const btn=e.target;
+  btn.textContent='Escaneando...'; btn.disabled=true;
+  const sv = await fetch('/wifi/saved').then(r=>r.json()).catch(()=>({saved:[]}));
+  const savedSsids = new Set(sv.saved.map(s=>s.ssid));
+  const r = await fetch('/wifi/scan',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:'{}'}).then(r=>r.json()).catch(()=>({networks:[]}));
+  btn.textContent='📶 Buscar redes'; btn.disabled=false;
+  const el=document.getElementById('scanList');
+  if(!r.networks.length){
+    el.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--dim)">No se encontraron redes</div>';
+    return;
+  }
+  el.innerHTML=r.networks.map(n=>{
+    const saved=savedSsids.has(n.ssid);
+    return `
+    <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:6px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <span style="font-family:var(--mono);font-size:10px">${n.ssid}</span>
+        <span style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-left:6px">${n.signal}%</span>
+        ${saved?'<span style="font-family:var(--mono);font-size:8px;color:var(--green);margin-left:4px">✓</span>':''}
+      </div>
+      <button class="btn ${saved?'g':''}" style="font-size:9px;padding:4px 8px"
+        onclick="prefillWifi('${n.ssid.replace(/'/g,"\\'")}')">
+        ${saved?'Conectar':'Agregar'}</button>
+    </div>`}).join('');
+}
+
+function prefillWifi(ssid){
+  document.getElementById('newSsid').value=ssid;
+  document.getElementById('newPass').value='';
+  document.getElementById('newPass').focus();
+}
+
+async function doAddWifi(){
+  const ssid=document.getElementById('newSsid').value.trim();
+  const pass=document.getElementById('newPass').value;
+  if(!ssid||!pass){alert('Falta SSID o contraseña');return;}
+  if(!confirm(`¿Conectar a "${ssid}"?\nEl hotspot se apagará.`)) return;
+  await fetch('/wifi/add',{method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({ssid,password:pass})});
+  document.getElementById('newSsid').value='';
+  document.getElementById('newPass').value='';
+  setTimeout(()=>{fetchLive();loadNetPane();}, 8000);
+}
+
+// ── RIDES (selección múltiple + sumatoria) ────────────────────────
+let ridesCache=[];
+let selectedRides=new Set();
+let _noteCtx={session:'',ride_num:0};
+
+async function loadSessions(){
+  const el=document.getElementById('ridesList'); if(!el) return;
+  el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:20px;text-align:center">Cargando...</div>';
+  try{
+    const d=await(await fetch('/rides?t='+Date.now())).json();
+    const rides=(d.rides||[]);
+    ridesCache=rides.slice().reverse();
+    if(!ridesCache.length){
+      el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:20px;text-align:center">Sin rides guardados</div>';
+      return;
+    }
+    const sessions={};
+    for(const r of ridesCache){
+      if(!sessions[r.session]) sessions[r.session]={rides:[],latest:0};
+      sessions[r.session].rides.push(r);
+      if((r.ride_num||0)>sessions[r.session].latest) sessions[r.session].latest=r.ride_num||0;
+    }
+    const sesKeys=Object.keys(sessions).sort((a,b)=>sessions[b].latest-sessions[a].latest);
+    const live=lastData?.ride_active;
+    let html='';
+    if(live) html+='<div style="font-family:var(--mono);font-size:9px;color:var(--accent);padding:4px 0 10px">⚡ Ride activo — historial disponible al terminar</div>';
+    for(const sk of sesKeys){
+      const s=sessions[sk];
+      html+=`<div style="margin-bottom:12px">
+        <div onclick="toggleSession('ses_${sk}')" style="cursor:pointer;display:flex;justify-content:space-between;
+             align-items:center;background:#1a1a1a;border:1px solid var(--border);padding:7px 10px;margin-bottom:2px">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.1em">${sk}</span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--dim)">${s.rides.length} rides ▾</span>
+        </div>
+        <div id="ses_${sk}">`;
+      for(const r of s.rides){
+        const ri=ridesCache.indexOf(r);
+        const dur=r.duration_s?Math.round(r.duration_s)+'s':'--';
+        const dtcBadge=(r.dtc_events&&r.dtc_events.length)?`<span style="color:var(--accent);font-size:9px">⚠${r.dtc_events.length}</span>`:'';
+        const noteBadge=r.has_note?'<span style="color:#7df;font-size:9px">📝</span>':'';
+        const errBadge=r.has_errorlog?`<span style="color:#f90;font-size:9px" title="${r.errorlog_summary||'errores'}">🔴${r.errorlog_events||''}</span>`:'';
+        const closeR=r.close_reason?` · ${r.close_reason}`:'';
+        html+=`<div class="ride-item" style="gap:4px;opacity:${live?0.5:1};pointer-events:${live?'none':'auto'}">
+          <div style="flex:1;min-width:0">
+            <div class="ride-name" style="display:flex;align-items:center;gap:5px">
+              ride_${String(r.ride_num).padStart(3,'0')} ${dtcBadge} ${noteBadge} ${errBadge}
+            </div>
+            <div class="ride-meta">${dur} · ${r.samples} muestras${closeR}</div>
+            ${r.has_note?`<div style="font-family:var(--mono);font-size:8px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.note_preview}</div>`:''}
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button class="btn" style="font-size:9px;padding:4px 7px" onclick="viewSingleRide(${ri})">Ver</button>
+            <button class="btn p" style="font-size:9px;padding:4px 7px" onclick="openRideGraph(${ri})">Graf</button>
+            <button class="btn" style="font-size:9px;padding:4px 7px" onclick="openNoteModal('${sk}',${r.ride_num})">📝</button>
+            <a href="/csv/${r.filename}?t=${Date.now()}" download="ride_${r.ride_num}.csv"
+               onclick="event.stopPropagation()"
+               style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;
+                      border:1px solid var(--blue);padding:4px 6px">CSV</a>
+          </div>
+        </div>`;
+      }
+      html+=`</div></div>`;
+    }
+    el.innerHTML=html;
+  }catch(e){
+    el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:20px">Error: '+e+'</div>';
+  }
+}
+
+function toggleSession(id){
+  const el=document.getElementById(id); if(!el) return;
+  el.style.display=el.style.display==='none'?'':'none';
+}
+
+function openNoteModal(session,ride_num){
+  _noteCtx={session,ride_num};
+  document.getElementById('noteModalTitle').textContent=`NOTA — ${session} ride_${String(ride_num).padStart(3,'0')}`;
+  document.getElementById('noteText').value='';
+  document.getElementById('noteStatus').textContent='Cargando...';
+  document.getElementById('noteModal').style.display='flex';
+  fetch(`/ride_note?session=${encodeURIComponent(session)}&ride=${ride_num}&t=${Date.now()}`)
+    .then(r=>r.json()).then(d=>{
+      document.getElementById('noteText').value=d.note||'';
+      document.getElementById('noteStatus').textContent='';
+    }).catch(()=>{ document.getElementById('noteStatus').textContent=''; });
+}
+
+function closeNoteModal(){
+  document.getElementById('noteModal').style.display='none';
+  loadSessions();
+}
+
+async function saveNote(){
+  const text=document.getElementById('noteText').value;
+  trackUsage('btn_guardar_nota');
+  document.getElementById('noteStatus').textContent='Guardando...';
+  try{
+    const r=await fetch('/ride_note',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({session:_noteCtx.session,ride_num:_noteCtx.ride_num,note:text})});
+    const d=await r.json();
+    document.getElementById('noteStatus').textContent=d.ok?'✓ Guardado':'Error al guardar';
+    if(d.ok) setTimeout(()=>{ document.getElementById('noteStatus').textContent=''; },1500);
+  }catch(e){ document.getElementById('noteStatus').textContent='Error: '+e; }
+}
+
+async function viewSingleRide(idx){
+  trackUsage('btn_ver_ride');
+  selectedRides=new Set([idx]);
+  await viewSelectedRides();
+}
+
+function openRideGraph(idx){
+  trackUsage('btn_graf_ride');
+  const r=ridesCache[idx]; if(!r) return;
+  showTab('graph');
+  // Pasar filename directo — no depender de que el select esté populado
+  setTimeout(()=>{ loadGraphRide(r.filename); },120);
+}
+
+function openLiveRideGraph(){
+  if(!ridesCache || !ridesCache.length){ alert('Cargando rides...'); loadSessions(); return; }
+  showTab('graph');
+  setTimeout(()=>{ loadGraphRide(ridesCache[0].filename); },120);
+}
+
+// loadRidesList alias para compatibilidad con initGraphPane
+function loadRidesList(){ return loadSessions(); }
+
+async function viewSelectedRides(){
+  if(!selectedRides.size) return;
+  const indices=[...selectedRides];
+  const rides=indices.map(i=>ridesCache[i]).filter(Boolean);
+  const summaries=await Promise.all(rides.map(r=>
+    fetch('/ride/'+r.filename+'?t='+Date.now()).then(x=>x.json()).catch(()=>null)
+  ));
+  const merged={};
+  for(const s of summaries){
+    if(!s) continue;
+    for(const [key,val] of Object.entries(s.cells||{})){
+      if(!merged[key]) merged[key]={seconds:0,ego_sum:0,count:0};
+      merged[key].seconds+=val.seconds;
+      merged[key].ego_sum+=val.ego_avg*(val.seconds||1);
+      merged[key].count+=(val.seconds||1);
+    }
+  }
+  const cells={};
+  for(const [k,v] of Object.entries(merged))
+    cells[k]={seconds:parseFloat(v.seconds.toFixed(1)),ego_avg:parseFloat((v.ego_sum/v.count).toFixed(1))};
+  const objCfg=lastData?.raw_objectives||{};
+  const objectives=(objCfg.cell_targets||[]).map(ct=>{
+    const matching=RPM_BINS.flatMap(r=>LOAD_BINS.filter(l=>r>=ct.rpm_min&&r<=ct.rpm_max&&l>=ct.load_min&&l<=ct.load_max).map(l=>`${r}_${l}`));
+    const done=matching.filter(k=>cells[k]?.seconds>=(ct.seconds||5)).length;
+    return {label:ct.label,target_s:ct.seconds,done_cells:done,total_cells:matching.length,pct:matching.length?done/matching.length*100:0};
+  });
+  const rideLabel=rides.length===1?rides[0].filename.replace('.csv','').replace('_',' '):
+                  `${rides.length} rides sumados`;
+  lastData={...(lastData||{}),cells,objectives,ride_active:false,
+            ride_num:null,elapsed_s:0,active_cell:null};
+  updateGrid(cells,null);
+  renderObjectives(objectives);
+  window._viewingHistory=true;
+  showTab('ride');
+  document.getElementById('objList').insertAdjacentHTML('afterbegin',
+    `<div style="background:rgba(232,66,10,.12);border:1px solid var(--accent);padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9px;color:var(--accent);width:100%">
+      <span>${rideLabel}</span>
+      <span onclick="exitHistory()" style="cursor:pointer;padding:2px 8px;border:1px solid var(--accent)">LIVE</span>
+    </div>`);
+}
+
+function exitHistory(){
+  window._viewingHistory=false;
+  fetchLive();
+}
+
+// ── USAGE TRACKER ─────────────────────────────────────────────────
+function trackUsage(action){
+  fetch('/usage',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action})}).catch(()=>{});
+}
+
+async function loadUsageStats(){
+  const el=document.getElementById('usageList'); if(!el) return;
+  try{
+    const d=await(await fetch('/usage_stats?t='+Date.now())).json();
+    const entries=Object.entries(d).filter(([k])=>k!=='last_updated')
+      .sort((a,b)=>b[1]-a[1]);
+    if(!entries.length){ el.innerHTML='<div style="color:var(--dim);font-size:9px">Sin datos aún</div>'; return; }
+    const max=entries[0][1]||1;
+    el.innerHTML=entries.map(([k,v])=>{
+      const pct=Math.round(v/max*100);
+      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <div style="font-family:var(--mono);font-size:8px;color:var(--dim);width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${k}</div>
+        <div style="flex:1;background:#222;height:6px;border-radius:2px">
+          <div style="width:${pct}%;background:#7df;height:100%;border-radius:2px"></div>
+        </div>
+        <div style="font-family:var(--mono);font-size:8px;color:#fff;width:24px;text-align:right">${v}</div>
+      </div>`;
+    }).join('');
+    const upd=d.last_updated||'';
+    if(upd) el.insertAdjacentHTML('beforeend',`<div style="font-family:var(--mono);font-size:7px;color:var(--dim);margin-top:6px">${upd}</div>`);
+  }catch(e){ el.innerHTML='<div style="color:var(--dim);font-size:9px">Error</div>'; }
+}
+
+async function clearUsageStats(){
+  if(!confirm('¿Limpiar todos los contadores de uso?')) return;
+  await fetch('/usage',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'__clear__'})}).catch(()=>{});
+  // limpiar en servidor vía endpoint dedicado
+  await fetch('/usage_clear',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>{});
+  loadUsageStats();
+}
+
+
+// ── GRÁFICAS ──────────────────────────────────────────────────────
+
+// ═══════════════════════════════════════════════════════════════
+// GRÁFICAS — Chart.js con marcadores de eventos
+// ═══════════════════════════════════════════════════════════════
+
+const CHART_DEFAULTS = {
+  animation: false,
+  responsive: true,
+  maintainAspectRatio: false,
+  interaction: { mode:'index', intersect:false },
+  plugins: { legend:{ display:false }, tooltip:{ enabled:true,
+    callbacks:{ label: ctx => `${ctx.dataset.label||''}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1):''}` }
+  }},
+  scales:{
+    x:{ type:'linear', ticks:{ font:{family:'monospace',size:8}, color:'#555',
+          callback: v => v%30===0 ? (v+'s') : '' },
+        grid:{ color:'rgba(255,255,255,.04)' }},
+    y:{ ticks:{ font:{family:'monospace',size:8}, color:'#777' },
+        grid:{ color:'rgba(255,255,255,.06)' }}
+  }
+};
+
+let _charts = {};
+
+function destroyCharts(){
+  for(const ch of Object.values(_charts)) try{ ch.destroy(); }catch(e){}
+  _charts={};
+}
+
+// Color palette
+const C = {
+  rpm:'#e8420a', kph:'#4af', clt:'#fa0', clt_hot:'#f80',
+  tps:'#38f', ego:'#0f8', spk1:'#a8f', spk2:'#c8f',
+  afv:'#ff0', wue:'#f90', batt:'#7df', cel:'#8af', dtc:'#ff4', kill:'#f44',
+  wot:'#0f8', gear:'#a8f', hot:'#f80', cold:'#4af',
+};
+
+// Scatter marker dataset
+function markerSet(label, data, color, symbol='circle', r=4){
+  return { label, data, type:'scatter', pointStyle:symbol,
+           pointRadius:r, pointHoverRadius:r+2,
+           backgroundColor:color+'cc', borderColor:color,
+           borderWidth:1, showLine:false, order:-1 };
+}
+
+// ── PARSEAR CSV ──────────────────────────────────────────────
+function parseCSVtoRows(text){
+  const lines = text.trim().split('\n').filter(l=>!l.startsWith('#'));
+  const headers = lines[0].split(',').map(h=>h.trim());
+  const rows = [];
+  for(let i=1;i<lines.length;i++){
+    const vals = lines[i].split(',');
+    const row = {};
+    headers.forEach((h,j) => {
+      const v = vals[j]?.trim();
+      row[h] = (v===''||v===undefined||v==='None') ? null : isNaN(v) ? v : parseFloat(v);
+    });
+    rows.push(row);
+  }
+  return rows;
+}
+
+// ── EXTRAER EVENTOS DE CAMBIO DE BIT ─────────────────────────
+function extractTransitions(rows, field, targetVal=1){
+  const events=[]; let prev=null;
+  for(const r of rows){
+    const v = r[field];
+    if(prev!=null && prev!==targetVal && v===targetVal)
+      events.push({x: r.time_elapsed_s, y: null});
+    prev = v;
+  }
+  return events;
+}
+
+// Detectar cambios de marcha por saltos de RPM con VSS estable
+function detectGearChanges(rows){
+  const events=[];
+  for(let i=2;i<rows.length;i++){
+    const r=rows[i], p=rows[i-2];
+    const drpm = Math.abs((r.RPM||0)-(p.RPM||0));
+    const vss  = r.VSS_Count||0;
+    if(drpm>400 && vss>10) events.push({x:r.time_elapsed_s, y:null});
+  }
+  return events;
+}
+
+// Detectar WOT (TPS > 80%)
+function detectWOT(rows){
+  const ev=[]; let inWOT=false;
+  for(const r of rows){
+    if(!inWOT && (r.TPS_pct||0)>80){ ev.push({x:r.time_elapsed_s,y:null}); inWOT=true; }
+    if(inWOT  && (r.TPS_pct||0)<60){ inWOT=false; }
+  }
+  return ev;
+}
+
+// Detectar DTC nuevo (CDiag0-4 cambia a nonzero)
+function detectDTC(rows){
+  const ev=[]; let prev=0;
+  for(const r of rows){
+    const sum=(r.CDiag0||0)+(r.CDiag1||0)+(r.CDiag2||0)+(r.CDiag3||0)+(r.CDiag4||0);
+    if(sum>0 && prev===0) ev.push({x:r.time_elapsed_s,y:null});
+    prev=sum;
+  }
+  return ev;
+}
+
+// ── CREAR GRÁFICAS ────────────────────────────────────────────
+function buildCharts(rows){
+  destroyCharts();
+  const t      = rows.map(r=>r.time_elapsed_s);
+  const tFirst = t[0] ?? 0;
+  const tLast  = t[t.length-1] ?? 1;
+
+  // ── 1. RPM + KPH + CLT  (triple eje) ──────────────────────
+  const rpmData  = rows.map(r=>({x:r.time_elapsed_s, y:r.RPM}));
+  const kphData  = rows.map(r=>({x:r.time_elapsed_s, y:r.VS_KPH}));
+  const cltData  = rows.map(r=>({x:r.time_elapsed_s, y:r.CLT}));
+  const wotEvts  = detectWOT(rows).map(e=>({...e, y: rows.find(r=>r.time_elapsed_s>=e.x)?.RPM||0}));
+  const dtcEvts  = detectDTC(rows).map(e=>({...e, y: rows.find(r=>r.time_elapsed_s>=e.x)?.RPM||0}));
+  const celEvts  = extractTransitions(rows,'do_cel',1).map(e=>({...e, y: rows.find(r=>r.time_elapsed_s>=e.x)?.RPM||0}));
+  const gearEvts = detectGearChanges(rows).map(e=>({...e, y: rows.find(r=>r.time_elapsed_s>=e.x)?.RPM||0}));
+  const hotEvts  = extractTransitions(rows,'fl_hot',1).map(e=>({...e, y: rows.find(r=>r.time_elapsed_s>=e.x)?.RPM||0}));
+  const killEvts = extractTransitions(rows,'fl_kill',1).map(e=>({...e, y: rows.find(r=>r.time_elapsed_s>=e.x)?.RPM||0}));
+  const cltVals  = rows.map(r=>r.CLT||0).filter(v=>v>0);
+  const cltMin   = cltVals.length ? Math.min(...cltVals) : 100;
+  const cltMax   = cltVals.length ? Math.max(...cltVals) : 300;
+
+  const ctxRPM = document.getElementById('chartRPM').getContext('2d');
+  _charts.rpm = new Chart(ctxRPM, { type:'line', data:{ datasets:[
+    { label:'RPM',   data:rpmData, borderColor:C.rpm, borderWidth:1.5,
+      pointRadius:0, fill:false, tension:0.1, yAxisID:'y' },
+    { label:'KPH',   data:kphData, borderColor:C.kph, borderWidth:1.5,
+      pointRadius:0, fill:false, tension:0.1, yAxisID:'y2' },
+    { label:'CLT°F', data:cltData, borderColor:C.clt, borderWidth:1.2,
+      borderDash:[3,2], pointRadius:0, fill:false, tension:0.1, yAxisID:'y3' },
+    { label:'250°F (lim)', data:[{x:tFirst,y:250},{x:tLast,y:250}],
+      borderColor:'#f804', borderWidth:1, borderDash:[4,4],
+      pointRadius:0, fill:false, yAxisID:'y3' },
+    markerSet('WOT',    wotEvts,  C.wot,  'triangle', 5),
+    markerSet('Cambio', gearEvts, C.gear, 'rectRot',  4),
+    markerSet('DTC',    dtcEvts,  C.dtc,  'triangle', 6),
+    markerSet('CEL',    celEvts,  C.cel,  'circle',   5),
+    markerSet('fl_hot', hotEvts,  C.hot,  'triangle', 5),
+    markerSet('Kill',   killEvts, C.kill, 'crossRot', 6),
+  ]}, options:{...CHART_DEFAULTS, scales:{
+    ...CHART_DEFAULTS.scales,
+    y:{  ...CHART_DEFAULTS.scales.y, position:'left',
+         title:{display:true,text:'RPM',font:{family:'monospace',size:7},color:C.rpm}},
+    y2:{ type:'linear', position:'right',
+         ticks:{font:{family:'monospace',size:8},color:C.kph},
+         grid:{drawOnChartArea:false},
+         title:{display:true,text:'KPH',font:{family:'monospace',size:7},color:C.kph}},
+    y3:{ type:'linear', position:'right',
+         min: Math.max(0, cltMin-15), max: Math.max(cltMax+20, 280),
+         ticks:{font:{family:'monospace',size:8},color:C.clt},
+         grid:{drawOnChartArea:false},
+         title:{display:true,text:'CLT°F',font:{family:'monospace',size:7},color:C.clt}}
+  }}});
+
+  // ── 2. Correcciones combustible: EGO + AFV + WUE + Promedio ─
+  const egoData  = rows.map(r=>({x:r.time_elapsed_s, y:r.EGO_Corr}));
+  const afvData  = rows.map(r=>({x:r.time_elapsed_s, y:r.AFV}));
+  const wueData  = rows.map(r=>({x:r.time_elapsed_s, y:r.WUE}));
+  const avgData  = rows.map(r=>{
+    const ego = r.EGO_Corr ?? 100;
+    const afv = r.AFV      ?? 100;
+    const wue = r.WUE      ?? 100;
+    return {x:r.time_elapsed_s, y: parseFloat(((ego+afv+wue)/3).toFixed(2))};
+  });
+  const fuelRef  = [{x:tFirst,y:100},{x:tLast,y:100}];
+  const fuelVals = [...egoData,...afvData,...wueData].map(d=>d.y).filter(v=>v!=null);
+  const fuelMin  = fuelVals.length ? Math.min(...fuelVals) : 80;
+  const fuelMax  = fuelVals.length ? Math.max(...fuelVals) : 120;
+  const richEvts = rows.filter(r=>(r.EGO_Corr??100)>106)
+    .map(r=>({x:r.time_elapsed_s, y:r.EGO_Corr}));
+  const leanEvts = rows.filter(r=>(r.EGO_Corr??100)<94)
+    .map(r=>({x:r.time_elapsed_s, y:r.EGO_Corr}));
+
+  const ctxFuel = document.getElementById('chartFuel').getContext('2d');
+  _charts.fuel = new Chart(ctxFuel, { type:'line', data:{ datasets:[
+    { label:'EGO Corr %', data:egoData, borderColor:C.ego, borderWidth:1.5,
+      pointRadius:0, fill:false, tension:0.1 },
+    { label:'AFV %',      data:afvData, borderColor:C.afv, borderWidth:1.5,
+      pointRadius:0, fill:false, tension:0.1 },
+    { label:'WUE %',      data:wueData, borderColor:C.wue, borderWidth:1.2,
+      borderDash:[3,2], pointRadius:0, fill:false, tension:0.1 },
+    { label:'Promedio',   data:avgData, borderColor:'#fff', borderWidth:2,
+      borderDash:[6,3], pointRadius:0, fill:false, tension:0.1 },
+    { label:'100%', data:fuelRef, borderColor:'#5556',
+      borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false },
+    markerSet('Rico',  richEvts, '#f44', 'circle', 2),
+    markerSet('Pobre', leanEvts, '#4af', 'circle', 2),
+  ]}, options:{...CHART_DEFAULTS, scales:{
+    ...CHART_DEFAULTS.scales,
+    y:{...CHART_DEFAULTS.scales.y,
+       min: Math.floor(fuelMin-5), max: Math.ceil(fuelMax+5)}
+  }}});
+
+  // ── 3. TPS % (solo) ──────────────────────────────────────
+  const tpsData    = rows.map(r=>({x:r.time_elapsed_s, y:r.TPS_pct}));
+  const decelEvts  = extractTransitions(rows,'fl_decel',1)
+    .map(e=>({...e, y: rows.find(r=>r.time_elapsed_s>=e.x)?.TPS_pct||0}));
+  const wotTpsEvts = detectWOT(rows)
+    .map(e=>({...e, y: rows.find(r=>r.time_elapsed_s>=e.x)?.TPS_pct||0}));
+
+  const ctxTPS = document.getElementById('chartTPS').getContext('2d');
+  _charts.tps = new Chart(ctxTPS, { type:'line', data:{ datasets:[
+    { label:'TPS%', data:tpsData, borderColor:C.tps, borderWidth:1.5,
+      pointRadius:0, fill:false, tension:0.1 },
+    markerSet('Decel', decelEvts,  '#aaf', 'triangle', 3),
+    markerSet('WOT',   wotTpsEvts, C.wot,  'triangle', 5),
+  ]}, options:{...CHART_DEFAULTS, scales:{
+    ...CHART_DEFAULTS.scales,
+    y:{...CHART_DEFAULTS.scales.y, min:0, max:100,
+       title:{display:true,text:'TPS%',font:{family:'monospace',size:7},color:C.tps}}
+  }}});
+
+  // ── 4. Spark (°) + Pulse Width (ms)  doble eje ───────────
+  const spk1Data    = rows.map(r=>({x:r.time_elapsed_s, y:r.spark1}));
+  const spk2Data    = rows.map(r=>({x:r.time_elapsed_s, y:r.spark2}));
+  const pw1Data     = rows.map(r=>({x:r.time_elapsed_s, y:r.pw1}));
+  const pw2Data     = rows.map(r=>({x:r.time_elapsed_s, y:r.pw2}));
+  const spkZeroEvts = rows.filter(r=>(r.spark1??1)===0 && (r.fl_decel??0)===0)
+    .map(r=>({x:r.time_elapsed_s, y:0}));
+  const cutEvts     = extractTransitions(rows,'fl_fuel_cut',1)
+    .map(e=>({...e, y: rows.find(r=>r.time_elapsed_s>=e.x)?.spark1||0}));
+  const pwVals      = rows.map(r=>r.pw1||0).filter(v=>v>0);
+  const pwMax       = pwVals.length ? Math.max(...pwVals) : 14;
+
+  const ctxSPK = document.getElementById('chartSPK').getContext('2d');
+  _charts.spk = new Chart(ctxSPK, { type:'line', data:{ datasets:[
+    { label:'Spark1 °BTDC', data:spk1Data, borderColor:C.spk1, borderWidth:1.5,
+      pointRadius:0, fill:false, tension:0.1, yAxisID:'y' },
+    { label:'Spark2 °BTDC', data:spk2Data, borderColor:C.spk2, borderWidth:1.2,
+      borderDash:[3,2], pointRadius:0, fill:false, tension:0.1, yAxisID:'y' },
+    { label:'PW1 ms',       data:pw1Data,  borderColor:'#f90', borderWidth:1.5,
+      pointRadius:0, fill:false, tension:0.1, yAxisID:'y2' },
+    { label:'PW2 ms',       data:pw2Data,  borderColor:'#fa6', borderWidth:1.2,
+      borderDash:[3,2], pointRadius:0, fill:false, tension:0.1, yAxisID:'y2' },
+    markerSet('Fuel Cut', cutEvts,     C.kill, 'crossRot', 6),
+    markerSet('Spark=0°', spkZeroEvts, '#f44', 'circle',   4),
+  ]}, options:{...CHART_DEFAULTS, scales:{
+    ...CHART_DEFAULTS.scales,
+    y:{  ...CHART_DEFAULTS.scales.y, min:0, max:35, position:'left',
+         title:{display:true,text:'° BTDC',font:{family:'monospace',size:7},color:C.spk1}},
+    y2:{ type:'linear', position:'right', min:0, max:Math.ceil(pwMax+1),
+         ticks:{font:{family:'monospace',size:8},color:'#f90'},
+         grid:{drawOnChartArea:false},
+         title:{display:true,text:'PW ms',font:{family:'monospace',size:7},color:'#f90'}}
+  }}});
+
+  // ── 5. Batt V ────────────────────────────────────────────
+  const battData = rows.map(r=>({x:r.time_elapsed_s, y:r.Batt_V}));
+  const battVals = battData.map(d=>d.y).filter(v=>v!=null);
+  const battMin  = battVals.length ? Math.min(...battVals) : 11;
+  const battMax  = battVals.length ? Math.max(...battVals) : 15;
+
+  const ctxBatt = document.getElementById('chartBatt').getContext('2d');
+  _charts.batt = new Chart(ctxBatt, { type:'line', data:{ datasets:[
+    { label:'Batt V', data:battData, borderColor:C.batt, borderWidth:1.2,
+      pointRadius:0, fill:false, tension:0.1 },
+    { label:'12.5V', data:[{x:tFirst,y:12.5},{x:tLast,y:12.5}],
+      borderColor:'rgba(255,255,255,0.25)', borderWidth:1,
+      borderDash:[4,4], pointRadius:0, fill:false },
+  ]}, options:{...CHART_DEFAULTS, scales:{
+    ...CHART_DEFAULTS.scales,
+    y:{...CHART_DEFAULTS.scales.y,
+       min: Math.min(battMin-0.3, 11.5),
+       max: Math.max(battMax+0.3, 14.5)}
+  }}});
+
+  // Mostrar leyenda
+  document.getElementById('graphLegend').style.display='flex';
+}
+
+// ── CARGAR RIDES EN SELECTOR ──────────────────────────────────
+function initGraphPane(){
+  if(!ridesCache || !ridesCache.length){
+    loadRidesList().then(()=>_fillGraphSelect());
+    return;
+  }
+  _fillGraphSelect();
+}
+function _fillGraphSelect(){
+  const sel = document.getElementById('graphRideSelect');
+  if(!ridesCache || !ridesCache.length){
+    sel.innerHTML='<option value="">Sin rides guardados</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">-- Selecciona un ride --</option>' +
+    ridesCache.map(r=>{
+      const dateStr = _rideDate(r);
+      const label = r.filename.replace('_summary.json','').replace(/_/g,' ').toUpperCase();
+      return `<option value="${r.filename}">${label} · ${dateStr} · ${Math.round(r.duration_s||0)}s · ${r.samples} muestras${(r.dtc_events&&r.dtc_events.length)?'  ⚠':''}</option>`;
+    }).join('');
+}
+
+function _rideDate(r){
+  // Usar opened_utc (inicio del ride) con fallback a closed_utc
+  const iso = r.opened_utc || r.closed_utc || '';
+  if(!iso) return '';
+  try{
+    const d = new Date(iso);
+    const yy = String(d.getFullYear()).slice(2);
+    const MM = String(d.getMonth()+1).padStart(2,'0');
+    const dd = String(d.getDate()).padStart(2,'0');
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    return yy+MM+dd+hh+mm;
+  }catch(e){ return ''; }
+}
+
+// ── CARGAR CSV Y RENDERIZAR ───────────────────────────────────
+async function loadGraphRide(directFile){
+  const sel   = document.getElementById('graphRideSelect');
+  const fname = directFile || sel.value;
+  const status= document.getElementById('graphStatus');
+  if(!fname){ status.textContent='Selecciona un ride'; return; }
+  // Sincronizar el select si viene de openRideGraph
+  if(directFile && sel) sel.value = directFile;
+
+  const csvName = fname.replace('_summary.json','.csv');
+  const cleanName = fname.replace('_summary.json','').replace(/_/g,' ');
+  const rideLabel = cleanName.toUpperCase();
+
+  // Buscar fecha en ridesCache
+  const rideInfo = (ridesCache||[]).find(r=>r.filename===fname);
+  const dateStr = rideInfo ? _rideDate(rideInfo) : '';
+
+  status.textContent='Cargando...';
+  const titleEl = document.getElementById('graphRideTitle');
+  if(titleEl){ titleEl.textContent=''; titleEl.style.display='none'; }
+  destroyCharts();
+  document.getElementById('graphLegend').style.display='none';
+  try{
+    const resp = await fetch('/csv/'+csvName+'?t='+Date.now());
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const text = await resp.text();
+    const rows = parseCSVtoRows(text);
+    const dur = Math.round(rows[rows.length-1]?.time_elapsed_s||0);
+    status.textContent = `${rows.length} muestras · ${dur}s`;
+    if(titleEl){
+      const datePart = dateStr ? `  <span style="color:#888;font-size:10px">${dateStr}</span>` : '';
+      titleEl.innerHTML = '▶ ' + rideLabel + datePart;
+      titleEl.style.display='block';
+    }
+    buildCharts(rows);
+  }catch(e){
+    status.textContent = 'Error: '+e;
+  }
+}
+
+
+// ── KEEPALIVE ──────────────────────────────────────────────────────
+async function doKeepalive(){
+  try{
+    await fetch('/keepalive',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const btn=document.querySelector('.btn.g');
+    if(btn){const o=btn.textContent;btn.textContent='5 min activos';setTimeout(()=>btn.textContent=o,2500);}
+  }catch(e){}
+}
+setInterval(()=>{try{fetch('/keepalive',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(e){}},240000);
+
+// ── APAGADO ────────────────────────────────────────────────────────
+function confirmShutdown(){
+  document.getElementById('sheetTitle').textContent='Apagar Pi';
+  document.getElementById('sheetBody').innerHTML=`
+    <div style="text-align:center;padding:8px 0 16px;font-size:13px;line-height:1.7">
+      Se cerrara el ride activo y la Pi se apagara.<br>
+      <span style="font-family:var(--mono);font-size:9px;color:var(--dim)">Asegurate de estar detenido.</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1;padding:10px" onclick="closeSheet()">Cancelar</button>
+      <button class="btn-danger" style="flex:1;margin:0;padding:10px" onclick="doShutdown()">Apagar</button>
+    </div>`;
+  document.getElementById('overlay').classList.add('open');
+}
+async function doShutdown(){
+  trackUsage('btn_poweroff');
+  closeSheet();
+  try{await fetch('/shutdown',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(e){}
+  document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100dvh;font-family:var(--mono);font-size:12px;color:var(--dim);background:#0a0a0b">Apagando Pi...</div>';
+}
+
+// ── ECU CONFIG (EEPROM) ───────────────────────────────────────────
+let ecuPanelOpen = true;
+function toggleEcu(){
+  ecuPanelOpen = !ecuPanelOpen;
+  document.getElementById('ecuPanel').style.display = ecuPanelOpen ? '' : 'none';
+  document.getElementById('ecuToggleIcon').innerHTML = ecuPanelOpen ? '&#9660;' : '&#9654;';
+}
+function ecuRow(label, val, units, color){
+  const c = color || '#ccc';
+  return `<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;padding:3px 0;border-bottom:1px solid #1e1e1e"><span style="color:var(--dim)">${label}</span><span style="color:${c};font-weight:600">${val} <span style="color:var(--dim);font-weight:400">${units}</span></span></div>`;
+}
+async function loadEcu(){
+  try{
+    const d = await (await fetch('/eeprom?t='+Date.now())).json();
+    if(!d || Object.keys(d).length===0){
+      document.getElementById('ecuVersion').textContent='No disponible (llave ON y reiniciar)'; return;
+    }
+    document.getElementById('ecuVersion').textContent='OK';
+    const tempMap=[['Fan ON','KTemp_Fan_On','#ccc'],['Fan OFF','KTemp_Fan_Off','#ccc'],
+      ['CEL ON','KTemp_CEL_Flash_Hi','#fa0'],['Soft limit','KTemp_Soft_Hi','#ff0'],
+      ['Hard limit','KTemp_Hard_Hi','#fa0'],['Kill limit','KTemp_Kill_Hi','#f55'],
+      ['RPM min soft','KTemp_RPM_Soft','#8af'],['RPM min hard','KTemp_RPM_Hard','#8af'],
+      ['TPS min soft','KTemp_TP_Soft','#8af'],['TPS min hard','KTemp_TP_Hard','#8af']];
+    let h='';
+    for(const [lbl,k,col] of tempMap){if(d[k]) h+=ecuRow(lbl,d[k].val.toFixed(0),d[k].units,col);}
+    document.getElementById('ecuTempRows').innerHTML=h;
+    const rpmMap=[['Soft trigger','KRPM_Soft_Hi','#ff0'],['Soft release','KRPM_Soft_Lo','#ff0'],
+      ['Hard trigger','KRPM_Hard_Hi','#fa0'],['Hard release','KRPM_Hard_Lo','#fa0'],
+      ['Kill trigger','KRPM_Kill_Hi','#f55'],['Kill release','KRPM_Kill_Lo','#f55']];
+    h='';
+    for(const [lbl,k,col] of rpmMap){if(d[k]) h+=ecuRow(lbl,d[k].val.toFixed(0),d[k].units,col);}
+    document.getElementById('ecuRpmRows').innerHTML=h;
+    const egoMap=[['O2 target','KO2_Midpoint','#6ef'],['O2 rich','KO2_Rich','#f88'],
+      ['O2 lean','KO2_Lean','#8f8'],['CL min RPM','KO2_Min_RPM','#8af'],
+      ['EGO max','KFBFuel_Max','#6ef'],['EGO min','KFBFuel_Min','#6ef'],
+      ['AFV max','KLFuel_Max','#6ef'],['AFV min','KLFuel_Min','#6ef']];
+    h='';
+    for(const [lbl,k,col] of egoMap){if(d[k]) h+=ecuRow(lbl,d[k].val.toFixed(3),d[k].units,col);}
+    document.getElementById('ecuEgoRows').innerHTML=h;
+  }catch(e){ document.getElementById('ecuVersion').textContent='Error: '+e.message; }
+}
+
+// VSS CALIBRACION
+let vssCal={cpkm25:1368};
+async function doReconnect(){
+  trackUsage('btn_reconnect_ecu');
+  try{
+    const r=await fetch('/reconnect',{method:'POST',
+      headers:{'Content-Type':'application/json'},body:'{}'});
+    const d=await r.json();
+    alert(d.msg||'Reconexión solicitada — espera unos segundos');
+  }catch(e){alert('Error al reconectar: '+e);}
+}
+
+async function doRestartLogger(){
+  trackUsage('btn_restart_logger');
+  try{
+    await fetch('/restart_logger',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    alert('Logger reiniciando... reconecta en ~10 segundos');
+  }catch(e){ /* normal — el proceso muere antes de responder */ }
+}
+
+async function doRebootPi(){
+  if(!confirm('¿Reiniciar la Pi completa?')) return;
+  trackUsage('btn_reboot_pi');
+  try{
+    await fetch('/reboot_pi',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    alert('Pi reiniciando... reconecta en ~30 segundos');
+  }catch(e){ /* normal */ }
+}
+
+async function loadVssCal(){
+  try{
+    const d=await(await fetch('/live.json?t='+Date.now())).json();
+    if(d.vss_cal){
+      vssCal=d.vss_cal;
+      const el=document.getElementById('vssFactorInput');
+      if(el) el.value=vssCal.cpkm25;
+    }
+  }catch(e){}
+}
+
+// NUEVA función para Git Pull
+async function gitPull() {
+  const status = document.getElementById('gitPullStatus');
+  status.textContent = 'Ejecutando git pull...';
+  status.style.color = 'var(--dim)';
+  try {
+    const res = await fetch('/git_pull', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      if (data.changes) {
+        status.innerHTML = '✅ Git pull completado. Hubo cambios.<br>Reinicia el logger para aplicarlos.';
+      } else {
+        status.textContent = '✅ Ya estaba actualizado.';
+      }
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = '❌ Error: ' + (data.error || 'desconocido');
+      status.style.color = 'var(--red)';
+    }
+    if (data.output) console.log(data.output);
+  } catch (e) {
+    status.textContent = 'Error de red: ' + e;
+    status.style.color = 'var(--red)';
+  }
+}
+async function saveVssCal(){
+  const el=document.getElementById('vssFactorInput');
+  const st=document.getElementById('vssCalStatus');
+  const v=parseFloat(el.value);
+  if(isNaN(v)||v<100||v>9999){st.textContent='Error: valor inválido';st.style.color='var(--accent)';return;}
+  vssCal={cpkm25:v};
+  try{
+    await fetch('/vss_cal',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(vssCal)});
+    st.textContent='Guardado';
+    st.style.color='var(--green)';
+    setTimeout(()=>st.textContent='',2500);
+  }catch(e){st.textContent='Error al guardar';}
+}
+
+// TPS CALIBRACION
+let tpsCal={min:139,max:479};
+async function loadTpsCal(){
+  try{
+    const d=await(await fetch('/live.json?t='+Date.now())).json();
+    if(d.tps_cal){
+      tpsCal=d.tps_cal;
+      const mn=document.getElementById('tpsMin');
+      const mx=document.getElementById('tpsMax');
+      if(mn) mn.value=tpsCal.min;
+      if(mx) mx.value=tpsCal.max;
+    }
+  }catch(e){}
+}
+function calcTpsPct(raw){
+  if(tpsCal.max<=tpsCal.min) return 0;
+  return Math.max(0,Math.min(100,(raw-tpsCal.min)/(tpsCal.max-tpsCal.min)*100));
+}
+async function saveTpsCal(){
+  const mn=parseInt(document.getElementById('tpsMin').value);
+  const mx=parseInt(document.getElementById('tpsMax').value);
+  const st=document.getElementById('tpsCalStatus');
+  if(isNaN(mn)||isNaN(mx)||mn>=mx){
+    st.textContent='Error: MIN debe ser menor que MAX';
+    st.style.color='var(--accent)'; return;
+  }
+  tpsCal={min:mn,max:mx};
+  try{
+    await fetch('/tps_cal',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(tpsCal)});
+    st.textContent='Guardado';
+    st.style.color='var(--green)';
+    setTimeout(()=>st.textContent='',2500);
+  }catch(e){ st.textContent='Error al guardar'; }
+}
+
+let _tpsCaptureActive=false;
+async function startTpsCapture(){
+  if(_tpsCaptureActive) return;
+  _tpsCaptureActive=true;
+  const btn=document.getElementById('btnTpsCapture');
+  const bar=document.getElementById('tpsCaptureBar');
+  const msg=document.getElementById('tpsCaptureMsg');
+  const prog=document.getElementById('tpsCaptureProgress');
+  const st=document.getElementById('tpsCalStatus');
+  btn.disabled=true; bar.style.display='block';
+  msg.textContent='Mueve el acelerador de MIN a MAX y suéltalo...';
+  // 10 segundos capturando TPS_10Bit min/max
+  const DURATION_MS=10000; const START=Date.now();
+  let capMin=9999, capMax=0;
+  const iv=setInterval(async()=>{
+    const elapsed=Date.now()-START;
+    prog.style.width=Math.min(100,elapsed/DURATION_MS*100)+'%';
+    try{
+      const d=await(await fetch('/live.json?t='+Date.now())).json();
+      const raw=d.live&&d.live.TPS_10Bit!=null ? d.live.TPS_10Bit : null;
+      if(raw!=null){ capMin=Math.min(capMin,raw); capMax=Math.max(capMax,raw); }
+      msg.textContent=`Capturando... MIN=${capMin===9999?'--':capMin}  MAX=${capMax}`;
+    }catch(e){}
+    if(elapsed>=DURATION_MS){
+      clearInterval(iv);
+      bar.style.display='none';
+      btn.disabled=false; _tpsCaptureActive=false;
+      if(capMin<capMax-20){
+        document.getElementById('tpsMin').value=capMin;
+        document.getElementById('tpsMax').value=capMax;
+        st.textContent=`Capturado: MIN=${capMin} MAX=${capMax} — presiona Guardar`;
+        st.style.color='#a8f';
+      } else {
+        st.textContent='Captura inválida — rango muy pequeño, intenta de nuevo';
+        st.style.color='var(--accent)';
+        setTimeout(()=>st.textContent='',3000);
+      }
+    }
+  },500);
+}
+
+loadTpsCal();
+
+// cargar cal al arrancar (no solo al abrir tab)
+document.addEventListener("DOMContentLoaded", ()=>{ loadTpsCal(); loadVssCal(); buildGrid(); fetchLive(); });
+</script>
+</body>
+</html>
+
+"""
