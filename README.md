@@ -225,6 +225,8 @@ Free for personal and community use.
 
 If you use it on your Buell, a ⭐ on the repo is appreciated.
 
+---
+
 ## Documentation
 
 Detailed technical documentation, architecture decisions, and
@@ -232,6 +234,8 @@ installation flow live in the `/docs` directory of this repository.
 
 If you are developing, debugging, or modifying the system,
 start there.
+
+---
 
 ## Installation Modes
 
@@ -241,5 +245,15 @@ The logger is started manually using Python.
 
 ### Appliance Mode (Recommended)
 The system is installed on a clean Raspberry Pi OS image
+
+---
+
+## Quick Start — Appliance Install
+
+The recommended way to install the system is using the automated installer
+on a clean Raspberry Pi OS image.
+
+```bash
+curl -sSL https://raw.githubusercontent.com/pacdavid1/buell-xb12x-logger/main/install.sh | bash
 using the automated installer. The device behaves as a
 dedicated headless appliance with WiFi access and web dashboard.
