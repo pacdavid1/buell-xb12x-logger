@@ -937,23 +937,7 @@ class LiveHandler(BaseHTTPRequestHandler):
 
         else:
             self._json({"error": "unknown endpoint"}, 404)
-``
 
-``
-             
-         try:
-             result = subprocess.run(
-                 ['git', 'pull'],
-                 cwd='/home/pi/buell',
-                 capture_output=True,
-                 text=True,
-                 timeout=30
-             )
-             output = result.stdout + result.stderr
-             changes = 'Already up to date' not in output
-             self._json({'ok': result.returncode == 0, 'output': output, 'changes': changes})
-         except Exception as e:
-             self._json({'ok': False, 'error': str(e)})
            
     def do_OPTIONS(self):
         self.send_response(204)
