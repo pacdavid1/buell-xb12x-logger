@@ -771,8 +771,19 @@ class LiveHandler(BaseHTTPRequestHandler):
                 summary = self.dashboard.get_ride_summary(
                     str(fpath), self.dashboard.objectives)
                 self._json(summary)
+
             else:
-                self._json({"error":"not found"}, 404)
+                index = TEMPLATES_DIR / "index.html"
+                if not index.exists():
+                self.send_error(500, "index.html no encontrado")
+                return
+
+                data = index.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(data)   
 
     def do_POST(self):
         length = int(self.headers.get('Content-Length',0))
