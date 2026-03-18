@@ -124,8 +124,8 @@ ask_yes_no() {
     local ANSWER
 
     while true; do
-        read -p "$PROMPT [Y/YES/N/NO]: " ANSWER
-        ANSWER=$(echo "$ANSWER" | tr '[:upper:]' '[:lower:]')
+        read -p "$PROMPT [Y/YES/N/NO]: " ANSWER </dev/tty
+        ANSWER=$(echo "${ANSWER:-no}" | tr '[:upper:]' '[:lower:]')
 
         case "$ANSWER" in
             y|yes)
