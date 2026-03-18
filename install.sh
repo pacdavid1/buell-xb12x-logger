@@ -121,10 +121,16 @@ echo
 
 ask_yes_no() {
     local PROMPT="$1"
-    local ANSWER
+    local ANSWER=""
 
     while true; do
-        read -p "$PROMPT [Y/YES/N/NO]: " ANSWER </dev/tty
+        printf "%s [Y/YES/N/NO]: " "$PROMPT" > /dev/tty
+
+        # Leer directamente del terminal y no morir por set -e
+        if ! read -r ANSWER < /dev/tty; then
+            ANSWER="no"
+        fi
+
         ANSWER=$(echo "${ANSWER:-no}" | tr '[:upper:]' '[:lower:]')
 
         case "$ANSWER" in
@@ -135,12 +141,7 @@ ask_yes_no() {
                 return 1
                 ;;
             *)
-                echo "Respuesta no válida. Escribe Y, YES, N o NO."
-                ;;
-        esac
-    done
-}
-
+                echo "Respuesta no válida. Escribe Y, YES,
 echo
 echo -e "${YELLOW}⚠️  Confirmación antes del reinicio${NC}"
 echo
