@@ -14,3 +14,8 @@ Tras el reinicio, la Raspberry Pi opera como un appliance dedicado:
 - Inicia automáticamente el logger
 - Expone el dashboard vía WiFi hotspot
 - No requiere interacción adicional
+
+Nota:
+Este documento describe únicamente el flujo ideal de instalación
+(happy path). Casos de error y diagnóstico se documentan en
+`05_TROUBLESHOOTING.md`.
