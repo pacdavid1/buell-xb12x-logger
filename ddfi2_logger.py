@@ -774,10 +774,11 @@ class LiveHandler(BaseHTTPRequestHandler):
 
             else:
                 index = TEMPLATES_DIR / "index.html"
+
                 if not index.exists():
                     self.send_error(500, "index.html no encontrado")
                     return
-            
+
                 data = index.read_bytes()
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
