@@ -119,13 +119,43 @@ echo
 echo -e "${YELLOW}Si estás conectado por SSH, la conexión se cerrará al reiniciar.${NC}"
 echo
 
-read -p "¿Deseas reiniciar ahora para completar la instalación? [Y/n]: " REBOOT
-REBOOT=${REBOOT:-Y}
+ask_yes_no() {
+    local PROMPT="$1"
+    local ANSWER
 
-if [[ "$REBOOT" =~ ^[Yy]$ ]]; then
+    while true; do
+        read -p "$PROMPT [Y/YES/N/NO]: " ANSWER
+        ANSWER=$(echo "$ANSWER" | tr '[:upper:]' '[:lower:]')
+
+        case "$ANSWER" in
+            y|yes)
+                return 0
+                ;;
+            n|no)
+                return 1
+                ;;
+            *)
+                echo "Respuesta no válida. Escribe Y, YES, N o NO."
+                ;;
+        esac
+    done
+}
+
+echo
+echo -e "${YELLOW}⚠️  Confirmación antes del reinicio${NC}"
+echo
+
+ask_yes_no "¿Ya anotaste el nombre (SSID) y la contraseña del hotspot WiFi?"
+CONF1=$?
+
+ask_yes_no "¿Sabes que después del reinicio debes conectarte al hotspot y abrir http://10.42.0.1:8080?"
+CONF2=$?
+
+ask_yes_no "¿Confirmas que estás listo para reiniciar ahora y perder esta sesión SSH?"
+CONF3=$?
+
+if [[ $CONF1 -eq 0 && $CONF2 -eq 0 && $CONF3 -eq 0 ]]; then
+    echo
     echo -e "${YELLOW}Reiniciando el sistema...${NC}"
     sleep 3
     sudo reboot
-else
-    echo -e "${GREEN}Reinicio omitido. Recuerda reiniciar manualmente más tarde.${NC}"
-fi
