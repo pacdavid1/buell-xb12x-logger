@@ -765,12 +765,12 @@ class LiveHandler(BaseHTTPRequestHandler):
                 self._json(summary)
             else:
                 self._json({"error":"not found"}, 404)
-        else:
-            html = DASHBOARD_HTML.encode()
-            self.send_response(200)
-            self.send_header('Content-Type','text/html; charset=utf-8')
-            self.end_headers()
-            self.wfile.write(html)
+                
+        from pathlib import Path
+
+            WEB_DIR = Path(__file__).parent / "web"
+            TEMPLATES_DIR = WEB_DIR / "templates"
+            STATIC_DIR = WEB_DIR / "
 
     def do_POST(self):
         length = int(self.headers.get('Content-Length',0))
