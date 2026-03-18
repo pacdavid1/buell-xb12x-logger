@@ -69,22 +69,60 @@ mkdir -p /home/pi/buell/sessions
 chown -R pi:pi /home/pi/buell
 
 # ─────────────────────────────────────────────────────────────
-# Hotspot WiFi (NetworkManager moderno)
+# Hotspot WiFi (forzado y verificado)
 # ─────────────────────────────────────────────────────────────
+
 SSID="buell-$(hostname -s | tail -c 5)"
 PASSWORD="buell2024"
 
 echo -e "${YELLOW}Configurando hotspot WiFi...${NC}"
+
+# Asegurar que WiFi no esté bloqueado
+sudo rfkill unblock wifi || true
+sudo ip link set wlan0 up || true
+
+# Crear perfil si no existe
 if ! sudo nmcli con show buell-hotspot >/dev/null 2>&1; then
     sudo nmcli con add type wifi ifname wlan0 mode ap con-name buell-hotspot ssid "$SSID"
     sudo nmcli con modify buell-hotspot 802-11-wireless.band bg
     sudo nmcli con modify buell-hotspot ipv4.method shared
     sudo nmcli con modify buell-hotspot wifi-sec.key-mgmt wpa-psk
     sudo nmcli con modify buell-hotspot wifi-sec.psk "$PASSWORD"
-    echo -e "${GREEN}Hotspot creado: SSID=$SSID, contraseña=$PASSWORD${NC}"
+    echo -e "${GREEN}Perfil de hotspot creado.${NC}"
 else
     SSID=$(nmcli -g 802-11-wireless.ssid con show buell-hotspot)
-    echo -e "${GREEN}El perfil buell-hotspot ya existe (SSID=$SSID).${NC}"
+    echo -e "${GREEN}Perfil buell-hotspot ya existe (SSID=$SSID).${NC}"
+fi
+
+# Forzar activación del hotspot
+echo -e "${YELLOW}Activando hotspot WiFi...${NC}"
+
+sudo nmcli radio wifi off
+sleep 2
+sudo nmcli radio wifi on
+sleep 2
+
+sudo nmcli con down buell-hotspot >/dev/null 2>&1 || true
+sudo nmcli con up buell-hotspot
+
+# Verificación final
+sleep 2
+if nmcli con show --active | grep -q buell-hotspot; then
+    echo -e "${GREEN}✓ Hotspot activo y emitiendo.${NC}"
+else
+    echo -e "${RED}✗ No se pudo activar el hotspot automáticamente.${NC}"
+    echo -e "${YELLOW}Intentando recuperación...${NC}"
+
+    sudo systemctl restart NetworkManager
+    sleep 5
+    sudo nmcli con up buell-hotspot
+
+    if nmcli con show --active | grep -q buell-hotspot; then
+        echo -e "${GREEN}✓ Hotspot activo tras recuperación.${NC}"
+    else
+        echo -e "${RED}✗ Hotspot no pudo ser activado.${NC}"
+        echo -e "${RED}Revisa NetworkManager o el driver WiFi.${NC}"
+    fi
 fi
 
 # ─────────────────────────────────────────────────────────────
