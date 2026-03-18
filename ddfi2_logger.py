@@ -786,146 +786,139 @@ class LiveHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(data)  
 
+
     def do_POST(self):
-        length = int(self.headers.get('Content-Length',0))
-        body   = self.rfile.read(length) if length else b''
+        length = int(self.headers.get('Content-Length', 0))
+        body = self.rfile.read(length) if length else b''
+
         try:
-            payload = json.loads(body)
+            payload = json.loads(body) if body else {}
         except Exception as _json_err:
             if body:
                 logging.getLogger("HTTP").warning(
-                    f"POST {self.path}: JSON inválido ({_json_err}) — body={body[:80]!r}")
+                    f"POST {self.path}: JSON inválido ({_json_err}) — body={body[:80]!r}"
+                )
             payload = {}
+
         if self.path == '/ve':
             self.dashboard.save_ve_tables(payload)
-            self._json({"ok":True})
+            self._json({"ok": True})
+
         elif self.path == '/obj':
             self.dashboard.save_objectives(payload)
-            self._json({"ok":True})
+            self._json({"ok": True})
+
         elif self.path == '/network':
-            action = payload.get("action","")
+            action = payload.get("action", "")
             if action == "wifi":
                 NetworkManager.switch_to_wifi()
             elif action == "hotspot":
                 NetworkManager.switch_to_hotspot()
-            self._json({"ok":True,"action":action})
+            self._json({"ok": True, "action": action})
+
         elif self.path == '/wifi/scan':
             networks = NetworkManager.scan_wifi()
             self._json({"networks": networks})
+
         elif self.path == '/wifi/saved':
             saved = NetworkManager.saved_wifi()
             self._json({"saved": saved})
+
         elif self.path == '/wifi/connect':
-            profile = payload.get("profile","")
+            profile = payload.get("profile", "")
             if profile:
                 NetworkManager.connect_to_profile(profile)
-                self._json({"ok":True})
+                self._json({"ok": True})
             else:
-                self._json({"ok":False,"error":"sin perfil"})
+                self._json({"ok": False, "error": "sin perfil"})
+
         elif self.path == '/wifi/add':
-            ssid = payload.get("ssid","")
-            password = payload.get("password","")
+            ssid = payload.get("ssid", "")
+            password = payload.get("password", "")
             if ssid and password:
                 NetworkManager.add_and_connect(ssid, password)
-                self._json({"ok":True})
+                self._json({"ok": True})
             else:
-                self._json({"ok":False,"error":"ssid o password faltante"})
+                self._json({"ok": False, "error": "ssid o password faltante"})
+
         elif self.path == '/wifi/forget':
-            name = payload.get("name","")
+            name = payload.get("name", "")
             ok = NetworkManager.forget_wifi(name) if name else False
-            self._json({"ok":ok})
+            self._json({"ok": ok})
+
         elif self.path == '/keepalive':
-            # Rate limiting: acepta máximo 1 keepalive cada 10s por servidor
             now = time.monotonic()
             last = getattr(LiveHandler, '_last_keepalive_ts', 0.0)
             if now - last >= 10.0:
                 LiveHandler._last_keepalive_ts = now
                 self.dashboard.keepalive()
-            self._json({"ok":True})
+            self._json({"ok": True})
+
         elif self.path == '/shutdown':
             self.dashboard.request_shutdown()
-            self._json({"ok":True,"msg":"Apagando en 3s..."})
+            self._json({"ok": True, "msg": "Apagando en 3s..."})
+
         elif self.path == '/tps_cal':
             self.dashboard.tps_cal = payload
-            cal_path = os.path.join(self.dashboard.buell_dir,'tps_cal.json')
-            with open(cal_path,'w') as _f: json.dump(payload,_f)
-            self._json({'ok':True})
+            cal_path = os.path.join(self.dashboard.buell_dir, 'tps_cal.json')
+            with open(cal_path, 'w') as _f:
+                json.dump(payload, _f)
+            self._json({"ok": True})
+
         elif self.path == '/reconnect':
-            # Funciona tanto en waiting_loop como en reading_loop
             bl = getattr(self.dashboard, '_buell_logger_ref', None)
             if bl:
                 bl._force_reconnect = True
-                # Si hay ride activo, cerrarlo para salir del reading_loop a waiting
                 if bl._ride_active:
                     bl._ride_active = False
                     bl._ecu_lost_since = None
                     bl._flush_ride(
                         "Reconexión forzada por usuario",
-                        tracker_snap = bl.tracker.snapshot(),
-                        objectives   = bl.dashboard.objectives,
-                        dtc          = list(bl._dtc_log))
+                        tracker_snap=bl.tracker.snapshot(),
+                        objectives=bl.dashboard.objectives,
+                        dtc=list(bl._dtc_log)
+                    )
                     bl._dtc_log.clear()
-            self._json({'ok': True, 'msg': 'Reconexión solicitada'})
+            self._json({"ok": True, "msg": "Reconexión solicitada"})
+
         elif self.path == '/restart_logger':
-            self._json({'ok': True, 'msg': 'Reiniciando logger...'})
-            threading.Thread(target=lambda: (time.sleep(1),
-                subprocess.run(['sudo','systemctl','restart','buell-logger'])),
-                daemon=True).start()
+            self._json({"ok": True, "msg": "Reiniciando logger..."})
+            threading.Thread(
+                target=lambda: (time.sleep(1),
+                                subprocess.run(['sudo', 'systemctl', 'restart', 'buell-logger'])),
+                daemon=True
+            ).start()
+
         elif self.path == '/reboot_pi':
-            self._json({'ok': True, 'msg': 'Reiniciando Pi...'})
-            threading.Thread(target=lambda: (time.sleep(1),
-                subprocess.run(['sudo','reboot'])),
-                daemon=True).start()
-        elif self.path == '/close_ride':
-            bl = getattr(self.dashboard, '_buell_logger_ref', None)
-            if bl and bl._ride_active:
-                closed_session = bl.session.current_checksum
-                closed_ride_num = bl.session.current_ride_num
-                bl._ride_active = False
-                bl._ecu_lost_since = None
-                bl._flush_ride(
-                    "Cerrado por usuario",
-                    tracker_snap = bl.tracker.snapshot(),
-                    objectives   = bl.dashboard.objectives,
-                    dtc          = list(bl._dtc_log))
-                bl._dtc_log.clear()
-                self._json({'ok': True, 'msg': 'Ride cerrado',
-                            'session': closed_session,
-                            'ride_num': closed_ride_num})
-            else:
-                self._json({'ok': False, 'msg': 'Sin ride activo'})
-        elif self.path == '/usage':
-            action = payload.get('action','')
-            if action and action != '__clear__':
-                stats = self.dashboard.usage_stats
-                stats[action] = stats.get(action, 0) + 1
-                stats['last_updated'] = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')
-                self.dashboard._save_json('usage_stats.json', stats)
-            self._json({'ok': True})
-        elif self.path == '/usage_clear':
-            self.dashboard.usage_stats = {}
-            self.dashboard._save_json('usage_stats.json', {})
-            self._json({'ok': True})
+            self._json({"ok": True, "msg": "Reiniciando Pi..."})
+            threading.Thread(
+                target=lambda: (time.sleep(1),
+                                subprocess.run(['sudo', 'reboot'])),
+                daemon=True
+            ).start()
+
         elif self.path == '/ride_note':
-            session = payload.get('session','')
-            ride_num = int(payload.get('ride_num',0))
-            note = payload.get('note','')
+            session = payload.get('session', '')
+            ride_num = int(payload.get('ride_num', 0))
+            note = payload.get('note', '')
             try:
-                note_path = Path(self.dashboard._sessions_dir)/session/f"ride_{ride_num:03d}_notes.txt"
+                note_path = Path(self.dashboard._sessions_dir) / session / f"ride_{ride_num:03d}_notes.txt"
                 note_path.write_text(note, encoding='utf-8')
-                self._json({'ok': True})
+                self._json({"ok": True})
             except Exception as e:
-                self._json({'ok': False, 'msg': str(e)})
+                self._json({"ok": False, "msg": str(e)})
+
         elif self.path == '/vss_cal':
-            cpkm = float(payload.get('cpkm25',1368))
-            self.dashboard.vss_cal = {'cpkm25':cpkm}
-            # Actualizar factor global para nuevas muestras en vivo
+            cpkm = float(payload.get('cpkm25', 1368))
+            self.dashboard.vss_cal = {"cpkm25": cpkm}
             import sys
             sys.modules[__name__].VSS_CPKM25 = cpkm
-            cal_path = os.path.join(self.dashboard.buell_dir,'vss_cal.json')
-            with open(cal_path,'w') as _f: json.dump({'cpkm25':cpkm},_f)
-            self._json({'ok':True,'cpkm25':cpkm})
-                elif self.path == '/git_pull':
+            cal_path = os.path.join(self.dashboard.buell_dir, 'vss_cal.json')
+            with open(cal_path, 'w') as _f:
+                json.dump({"cpkm25": cpkm}, _f)
+            self._json({"ok": True, "cpkm25": cpkm})
+
+        elif self.path == '/git_pull':
             try:
                 result = subprocess.run(
                     ['git', 'pull'],
@@ -936,11 +929,17 @@ class LiveHandler(BaseHTTPRequestHandler):
                 )
                 output = result.stdout + result.stderr
                 changes = 'Already up to date' not in output
-                self._json({'ok': result.returncode == 0, 'output': output, 'changes': changes})
+                self._json({"ok": result.returncode == 0,
+                            "output": output,
+                            "changes": changes})
             except Exception as e:
-                self._json({'ok': False, 'error': str(e)})
+                self._json({"ok": False, "error": str(e)})
+
         else:
-            self._json({"error":"unknown endpoint"},404)
+            self._json({"error": "unknown endpoint"}, 404)
+``
+
+``
              
          try:
              result = subprocess.run(
