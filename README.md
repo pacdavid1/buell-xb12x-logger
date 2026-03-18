@@ -224,3 +224,22 @@ MIT License.
 Free for personal and community use.
 
 If you use it on your Buell, a ⭐ on the repo is appreciated.
+
+## Documentation
+
+Detailed technical documentation, architecture decisions, and
+installation flow live in the `/docs` directory of this repository.
+
+If you are developing, debugging, or modifying the system,
+start there.
+
+## Installation Modes
+
+### Development / Manual Run
+This mode is intended for development and testing.
+The logger is started manually using Python.
+
+### Appliance Mode (Recommended)
+The system is installed on a clean Raspberry Pi OS image
+using the automated installer. The device behaves as a
+dedicated headless appliance with WiFi access and web dashboard.
