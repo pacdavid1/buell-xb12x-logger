@@ -74,10 +74,14 @@ After=network.target
 Wants=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/buell/ddfi2_logger.py
+ExecStart=/usr/bin/python3 /home/pi/buell/ddfi2_logger.py \
+  --port /dev/ttyUSB0 \
+  --sessions-dir /home/pi/buell/sessions \
+  --buell-dir /home/pi/buell
 WorkingDirectory=/home/pi/buell
 Restart=always
 User=pi
+
 
 [Install]
 WantedBy=multi-user.target
