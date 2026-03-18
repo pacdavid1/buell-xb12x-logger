@@ -248,12 +248,13 @@ The system is installed on a clean Raspberry Pi OS image
 
 ---
 
-## Quick Start — Appliance Install
+## Quick Start — Appliance Mode (Recommended)
 
-The recommended way to install the system is using the automated installer
-on a clean Raspberry Pi OS image.
+The recommended way to use this project is as a dedicated headless appliance
+installed on a clean Raspberry Pi OS image.
+
+This mode is intended for users who want a plug‑and‑play system with
+automatic startup, networking, and web dashboard access.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/pacdavid1/buell-xb12x-logger/main/install.sh | bash
-using the automated installer. The device behaves as a
-dedicated headless appliance with WiFi access and web dashboard.
