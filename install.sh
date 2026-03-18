@@ -106,3 +106,26 @@ echo -e "${GREEN}=== Instalación completada ===${NC}"
 echo -e "Puedes acceder al dashboard en: ${YELLOW}http://10.42.0.1:8080${NC}"
 echo -e "Conéctate a la WiFi con SSID: ${YELLOW}$SSID${NC} y contraseña: ${YELLOW}$PASSWORD${NC}"
 echo -e "Si necesitas cambiar la contraseña, edita el script o modifica el perfil con nmcli."
+
+echo -e "${GREEN}=== Instalación completada ===${NC}"
+echo
+echo -e "${YELLOW}El sistema está listo.${NC}"
+echo -e "Después del reinicio:"
+echo -e "  • La Raspberry Pi levantará el hotspot WiFi automáticamente"
+echo -e "  • SSID: ${YELLOW}$SSID${NC}"
+echo -e "  • Contraseña: ${YELLOW}$PASSWORD${NC}"
+echo -e "  • Dashboard disponible en: ${YELLOW}http://10.42.0.1:8080${NC}"
+echo
+echo -e "${YELLOW}Si estás conectado por SSH, la conexión se cerrará al reiniciar.${NC}"
+echo
+
+read -p "¿Deseas reiniciar ahora para completar la instalación? [Y/n]: " REBOOT
+REBOOT=${REBOOT:-Y}
+
+if [[ "$REBOOT" =~ ^[Yy]$ ]]; then
+    echo -e "${YELLOW}Reiniciando el sistema...${NC}"
+    sleep 3
+    sudo reboot
+else
+    echo -e "${GREEN}Reinicio omitido. Recuerda reiniciar manualmente más tarde.${NC}"
+fi
