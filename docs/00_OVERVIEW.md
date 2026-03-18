@@ -15,3 +15,15 @@ para logging y visualización de datos DDFI-2 en una Buell XB12X.
 - Acceso a Internet
 - Uso general como Raspberry Pi
 - Configuración manual post-install
+
+## Uso de Copilot
+
+Copilot se utiliza como herramienta de apoyo para:
+- análisis
+- generación de ideas
+- redacción de código y documentación
+
+Las decisiones técnicas finales y la documentación oficial
+se registran siempre en el repositorio.
+
+Copilot no es considerado fuente de verdad del proyecto.
