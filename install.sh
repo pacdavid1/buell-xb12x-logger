@@ -52,20 +52,20 @@ cd /home/pi/buell
 EOF
 
 # Configurar hotspot WiFi (NetworkManager moderno)
+SSID="buell-$(hostname -s | tail -c 5)"
+PASSWORD="buell2024"
+
 echo -e "${YELLOW}Configurando hotspot WiFi...${NC}"
 if ! sudo nmcli con show buell-hotspot &>/dev/null; then
-    SSID="buell-$(hostname -s | tail -c 5)"
-    PASSWORD="buell2024"
-
     sudo nmcli con add type wifi ifname wlan0 mode ap con-name buell-hotspot ssid "$SSID"
     sudo nmcli con modify buell-hotspot 802-11-wireless.band bg
     sudo nmcli con modify buell-hotspot ipv4.method shared
     sudo nmcli con modify buell-hotspot wifi-sec.key-mgmt wpa-psk
     sudo nmcli con modify buell-hotspot wifi-sec.psk "$PASSWORD"
-
     echo -e "${GREEN}Hotspot creado: SSID=$SSID, contraseña=$PASSWORD${NC}"
 else
-    echo -e "${GREEN}El perfil buell-hotspot ya existe.${NC}"
+    SSID=$(nmcli -g 802-11-wireless.ssid con show buell-hotspot)
+    echo -e "${GREEN}El perfil buell-hotspot ya existe (SSID=$SSID).${NC}"
 fi
 
 # Configurar servicio systemd
