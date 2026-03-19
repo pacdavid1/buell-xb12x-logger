@@ -4,6 +4,27 @@
 
 ---
 
+## [v2.1.1] — 2026-03-19
+
+**INSTALL FIX — APPLIANCE MODE OPERATIVO**
+
+### Fixed
+
+* **`ExecStart` apuntaba a `ddfi2_logger.py`** — corregido a `main.py --no-poweroff`.
+  El servicio systemd ahora levanta el stack modular correcto al arrancar.
+
+* **`avahi-daemon` y `python3-flask` no se instalaban** — agregados al `apt install`.
+  Sin avahi no hay mDNS (`buell.local`). Sin flask el `WebServer` no arranca.
+
+* **`network_state.json` no se creaba** — el installer ahora escribe el estado
+  inicial `{"mode":"hotspot","ip":"10.42.0.1"}` si el archivo no existe.
+  Evita comportamiento indefinido en `load_state()` y `get_wifi_ip()` en el primer boot.
+
+* **Usuario hardcodeado a `pi`** — reemplazado por detección dinámica via
+  `$SUDO_USER` / `logname` / `whoami`. Compatible con cualquier imagen de Raspberry Pi OS.
+
+---
+
 ## [v2.1.0] — 2026-03-18
 
 **MÓDULO DE RED — SWITCH A PRUEBA DE BALAS**
