@@ -30,7 +30,7 @@ echo -e "${YELLOW}Actualizando lista de paquetes...${NC}"
 sudo apt update
 
 echo -e "${YELLOW}Instalando dependencias (git, python3-serial, network-manager)...${NC}"
-sudo apt install -y git python3-serial network-manager
+sudo apt install -y git python3-serial python3-flask network-manager avahi-daemon avahi-utils
 
 # ─────────────────────────────────────────────────────────────
 # Clonar / actualizar repo
@@ -50,6 +50,7 @@ cd /home/pi/buell
 # ─────────────────────────────────────────────────────────────
 # Configuración por defecto
 # ─────────────────────────────────────────────────────────────
+[ ! -f network_state.json ] && echo '{"mode":"hotspot","ip":"10.42.0.1"}' > network_state.json
 [ ! -f tps_cal.json ] && echo '{"min":139,"max":479}' > tps_cal.json
 [ ! -f vss_cal.json ] && echo '{"cpkm25":1368}' > vss_cal.json
 
@@ -66,7 +67,8 @@ EOF
 fi
 
 mkdir -p /home/pi/buell/sessions
-chown -R pi:pi /home/pi/buell
+INSTALL_USER="${SUDO_USER:-$(logname 2>/dev/null || whoami)}"
+chown -R "${INSTALL_USER}:${INSTALL_USER}" /home/pi/buell
 
 # ─────────────────────────────────────────────────────────────
 # Hotspot WiFi (forzado y verificado)
@@ -136,10 +138,7 @@ After=network.target
 Wants=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/buell/ddfi2_logger.py \
-  --port /dev/ttyUSB0 \
-  --sessions-dir /home/pi/buell/sessions \
-  --buell-dir /home/pi/buell
+ExecStart=/usr/bin/python3 /home/pi/buell/main.py --port /dev/ttyUSB0 --sessions-dir /home/pi/buell/sessions --buell-dir /home/pi/buell --no-poweroff
 WorkingDirectory=/home/pi/buell
 Restart=always
 User=pi
