@@ -558,6 +558,10 @@ table.veg td:active{filter:brightness(1.6)}
 </div>
 
 <div class="pane content" id="pane-net">
+  <!-- Modal de transicion de red -->
+  <div id="switchModal" style="display:none;background:var(--panel);border:1px solid var(--accent);
+       border-radius:6px;padding:16px;margin-bottom:12px;font-family:var(--mono);font-size:11px;
+       color:var(--text);line-height:1.6;text-align:center"></div>
   <!-- Estado de red -->
   <div class="cfg-section">
     <div class="cfg-title">Red activa</div>
@@ -809,7 +813,7 @@ async function fetchLive() {
     updateGrid(d.cells||{}, d.active_cell);
     renderObjectives(d.objectives);
     renderIndicators(d.indicators);
-    if(d.network_mode) updateNetStatus(d.network_mode);
+    if(d.network_mode) updateNetStatus(d.network_mode, d.ip);
     if(d.logger_version){ const el=document.getElementById('cfgVersion'); if(el) el.textContent=d.logger_version; }
     // Banner ECU desconectada
     const banner = document.getElementById('ecuLostBanner');
@@ -1031,18 +1035,71 @@ async function closeRide(){
 async function switchNet(action){
   const lbl=document.getElementById('netLabel');
   if(lbl) lbl.textContent=action==='wifi'?'Buscando WiFi...':'Activando hotspot...';
-  try{await fetch('/network',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})});}catch(e){}
-  setTimeout(fetchLive,5000);
+  let redirectUrl=null;
+  try{
+    const r=await fetch('/wifi/redirect_url?action='+action);
+    const d=await r.json();
+    redirectUrl=d.url;
+  }catch(e){}
+  if(redirectUrl) window.open(redirectUrl,'_blank');
+  try{
+    await fetch('/network',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action})});
+  }catch(e){}
+  _showSwitchModal(action,redirectUrl);
+  _pollSwitchStatus(action,redirectUrl);
 }
-function updateNetStatus(mode){
+function _showSwitchModal(action,url){
+  const msg=action==='wifi'
+    ?'Conectando a WiFi...<br>La Pi cambiará de red en ~15 segundos.'
+    :'Activando Hotspot...<br>Conéctate a la red buell-XXXX.';
+  const urlLine=url
+    ?'<br><br>Dashboard en:<br><b style="color:var(--green)">'+url+'</b>'
+    :'<br><br>Espera a que la Pi confirme la nueva IP.';
+  const el=document.getElementById('switchModal');
+  if(el){el.innerHTML=msg+urlLine;el.style.display='block';}
+}
+function _hideSwitchModal(){
+  const el=document.getElementById('switchModal');
+  if(el) el.style.display='none';
+}
+async function _pollSwitchStatus(action,redirectUrl){
+  for(let i=0;i<20;i++){
+    await new Promise(r=>setTimeout(r,2000));
+    try{
+      const d=await fetch('/wifi/status').then(r=>r.json());
+      const st=d.switch_status||{};
+      if(st.stage==='connected'||st.stage==='fallback'||st.stage==='failed'){
+        _hideSwitchModal();
+        updateNetStatus(d.mode,d.ip);
+        if(st.stage==='connected'&&st.ip&&!redirectUrl&&action==='wifi'){
+          window.open('http://'+st.ip+':8080','_blank');
+        }
+        if(st.stage==='fallback') alert('No se pudo conectar. Volviendo a hotspot.');
+        loadNetPane();
+        return;
+      }
+    }catch(e){}
+  }
+  _hideSwitchModal();
+}
+function updateNetStatus(mode,ip){
   const label=document.getElementById('netLabel');
-  const dot  =document.getElementById('netDot');
+  const dot=document.getElementById('netDot');
   if(!label) return;
-  document.getElementById('btnWifi')    ?.classList.toggle('on',mode==='wifi');
-  document.getElementById('btnHotspot') ?.classList.toggle('on',mode==='hotspot');
-  if(mode==='wifi')      {label.textContent='WiFi conectado';    dot.style.background='var(--green)';dot.style.animation='';}
-  else if(mode==='hotspot'){label.textContent='Hotspot 10.42.0.1';dot.style.background='var(--blue)'; dot.style.animation='';}
-  else                   {label.textContent='Sin red';           dot.style.background='var(--dim)'; dot.style.animation='none';}
+  document.getElementById('btnWifi')?.classList.toggle('on',mode==='wifi');
+  document.getElementById('btnHotspot')?.classList.toggle('on',mode==='hotspot');
+  if(mode==='wifi'){
+    label.textContent='WiFi — '+(ip||'conectado');
+    dot.style.background='var(--green)';dot.style.animation='';
+  }else if(mode==='hotspot'){
+    label.textContent='Hotspot — '+(ip||'10.42.0.1');
+    dot.style.background='var(--blue)';dot.style.animation='';
+  }else{
+    label.textContent='Sin red';
+    dot.style.background='var(--dim)';dot.style.animation='none';
+  }
 }
 
 async function loadNetPane(){
@@ -1091,8 +1148,7 @@ async function doWifiScan(e){
   btn.textContent='Escaneando...'; btn.disabled=true;
   const sv = await fetch('/wifi/saved').then(r=>r.json()).catch(()=>({saved:[]}));
   const savedSsids = new Set(sv.saved.map(s=>s.ssid));
-  const r = await fetch('/wifi/scan',{method:'POST',
-    headers:{'Content-Type':'application/json'},body:'{}'}).then(r=>r.json()).catch(()=>({networks:[]}));
+  const r = await fetch('/wifi/scan').then(r=>r.json()).catch(()=>({networks:[]}));
   btn.textContent='📶 Buscar redes'; btn.disabled=false;
   const el=document.getElementById('scanList');
   if(!r.networks.length){

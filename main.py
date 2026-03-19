@@ -42,6 +42,7 @@ class BuellLogger:
         # Componentes modulares
         self.network = NetworkManager()
         self.web = WebServer(host='0.0.0.0', port=8080, buell_dir=self.buell_dir)
+        self.web.network = self.network
         
         # Señales
         signal.signal(signal.SIGTERM, self._handle_signal)
