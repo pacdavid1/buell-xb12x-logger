@@ -92,9 +92,9 @@ python3 ddfi2_logger.py --port /dev/ttyUSB0 --sessions /home/pi/buell/sessions
 
 ---
 
-# Easy Install (Planned)
+# Easy Install
 
-The project will include a **one-command installation script** so anyone can install it easily on a Raspberry Pi.
+One-command installation on a clean Raspberry Pi OS image:
 
 Example:
 
@@ -211,7 +211,7 @@ Possible areas:
 
 Current version:
 
-v1.16.1
+v2.1.0
 
 See CHANGELOG.md for full history.
 

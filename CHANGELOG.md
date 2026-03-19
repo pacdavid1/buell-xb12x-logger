@@ -4,6 +4,66 @@
 
 ---
 
+## [v2.1.0] — 2026-03-18
+
+**MÓDULO DE RED — SWITCH A PRUEBA DE BALAS**
+
+### Added
+
+* **`network/manager.py`** — módulo independiente de gestión de red.
+  Extraído del monolito `ddfi2_logger.py` y reescrito con lógica completa:
+  - `get_redirect_url(action)` — calcula la URL destino **antes** de ejecutar
+    el switch, permite abrir nueva pestaña en el browser con la IP correcta
+  - `_set_switch_status()` / `get_switch_status()` — estado del switch en memoria,
+    expuesto via `/wifi/status` para polling desde el browser
+  - `_save_state()` / `load_state()` — persiste `{mode, ip, last_wifi_ip}` en
+    `network_state.json`; permite recuperar la última IP WiFi conocida aunque
+    la Pi haya cambiado de modo
+  - `start_monitor()` — thread que vigila la conexión cada 30s y activa hotspot
+    si no hay ninguna red activa
+  - Fallback automático a hotspot si cualquier switch falla
+
+* **`web/server.py`** — servidor HTTP modular con endpoints completos:
+  - `GET /wifi/scan` — escaneo de redes disponibles
+  - `GET /wifi/saved` — perfiles guardados en NetworkManager
+  - `GET /wifi/status` — modo actual, IP y estado del switch en curso
+  - `GET /wifi/redirect_url?action=X` — URL destino antes del switch
+  - `POST /wifi/connect` — conectar a perfil guardado
+  - `POST /wifi/add` — agregar red nueva y conectar
+  - `POST /wifi/forget` — eliminar perfil
+  - `POST /network` — switch hotspot↔wifi
+
+* **Switch con redirect URL** — flujo completo a prueba de pérdida de conexión:
+  1. Browser pide redirect URL al servidor
+  2. Servidor responde con IP destino (conocida del `network_state.json`)
+  3. Browser abre nueva pestaña con la URL correcta
+  4. Se ejecuta el switch
+  5. Modal de transición con cuenta regresiva
+  6. Polling cada 2s hasta confirmar `connected`, `fallback` o `failed`
+  7. Si falla, alerta al usuario y vuelve a hotspot automáticamente
+
+* **`switchModal`** — div de transición en la pestaña Redes que muestra
+  el estado del switch y la URL destino mientras cambia la red
+
+### Fixed
+
+* **`saved_wifi()` no encontraba perfiles** — nmcli devuelve tipo `802-11-wireless`,
+  no `wifi`; el filtro anterior nunca matcheaba ningún perfil
+
+* **`web.network = None`** — el `NetworkManager` nunca se conectaba al `WebServer`;
+  `/live.json` crasheaba con `AttributeError: 'NoneType'` en cada request
+
+* **`/wifi/scan` era POST en el JS** — el server lo manejaba como GET;
+  el escaneo nunca retornaba resultados
+
+* **`updateNetStatus` sin IP** — `fetchLive` pasaba solo el modo, no la IP;
+  el label mostraba `WiFi conectado` sin indicar la dirección
+
+* **RED ACTIVA mostraba `--`** — `loadNetPane` no se llamaba al cargar
+  el status inicial de red en la pestaña
+
+---
+
 ## How to read this file
 
 Each version has three possible sections:
