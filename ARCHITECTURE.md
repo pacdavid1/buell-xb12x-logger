@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-19 22:59 | versión: v1.16.3-66-g1f31bea
+> Última actualización: 2026-03-19 23:43 | versión: v1.16.3-67-ga5dc29f
 
 ---
 
@@ -21,7 +21,9 @@ buell-xb12x-logger/
 │   └── manager.py
 ├── sessions
 ├── tools
-│   └── make_index.py
+│   ├── make_index.py
+│   ├── test_ecu.py
+│   └── test_ecu.py.save
 ├── web
 │   ├── templates
 │   │   └── index.html
@@ -281,6 +283,22 @@ buell-xb12x-logger/
 | `start_monitor` | — |
 | `stop_monitor` | — |
 | `ssh_active` | — |
+
+---
+
+### `tools/test_ecu.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `PORT` | `/dev/ttyUSB0` |
+| `BAUD` | `9600` |
+| `SOH` | `1` |
+| `EOH` | `255` |
+| `SOT` | `2` |
+| `EOT` | `3` |
+| `ACK` | `6` |
 
 ---
 
