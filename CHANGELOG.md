@@ -4,6 +4,38 @@
 
 ---
 
+## [v2.2.0] — 2026-03-20
+**MODULARIZACIÓN ECU — ecu/connection.py + ecu/protocol.py**
+
+### Added
+
+* **`ecu/connection.py`** — `DDFI2Connection` extraída del monolito.
+  Maneja apertura de puerto serial, toggle DTR, envío de PDUs,
+  `get_version()`, `get_rt_data()`, `read_full_eeprom()` y USB reset via sysfs.
+  Validada vs ECU real: `BUEIB310 12-11-03`.
+
+* **`ecu/protocol.py`** — constantes y decodificación del protocolo DDFI2.
+  `RT_VARIABLES` (56 parámetros), `decode_rt_packet()`, calibración TPS,
+  cálculo VS_KPH, detección de marcha. Validada: RPM, CLT, Gear correctos.
+
+* **`tools/test_ecu.py`** — script de diagnóstico independiente.
+  Abre puerto, toggle DTR, envía PDU_VERSION y reporta respuesta.
+  No depende del servicio ni del proyecto.
+
+### Fixed
+
+* **Poweroff en SIGTERM** (`main.py`) — `systemctl restart` apagaba la Pi
+  porque `_handle_signal` ponía `_shutting_down=True` y `shutdown()` ejecutaba
+  `poweroff`. Separado en `_poweroff_requested` — poweroff solo ocurre cuando
+  el shutdown viene desde el dashboard web.
+
+### Changed
+
+* **`main.py`** — conecta a la ECU en arranque y loguea versión.
+  Puerto serial ya no es argumento sin usar.
+
+---
+
 ## [v2.1.6] — 2026-03-19
 
 **INSTALL — IMAGEN LIMPIA COMPLETA**
