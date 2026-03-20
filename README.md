@@ -2,6 +2,8 @@
 
 Raspberry Pi Zero 2W · FT232RL USB-Serial · Python 3 · 9600,8N1
 
+> **Developers:** Before starting any work session, read [WORKING_METHOD.md](./WORKING_METHOD.md) first.
+
 Real-time data logger for the **Delphi DDFI2 ECU** used in Buell XB motorcycles.
 
 This project captures ECU data, stores it, and provides a live dashboard accessible from any device on the same network.
