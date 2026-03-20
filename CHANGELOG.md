@@ -4,6 +4,25 @@
 
 ---
 
+## [v2.1.2] — 2026-03-19
+
+**ARCHITECTURE INDEX — AUTO-GENERADO EN CADA COMMIT**
+
+### Added
+
+* **`tools/make_index.py`** — script que escanea el repo completo y genera
+  `ARCHITECTURE.md` automáticamente. Detecta: árbol de archivos, clases,
+  métodos, constantes, endpoints HTTP, tabs y funciones JS, pasos del installer.
+  Compatible con cualquier archivo nuevo que se agregue al repo sin configuración.
+
+* **`ARCHITECTURE.md`** — índice auto-generado en la raíz del repo.
+  Documenta el estado real del código en cada commit.
+
+* **Git hook `pre-commit`** — corre `make_index.py` y agrega `ARCHITECTURE.md`
+  automáticamente antes de cada commit. Cero fricción, índice siempre actualizado.
+
+---
+
 ## [v2.1.1] — 2026-03-19
 
 **INSTALL FIX — APPLIANCE MODE OPERATIVO**
