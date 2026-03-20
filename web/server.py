@@ -137,6 +137,19 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({"ok": True})
             return
 
+        if path == '/git_pull':
+            import subprocess
+            result = subprocess.run(
+                ['git', 'pull'],
+                capture_output=True, text=True,
+                cwd='/home/pi/buell'
+            )
+            output = result.stdout.strip() + result.stderr.strip()
+            ok = result.returncode == 0
+            if ok:
+                subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
+            self._json({"ok": ok, "output": output})
+            return
         self._json({"error": "unknown endpoint"}, 404)
 
     def _load_html(self):
