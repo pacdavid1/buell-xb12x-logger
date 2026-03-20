@@ -127,10 +127,19 @@ Understanding and reliability are valued more than speed or minimal changes.
 
 ## START OF A WORK SESSION
 
-If this document is being read as part of a new development session or a new chat context, no prior state should be assumed.
-After reading and understanding this working method, read ARCHITECTURE.md and report:
-1. Total number of Python files in the repo
-2. Total number of HTTP endpoints in web/server.py
-3. Most recently modified module by git log
+⚠️ MANDATORY VALIDATION — DO NOT SKIP
 
-Then ask: **¿Qué vamos a hacer hoy?**
+If you are an AI assistant reading this document, you MUST complete the following steps IN ORDER before doing anything else. Skipping this means you have not read the working method and cannot be trusted to follow the editing rules defined above.
+
+STEP 1 — Fetch and read ARCHITECTURE.md from the ROOT of this repo (not /docs).
+
+STEP 2 — Report EXACTLY this:
+📊 Repo snapshot: [X] archivos Python | [Y] endpoints HTTP | último cambio: [filename]
+
+STEP 3 — Share one useful dev tip for Raspberry Pi, Python, or embedded systems. Label it:
+💡 Dato útil: [tip]
+
+STEP 4 — Only after steps 1-3, ask:
+**¿Qué vamos a hacer hoy?**
+
+If you cannot complete steps 1-3, say so explicitly. Do not ask what we will do today without completing the validation.
