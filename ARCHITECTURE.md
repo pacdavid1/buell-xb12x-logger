@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-20 08:09 | versión: v1.16.3-75-gdddd01c
+> Última actualización: 2026-03-20 08:36 | versión: v1.16.3-76-g2328b53
 
 ---
 
@@ -292,12 +292,19 @@ buell-xb12x-logger/
 
 ### `main.py`
 
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `TARGET_HZ` | `8.0` |
+
 **Clase `BuellLogger`**
 
 | Método | Docstring |
 |--------|-----------|
 | `__init__` | — |
 | `_handle_signal` | — |
+| `_ecu_loop` | Thread de lectura RT — 8Hz, actualiza web.ecu_live. |
 | `run` | Loop principal. |
 | `shutdown` | Limpieza al salir. |
 

@@ -9,6 +9,7 @@ import logging
 import time
 import signal
 import sys
+import threading
 from pathlib import Path
 
 # Añadir paths para imports
@@ -49,6 +50,7 @@ class BuellLogger:
         self._running = False
         self._shutting_down = False
         self._poweroff_requested = False
+        self._ecu_thread = None
         
         # Componentes modulares
         self.network = NetworkManager()
@@ -64,6 +66,26 @@ class BuellLogger:
         self.logger.info(f"Señal {signum} recibida - deteniendo...")
         self._running = False
     
+    def _ecu_loop(self):
+        """Thread de lectura RT — 8Hz, actualiza web.ecu_live."""
+        import time
+        TARGET_HZ = 8.0
+        INTERVAL  = 1.0 / TARGET_HZ
+        self.logger.info("ECU loop iniciado")
+        while self._running:
+            t0 = time.monotonic()
+            try:
+                data = self.ecu.get_rt_data()
+                if data:
+                    self.web.ecu_live = data
+            except Exception as e:
+                self.logger.debug(f"ecu_loop: {e}")
+            elapsed = time.monotonic() - t0
+            sleep_t = INTERVAL - elapsed
+            if sleep_t > 0:
+                time.sleep(sleep_t)
+        self.logger.info("ECU loop detenido")
+
     def run(self):
         """Loop principal."""
         self._running = True
@@ -83,7 +105,13 @@ class BuellLogger:
         except Exception as e:
             self.logger.warning(f"ECU no disponible: {e}")
 
-        # 2. Configurar red (hotspot por defecto)
+        # 2. Arrancar thread RT
+        self._ecu_thread = threading.Thread(
+            target=self._ecu_loop, daemon=True, name="ecu-rt"
+        )
+        self._ecu_thread.start()
+
+        # 3. Configurar red (hotspot por defecto)
         self.logger.info("Iniciando NetworkManager...")
         self.network.setup()
         

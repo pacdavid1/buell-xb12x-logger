@@ -179,7 +179,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "waiting":         True,
             "ride_num":        0,
             "elapsed_s":       0,
-            "live":            self.ecu_live,
+            "live":            self.server_instance.ecu_live,
             "cells":           {},
             "objectives":      [],
         }
