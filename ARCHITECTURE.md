@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-20 07:53 | versión: v1.16.3-72-g1d96aae
+> Última actualización: 2026-03-20 08:03 | versión: v1.16.3-73-g3554e1d
 
 ---
 
@@ -18,7 +18,8 @@ buell-xb12x-logger/
 │   └── 06_INSTALLATION_GOALS.md
 ├── ecu
 │   ├── __init__.py
-│   └── connection.py
+│   ├── connection.py
+│   └── protocol.py
 ├── network
 │   ├── __init__.py
 │   └── manager.py
@@ -265,10 +266,27 @@ buell-xb12x-logger/
 | `get_version` | Reintentar hasta 5 veces con flush — ECU puede estar en modo |
 | `_sync_to_soh` | Descarta basura del buffer hasta encontrar SOH (0x01). |
 | `_flush_and_retry_soh` | Segundo intento: vacía el buffer, reenvía PDU_RT_DATA y busc |
-| `get_rt_data` | Lee un frame RT de la ECU.
-decode_fn: función externa que co |
+| `get_rt_data` | Lee un frame RT de la ECU. Retorna dict de parámetros o None |
 | `read_eeprom_page` | — |
 | `read_full_eeprom` | Lee las 6 páginas del BUEIB/DDFI-2 → 1206 bytes. |
+
+---
+
+### `ecu/protocol.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `SOH` | `1` |
+| `EOH` | `255` |
+| `SOT` | `2` |
+| `EOT` | `3` |
+| `ACK` | `6` |
+| `RT_RESPONSE_SIZE` | `107` |
+| `RT_VARIABLES` | `{'RPM': (11, 2, 1.0, 0.0), 'Seconds': (9, 2, 1.0, 0.0), 'MilliSec': (8, 1, 0.01, 0.0), 'TPD': (25, 2, 0.1, 0.0), 'Load': (27, 1, 1.0, 0.0), 'TPS_10Bit': (90, 2, 1.0, 0.0), 'Batt_V': (28, 2, 0.01, 0.0), 'CLT': (30, 2, 0.1, -40.0), 'MAT': (32, 2, 0.1, -40.0), 'O2_ADC': (34, 2, 1.0, 0.0), 'WUE': (38, 2, 0.1, 0.0), 'IAT_Corr': (40, 2, 0.1, 0.0), 'Accel_Corr': (42, 2, 0.1, 0.0), 'Decel_Corr': (44, 2, 0.1, 0.0), 'WOT_Corr': (46, 2, 0.1, 0.0), 'Idle_Corr': (48, 2, 0.1, 0.0), 'OL_Corr': (50, 2, 0.1, 0.0), 'AFV': (52, 2, 0.1, 0.0), 'EGO_Corr': (54, 2, 0.1, 0.0), 'spark1': (13, 2, 0.0025, 0.0), 'spark2': (15, 2, 0.0025, 0.0), 'veCurr1_RAW': (17, 2, 1.0, 0.0), 'veCurr2_RAW': (19, 2, 1.0, 0.0), 'pw1': (21, 2, 0.00133, 0.0), 'pw2': (23, 2, 0.00133, 0.0), 'Flags0': (56, 1, 1.0, 0.0), 'Flags1': (57, 1, 1.0, 0.0), 'Flags2': (58, 1, 1.0, 0.0), 'Flags3': (59, 1, 1.0, 0.0), 'Flags4': (60, 1, 1.0, 0.0), 'Flags5': (61, 1, 1.0, 0.0), 'Flags6': (62, 1, 1.0, 0.0), 'Unk63': (63, 1, 1.0, 0.0), 'CDiag0': (67, 1, 1.0, 0.0), 'CDiag1': (68, 1, 1.0, 0.0), 'CDiag2': (69, 1, 1.0, 0.0), 'CDiag3': (70, 1, 1.0, 0.0), 'CDiag4': (71, 1, 1.0, 0.0), 'HDiag0': (75, 1, 1.0, 0.0), 'HDiag1': (76, 1, 1.0, 0.0), 'HDiag2': (77, 1, 1.0, 0.0), 'HDiag3': (78, 1, 1.0, 0.0), 'HDiag4': (79, 1, 1.0, 0.0), 'Unk80': (80, 1, 1.0, 0.0), 'Unk81': (81, 1, 1.0, 0.0), 'Unk82': (82, 1, 1.0, 0.0), 'Rides': (83, 1, 1.0, 0.0), 'DOut': (84, 1, 1.0, 0.0), 'DIn': (85, 1, 1.0, 0.0), 'ETS_ADC': (94, 1, 1.0, 0.0), 'IAT_ADC': (95, 1, 1.0, 0.0), 'SysConfig': (7, 1, 1.0, 0.0), 'BAS_ADC': (65, 2, 1.0, 0.0), 'VSS_Count': (99, 1, 1.0, 0.0), 'Fan_Duty_Pct': (98, 1, 1.0, 0.0), 'VSS_RPM_Ratio': (100, 1, 1.0, 0.0)}` |
+| `VSS_CPKM25` | `1368.0` |
+| `GEAR_KPH_PER_KRPM` | `[0.0, 7.0, 11.8, 15.4, 19.1, 23.0]` |
 
 ---
 

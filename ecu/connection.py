@@ -18,6 +18,8 @@ import time
 
 import serial
 
+from ecu.protocol import decode_rt_packet, RT_RESPONSE_SIZE, SOH
+
 # ── Protocolo DDFI2 ──────────────────────────────────────────
 SOH            = 0x01
 EOH            = 0xFF
@@ -30,6 +32,7 @@ CMD_GET        = 0x52
 RT_RESPONSE_SIZE = 107
 
 PDU_VERSION = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x56, 0x03, 0xE8])
+# PDU_RT_DATA importado localmente — no está en protocol.py
 PDU_RT_DATA = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x43, 0x03, 0xFD])
 
 BUEIB_PAGES = [
@@ -184,10 +187,8 @@ class DDFI2Connection:
         except Exception:
             return False
 
-    def get_rt_data(self, decode_fn):
-        """Lee un frame RT de la ECU.
-        decode_fn: función externa que convierte raw bytes → dict de parámetros.
-        """
+    def get_rt_data(self):
+        """Lee un frame RT de la ECU. Retorna dict de parámetros o None."""
         self.last_dirty_byte = None
         try:
             self._send(PDU_RT_DATA)
@@ -206,7 +207,7 @@ class DDFI2Connection:
                 raw = bytes([SOH]) + self._read_exact(RT_RESPONSE_SIZE - 1, 0.3)
             else:
                 raw = first + self._read_exact(RT_RESPONSE_SIZE - 1, 0.3)
-            return decode_fn(raw)
+            return decode_rt_packet(raw)
         except TimeoutError:
             return None
         except Exception as e:
