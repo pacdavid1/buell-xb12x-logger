@@ -4,6 +4,32 @@
 
 ---
 
+## [v2.1.4] — 2026-03-19
+
+**GIT PULL DESDE BROWSER — ACTUALIZACIÓN SIN TERMINAL**
+
+### Added
+
+* **Endpoint `POST /git_pull`** en `server.py` — corre `git pull` en el repo
+  y reinicia el servicio automáticamente. Sin necesidad de SSH ni terminal.
+
+* **Botón "🔄 Git Pull"** ya existía en el HTML tab Config — ahora funciona
+  correctamente al tener el endpoint implementado.
+
+### Changed
+
+* **Botón rojo "Descargar ddfi2_logger.py"** eliminado del tab Config.
+  Reemplazado por el flujo de actualización via git pull.
+  El texto de la sección ahora dice: "Jala la última versión desde GitHub
+  y reinicia el servicio automáticamente."
+
+### Fixed
+
+* **Regla sudoers** — agregado permiso `NOPASSWD` para
+  `systemctl restart buell-logger` al usuario `pi`.
+
+---
+
 ## [v2.1.3] — 2026-03-19
 
 **SHUTDOWN FIX — APAGADO DESDE BROWSER OPERATIVO**

@@ -160,6 +160,10 @@ polkit.addRule(function(action, subject) {
 \'POLKIT\'
 sudo systemctl restart polkit
 
+# Permisos sudoers para systemctl restart sin contraseña
+echo "${INSTALL_USER} ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart buell-logger" | sudo tee /etc/sudoers.d/buell-poweroff
+sudo chmod 440 /etc/sudoers.d/buell-poweroff
+
 sudo systemctl daemon-reload
 sudo systemctl enable buell-logger
 sudo systemctl restart buell-logger
