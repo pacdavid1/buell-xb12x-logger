@@ -4,11 +4,20 @@ v2.1.0 - Fix scan GET, redirect URL, switch status polling
 """
 
 import json
+import re
 import threading
 import time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 
+
+def _get_version():
+    try:
+        cl = open("/home/pi/buell/CHANGELOG.md").read()
+        m = re.search(r"## \[([^\]]+)\]", cl)
+        return m.group(1) if m else "unknown"
+    except Exception:
+        return "unknown"
 
 class DashboardHandler(BaseHTTPRequestHandler):
 
@@ -162,7 +171,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         net = self.server_instance.network
         return {
             "ts":              time.time(),
-            "logger_version":  "v2.1.0",
+            "logger_version":  _get_version(),
             "network_mode":    net.current_mode(),
             "ip":              net.get_ip(),
             "switch_status":   net.get_switch_status(),

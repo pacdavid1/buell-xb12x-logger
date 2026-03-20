@@ -18,7 +18,16 @@ from network.manager import NetworkManager
 from web.server import WebServer
 
 
-LOGGER_VERSION = "v2.0.0-MODULAR"
+def _get_version():
+    try:
+        import re
+        cl = open("/home/pi/buell/CHANGELOG.md").read()
+        m = re.search(r"## \[([^\]]+)\]", cl)
+        return m.group(1) if m else "unknown"
+    except Exception:
+        return "unknown"
+
+LOGGER_VERSION = _get_version()
 
 
 class BuellLogger:
