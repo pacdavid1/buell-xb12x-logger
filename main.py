@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from network.manager import NetworkManager
 from web.server import WebServer
+from ecu.connection import DDFI2Connection
 
 
 def _get_version():
@@ -47,11 +48,13 @@ class BuellLogger:
         
         self._running = False
         self._shutting_down = False
+        self._poweroff_requested = False
         
         # Componentes modulares
         self.network = NetworkManager()
         self.web = WebServer(host='0.0.0.0', port=8080, buell_dir=self.buell_dir)
         self.web.network = self.network
+        self.ecu = DDFI2Connection(self.port)
         
         # Señales
         signal.signal(signal.SIGTERM, self._handle_signal)
@@ -59,17 +62,28 @@ class BuellLogger:
     
     def _handle_signal(self, signum, frame):
         self.logger.info(f"Señal {signum} recibida - deteniendo...")
-        self._shutting_down = True
         self._running = False
     
     def run(self):
         """Loop principal."""
         self._running = True
-        self.logger.info(f"Buell Logger {LOGGER_VERSION} - MODO RED+WEB (sin ECU)")
+        self.logger.info(f"Buell Logger {LOGGER_VERSION}")
         self.logger.info(f"Sessions: {self.sessions_dir}")
         self.logger.info(f"Buell dir: {self.buell_dir}")
         
-        # 1. Configurar red (hotspot por defecto)
+        # 1. Conectar ECU
+        self.logger.info("Conectando a ECU...")
+        try:
+            self.ecu.connect()
+            ver = self.ecu.get_version()
+            if ver:
+                self.logger.info(f"ECU conectada: {ver}")
+            else:
+                self.logger.warning("ECU no respondió — continuando sin ECU")
+        except Exception as e:
+            self.logger.warning(f"ECU no disponible: {e}")
+
+        # 2. Configurar red (hotspot por defecto)
         self.logger.info("Iniciando NetworkManager...")
         self.network.setup()
         
@@ -96,7 +110,7 @@ class BuellLogger:
             # Check shutdown desde web
             if self.web.pending_shutdown:
                 self.logger.info("Shutdown solicitado desde web")
-                self._shutting_down = True
+                self._poweroff_requested = True
                 self._running = False
         
         # Cleanup
@@ -108,9 +122,8 @@ class BuellLogger:
         self.web.stop()
         self.network.stop_monitor()
         
-        if self._shutting_down and not self.no_poweroff:
+        if self._poweroff_requested and not self.no_poweroff:
             self.logger.info("Apagando sistema...")
-            import subprocess
             subprocess.run(["/usr/sbin/poweroff"], check=False)
         else:
             self.logger.info("Logger detenido (sin apagar)")
@@ -118,7 +131,7 @@ class BuellLogger:
 
 def main():
     parser = argparse.ArgumentParser(description=f"Buell Logger {LOGGER_VERSION}")
-    parser.add_argument("--port", default="/dev/ttyUSB0", help="Puerto serial (no usado aún)")
+    parser.add_argument("--port", default="/dev/ttyUSB0", help="Puerto serial ECU")
     parser.add_argument("--sessions-dir", default="/home/pi/buell/sessions", help="Directorio de sesiones")
     parser.add_argument("--buell-dir", default="/home/pi/buell", help="Directorio de configuración")
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
