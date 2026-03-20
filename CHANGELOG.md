@@ -547,6 +547,6 @@ Base version from which active development started.
 | PENDING-W1 | Migrar a Flask — reemplazar servidor HTTP manual en server.py | Medium | Open |
 | LOAD-G3 | Add Load as 2nd series in G3 chart (right axis 0–255) | Low | Open |
 | GPS | Ride-end detection when ECU drops while bike is moving | Future | Open |
-| MODULAR-1 | Crear `ecu/connection.py` — módulo de conexión serial ECU | High | Open |
+| MODULAR-1 | Crear `ecu/connection.py` — módulo de conexión serial ECU | High | ✅ Closed — validado vs ECU real (BUEIB310 12-11-03) |
 | MODULAR-2 | Integrar `ecu/connection.py` en `main.py` | High | Open |
 | v2.0 | Code modularization into independent modules | Future | In Progress |
