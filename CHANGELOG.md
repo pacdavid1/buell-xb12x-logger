@@ -4,6 +4,18 @@
 
 ---
 
+## [v2.1.5] — 2026-03-19
+
+**VERSION DINÁMICA DESDE CHANGELOG**
+
+### Changed
+
+* **`LOGGER_VERSION` en `main.py`** y **`logger_version` en `server.py`** —
+  ambos leen la versión dinámicamente del `CHANGELOG.md` en lugar de tenerla
+  hardcodeada. La pestaña Config siempre muestra la versión real del sistema.
+
+---
+
 ## [v2.1.4] — 2026-03-19
 
 **GIT PULL DESDE BROWSER — ACTUALIZACIÓN SIN TERMINAL**
