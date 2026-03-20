@@ -77,6 +77,13 @@ chown -R "${INSTALL_USER}:${INSTALL_USER}" /home/pi/buell
 SSID="buell-$(hostname -s | tail -c 5)"
 PASSWORD="buell2024"
 
+# Asegurar que NetworkManager gestiona las interfaces (imagen limpia viene con managed=false)
+echo -e "${YELLOW}Configurando NetworkManager...${NC}"
+sudo sed -i 's/managed=false/managed=true/' /etc/NetworkManager/NetworkManager.conf
+sudo systemctl restart NetworkManager
+sleep 3
+echo -e "${GREEN}✓ NetworkManager configurado${NC}"
+
 echo -e "${YELLOW}Configurando hotspot WiFi...${NC}"
 
 # Asegurar que WiFi no esté bloqueado
