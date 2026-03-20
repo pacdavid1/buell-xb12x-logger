@@ -534,17 +534,19 @@ Base version from which active development started.
 
 ## Known issues / Backlog
 
-| ID | Description | Priority |
-|----|-------------|----------|
-| BUG-3 | VE heatmap RPM unsorted (regression in v1.15) | High |
-| PENDING-R1 | Validate USB reset clean reconnection in real ride | High |
-| PENDING-F7 | Verify latency timer sysfs path with FT232RL connected on Pi | High |
-| PENDING-R3 | Calibrate `GEAR_KPH_PER_KRPM` with real ride data | Medium |
-| PENDING-H2 | Lower `KTemp_Fan_On` offset=498 from 220→200°C in EEPROM | Medium |
-| PENDING-H3 | Fix Warmup Corr 260°C→100% in EEPROM | Medium |
-| PENDING-V1 | Select ride in Sessions → load in both tabs simultaneously | Low |
-| PENDING-U1 | Botón "Descargar ddfi2_logger.py" → reemplazar por acción "Actualizar desde GitHub" que ejecute el installer | Medium |
-| PENDING-W1 | Migrar a Flask — reemplazar servidor HTTP manual en server.py | Medium |
-| LOAD-G3 | Add Load as 2nd series in G3 chart (right axis 0–255) | Low |
-| GPS | Ride-end detection when ECU drops while bike is moving | Future |
-| v2.0 | Code modularization into independent modules | Future |
+| ID | Description | Priority | Status |
+|----|-------------|----------|--------|
+| BUG-3 | VE heatmap RPM unsorted (regression in v1.15) | High | Open |
+| PENDING-R1 | Validate USB reset clean reconnection in real ride | High | Open |
+| PENDING-F7 | Verify latency timer sysfs path with FT232RL connected on Pi | High | ✅ Closed — sysfs path unavailable on this kernel (-32), handled silently |
+| PENDING-R3 | Calibrate `GEAR_KPH_PER_KRPM` with real ride data | Medium | Open |
+| PENDING-H2 | Lower `KTemp_Fan_On` offset=498 from 220→200°C in EEPROM | Medium | Open |
+| PENDING-H3 | Fix Warmup Corr 260°C→100% in EEPROM | Medium | Open |
+| PENDING-V1 | Select ride in Sessions → load in both tabs simultaneously | Low | Open |
+| PENDING-U1 | Botón "Descargar ddfi2_logger.py" → reemplazar por acción "Actualizar desde GitHub" que ejecute el installer | Medium | Open |
+| PENDING-W1 | Migrar a Flask — reemplazar servidor HTTP manual en server.py | Medium | Open |
+| LOAD-G3 | Add Load as 2nd series in G3 chart (right axis 0–255) | Low | Open |
+| GPS | Ride-end detection when ECU drops while bike is moving | Future | Open |
+| MODULAR-1 | Crear `ecu/connection.py` — módulo de conexión serial ECU | High | Open |
+| MODULAR-2 | Integrar `ecu/connection.py` en `main.py` | High | Open |
+| v2.0 | Code modularization into independent modules | Future | In Progress |
