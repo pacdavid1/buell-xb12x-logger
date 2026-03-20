@@ -4,6 +4,31 @@
 
 ---
 
+## [v2.1.3] — 2026-03-19
+
+**SHUTDOWN FIX — APAGADO DESDE BROWSER OPERATIVO**
+
+### Fixed
+
+* **Botón "Apagar Pi" no apagaba el sistema** — el proceso Python corría sin
+  permisos para llamar `poweroff`. Solución en tres partes:
+  - Regla polkit `99-buell-poweroff.rules` que autoriza al usuario `pi` a
+    apagar sin contraseña via `org.freedesktop.login1.power-off`.
+  - `web/server.py` — reemplaza `os.system("sudo poweroff")` por
+    `subprocess.run(["/usr/sbin/poweroff"])` en el endpoint `/shutdown`.
+  - `main.py` — mismo reemplazo en `shutdown()` para el apagado por señal.
+
+* **`--no-poweroff` eliminado del servicio systemd** — el flag bloqueaba
+  el apagado intencional desde el browser. El servicio ahora arranca sin él.
+
+* **`Restart=always` → `Restart=on-failure`** — evita que systemd reinicie
+  el logger después de un apagado limpio.
+
+* **Regla polkit agregada al `install.sh`** — futuras instalaciones desde
+  imagen limpia incluyen el permiso automáticamente.
+
+---
+
 ## [v2.1.2] — 2026-03-19
 
 **ARCHITECTURE INDEX — AUTO-GENERADO EN CADA COMMIT**
