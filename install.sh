@@ -138,14 +138,27 @@ After=network.target
 Wants=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/buell/main.py --port /dev/ttyUSB0 --sessions-dir /home/pi/buell/sessions --buell-dir /home/pi/buell --no-poweroff
+ExecStart=/usr/bin/python3 /home/pi/buell/main.py --port /dev/ttyUSB0 --sessions-dir /home/pi/buell/sessions --buell-dir /home/pi/buell
 WorkingDirectory=/home/pi/buell
-Restart=always
+Restart=on-failure
+RestartSec=5
 User=pi
 
 [Install]
 WantedBy=multi-user.target
 EOF
+
+# Regla polkit para que el servicio pueda apagar la Pi sin contraseña
+sudo mkdir -p /etc/polkit-1/rules.d
+sudo tee /etc/polkit-1/rules.d/99-buell-poweroff.rules >/dev/null <<\'POLKIT\'
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.login1.power-off" &&
+        subject.user == "pi") {
+        return polkit.Result.YES;
+    }
+});
+\'POLKIT\'
+sudo systemctl restart polkit
 
 sudo systemctl daemon-reload
 sudo systemctl enable buell-logger

@@ -101,8 +101,8 @@ class BuellLogger:
         
         if self._shutting_down and not self.no_poweroff:
             self.logger.info("Apagando sistema...")
-            import os
-            os.system("sudo poweroff")
+            import subprocess
+            subprocess.run(["/usr/sbin/poweroff"], check=False)
         else:
             self.logger.info("Logger detenido (sin apagar)")
 
