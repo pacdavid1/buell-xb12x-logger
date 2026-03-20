@@ -492,6 +492,8 @@ Base version from which active development started.
 | PENDING-H2 | Lower `KTemp_Fan_On` offset=498 from 220→200°C in EEPROM | Medium |
 | PENDING-H3 | Fix Warmup Corr 260°C→100% in EEPROM | Medium |
 | PENDING-V1 | Select ride in Sessions → load in both tabs simultaneously | Low |
+| PENDING-U1 | Botón "Descargar ddfi2_logger.py" → reemplazar por acción "Actualizar desde GitHub" que ejecute el installer | Medium |
+| PENDING-W1 | Migrar a Flask — reemplazar servidor HTTP manual en server.py | Medium |
 | LOAD-G3 | Add Load as 2nd series in G3 chart (right axis 0–255) | Low |
 | GPS | Ride-end detection when ECU drops while bike is moving | Future |
 | v2.0 | Code modularization into independent modules | Future |
