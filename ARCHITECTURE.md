@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-19 23:51 | versión: v1.16.3-68-ga83db81
+> Última actualización: 2026-03-20 07:29 | versión: v1.16.3-69-g0041b0b
 
 ---
 
@@ -16,6 +16,9 @@ buell-xb12x-logger/
 │   ├── 04_DECISIONS.md
 │   ├── 05_TROUBLESHOOTING.md
 │   └── 06_INSTALLATION_GOALS.md
+├── ecu
+│   ├── __init__.py
+│   └── connection.py
 ├── network
 │   ├── __init__.py
 │   └── manager.py
@@ -224,6 +227,48 @@ buell-xb12x-logger/
 | `_waiting_loop` | — |
 | `_do_poweroff` | — |
 | `run` | — |
+
+---
+
+### `ecu/__init__.py`
+
+---
+
+### `ecu/connection.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `SOH` | `1` |
+| `EOH` | `255` |
+| `SOT` | `2` |
+| `EOT` | `3` |
+| `ACK` | `6` |
+| `DROID_ID` | `0` |
+| `STOCK_ECM_ID` | `66` |
+| `CMD_GET` | `82` |
+| `RT_RESPONSE_SIZE` | `107` |
+| `BUEIB_PAGES` | `[(1, 0, 256), (2, 256, 256), (3, 512, 158), (4, 670, 256), (5, 926, 256), (6, 1182, 24)]` |
+
+**Clase `DDFI2Connection`**
+
+| Método | Docstring |
+|--------|-----------|
+| `__init__` | — |
+| `connect` | — |
+| `disconnect` | — |
+| `usb_reset` | Fuerza reset USB del FT232RL via sysfs (authorized toggle).
+ |
+| `_send` | — |
+| `_read_exact` | — |
+| `get_version` | Reintentar hasta 5 veces con flush — ECU puede estar en modo |
+| `_sync_to_soh` | Descarta basura del buffer hasta encontrar SOH (0x01). |
+| `_flush_and_retry_soh` | Segundo intento: vacía el buffer, reenvía PDU_RT_DATA y busc |
+| `get_rt_data` | Lee un frame RT de la ECU.
+decode_fn: función externa que co |
+| `read_eeprom_page` | — |
+| `read_full_eeprom` | Lee las 6 páginas del BUEIB/DDFI-2 → 1206 bytes. |
 
 ---
 
