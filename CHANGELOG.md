@@ -4,6 +4,19 @@
 
 ---
 
+## [v2.1.6] — 2026-03-19
+
+**INSTALL — IMAGEN LIMPIA COMPLETA**
+
+### Fixed
+
+* **`NetworkManager.conf managed=false`** — en imagen limpia de Raspberry Pi OS,
+  NM no gestiona interfaces por defecto. El installer ahora cambia `managed=false`
+  a `managed=true` antes de configurar el hotspot. Sin este fix el hotspot nunca
+  arranca en una Pi recién flasheada.
+
+---
+
 ## [v2.1.5] — 2026-03-19
 
 **VERSION DINÁMICA DESDE CHANGELOG**
