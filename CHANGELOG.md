@@ -581,4 +581,5 @@ Base version from which active development started.
 | GPS | Ride-end detection when ECU drops while bike is moving | Future | Open |
 | MODULAR-1 | Crear `ecu/connection.py` — módulo de conexión serial ECU | High | ✅ Closed — validado vs ECU real (BUEIB310 12-11-03) |
 | MODULAR-2 | Integrar `ecu/connection.py` en `main.py` | High | ✅ Closed — ECU conectada en arranque, fix poweroff en SIGTERM |
-| v2.0 | Code modularization into independent modules | Future | In Progress |
+| MODULAR-3 | Thread RT 8Hz — dashboard live con datos ECU reales | High | ✅ Closed — CHT, Batt, EGO, TPS visibles en HTML |
+| v2.0 | Code modularization into independent modules | Future | ✅ Closed — ecu/connection.py, ecu/protocol.py, thread RT integrados |
