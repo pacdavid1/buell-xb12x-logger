@@ -179,7 +179,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "waiting":         True,
             "ride_num":        0,
             "elapsed_s":       0,
-            "live":            {},
+            "live":            self.ecu_live,
             "cells":           {},
             "objectives":      [],
         }
@@ -196,6 +196,7 @@ class WebServer:
         self._thread          = None
         self.pending_shutdown = False
         self.last_keepalive   = time.time()
+        self.ecu_live         = {}
 
     def start(self):
         DashboardHandler.server_instance = self
