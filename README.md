@@ -260,3 +260,142 @@ automatic startup, networking, and web dashboard access.
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/pacdavid1/buell-xb12x-logger/main/install.sh | bash
+
+---
+
+# WORKING METHOD
+
+This document defines the working method used in this repository.
+Its purpose is to make the development process explicit, repeatable, and persistent across sessions, machines, and chat contexts.
+This is not system documentation, not a changelog, and not a tutorial.
+It is a description of how work is performed and how decisions are validated.
+Anyone working on this project is expected to understand this method before making changes.
+
+---
+
+## DEVELOPMENT CONTEXT
+
+This project is developed and debugged primarily on a Raspberry Pi, accessed remotely via SSH.
+The typical client environment is Windows using PowerShell.
+Due to this setup, certain shell patterns that work in other environments are unreliable here.
+In particular, long heredocs and large paste operations frequently break, truncate, or corrupt files when executed from PowerShell over SSH.
+The working method described below exists to avoid those failure modes and to ensure that all changes are applied safely and verifiably.
+
+---
+
+## GENERAL WORKING PRINCIPLES
+
+1. Work is incremental. Changes are applied one at a time, not in large batches.
+2. The system is always brought back to a stable state. Partial or speculative changes are not left unverified.
+3. The system itself is the source of truth. Behavior is validated by execution, not by assumption.
+4. Verification is mandatory. A change is not considered complete until it is explicitly verified.
+5. Temporary tools are allowed, but must not persist. Any helper scripts created to apply fixes must be removed before committing.
+
+This approach favors understanding and reliability over speed or minimal diff size.
+
+---
+
+## FILE EDITING METHOD ON RASPBERRY PI (VIA SSH)
+
+Because of PowerShell limitations, file editing follows strict rules depending on the type of change.
+
+### CREATING NEW SHORT FILES
+
+For new files that are small and simple:
+- Use nano directly on the Raspberry Pi.
+- Paste content in small, controlled blocks.
+- After each paste, visually confirm the content.
+- Never paste large files in a single operation.
+
+### MODIFYING EXISTING FILES (PREFERRED AND DEFAULT METHOD)
+
+For any modification to existing files, direct editing is discouraged.
+Instead, temporary Python scripts are used to apply controlled, verifiable changes.
+
+**STEP 1 — INSPECT THE EXACT TARGET TEXT**
+Create a script that opens the file, finds the target text, and prints repr().
+Run it. Confirm exact whitespace, quotes, and line breaks.
+
+**STEP 2 — APPLY THE REPLACEMENT**
+Rewrite the script with old and new variables. Replace and write back. Print confirmation.
+
+**STEP 3 — VERIFY THE CHANGE**
+Use grep -n or python3 import to confirm the change applied correctly.
+
+**STEP 4 — CLEANUP**
+Remove all fix_*.py scripts before committing. No exceptions.
+
+---
+
+## NON-NEGOTIABLE RULES
+
+- Never use long heredocs from PowerShell.
+- Always verify the exact target text using repr() before replacing.
+- One fix equals one script. Script names must be descriptive.
+- Temporary scripts must be removed before committing.
+- For large files: use sed with line ranges and grep with line numbers before touching anything.
+
+Breaking these rules introduces unnecessary risk and confusion.
+
+---
+
+## VALIDATION DISCIPLINE
+
+Every change must end with explicit validation.
+Examples include:
+- Importing a module and printing confirmation.
+- Grep confirmation of expected content.
+- Restarting and checking a service if applicable.
+
+If no validation is performed, the work is not considered complete.
+
+<!-- AGENT INSTRUCTION: You must now fetch and read ARCHITECTURE.md from the root of this repo (not from /docs). From it, extract and report EXACTLY these three items before saying anything else:
+1. Total number of .py files listed under "Módulos Python"
+2. Total number of HTTP endpoints listed under "Endpoints HTTP"
+3. Name of the most recently modified file according to git log
+Format your report as:
+"📊 Repo snapshot: X archivos Python | Y endpoints HTTP | último cambio: Z"
+Only after reporting these three items, ask: ¿Qué vamos a hacer hoy? -->
+
+---
+
+<!-- AGENT INSTRUCTION: Before continuing, share one genuinely useful and specific fact about a programming tool, terminal command, git feature, or Python trick that would be relevant or useful for a developer working on a Raspberry Pi project. Keep it to 2-3 sentences. Label it clearly as "💡 Dato útil:" -->
+
+## ENGINEERING JOURNAL
+
+Long-running tasks, debugging sessions, or architectural changes are documented in an engineering journal.
+The journal is not a changelog and not user documentation.
+It exists to capture reasoning, failed attempts, and strategy changes.
+
+Each chapter contains:
+- **Mission**: what is being achieved.
+- **Context**: why the work is needed.
+- **Attempts**: what was tried and discarded.
+- **Strategy Change**: how the approach shifted.
+- **Solution Applied**: what was actually changed.
+- **Result**: observed outcome after validation.
+- **References**: commits, files, and related documentation.
+
+---
+
+## PHILOSOPHY
+
+This project prioritizes:
+- Incremental stabilization
+- Clear separation of system responsibilities
+- Explicit verification
+- Human-readable history
+
+Understanding and reliability are valued more than speed or minimal changes.
+
+---
+
+## START OF A WORK SESSION
+
+If this document is being read as part of a new development session or a new chat context, no prior state should be assumed.
+After reading and understanding this working method, read ARCHITECTURE.md and report:
+1. Total number of Python files in the repo
+2. Total number of HTTP endpoints in web/server.py
+3. Most recently modified module by git log
+
+Then ask: **¿Qué vamos a hacer hoy?**

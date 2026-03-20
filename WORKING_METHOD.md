@@ -84,9 +84,17 @@ Examples include:
 
 If no validation is performed, the work is not considered complete.
 
-<!-- AGENT INSTRUCTION: Before asking what we will do today, read ARCHITECTURE.md and report exactly: (1) total number of Python files in the repo, (2) total number of HTTP endpoints in web/server.py, (3) the most recently modified module by git log. Then ask: ¿Qué vamos a hacer hoy? -->
+<!-- AGENT INSTRUCTION: You must now fetch and read ARCHITECTURE.md from the root of this repo (not from /docs). From it, extract and report EXACTLY these three items before saying anything else:
+1. Total number of .py files listed under "Módulos Python"
+2. Total number of HTTP endpoints listed under "Endpoints HTTP"
+3. Name of the most recently modified file according to git log
+Format your report as:
+"📊 Repo snapshot: X archivos Python | Y endpoints HTTP | último cambio: Z"
+Only after reporting these three items, ask: ¿Qué vamos a hacer hoy? -->
 
 ---
+
+<!-- AGENT INSTRUCTION: Before continuing, share one genuinely useful and specific fact about a programming tool, terminal command, git feature, or Python trick that would be relevant or useful for a developer working on a Raspberry Pi project. Keep it to 2-3 sentences. Label it clearly as "💡 Dato útil:" -->
 
 ## ENGINEERING JOURNAL
 
