@@ -214,6 +214,7 @@ table.veg td:active{filter:brightness(1.6)}
       <div class="hs"><div class="hs-label">Batt</div><div class="hs-val yw" id="hBatt">--</div></div>
       <div class="hs"><div class="hs-label">Marcha</div><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
       <div class="hs"><div class="hs-label" id="hRideLabel">Ride</div><div class="hs-val wh" id="hRide">--</div></div>
+      <div class="hs"><div class="hs-label">Serial</div><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
     </div>
     <div id="hPill" class="pill-dot off"></div>
     <button id="btnCloseRide" onclick="closeRide()"
@@ -750,6 +751,8 @@ function updateHeader(d) {
     tempEl.textContent = tp.toFixed(1)+'°';
     tempEl.className = 'hs-val ' + (tp > 75 ? 'ac' : tp > 60 ? 'yw' : 'gn');
   }
+  const serialEl = document.getElementById('hSerial');
+  if(serialEl) serialEl.textContent = d.bike_serial ? '#'+d.bike_serial : '--';
   document.getElementById('hEGO').textContent  = lv.EGO_Corr != null ? lv.EGO_Corr.toFixed(0)+'%' : '--';
   document.getElementById('hMAT').textContent  = lv.MAT      != null ? lv.MAT.toFixed(0)+'`'        : '--';
   document.getElementById('hBatt').textContent = lv.Batt_V   != null ? lv.Batt_V.toFixed(1)+'V'     : '--';

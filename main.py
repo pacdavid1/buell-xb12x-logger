@@ -370,7 +370,8 @@ class BuellLogger:
                 if blob:
                     self.web.eeprom_maps   = decode_eeprom_maps(blob)
                     self.web.eeprom_params = decode_params(blob, ver)
-                    self.logger.info(f"EEPROM lista — {len(self.web.eeprom_params)} params")
+                    self.web.bike_serial   = int.from_bytes(blob[12:14], 'little')
+                    self.logger.info(f"EEPROM lista — {len(self.web.eeprom_params)} params | Serial={self.web.bike_serial}")
             else:
                 self.logger.warning("ECU no respondió — continuando sin ECU")
         except Exception as e:
