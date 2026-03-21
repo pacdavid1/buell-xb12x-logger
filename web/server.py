@@ -62,6 +62,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json(self._get_live())
             return
 
+        if path == '/maps':
+            self._json(self.server_instance.eeprom_maps)
+            return
+        if path == '/eeprom':
+            self._json(self.server_instance.eeprom_params)
+            return
         if path == '/wifi/saved':
             self._json({"saved": net.saved_wifi()})
             return
@@ -195,6 +201,8 @@ class WebServer:
         self.pending_shutdown = False
         self.last_keepalive   = time.time()
         self.ecu_live         = {}
+        self.eeprom_maps      = {}
+        self.eeprom_params    = {}
 
     def start(self):
         DashboardHandler.server_instance = self

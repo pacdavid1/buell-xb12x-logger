@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 from network.manager import NetworkManager
 from web.server import WebServer
 from ecu.connection import DDFI2Connection
+from ecu.eeprom import decode_eeprom_maps, decode_eeprom_params
 
 
 def _get_version():
@@ -119,6 +120,14 @@ class BuellLogger:
             ver = self.ecu.get_version()
             if ver:
                 self.logger.info(f"ECU conectada: {ver}")
+                self.logger.info("Leyendo EEPROM...")
+                eeprom = self.ecu.read_full_eeprom()
+                if eeprom:
+                    self.web.eeprom_maps   = decode_eeprom_maps(eeprom)
+                    self.web.eeprom_params = decode_eeprom_params(eeprom)
+                    self.logger.info("EEPROM leido — mapas disponibles")
+                else:
+                    self.logger.warning("EEPROM no pudo leerse")
             else:
                 self.logger.warning("ECU no respondió — continuando sin ECU")
         except Exception as e:
