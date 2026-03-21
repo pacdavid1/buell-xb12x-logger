@@ -3,7 +3,24 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 
+
+## [2.5.7] - 2026-03-21
+### Added
+- `main.py`: `_sysmon_loop` — independent thread, updates CPU% and TEMP every 2s
+- CPU% and TEMP visible in dashboard at all times, regardless of ECU connection
+### Changed
+- `main.py`: sysmon thread starts alongside ECU thread in `run()`
+- Code style: all new comments and docstrings written in English going forward
+
 ---
+
+## [2.5.6] - 2026-03-21
+### Added
+- `main.py`: CPU% (via `/proc/stat`, delta 1s) y CPU temp (via `/sys/class/thermal/thermal_zone0/temp`) en `serial_stats`
+- `index.html`: celdas CPU% y TEMP en header fila 2 con semáforo (verde/amarillo/rojo)
+- TEMP: amarillo >60°C, rojo >75°C
+- CPU%: amarillo >60%, rojo >80%
+
 ---
 
 ## [2.5.5] - 2026-03-21
