@@ -3,6 +3,30 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 
 ---
+## [v2.3.1] — 2026-03-21
+**DASHBOARD COMPLETO — SESIONES, CSV Y GRÁFICAS**
+
+### Added
+
+* **Endpoint `/rides`** (`web/server.py`) — lista rides desde summaries JSON.
+  Fallback para rides sin summary (ride activo o sin cerrar).
+
+* **Endpoint `/csv/`** (`web/server.py`) — sirve CSV del ride con soporte
+  gzip automático. Concatena partes si el ride tiene múltiples archivos.
+
+* **Endpoint `/ride/`** (`web/server.py`) — retorna summary JSON del ride
+  con cells y objectives para el tab Ver.
+
+* **`_get_rides()`** en `WebServer` — método que lista rides desde el
+  filesystem sin leer CSVs completos.
+
+### Result
+
+Dashboard 100% funcional en modo modular: datos live ECU, mapas EEPROM,
+sesiones grabadas, gráficas de rides visibles.
+
+---
+
 ## [v2.3.0] — 2026-03-20
 **EEPROM MODULAR — MAPAS VE Y SPARK EN DASHBOARD**
 
