@@ -274,7 +274,26 @@ class BuellLogger:
                     mem_pct = round((_mt-_mf)/_mt*100, 1)
                 except Exception:
                     mem_pct = 0.0
-                self.web.serial_stats = {'bps': bps, 'pct': pct, 'tx': 9*8, 'rx': 107*8, 'buf_in': in_w, 'buf_pct': buf_pct, 'mem_pct': mem_pct}
+                try:
+                    with open('/sys/class/thermal/thermal_zone0/temp') as _f:
+                        cpu_temp = round(int(_f.read().strip()) / 1000.0, 1)
+                except Exception:
+                    cpu_temp = 0.0
+                try:
+                    with open('/proc/stat') as _f:
+                        _cpu = list(map(int, _f.readline().split()[1:]))
+                    _idle = _cpu[3]
+                    _total = sum(_cpu)
+                    if hasattr(self, '_cpu_prev'):
+                        _di = _idle - self._cpu_prev[0]
+                        _dt = _total - self._cpu_prev[1]
+                        cpu_pct = round((1.0 - _di / _dt) * 100, 1) if _dt else 0.0
+                    else:
+                        cpu_pct = 0.0
+                    self._cpu_prev = (_idle, _total)
+                except Exception:
+                    cpu_pct = 0.0
+                self.web.serial_stats = {'bps': bps, 'pct': pct, 'tx': 9*8, 'rx': 107*8, 'buf_in': in_w, 'buf_pct': buf_pct, 'mem_pct': mem_pct, 'cpu_pct': cpu_pct, 'cpu_temp': cpu_temp}
                 _serial_bytes  = 0
                 _serial_window = _now
             elapsed = time.monotonic() - t0

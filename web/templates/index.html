@@ -228,6 +228,8 @@ table.veg td:active{filter:brightness(1.6)}
       <div class="hs-sm"><div class="hs-label">BPS</div><div class="hs-val" id="hBPS" style="color:#888">--</div></div>
       <div class="hs-sm"><div class="hs-label">BUF%</div><div class="hs-val gn" id="hBuf">--</div></div>
       <div class="hs-sm"><div class="hs-label">MEM%</div><div class="hs-val gn" id="hMem">--</div></div>
+      <div class="hs-sm"><div class="hs-label">CPU%</div><div class="hs-val gn" id="hCpu">--</div></div>
+      <div class="hs-sm"><div class="hs-label">TEMP</div><div class="hs-val gn" id="hTemp">--</div></div>
       <div class="hs-sm"><div class="hs-label">ERR</div><div class="hs-val gn" id="hErr" title="Eventos de error del ride actual">--</div></div>
     </div>
   </div>
@@ -735,6 +737,18 @@ function updateHeader(d) {
     const mp = ss.mem_pct || 0;
     memEl.textContent = mp.toFixed(0)+'%';
     memEl.className = 'hs-val ' + (mp > 80 ? 'ac' : mp > 60 ? 'yw' : 'gn');
+  }
+  const cpuEl = document.getElementById('hCpu');
+  if(cpuEl){
+    const cp = ss.cpu_pct || 0;
+    cpuEl.textContent = cp.toFixed(0)+'%';
+    cpuEl.className = 'hs-val ' + (cp > 80 ? 'ac' : cp > 60 ? 'yw' : 'gn');
+  }
+  const tempEl = document.getElementById('hTemp');
+  if(tempEl){
+    const tp = ss.cpu_temp || 0;
+    tempEl.textContent = tp.toFixed(1)+'°';
+    tempEl.className = 'hs-val ' + (tp > 75 ? 'ac' : tp > 60 ? 'yw' : 'gn');
   }
   document.getElementById('hEGO').textContent  = lv.EGO_Corr != null ? lv.EGO_Corr.toFixed(0)+'%' : '--';
   document.getElementById('hMAT').textContent  = lv.MAT      != null ? lv.MAT.toFixed(0)+'`'        : '--';
