@@ -18,3 +18,10 @@ __pycache__/
 # Archivos temporales
 *.tmp
 *.swp
+# Archivos temporales de nano
+*.save
+# Estado de red (específico de cada instalación)
+network_state.json
+# Archivos de debug temporales
+fix_*.py.save
+*.save.*
