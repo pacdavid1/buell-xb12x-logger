@@ -1152,10 +1152,12 @@ function updateNetStatus(mode,ip){
   document.getElementById('btnWifi')?.classList.toggle('on',mode==='wifi');
   document.getElementById('btnHotspot')?.classList.toggle('on',mode==='hotspot');
   if(mode==='wifi'){
-    label.textContent='WiFi — '+(ip||'conectado');
+    const url='http://'+(ip||'')+':8080';
+    label.innerHTML='WiFi — <a href="'+url+'" target="_blank" style="color:var(--green);text-decoration:underline;">'+( ip||'conectado')+'</a>';
     dot.style.background='var(--green)';dot.style.animation='';
   }else if(mode==='hotspot'){
-    label.textContent='Hotspot — '+(ip||'10.42.0.1');
+    const url='http://10.42.0.1:8080';
+    label.innerHTML='Hotspot — <a href="'+url+'" target="_blank" style="color:var(--blue);text-decoration:underline;">'+(ip||'10.42.0.1')+'</a>';
     dot.style.background='var(--blue)';dot.style.animation='';
   }else{
     label.textContent='Sin red';
