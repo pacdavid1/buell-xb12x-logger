@@ -125,6 +125,65 @@ Understanding and reliability are valued more than speed or minimal changes.
 
 ---
 
+
+## AI ASSISTANT PROTOCOL
+
+These rules apply to any AI assistant working on this project.
+They exist because different assistants have different defaults, and those defaults are often wrong for this environment.
+
+### EDITING RULES — NON-NEGOTIABLE
+
+- **Never suggest editing existing files with nano or direct paste.** Nano is only for creating new short files from scratch.
+- **All modifications to existing files require a `fix_*.py` script.** No exceptions.
+- **Every `fix_*.py` script must include an `assert` that verifies the exact target text exists before replacing.** If the assert fails, stop and inspect with `repr()`.
+- **One fix = one script.** Do not combine multiple unrelated changes in one script.
+- **All `fix_*.py` scripts must be deleted before committing.** Run `rm fix_*.py` and confirm before `git add`.
+
+### WHAT THE ASSISTANT MUST NEVER DO
+
+- Suggest pasting code blocks directly into the terminal via SSH.
+- Use heredocs (`cat << EOF`) to create or modify files.
+- Propose changes to multiple files simultaneously without validating each one.
+- Skip the `assert` step and go straight to replacement.
+- Commit without confirming the fix scripts have been removed.
+
+### WHAT THE ASSISTANT MUST ALWAYS DO
+
+- Use `grep -n` and `sed -n 'X,Yp'` to locate target text before writing any fix script.
+- Use `repr()` to verify exact whitespace and special characters when the assert fails.
+- Run a syntax check (`python3 -c "import ast; ast.parse(...)"`) after modifying any Python file.
+- Confirm the service is still running after any change that could affect it.
+
+---
+
+## COMMIT DISCIPLINE
+
+Every commit must follow this sequence without exception:
+
+1. **Verify** — confirm the change works as expected (import, grep, service status).
+2. **Clean** — remove all `fix_*.py` scripts with `rm fix_*.py`.
+3. **Stage** — `git add` only the files that were intentionally changed.
+4. **Commit** — use a descriptive message: `type(scope): description`.
+5. **Push** — `git push` manually. The pre-commit hook does NOT push automatically.
+6. **Update CHANGELOG** — document the change before closing the session.
+7. **Update backlog** — mark completed items as closed, add new items if needed.
+
+### COMMIT MESSAGE FORMAT
+```
+feat(module): short description of what was added
+fix(module): short description of what was fixed
+docs(scope): short description of what was documented
+refactor(module): short description of what was restructured
+```
+
+### PUSH IS NOT AUTOMATIC
+
+The pre-commit hook generates `ARCHITECTURE.md` and stages it automatically.
+It does NOT push to GitHub. Always run `git push` manually at the end of each session.
+Verify with `git log --oneline -3` that HEAD matches origin/main after pushing.
+
+---
+
 ## START OF A WORK SESSION
 
 ⚠️ MANDATORY VALIDATION — DO NOT SKIP
