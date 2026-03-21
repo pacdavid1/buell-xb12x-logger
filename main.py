@@ -258,7 +258,19 @@ class BuellLogger:
             if _now - _serial_window >= 1.0:
                 bps = _serial_bytes
                 pct = round(min(bps / 960.0 * 100, 100.0), 1)
-                self.web.serial_stats = {'bps': bps, 'pct': pct, 'tx': 9*8, 'rx': 107*8}
+                in_w = self.ecu.ser.in_waiting if self.ecu.ser and self.ecu.ser.is_open else 0
+                buf_pct = round(in_w / 384.0 * 100, 1)
+                try:
+                    with open('/proc/meminfo') as _f:
+                        _mem = {}
+                        for _l in _f:
+                            _k,_v = _l.split(':')
+                            _mem[_k.strip()] = int(_v.split()[0])
+                    _mt = _mem['MemTotal']; _mf = _mem['MemAvailable']
+                    mem_pct = round((_mt-_mf)/_mt*100, 1)
+                except Exception:
+                    mem_pct = 0.0
+                self.web.serial_stats = {'bps': bps, 'pct': pct, 'tx': 9*8, 'rx': 107*8, 'buf_in': in_w, 'buf_pct': buf_pct, 'mem_pct': mem_pct}
                 _serial_bytes  = 0
                 _serial_window = _now
             elapsed = time.monotonic() - t0

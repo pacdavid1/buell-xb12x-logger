@@ -19,8 +19,15 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 
 /* HEADER */
 .hdr{background:var(--panel);border-bottom:2px solid var(--accent);
-     padding:6px 10px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+     padding:4px 10px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.hdr-row{display:flex;align-items:center;gap:8px;width:100%}
 .hdr-stats{display:flex;gap:0;flex:1;overflow:hidden}
+.hdr-comms{display:flex;gap:0;flex:1;overflow:hidden}
+.hs-sm{display:flex;flex-direction:column;align-items:center;padding:1px 8px;
+    border-right:1px solid var(--border);min-width:50px}
+.hs-sm:last-child{border-right:none}
+.hs-sm .hs-label{font-family:var(--mono);font-size:6px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+.hs-sm .hs-val{font-size:13px;font-weight:700;line-height:1.2}
 .hs{display:flex;flex-direction:column;align-items:center;padding:2px 8px;
     border-right:1px solid var(--border);min-width:50px}
 .hs:last-child{border-right:none}
@@ -199,20 +206,31 @@ table.veg td:active{filter:brightness(1.6)}
 
 <!-- HEADER -->
 <div class="hdr">
-  <div class="hdr-stats">
-    <div class="hs"><div class="hs-label">EGO</div><div class="hs-val gn" id="hEGO">--</div></div>
-    <div class="hs"><div class="hs-label">MAT</div><div class="hs-val bl" id="hMAT">--</div></div>
-    <div class="hs"><div class="hs-label">Batt</div><div class="hs-val yw" id="hBatt">--</div></div>
-    <div class="hs"><div class="hs-label">ERR</div><div class="hs-val gn" id="hErr" title="Eventos de error del ride actual (dirty+timeout)">0</div></div>
-    <div class="hs"><div class="hs-label">Marcha</div><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
-    <div class="hs"><div class="hs-label" id="hRideLabel">Ride</div><div class="hs-val wh" id="hRide">--</div></div>
+  <!-- Fila 1: parámetros de moto -->
+  <div class="hdr-row">
+    <div class="hdr-stats">
+      <div class="hs"><div class="hs-label">EGO</div><div class="hs-val gn" id="hEGO">--</div></div>
+      <div class="hs"><div class="hs-label">MAT</div><div class="hs-val bl" id="hMAT">--</div></div>
+      <div class="hs"><div class="hs-label">Batt</div><div class="hs-val yw" id="hBatt">--</div></div>
+      <div class="hs"><div class="hs-label">Marcha</div><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
+      <div class="hs"><div class="hs-label" id="hRideLabel">Ride</div><div class="hs-val wh" id="hRide">--</div></div>
+    </div>
+    <div id="hPill" class="pill-dot off"></div>
+    <button id="btnCloseRide" onclick="closeRide()"
+      style="display:none;margin-left:8px;padding:4px 12px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">
+      ⏹ CERRAR RIDE
+    </button>
   </div>
-  <div id="hPill" class="pill-dot off"></div>
-  <button id="btnCloseRide" onclick="closeRide()"
-    style="display:none;margin-left:8px;padding:4px 12px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">
-    ⏹ CERRAR RIDE
-  </button>
-  <span class="rdot"></span>
+  <!-- Fila 2: comunicación serial -->
+  <div class="hdr-row">
+    <div class="hdr-comms">
+      <div class="hs-sm"><div class="hs-label">TTL%</div><div class="hs-val gn" id="hTTL">--</div></div>
+      <div class="hs-sm"><div class="hs-label">BPS</div><div class="hs-val" id="hBPS" style="color:#888">--</div></div>
+      <div class="hs-sm"><div class="hs-label">BUF%</div><div class="hs-val gn" id="hBuf">--</div></div>
+      <div class="hs-sm"><div class="hs-label">MEM%</div><div class="hs-val gn" id="hMem">--</div></div>
+      <div class="hs-sm"><div class="hs-label">ERR</div><div class="hs-val gn" id="hErr" title="Eventos de error del ride actual">--</div></div>
+    </div>
+  </div>
 </div>
 <div id="ecuLostBanner" style="display:none;pointer-events:none;background:#c0392b;color:#fff;text-align:center;
   padding:8px;font-size:0.9rem;font-weight:bold;letter-spacing:1px;">
@@ -686,6 +704,28 @@ function fmtTime(s){ return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padS
 
 function updateHeader(d) {
   const lv = d.live || {};
+  // Fila 2: serial stats
+  const ss = d.serial_stats || {};
+  const ttlEl = document.getElementById('hTTL');
+  const bpsEl = document.getElementById('hBPS');
+  if(ttlEl){
+    const pct = ss.pct || 0;
+    ttlEl.textContent = pct ? pct.toFixed(0)+'%' : '--';
+    ttlEl.className = 'hs-val ' + (pct > 97 || pct < 50 ? 'ac' : pct < 85 ? 'yw' : 'gn');
+  }
+  if(bpsEl) bpsEl.textContent = ss.bps ? ss.bps+'B/s' : '--';
+  const bufEl = document.getElementById('hBuf');
+  if(bufEl){
+    const bp = ss.buf_pct || 0;
+    bufEl.textContent = bp.toFixed(0)+'%';
+    bufEl.className = 'hs-val ' + (bp > 50 ? 'ac' : bp > 20 ? 'yw' : 'gn');
+  }
+  const memEl = document.getElementById('hMem');
+  if(memEl){
+    const mp = ss.mem_pct || 0;
+    memEl.textContent = mp.toFixed(0)+'%';
+    memEl.className = 'hs-val ' + (mp > 80 ? 'ac' : mp > 60 ? 'yw' : 'gn');
+  }
   document.getElementById('hEGO').textContent  = lv.EGO_Corr != null ? lv.EGO_Corr.toFixed(0)+'%' : '--';
   document.getElementById('hMAT').textContent  = lv.MAT      != null ? lv.MAT.toFixed(0)+'`'        : '--';
   document.getElementById('hBatt').textContent = lv.Batt_V   != null ? lv.Batt_V.toFixed(1)+'V'     : '--';
