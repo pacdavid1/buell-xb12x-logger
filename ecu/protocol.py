@@ -184,3 +184,30 @@ def decode_rt_packet(raw_bytes):
         result['Gear'] = 0
 
     return result
+
+# ── Bins para CellTracker (mapa VE) ─────────────────────────
+RPM_BINS  = [0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000]
+LOAD_BINS = [10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]
+
+# ── Columnas CSV — orden canónico del archivo de log ─────────
+CSV_COLUMNS = [
+    "ride_num", "timestamp_iso", "time_elapsed_s",
+    "RPM", "Load", "TPD", "TPS_10Bit", "CLT", "MAT", "Batt_V",
+    "spark1", "spark2", "veCurr1_RAW", "veCurr2_RAW", "pw1", "pw2",
+    "EGO_Corr", "WUE", "AFV", "IAT_Corr", "Accel_Corr", "Decel_Corr",
+    "WOT_Corr", "Idle_Corr", "OL_Corr", "O2_ADC",
+    "Flags0", "Flags1", "Flags2", "Flags3", "Flags4", "Flags5", "Flags6", "Unk63",
+    "CDiag0", "CDiag1", "CDiag2", "CDiag3", "CDiag4",
+    "HDiag0", "HDiag1", "HDiag2", "HDiag3", "HDiag4",
+    "Unk80", "Unk81", "Unk82", "Rides", "DIn", "DOut", "ETS_ADC", "IAT_ADC", "BAS_ADC", "SysConfig",
+    "TPS_V", "TPS_pct",
+    "VSS_Count", "VS_KPH", "Fan_Duty_Pct", "VSS_RPM_Ratio", "Gear",
+    "dirty_byte_hex", "dirty_byte_name", "forensic_event",
+    "fl_engine_run", "fl_o2_active", "fl_accel", "fl_decel", "fl_engine_stop", "fl_wot", "fl_ignition",
+    "fl_closed_loop", "fl_rich", "fl_learn",
+    "fl_cam_active", "fl_kill", "fl_immob",
+    "fl_fuel_cut",
+    "fl_hot",
+    "do_coil1", "do_coil2", "do_inj1", "do_inj2", "do_fuel_pump", "do_tacho", "do_cel", "do_fan",
+    "di_cam", "di_tacho_fb", "di_vss", "di_clutch", "di_neutral", "di_crank",
+]

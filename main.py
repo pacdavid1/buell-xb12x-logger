@@ -20,6 +20,7 @@ from network.manager import NetworkManager
 from web.server import WebServer
 from ecu.connection import DDFI2Connection
 from ecu.eeprom import decode_eeprom_maps, decode_eeprom_params
+from ecu.session import SessionManager
 
 
 def _get_version():
@@ -58,7 +59,8 @@ class BuellLogger:
         self.network = NetworkManager()
         self.web = WebServer(host='0.0.0.0', port=8080, buell_dir=self.buell_dir)
         self.web.network = self.network
-        self.ecu = DDFI2Connection(self.port)
+        self.ecu     = DDFI2Connection(self.port)
+        self.session = SessionManager(self.sessions_dir)
         
         # Señales
         signal.signal(signal.SIGTERM, self._handle_signal)
@@ -69,11 +71,16 @@ class BuellLogger:
         self._running = False
     
     def _ecu_loop(self):
-        """Thread de lectura RT — 8Hz, actualiza web.ecu_live.
+        """Thread de lectura RT — 8Hz, actualiza web.ecu_live y graba rides.
         Reintenta conectar si el puerto no estaba disponible al arrancar."""
-        import time
-        TARGET_HZ = 8.0
-        INTERVAL  = 1.0 / TARGET_HZ
+        TARGET_HZ        = 8.0
+        INTERVAL         = 1.0 / TARGET_HZ
+        RPM_START        = 300
+        RPM_STOP         = 100
+        STOP_CONFIRM_S   = 5.0
+        ride_active      = False
+        ecu_version      = None
+        rpm_zero_since   = None
         self.logger.info("ECU loop iniciado")
         while self._running:
             t0 = time.monotonic()
@@ -82,9 +89,10 @@ class BuellLogger:
                 try:
                     self.logger.info("ECU loop — intentando conectar...")
                     self.ecu.connect()
-                    ver = self.ecu.get_version()
-                    if ver:
-                        self.logger.info(f"ECU reconectada: {ver}")
+                    ecu_version = self.ecu.get_version()
+                    if ecu_version:
+                        self.logger.info(f"ECU reconectada: {ecu_version}")
+                        self.session.open_session(ecu_version)
                     else:
                         self.logger.warning("ECU no respondió — reintento en 5s")
                         time.sleep(5)
@@ -97,6 +105,25 @@ class BuellLogger:
                 data = self.ecu.get_rt_data()
                 if data:
                     self.web.ecu_live = data
+                    rpm = data.get("RPM", 0) or 0
+                    # Abrir ride cuando RPM sube
+                    if not ride_active and rpm >= RPM_START:
+                        ride_active    = True
+                        rpm_zero_since = None
+                        self.session.start_ride()
+                    # Escribir sample si ride activo
+                    if ride_active:
+                        self.session.write_sample(data, time.time())
+                    # Detectar RPM=0 para cerrar ride
+                    if ride_active and rpm < RPM_STOP:
+                        if rpm_zero_since is None:
+                            rpm_zero_since = time.monotonic()
+                        elif time.monotonic() - rpm_zero_since >= STOP_CONFIRM_S:
+                            self.session.close_current_ride(f"RPM=0 por {STOP_CONFIRM_S:.0f}s")
+                            ride_active    = False
+                            rpm_zero_since = None
+                    elif rpm >= RPM_STOP:
+                        rpm_zero_since = None
             except Exception as e:
                 self.logger.debug(f"ecu_loop: {e}")
                 self.ecu.disconnect()
@@ -104,6 +131,9 @@ class BuellLogger:
             sleep_t = INTERVAL - elapsed
             if sleep_t > 0:
                 time.sleep(sleep_t)
+        # Cerrar ride si quedó abierto al detener el servicio
+        if ride_active:
+            self.session.close_current_ride("servicio detenido")
         self.logger.info("ECU loop detenido")
 
     def run(self):
@@ -120,6 +150,7 @@ class BuellLogger:
             ver = self.ecu.get_version()
             if ver:
                 self.logger.info(f"ECU conectada: {ver}")
+                self.session.open_session(ver)
                 self.logger.info("Leyendo EEPROM...")
                 eeprom = self.ecu.read_full_eeprom()
                 if eeprom:
