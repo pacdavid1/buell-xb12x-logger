@@ -5,6 +5,13 @@
 
 ---
 ---
+
+## [2.5.5] - 2026-03-21
+### Added
+- `main.py`: auto-flush FIFO RX del FT232RL cuando `buf_in > 192b` (>50% de 384b)
+- Warning en log: `AUTO-FLUSH FIFO buf_in=Xb >50% — flushed`
+- El CSV registra el valor `buf_in` previo al flush — dato forense intacto
+
 ---
 
 ## [2.5.4] - 2026-03-21
