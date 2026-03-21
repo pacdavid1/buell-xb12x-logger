@@ -5,7 +5,13 @@
 
 ---
 
+## [2.4.2] - 2026-03-21
 
+### Added
+- `ecu/session.py`: `save_eeprom()` y `load_eeprom()` — EEPROM persistida en `sessions/CHECKSUM/eeprom.bin`
+- `ecu/session.py`: `open_session()` retorna `needs_fetch` — True si no existe eeprom.bin
+- `main.py`: fetch automático de EEPROM al detectar sesión nueva, carga desde archivo en sesiones existentes
+- `main.py`: `decode_params()` reemplaza `decode_eeprom_params()` — 173 parámetros vs 35
 
 ---
 
