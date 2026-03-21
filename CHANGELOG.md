@@ -1,11 +1,19 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
+---
+
 
 
 ---
 
+---
 
+## [2.3.6] - 2026-03-21
+
+### Fixed
+- `main.py`: botón "Apagar Pi" ahora funciona — usa `sudo poweroff` desde el proceso systemd
+- `/etc/sudoers.d/buell-poweroff`: regla NOPASSWD para usuario `pi`
 
 ---
 
