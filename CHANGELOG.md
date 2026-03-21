@@ -1,6 +1,19 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
+
+---
+---
+---
+---
+---
+
+## [2.5.8] - 2026-03-21
+### Fixed
+- `main.py`: sysmon thread was not visible until service restart — confirmed working after `systemctl restart buell-logger`
+- CPU% and TEMP now display correctly in dashboard header at all times
+
+
 ---
 
 
