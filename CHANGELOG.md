@@ -2,9 +2,17 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 
+
 ---
 
 
+
+---
+
+## [2.3.5] - 2026-03-21
+
+### Added
+- `web/server.py`: endpoint GET `/errorlog/ride_NNN` — retorna errorlog JSON del ride o `{has_errorlog: false}` si fue limpio
 
 ---
 ## [2.3.4] - 2026-03-21
