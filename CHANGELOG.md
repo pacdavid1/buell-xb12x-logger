@@ -9,6 +9,13 @@
 
 ---
 
+## [2.4.1] - 2026-03-21
+
+### Added
+- `ecu/eeprom_params.py`: parser de parámetros EEPROM — decode_params() y decode_params_dict()
+- Mapeo automático version_string → ecu_defs/XXXX.xml
+- 173 parámetros Value decodificados para BUEIB, extensible a todas las variantes
+
 ---
 
 ## [2.4.0] - 2026-03-21
