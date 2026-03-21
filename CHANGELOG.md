@@ -638,7 +638,7 @@ Base version from which active development started.
 | PENDING-W1 | Migrar a Flask — reemplazar servidor HTTP manual en server.py | Medium | Open |
 | LOAD-G3 | Add Load as 2nd series in G3 chart (right axis 0–255) | Low | Open |
 | GPS | Ride-end detection when ECU drops while bike is moving | Future | Open |
-| MODULAR-4 | SessionManager — grabar CSVs y summaries por ride | High | Open |
+| MODULAR-4 | SessionManager — grabar CSVs y summaries por ride | High | ✅ Closed — ride_001.csv grabado, RPM 976 confirmado |
 | OBJ-1 | Rediseño Objetivos del ride — generación automática basada en cobertura de celdas del mapa VE, sin entrada manual de JSON | Medium | Open |
 | DTC-1 | Cruzar zonas de falla (EGO bajo, DTC activos) con celdas vacías del mapa VE — ride_060 zona 2400/15 RPM mezcla pobre documentada | High | Open |
 | MODULAR-1 | Crear `ecu/connection.py` — módulo de conexión serial ECU | High | ✅ Closed — validado vs ECU real (BUEIB310 12-11-03) |
