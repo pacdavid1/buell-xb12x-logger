@@ -231,6 +231,7 @@ class BuellLogger:
 
             # Grabar sample
             if ride_active:
+                data['buf_in'] = self.ecu.ser.in_waiting if self.ecu.ser and self.ecu.ser.is_open else 0
                 self.session.write_sample(data, time.time())
             self.tracker.update(data)
 

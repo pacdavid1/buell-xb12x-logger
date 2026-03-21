@@ -210,4 +210,5 @@ CSV_COLUMNS = [
     "fl_hot",
     "do_coil1", "do_coil2", "do_inj1", "do_inj2", "do_fuel_pump", "do_tacho", "do_cel", "do_fan",
     "di_cam", "di_tacho_fb", "di_vss", "di_clutch", "di_neutral", "di_crank",
+    "buf_in",
 ]
