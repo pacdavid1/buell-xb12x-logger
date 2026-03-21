@@ -3,8 +3,29 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 
 ---
+## [v2.3.0] — 2026-03-20
+**EEPROM MODULAR — MAPAS VE Y SPARK EN DASHBOARD**
 
-## [v2.2.1] — 2026-03-20
+### Added
+
+* **`ecu/eeprom.py`** — `BUEIB_PARAMS` (35 parámetros), `decode_eeprom_params()`
+  y `decode_eeprom_maps()` extraídos del monolito. Módulo independiente y testeable.
+
+* **Lectura EEPROM al arrancar** (`main.py`) — después de `get_version()` exitoso,
+  se leen las 6 páginas BUEIB (1206 bytes) y se decodifican los 4 mapas:
+  Fuel Front/Rear (12×13) y Spark Front/Rear (10×10). Tiempo de lectura ~3s.
+
+* **Endpoints `/maps` y `/eeprom`** (`web/server.py`) — exponen los mapas
+  decodificados y los parámetros de calibración como JSON. El dashboard
+  ya muestra el heatmap con datos reales del EEPROM de la ECU.
+
+* **`eeprom_maps` y `eeprom_params`** en `WebServer` — atributos inicializados
+  en `{}` y poblados desde `main.py` después de leer el EEPROM.
+
+---
+
+
+## [v2.2.2] — 2026-03-20
 **FIX SHUTDOWN — ExecStop eliminado del unit file**
 
 ### Fixed
@@ -20,7 +41,7 @@
 
 ---
 
-## [v2.2.2] — 2026-03-20
+## [v2.2.1] — 2026-03-20
 **FIXES DE ESTABILIDAD — SHUTDOWN + ECU LOOP**
 
 ### Fixed
