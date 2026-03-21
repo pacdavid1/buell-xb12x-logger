@@ -2,6 +2,12 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 
+## [2.3.2] - 2026-03-21
+
+### Fixed
+- `ecu/session.py`: agregados `cell_key` y `CellTracker` (movidos de `ddfi2_logger.py`)
+- `main.py`: instancia `CellTracker`, carga `objectives.json`, llama `tracker.update()` en cada sample y pasa `tracker.snapshot()` a `close_current_ride()` — corrige bug donde el summary JSON nunca se generaba por `tracker_snapshot=None`
+
 ---
 ## [v2.3.1] — 2026-03-21
 **DASHBOARD COMPLETO — SESIONES, CSV Y GRÁFICAS**
