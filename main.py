@@ -68,19 +68,37 @@ class BuellLogger:
         self._running = False
     
     def _ecu_loop(self):
-        """Thread de lectura RT — 8Hz, actualiza web.ecu_live."""
+        """Thread de lectura RT — 8Hz, actualiza web.ecu_live.
+        Reintenta conectar si el puerto no estaba disponible al arrancar."""
         import time
         TARGET_HZ = 8.0
         INTERVAL  = 1.0 / TARGET_HZ
         self.logger.info("ECU loop iniciado")
         while self._running:
             t0 = time.monotonic()
+            # Reconectar si el puerto no está abierto
+            if self.ecu.ser is None or not self.ecu.ser.is_open:
+                try:
+                    self.logger.info("ECU loop — intentando conectar...")
+                    self.ecu.connect()
+                    ver = self.ecu.get_version()
+                    if ver:
+                        self.logger.info(f"ECU reconectada: {ver}")
+                    else:
+                        self.logger.warning("ECU no respondió — reintento en 5s")
+                        time.sleep(5)
+                        continue
+                except Exception as e:
+                    self.logger.debug(f"ECU no disponible: {e} — reintento en 5s")
+                    time.sleep(5)
+                    continue
             try:
                 data = self.ecu.get_rt_data()
                 if data:
                     self.web.ecu_live = data
             except Exception as e:
                 self.logger.debug(f"ecu_loop: {e}")
+                self.ecu.disconnect()
             elapsed = time.monotonic() - t0
             sleep_t = INTERVAL - elapsed
             if sleep_t > 0:

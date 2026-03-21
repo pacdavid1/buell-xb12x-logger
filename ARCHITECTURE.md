@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-20 18:55 | versión: v1.16.3-81-gc850d41
+> Última actualización: 2026-03-20 19:22 | versión: v1.16.3-82-gd7460e5
 
 ---
 
@@ -305,7 +305,8 @@ buell-xb12x-logger/
 |--------|-----------|
 | `__init__` | — |
 | `_handle_signal` | — |
-| `_ecu_loop` | Thread de lectura RT — 8Hz, actualiza web.ecu_live. |
+| `_ecu_loop` | Thread de lectura RT — 8Hz, actualiza web.ecu_live.
+Reintent |
 | `run` | Loop principal. |
 | `shutdown` | Limpieza al salir. |
 
