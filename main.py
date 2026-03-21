@@ -76,6 +76,36 @@ class BuellLogger:
         self.logger.info(f"Señal {signum} recibida - deteniendo...")
         self._running = False
     
+    def _sysmon_loop(self):
+        """System monitor thread — runs always, independent of ECU.
+        Updates cpu_pct and cpu_temp in web.serial_stats every 2s."""
+        _cpu_prev = None
+        while self._running:
+            try:
+                with open('/sys/class/thermal/thermal_zone0/temp') as f:
+                    cpu_temp = round(int(f.read().strip()) / 1000.0, 1)
+            except Exception:
+                cpu_temp = 0.0
+            try:
+                with open('/proc/stat') as f:
+                    _cpu = list(map(int, f.readline().split()[1:]))
+                _idle = _cpu[3]
+                _total = sum(_cpu)
+                if _cpu_prev is not None:
+                    _di = _idle - _cpu_prev[0]
+                    _dt = _total - _cpu_prev[1]
+                    cpu_pct = round((1.0 - _di / _dt) * 100, 1) if _dt else 0.0
+                else:
+                    cpu_pct = 0.0
+                _cpu_prev = (_idle, _total)
+            except Exception:
+                cpu_pct = 0.0
+            ss = self.web.serial_stats or {}
+            ss['cpu_pct'] = cpu_pct
+            ss['cpu_temp'] = cpu_temp
+            self.web.serial_stats = ss
+            time.sleep(2.0)
+
     def _ecu_loop(self):
         """Thread de lectura RT — 8Hz, actualiza web.ecu_live y graba rides.
         Reconexión escalada: hard reconnect a 30s, USB reset a 60s."""
@@ -346,11 +376,15 @@ class BuellLogger:
         except Exception as e:
             self.logger.warning(f"ECU no disponible: {e}")
 
-        # 2. Arrancar thread RT
+        # 2. Start RT and sysmon threads
         self._ecu_thread = threading.Thread(
             target=self._ecu_loop, daemon=True, name="ecu-rt"
         )
         self._ecu_thread.start()
+        self._sysmon_thread = threading.Thread(
+            target=self._sysmon_loop, daemon=True, name="sysmon"
+        )
+        self._sysmon_thread.start()
 
         # 3. Configurar red (hotspot por defecto)
         self.logger.info("Iniciando NetworkManager...")
