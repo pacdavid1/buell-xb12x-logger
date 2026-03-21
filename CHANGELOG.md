@@ -2,6 +2,24 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+---
+
+
+---
+
+
+---
+
+## [2.5.0] - 2026-03-21
+
+### Added
+- Dashboard header rediseñado en 2 filas
+- Fila 1: parámetros moto — EGO, MAT, Batt, Marcha, Ride
+- Fila 2: telemetría sistema — TTL%, BPS, BUF% (FIFO FT232RL), MEM%, ERR
+- TTL% con semáforo: verde 85-97% normal, amarillo <85%, rojo >97% o <50%
+- BUF% detecta acumulación en FIFO RX del FT232RL (384 bytes)
+- MEM% del sistema desde /proc/meminfo sin dependencias externas
+- serial_stats en live.json: bps, pct, buf_in, buf_pct, mem_pct
 
 ---
 
