@@ -20,6 +20,28 @@
 
 ---
 
+## [v2.2.2] — 2026-03-20
+**FIXES DE ESTABILIDAD — SHUTDOWN + ECU LOOP**
+
+### Fixed
+
+* **Poweroff en `systemctl restart`** (`main.py`, `web/server.py`) — al recibir
+  SIGTERM, el logger ejecutaba `poweroff` apagando la Pi. Separado en dos flags:
+  `_poweroff_requested` (solo desde dashboard web) vs SIGTERM que solo detiene
+  el loop. El botón shutdown del dashboard ya no llama `poweroff` directo desde
+  `server.py` — lo delega a `main.py`.
+
+* **ECU loop sin reconexión** (`main.py`) — si el FT232 no estaba conectado al
+  arrancar el servicio, `_ecu_loop` corría en silencio retornando `None` para
+  siempre y `live.json` quedaba con `"live": {}`. Ahora el loop detecta
+  `ser is None` y reintenta `connect()` + `get_version()` cada 5 segundos
+  hasta que el adaptador esté disponible.
+
+* **`import subprocess` faltante** (`main.py`) — el módulo se usaba en
+  `shutdown()` pero no estaba importado al inicio del archivo.
+
+---
+
 ## [v2.2.0] — 2026-03-20
 **MODULARIZACIÓN ECU — ecu/connection.py + ecu/protocol.py**
 
