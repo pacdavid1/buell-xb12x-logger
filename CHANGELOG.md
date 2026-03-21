@@ -6,6 +6,17 @@
 ---
 ---
 ---
+
+## [2.5.4] - 2026-03-21
+
+### Fixed
+- `ecu/eeprom_params.py`: revertido fix EGO Min — parser correcto, era diferencia entre fetches distintos
+- Validado EGO Max=105% y EGO Min=95% contra EcmSpy post-burning ✅
+
+### Changed
+- `.gitignore`: agrega `*.save`, `*.save.*`, 
+`network_state.json` - `objectives.json`: versionado en el repo
+
 ---
 
 ## [2.5.3] - 2026-03-21
