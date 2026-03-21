@@ -232,6 +232,9 @@ class BuellLogger:
             # Grabar sample
             if ride_active:
                 data['buf_in'] = self.ecu.ser.in_waiting if self.ecu.ser and self.ecu.ser.is_open else 0
+                if data['buf_in'] > 192 and self.ecu.ser and self.ecu.ser.is_open:
+                    self.ecu.ser.reset_input_buffer()
+                    self.logger.warning(f"AUTO-FLUSH FIFO buf_in={data['buf_in']}b >50% — flushed")
                 self.session.write_sample(data, time.time())
             self.tracker.update(data)
 
