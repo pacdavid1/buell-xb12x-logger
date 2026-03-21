@@ -69,7 +69,7 @@ class SessionManager:
     def open_session(self, version_str):
         new_cs = self._checksum(version_str)
         if new_cs == self.current_checksum:
-            return
+            return False
         if self.current_checksum is not None:
             self.logger.info(f"Checksum cambió {self.current_checksum}→{new_cs}")
             self.close_current_ride("cambio de mapa")
@@ -77,6 +77,30 @@ class SessionManager:
         self.current_session_dir, self.session_metadata = self._load_or_create(new_cs, version_str)
         self.logger.info(f"Sesión activa: {new_cs}")
         self._generate_consolidated()
+        eeprom_file = self.current_session_dir / "eeprom.bin"
+        return not eeprom_file.exists()
+
+    def save_eeprom(self, blob):
+        """Guarda blob EEPROM en sessions/CHECKSUM/eeprom.bin."""
+        if not self.current_session_dir or not blob:
+            return
+        eeprom_file = self.current_session_dir / "eeprom.bin"
+        tmp = eeprom_file.with_suffix(".tmp")
+        with open(tmp, "wb") as f:
+            f.write(blob)
+        tmp.replace(eeprom_file)
+        self.logger.info(f"EEPROM guardada: {eeprom_file.name} ({len(blob)} bytes)")
+
+    def load_eeprom(self):
+        """Carga eeprom.bin de la sesión actual. Retorna bytes o None."""
+        if not self.current_session_dir:
+            return None
+        eeprom_file = self.current_session_dir / "eeprom.bin"
+        if not eeprom_file.exists():
+            return None
+        with open(eeprom_file, "rb") as f:
+            return f.read()
+
 
     def start_ride(self):
         if not self.current_session_dir:

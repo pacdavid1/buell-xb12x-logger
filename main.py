@@ -21,6 +21,7 @@ from network.manager import NetworkManager
 from web.server import WebServer
 from ecu.connection import DDFI2Connection
 from ecu.eeprom import decode_eeprom_maps, decode_eeprom_params
+from ecu.eeprom_params import decode_params
 from ecu.session import SessionManager, CellTracker, cell_key, RideErrorLog
 
 
@@ -278,14 +279,21 @@ class BuellLogger:
             if ver:
                 self.logger.info(f"ECU conectada: {ver}")
                 self.session.open_session(ver)
-                self.logger.info("Leyendo EEPROM...")
-                eeprom = self.ecu.read_full_eeprom()
-                if eeprom:
-                    self.web.eeprom_maps   = decode_eeprom_maps(eeprom)
-                    self.web.eeprom_params = decode_eeprom_params(eeprom)
-                    self.logger.info("EEPROM leido — mapas disponibles")
+                # Cargar o fetchear EEPROM
+                blob = self.session.load_eeprom()
+                if blob is None:
+                    self.logger.info("Leyendo EEPROM desde ECU...")
+                    blob = self.ecu.read_full_eeprom()
+                    if blob:
+                        self.session.save_eeprom(blob)
+                    else:
+                        self.logger.warning("EEPROM no pudo leerse")
                 else:
-                    self.logger.warning("EEPROM no pudo leerse")
+                    self.logger.info("EEPROM cargada desde sesión")
+                if blob:
+                    self.web.eeprom_maps   = decode_eeprom_maps(blob)
+                    self.web.eeprom_params = decode_params(blob, ver)
+                    self.logger.info(f"EEPROM lista — {len(self.web.eeprom_params)} params")
             else:
                 self.logger.warning("ECU no respondió — continuando sin ECU")
         except Exception as e:

@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-21 09:12 | versión: v1.16.3-105-ga749a20
+> Última actualización: 2026-03-21 09:38 | versión: v1.16.3-106-gd7e15f1
 
 ---
 
@@ -46,6 +46,7 @@ buell-xb12x-logger/
 ├── sessions
 │   └── EF4995
 │       ├── consolidated.csv
+│       ├── eeprom.bin
 │       ├── ride_001.csv
 │       └── session_metadata.json
 ├── tools
@@ -356,6 +357,8 @@ buell-xb12x-logger/
 | `_checksum` | — |
 | `_load_or_create` | — |
 | `open_session` | — |
+| `save_eeprom` | Guarda blob EEPROM en sessions/CHECKSUM/eeprom.bin. |
+| `load_eeprom` | Carga eeprom.bin de la sesión actual. Retorna bytes o None. |
 | `start_ride` | — |
 | `_open_csv_part` | Abre el archivo CSV de la parte actual del ride. |
 | `write_sample` | — |
