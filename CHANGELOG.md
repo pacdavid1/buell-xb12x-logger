@@ -5,6 +5,14 @@
 ---
 ---
 ---
+
+## [2.5.10] - 2026-03-21
+### Added
+- `index.html`: IP address in Network tab is now tappable — opens `http://IP:8080` directly in new browser tab
+- Works for both WiFi and Hotspot modes, IP always reflects current Pi assignment
+### Closed
+- BACKLOG-UX1
+
 ---
 
 ## [2.5.9] - 2026-03-21
