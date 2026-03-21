@@ -2,6 +2,12 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 
+## [2.3.3] - 2026-03-21
+
+### Added
+- `ecu/session.py`: `RideErrorLog` extraído de `ddfi2_logger.py` — registro estructurado de errores por ride (serial_exception, dirty_bytes, bad_checksum, ecu_timeout, ecu_reset, reconnect_attempt)
+
+---
 ## [2.3.2] - 2026-03-21
 
 ### Fixed
