@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-21 00:29 | versión: v1.16.3-93-ga3a7801
+> Última actualización: 2026-03-21 00:48 | versión: v1.16.3-94-ga93fe11
 
 ---
 
@@ -344,6 +344,25 @@ buell-xb12x-logger/
 | `reset` | — |
 | `update` | — |
 | `snapshot` | Retorna copia thread-safe del estado. |
+
+**Clase `RideErrorLog`**
+
+| Método | Docstring |
+|--------|-----------|
+| `__init__` | — |
+| `start` | — |
+| `update_last_sample` | — |
+| `_event` | — |
+| `serial_exception` | — |
+| `dirty_bytes` | — |
+| `bad_checksum` | — |
+| `ecu_timeout` | — |
+| `ecu_reset` | — |
+| `reconnect_attempt` | — |
+| `flush` | — |
+| `counts` | — |
+| `has_events` | — |
+| `clear` | — |
 
 ---
 

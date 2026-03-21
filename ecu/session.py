@@ -17,6 +17,7 @@ import json
 import logging
 import time
 import threading
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -273,3 +274,128 @@ class CellTracker:
                 avg = round(v["ego_sum"] / v["count"], 1) if v["count"] else 100.0
                 snap[k] = {"seconds": round(v["seconds"], 1), "ego_avg": avg}
             return snap, self.active
+
+class RideErrorLog:
+    """Registra eventos de error durante un ride.
+    Solo escribe archivo si ocurrieron eventos — ride limpio = sin archivo.
+    Archivo: ride_NNN_errorlog.json junto al CSV del ride.
+    """
+
+    def __init__(self):
+        self._events = []
+        self._ride_num = None
+        self._session = None
+        self._session_dir = None
+        self._opened_utc = None
+        self._last_data = {}
+        self.logger = logging.getLogger("ErrorLog")
+
+    def start(self, ride_num, session_checksum, session_dir):
+        self._events = []
+        self._ride_num = ride_num
+        self._session = session_checksum
+        self._session_dir = session_dir
+        self._opened_utc = datetime.now(timezone.utc).isoformat()
+        self._last_data = {}
+
+    def update_last_sample(self, data):
+        if data:
+            self._last_data = {
+                "rpm":      data.get("RPM"),
+                "clt":      data.get("CLT"),
+                "tps":      data.get("TPS_pct"),
+                "ego":      data.get("EGO_Corr"),
+                "afv":      data.get("AFV"),
+                "batt":     data.get("Batt_V"),
+                "vss":      data.get("VS_KPH"),
+                "seconds":  data.get("Seconds"),
+                "fl_learn": data.get("fl_learn"),
+            }
+
+    def _event(self, elapsed_s, etype, **kwargs):
+        evt = {
+            "t":    round(elapsed_s, 2),
+            "ts":   datetime.now(timezone.utc).isoformat(),
+            "type": etype,
+        }
+        evt.update(kwargs)
+        if self._last_data:
+            evt["ctx"] = dict(self._last_data)
+        self._events.append(evt)
+        self.logger.info(f"[R{self._ride_num:03d} t={elapsed_s:.1f}s] ERROR: {etype} — {kwargs}")
+
+    def serial_exception(self, elapsed_s, exc_msg, consecutive_before=0):
+        self._event(elapsed_s, "serial_exception",
+                    msg=str(exc_msg)[:120],
+                    consecutive_errors_before=consecutive_before)
+
+    def dirty_bytes(self, elapsed_s, byte0_hex, sync_recovered):
+        self._event(elapsed_s, "dirty_bytes",
+                    byte0_hex=byte0_hex,
+                    sync_recovered=sync_recovered)
+
+    def bad_checksum(self, elapsed_s, cs_got, cs_expected):
+        self._event(elapsed_s, "bad_checksum",
+                    cs_got=f"0x{cs_got:02x}",
+                    cs_expected=f"0x{cs_expected:02x}")
+
+    def ecu_timeout(self, elapsed_s, lost_s, last_valid_t):
+        self._event(elapsed_s, "ecu_timeout",
+                    lost_s=round(lost_s, 1),
+                    last_valid_t=round(last_valid_t, 2))
+
+    def ecu_reset(self, elapsed_s, seconds_prev, seconds_now):
+        self._event(elapsed_s, "ecu_reset",
+                    seconds_prev=seconds_prev,
+                    seconds_now=seconds_now)
+
+    def reconnect_attempt(self, elapsed_s, trigger, attempt_n, success, time_s):
+        self._event(elapsed_s, "reconnect",
+                    trigger=trigger,
+                    attempt=attempt_n,
+                    success=success,
+                    time_s=round(time_s, 1))
+
+    def flush(self, closed_utc=None):
+        if not self._events or not self._session_dir or self._ride_num is None:
+            return None
+        try:
+            type_counts = Counter(e["type"] for e in self._events)
+            payload = {
+                "ride_num":   self._ride_num,
+                "session":    self._session,
+                "opened_utc": self._opened_utc,
+                "closed_utc": closed_utc or datetime.now(timezone.utc).isoformat(),
+                "events":     self._events,
+                "summary": {
+                    "total_events":      len(self._events),
+                    "serial_exceptions": type_counts.get("serial_exception", 0),
+                    "dirty_bytes":       type_counts.get("dirty_bytes", 0),
+                    "bad_checksums":     type_counts.get("bad_checksum", 0),
+                    "ecu_timeouts":      type_counts.get("ecu_timeout", 0),
+                    "ecu_resets":        type_counts.get("ecu_reset", 0),
+                    "reconnects":        type_counts.get("reconnect", 0),
+                },
+            }
+            path = Path(self._session_dir) / f"ride_{self._ride_num:03d}_errorlog.json"
+            tmp  = path.with_suffix(".tmp")
+            with open(tmp, "w") as f:
+                json.dump(payload, f, indent=2)
+            tmp.replace(path)
+            self.logger.info(f"ErrorLog guardado: {path.name} ({len(self._events)} eventos)")
+            return path
+        except Exception as e:
+            self.logger.warning(f"Error guardando errorlog: {e}")
+            return None
+
+    def counts(self):
+        from collections import Counter
+        c = Counter(e["type"] for e in self._events)
+        return dict(c)
+
+    def has_events(self):
+        return len(self._events) > 0
+
+    def clear(self):
+        self._events = []
+        self._last_data = {}
