@@ -21,7 +21,7 @@ from network.manager import NetworkManager
 from web.server import WebServer
 from ecu.connection import DDFI2Connection
 from ecu.eeprom import decode_eeprom_maps, decode_eeprom_params
-from ecu.session import SessionManager, CellTracker, cell_key
+from ecu.session import SessionManager, CellTracker, cell_key, RideErrorLog
 
 
 def _get_version():
@@ -63,6 +63,7 @@ class BuellLogger:
         self.ecu     = DDFI2Connection(self.port)
         self.session = SessionManager(self.sessions_dir)
         self.tracker = CellTracker()
+        self.error_log = RideErrorLog()
         obj_path = self.buell_dir / 'objectives.json'
         self.objectives_cfg = json.load(open(obj_path)) if obj_path.exists() else {}
         
@@ -76,27 +77,37 @@ class BuellLogger:
     
     def _ecu_loop(self):
         """Thread de lectura RT — 8Hz, actualiza web.ecu_live y graba rides.
-        Reintenta conectar si el puerto no estaba disponible al arrancar."""
-        TARGET_HZ        = 8.0
-        INTERVAL         = 1.0 / TARGET_HZ
-        RPM_START        = 300
-        RPM_STOP         = 100
-        STOP_CONFIRM_S   = 5.0
+        Reconexión escalada: hard reconnect a 30s, USB reset a 60s."""
+        TARGET_HZ      = 8.0
+        INTERVAL       = 1.0 / TARGET_HZ
+        RPM_START      = 300
+        RPM_STOP       = 100
+        STOP_CONFIRM_S = 5.0
+        MAX_CONSEC     = 30
+
         ride_active      = False
         ecu_version      = None
         rpm_zero_since   = None
+        consecutive_errors = 0
+        ecu_lost_since   = None
+        last_lost_interval = -1
+
         self.logger.info("ECU loop iniciado")
+
         while self._running:
             t0 = time.monotonic()
-            # Reconectar si el puerto no está abierto
+
+            # ── Conectar si el puerto no está abierto ──────────────────────
             if self.ecu.ser is None or not self.ecu.ser.is_open:
                 try:
                     self.logger.info("ECU loop — intentando conectar...")
                     self.ecu.connect()
                     ecu_version = self.ecu.get_version()
                     if ecu_version:
-                        self.logger.info(f"ECU reconectada: {ecu_version}")
+                        self.logger.info(f"ECU conectada: {ecu_version}")
                         self.session.open_session(ecu_version)
+                        consecutive_errors = 0
+                        ecu_lost_since = None
                     else:
                         self.logger.warning("ECU no respondió — reintento en 5s")
                         time.sleep(5)
@@ -105,42 +116,152 @@ class BuellLogger:
                     self.logger.debug(f"ECU no disponible: {e} — reintento en 5s")
                     time.sleep(5)
                     continue
+
+            # ── Leer frame RT ──────────────────────────────────────────────
+            elapsed_s = 0.0
+            if ride_active and self.session.ride_start_time:
+                elapsed_s = time.monotonic() - self.session.ride_start_time
+
             try:
                 data = self.ecu.get_rt_data()
-                if data:
-                    self.web.ecu_live = data
-                    rpm = data.get("RPM", 0) or 0
-                    # Abrir ride cuando RPM sube
-                    if not ride_active and rpm >= RPM_START:
-                        ride_active    = True
-                        rpm_zero_since = None
-                        self.session.start_ride()
-                    # Escribir sample si ride activo
-                    if ride_active:
-                        self.session.write_sample(data, time.time())
-                    self.tracker.update(data)
-                    # Detectar RPM=0 para cerrar ride
-                    if ride_active and rpm < RPM_STOP:
-                        if rpm_zero_since is None:
-                            rpm_zero_since = time.monotonic()
-                        elif time.monotonic() - rpm_zero_since >= STOP_CONFIRM_S:
-                            self.session.close_current_ride(f"RPM=0 por {STOP_CONFIRM_S:.0f}s", tracker_snapshot=self.tracker.snapshot(), objectives_cfg=self.objectives_cfg)
-                            self.tracker.reset()
-                            ride_active    = False
-                            rpm_zero_since = None
-                    elif rpm >= RPM_STOP:
-                        rpm_zero_since = None
             except Exception as e:
-                self.logger.debug(f"ecu_loop: {e}")
-                self.ecu.disconnect()
+                self.logger.warning(f"SerialException: {e}")
+                if ride_active:
+                    self.error_log.serial_exception(
+                        elapsed_s=elapsed_s,
+                        exc_msg=e,
+                        consecutive_before=consecutive_errors)
+                data = None
+                consecutive_errors += 1
+                if ecu_lost_since is None:
+                    ecu_lost_since = time.monotonic()
+                time.sleep(0.2)
+
+            if data is None:
+                consecutive_errors += 1
+                if ecu_lost_since is None:
+                    ecu_lost_since = time.monotonic()
+                    self.logger.warning("ECU sin respuesta — esperando recuperación")
+
+                lost_total = time.monotonic() - ecu_lost_since
+
+                # Loguear timeout cada 10s
+                lost_interval = int(lost_total) // 10
+                if lost_interval != last_lost_interval:
+                    last_lost_interval = lost_interval
+                    self.logger.info(f"ECU sin respuesta {lost_total:.0f}s")
+                    if ride_active:
+                        self.error_log.ecu_timeout(
+                            elapsed_s=elapsed_s,
+                            lost_s=lost_total,
+                            last_valid_t=elapsed_s - lost_total)
+
+                # Sin ride activo: salir si supera MAX_CONSEC
+                if not ride_active and consecutive_errors >= MAX_CONSEC:
+                    self.logger.info("ECU no responde — cerrando puerto")
+                    self.ecu.disconnect()
+                    time.sleep(5)
+                    consecutive_errors = 0
+                    ecu_lost_since = None
+
+                # Hard reconnect cada 30s
+                if ecu_lost_since is not None and lost_total >= 30.0 and consecutive_errors % 30 == 0:
+                    self.logger.info(f"Hard reconnect — {lost_total:.0f}s sin ECU")
+                    if ride_active:
+                        self.error_log.reconnect_attempt(
+                            elapsed_s=elapsed_s,
+                            trigger="auto_30s",
+                            attempt_n=consecutive_errors // 30,
+                            success=False,
+                            time_s=lost_total)
+                    # USB reset tras 60s
+                    if lost_total >= 60.0 and consecutive_errors % 60 == 0:
+                        self.logger.info(f"USB reset FT232RL — {lost_total:.0f}s")
+                        self.ecu.usb_reset()
+                        time.sleep(0.5)
+                    try:
+                        self.ecu.disconnect()
+                        time.sleep(0.5)
+                        self.ecu.connect()
+                        ver = self.ecu.get_version()
+                        if ver:
+                            self.logger.info("ECU responde tras hard reconnect")
+                            consecutive_errors = 0
+                            ecu_lost_since = None
+                            last_lost_interval = -1
+                            if ride_active:
+                                self.error_log.reconnect_attempt(
+                                    elapsed_s=elapsed_s,
+                                    trigger="auto_30s",
+                                    attempt_n=consecutive_errors // 30,
+                                    success=True,
+                                    time_s=lost_total)
+                    except Exception as e:
+                        self.logger.warning(f"Hard reconnect falló: {e}")
+
+                elapsed = time.monotonic() - t0
+                sleep_t = INTERVAL - elapsed
+                if sleep_t > 0:
+                    time.sleep(sleep_t)
+                continue
+
+            # ── Frame válido ───────────────────────────────────────────────
+            consecutive_errors = 0
+            ecu_lost_since = None
+            last_lost_interval = -1
+
+            self.web.ecu_live = data
+            if ride_active:
+                self.error_log.update_last_sample(data)
+            rpm = data.get("RPM", 0) or 0
+
+            # Abrir ride
+            if not ride_active and rpm >= RPM_START:
+                ride_active    = True
+                rpm_zero_since = None
+                self.session.start_ride()
+                self.error_log.start(
+                    ride_num=self.session.current_ride_num,
+                    session_checksum=self.session.current_checksum,
+                    session_dir=str(self.session.current_session_dir))
+                self.logger.info(f"Ride {self.session.current_ride_num:03d} iniciado")
+
+            # Grabar sample
+            if ride_active:
+                self.session.write_sample(data, time.time())
+            self.tracker.update(data)
+
+            # Detectar parada
+            if ride_active and rpm < RPM_STOP:
+                if rpm_zero_since is None:
+                    rpm_zero_since = time.monotonic()
+                elif time.monotonic() - rpm_zero_since >= STOP_CONFIRM_S:
+                    snap = self.tracker.snapshot()
+                    self.session.close_current_ride(
+                        f"RPM=0 por {STOP_CONFIRM_S:.0f}s",
+                        tracker_snapshot=snap,
+                        objectives_cfg=self.objectives_cfg)
+                    self.error_log.flush()
+                    self.tracker.reset()
+                    ride_active    = False
+                    rpm_zero_since = None
+            elif rpm >= RPM_STOP:
+                rpm_zero_since = None
+
             elapsed = time.monotonic() - t0
             sleep_t = INTERVAL - elapsed
             if sleep_t > 0:
                 time.sleep(sleep_t)
-        # Cerrar ride si quedó abierto al detener el servicio
+
+        # ── Cierre al detener el servicio ──────────────────────────────────
         if ride_active:
-            self.session.close_current_ride("servicio detenido", tracker_snapshot=self.tracker.snapshot(), objectives_cfg=self.objectives_cfg)
+            self.session.close_current_ride(
+                "servicio detenido",
+                tracker_snapshot=self.tracker.snapshot(),
+                objectives_cfg=self.objectives_cfg)
+            self.error_log.flush()
         self.logger.info("ECU loop detenido")
+
 
     def run(self):
         """Loop principal."""

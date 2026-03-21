@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-21 00:50 | versión: v1.16.3-95-g3f6cf54
+> Última actualización: 2026-03-21 01:00 | versión: v1.16.3-96-gaf440d2
 
 ---
 
@@ -376,6 +376,7 @@ buell-xb12x-logger/
 | `RPM_START` | `300` |
 | `RPM_STOP` | `100` |
 | `STOP_CONFIRM_S` | `5.0` |
+| `MAX_CONSEC` | `30` |
 
 **Clase `BuellLogger`**
 
