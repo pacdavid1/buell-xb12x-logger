@@ -62,6 +62,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json(self._get_live())
             return
 
+        if path == '/rides':
+            rides = self.server_instance._get_rides()
+            self._json({"rides": rides})
+            return
         if path == '/maps':
             self._json(self.server_instance.eeprom_maps)
             return
@@ -203,6 +207,70 @@ class WebServer:
         self.ecu_live         = {}
         self.eeprom_maps      = {}
         self.eeprom_params    = {}
+
+    def _get_rides(self):
+        rides = []
+        sessions_path = self.buell_dir / 'sessions'
+        if not sessions_path.exists():
+            return rides
+        for session_dir in sorted(sessions_path.iterdir()):
+            if not session_dir.is_dir():
+                continue
+            meta_file = session_dir / 'session_metadata.json'
+            fw = ''
+            if meta_file.exists():
+                try:
+                    with open(meta_file) as f:
+                        fw = json.load(f).get('version_string', '')
+                except Exception:
+                    pass
+            summary_nums = set()
+            for sf in sorted(session_dir.glob('ride_*_summary.json')):
+                try:
+                    with open(sf) as f:
+                        summary = json.load(f)
+                    ride_num = summary.get('ride_num', 0)
+                    summary_nums.add(ride_num)
+                    note_path = session_dir / f'ride_{ride_num:03d}_notes.txt'
+                    has_note = note_path.exists()
+                    note_preview = ''
+                    if has_note:
+                        try:
+                            note_preview = note_path.read_text(encoding='utf-8').split('\n')[0][:60]
+                        except Exception:
+                            pass
+                    rides.append({
+                        'session': session_dir.name,
+                        'firmware': fw,
+                        'filename': f'ride_{ride_num:03d}_summary.json',
+                        'ride_num': ride_num,
+                        'samples': summary.get('samples', 0),
+                        'duration_s': summary.get('duration_s', 0),
+                        'parts': summary.get('parts', 1),
+                        'close_reason': summary.get('reason', ''),
+                        'opened_utc': summary.get('opened_utc', ''),
+                        'closed_utc': summary.get('closed_utc', ''),
+                        'has_note': has_note,
+                        'note_preview': note_preview,
+                        'dtc_events': summary.get('dtc_events', []),
+                    })
+                except Exception:
+                    pass
+            for rf in sorted(session_dir.glob('ride_[0-9]*.csv')):
+                try:
+                    rnum = int(rf.stem.split('_')[1])
+                    if rnum in summary_nums:
+                        continue
+                    with open(rf) as f:
+                        n = sum(1 for _ in f) - 1
+                    rides.append({
+                        'session': session_dir.name, 'firmware': fw,
+                        'filename': rf.name, 'ride_num': rnum,
+                        'samples': n, 'duration_s': 0, 'parts': 1,
+                    })
+                except Exception:
+                    pass
+        return sorted(rides, key=lambda r: (r['session'], r.get('ride_num', 0)))
 
     def start(self):
         DashboardHandler.server_instance = self
