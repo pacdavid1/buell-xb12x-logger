@@ -2,6 +2,21 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 
+---
+
+
+
+---
+## [2.3.4] - 2026-03-21
+
+### Added
+- `main.py`: reconexión escalada en `_ecu_loop` — MAX_CONSEC=30, hard reconnect a 30s, USB reset FT232RL a 60s
+- `main.py`: `RideErrorLog` integrado — registra serial_exception, ecu_timeout, reconnect_attempt por ride
+
+### Fixed
+- Loop ya no se queda mandando RTX indefinidamente con ECU desconectada
+
+---
 ## [2.3.3] - 2026-03-21
 
 ### Added
