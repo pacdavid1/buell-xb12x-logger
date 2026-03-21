@@ -4,6 +4,22 @@
 
 ---
 
+## [v2.2.1] — 2026-03-20
+**FIX SHUTDOWN — ExecStop eliminado del unit file**
+
+### Fixed
+
+* **`ExecStop=/usr/sbin/poweroff` en systemd unit** — línea agregada manualmente
+  en una sesión anterior causaba que `systemctl restart` apagara la Pi en lugar
+  de reiniciar el servicio. Eliminada del unit file en vivo.
+  El `install.sh` ya generaba el unit sin `ExecStop` — no requirió cambios.
+
+* **`WORKING_METHOD.md`** — agregadas secciones `AI ASSISTANT PROTOCOL` y
+  `COMMIT DISCIPLINE` para que cualquier asistente siga las reglas de edición
+  correctas desde el inicio de sesión.
+
+---
+
 ## [v2.2.0] — 2026-03-20
 **MODULARIZACIÓN ECU — ecu/connection.py + ecu/protocol.py**
 
