@@ -3,6 +3,29 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 
+---
+---
+---
+---
+
+## [2.5.3] - 2026-03-21
+
+### Added
+- `web/templates/index.html`: sección "Parámetros EEPROM" en tab cfg — 173 params con valor actual
+- `web/templates/index.html`: función `loadEepromParams()` — agrupa por categoría, muestra nombre/valor/unidades
+- Tab cfg llama `loadEepromParams()` al abrirse
+
+### Fixed
+- `ecu/eeprom_params.py`: validado contra EcmSpy — valores correctos para Fan, RPM limits, Serial, Year
+
+### Backlog
+- ECM MODEL DETECTION: investigar cómo EcmSpy mapea version_string→model code (BUEIB310→B2RIB). Actualmente usamos BUEIB.xml pero la ECU es B2RIB. Diferencia crítica en offset 574 (Bank Angle Sensor scale 0.01 vs 10.0)
+- ECM MODEL SELECTOR: permitir al usuario seleccionar manualmente el XML correcto en cfg si la detección automática falla
+- EGO MIN NEGATIVO: EGO Correction Minimum Value muestra 950% pero EcmSpy dice 50% — investigar signed encoding o translate especial para este parámetro
+- EDITOR EEPROM: tabla con valor actual + campo editable por parámetro, aviso de cambio de checksum al guardar
+- HISTORIAL FETCHES EEPROM: guardar cada fetch con timestamp, poder revertir desde dashboard
+- VIN/ID MOTO: usar ECM Serial Number (offset 12, valor 651) para identificar moto — advertir si EEPROM cargada es de otra moto
+- AUTO-FLUSH FIFO: reset_input_buffer() cuando buf_pct > umbral para prevenir saturación en FT232 de baja calidad
 
 ---
 

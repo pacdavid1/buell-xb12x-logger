@@ -567,6 +567,16 @@ table.veg td:active{filter:brightness(1.6)}
       </div>
     </div>
   </div>
+  <!-- PARAMETROS EEPROM -->
+  <div class="cfg-section">
+    <div class="cfg-title">Parametros EEPROM
+      <button class="btn" style="font-size:9px;padding:3px 8px;float:right" onclick="loadEepromParams()">Refrescar</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
+      173 parametros leidos desde la ECU - Solo lectura por ahora
+    </div>
+    <div id="eepromParamsTable" style="font-family:var(--mono);font-size:9px"></div>
+  </div>
 </div>
 
 <div class="pane content" id="pane-net">
@@ -639,7 +649,7 @@ function showTab(id) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-'+id).classList.add('active');
-  if(id==='cfg')     { loadObj(); loadTpsCal(); loadVssCal(); loadEcu(); }
+  if(id==='cfg')     { loadObj(); loadTpsCal(); loadVssCal(); loadEcu(); loadEepromParams(); }
   if(id==='rides')   loadRidesList();
   if(id==='graph')   initGraphPane();
 }
@@ -1835,6 +1845,38 @@ function ecuRow(label, val, units, color){
   const c = color || '#ccc';
   return `<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;padding:3px 0;border-bottom:1px solid #1e1e1e"><span style="color:var(--dim)">${label}</span><span style="color:${c};font-weight:600">${val} <span style="color:var(--dim);font-weight:400">${units}</span></span></div>`;
 }
+async function loadEepromParams(){
+  const container = document.getElementById('eepromParamsTable');
+  if(!container) return;
+  container.textContent = 'Cargando...';
+  try {
+    const resp = await fetch('/eeprom');
+    const data = await resp.json();
+    const params = Object.values(data);
+    if(!params.length){ container.textContent = 'Sin datos'; return; }
+    // Agrupar por categoria usando remark como fallback
+    const groups = {};
+    for(const p of params){
+      const cat = p.remark ? p.remark.split(' ').slice(0,3).join(' ') : 'General';
+      if(!groups[cat]) groups[cat] = [];
+      groups[cat].push(p);
+    }
+    let html = '';
+    for(const [cat, items] of Object.entries(groups)){
+      html += `<div style="color:var(--accent2);margin:8px 0 3px;font-size:8px;letter-spacing:.1em">${cat.toUpperCase()}</div>`;
+      for(const p of items){
+        const val = typeof p.value === 'number' ? p.value.toFixed(p.value%1===0?0:1) : p.value;
+        const units = p.units ? ' '+p.units : '';
+        html += `<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid var(--border)">
+          <span style="color:var(--dim);max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.remark||''}">${p.name}</span>
+          <span style="color:#fff;font-weight:700">${val}${units}</span>
+        </div>`;
+      }
+    }
+    container.innerHTML = html;
+  } catch(e){ container.textContent = 'Error: '+e; }
+}
+
 async function loadEcu(){
   try{
     const d = await (await fetch('/eeprom?t='+Date.now())).json();
