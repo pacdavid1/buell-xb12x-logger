@@ -3,9 +3,20 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 
+---
+
 
 
 ---
+
+---
+
+## [2.4.0] - 2026-03-21
+
+### Added
+- `ecu_defs/`: 14 XMLs de definición EEPROM para variantes ECU Buell (fuente: EcmSpy)
+- Cubre DDFI-1 y DDFI-2: BUEIB, B2RIB, BUEGB, BUECB, BUE1D-3D, BUEOD, BUEWD, BUEYD, BUEZD, BUEIA, BUEKA, BUEGC
+- `ecu_defs/README.md`: documentación de estructura y mapeo ECU→XML
 
 ---
 
