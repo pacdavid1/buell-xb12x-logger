@@ -7,6 +7,15 @@
 
 ---
 
+## [2.5.1] - 2026-03-21
+
+### Added
+- `ecu/protocol.py`: columna `buf_in` al CSV — bytes acumulados en FIFO RX del FT232RL por sample
+- `main.py`: inyecta `ser.in_waiting` en cada sample antes de `write_sample()`
+- Diagnóstico forense: correlación temporal buffer↔errores en el CSV
+
+### Backlog
+- AUTO-FLUSH: limpiar FIFO RX automáticamente cuando `buf_pct > umbral` via `ser.reset_input_buffer()` para prevenir saturación en FT232 de baja calidad
 
 ---
 
