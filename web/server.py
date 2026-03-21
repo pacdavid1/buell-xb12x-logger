@@ -330,6 +330,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "live":            self.server_instance.ecu_live,
             "cells":           {},
             "objectives":      [],
+            "serial_stats":    self.server_instance.serial_stats,
         }
 
 
@@ -347,6 +348,7 @@ class WebServer:
         self.ecu_live         = {}
         self.eeprom_maps      = {}
         self.eeprom_params    = {}
+        self.serial_stats     = {'bps': 0, 'pct': 0.0, 'tx': 0, 'rx': 0}
 
     def _get_rides(self):
         rides = []

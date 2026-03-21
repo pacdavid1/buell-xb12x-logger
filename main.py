@@ -92,6 +92,8 @@ class BuellLogger:
         consecutive_errors = 0
         ecu_lost_since   = None
         last_lost_interval = -1
+        _serial_bytes    = 0
+        _serial_window   = time.monotonic()
 
         self.logger.info("ECU loop iniciado")
 
@@ -249,6 +251,16 @@ class BuellLogger:
             elif rpm >= RPM_STOP:
                 rpm_zero_since = None
 
+            # ── Conteo de bytes seriales ───────────────────────────
+            if data is not None:
+                _serial_bytes += 9 + 107  # PDU_RT_DATA TX + frame RX
+            _now = time.monotonic()
+            if _now - _serial_window >= 1.0:
+                bps = _serial_bytes
+                pct = round(min(bps / 960.0 * 100, 100.0), 1)
+                self.web.serial_stats = {'bps': bps, 'pct': pct, 'tx': 9*8, 'rx': 107*8}
+                _serial_bytes  = 0
+                _serial_window = _now
             elapsed = time.monotonic() - t0
             sleep_t = INTERVAL - elapsed
             if sleep_t > 0:
