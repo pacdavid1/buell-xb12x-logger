@@ -182,6 +182,25 @@ class DashboardHandler(BaseHTTPRequestHandler):
             except Exception as e:
                 self._json({'error': str(e)}, 500)
             return
+        if path.startswith('/errorlog/'):
+            fname = path.split('/errorlog/')[-1].split('?')[0]
+            rides = self.server_instance._get_rides()
+            ride_num = int(fname.replace('_errorlog.json','').replace('ride_','').replace('.csv','')) if fname else 0
+            match = next((r for r in rides if r.get('ride_num')==ride_num), None)
+            if not match:
+                self._json({'error': 'not found'}, 404)
+                return
+            sdir = self.server_instance.buell_dir / 'sessions' / match['session']
+            el_path = sdir / f'ride_{ride_num:03d}_errorlog.json'
+            if el_path.exists():
+                try:
+                    with open(el_path) as fh:
+                        self._json(json.load(fh))
+                except Exception as e:
+                    self._json({'error': str(e)}, 500)
+            else:
+                self._json({'has_errorlog': False, 'events': [], 'summary': {}})
+            return
         if path == '/rides':
 
             rides = self.server_instance._get_rides()
