@@ -16,6 +16,7 @@ import hashlib
 import json
 import logging
 import time
+import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -225,3 +226,50 @@ class SessionManager:
             self.logger.debug("consolidated.csv regenerado")
         except Exception as e:
             self.logger.warning(f"Error consolidated: {e}")
+
+def cell_key(rpm, load):
+    import bisect
+    ri = bisect.bisect_right(RPM_BINS, rpm) - 1
+    li = bisect.bisect_right(LOAD_BINS, load) - 1
+    ri = max(0, min(ri, len(RPM_BINS) - 1))
+    li = max(0, min(li, len(LOAD_BINS) - 1))
+    return f"{RPM_BINS[ri]}_{LOAD_BINS[li]}"
+
+
+class CellTracker:
+    """Acumula tiempo y EGO promedio por celda del mapa VE 13x12."""
+    def __init__(self):
+        self.cells  = {}
+        self.active = None
+        self._lock  = threading.Lock()
+        self._dt    = 1.0 / 8.0
+
+    def reset(self):
+        with self._lock:
+            self.cells  = {}
+            self.active = None
+
+    def update(self, data):
+        rpm  = data.get("RPM",  0) or 0
+        load = data.get("Load", 0) or 0
+        ego  = data.get("EGO_Corr", 100) or 100
+        if rpm < 300:
+            with self._lock:
+                self.active = None
+            return
+        key = cell_key(rpm, load)
+        with self._lock:
+            self.active = key
+            c = self.cells.setdefault(key, {"seconds": 0.0, "ego_sum": 0.0, "count": 0})
+            c["seconds"] += self._dt
+            c["ego_sum"] += ego
+            c["count"]   += 1
+
+    def snapshot(self):
+        """Retorna copia thread-safe del estado."""
+        with self._lock:
+            snap = {}
+            for k, v in self.cells.items():
+                avg = round(v["ego_sum"] / v["count"], 1) if v["count"] else 100.0
+                snap[k] = {"seconds": round(v["seconds"], 1), "ego_avg": avg}
+            return snap, self.active

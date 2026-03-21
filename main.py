@@ -5,6 +5,7 @@ Solo red + web por ahora. ECU logging viene después.
 """
 
 import argparse
+import json
 import logging
 import time
 import signal
@@ -20,7 +21,7 @@ from network.manager import NetworkManager
 from web.server import WebServer
 from ecu.connection import DDFI2Connection
 from ecu.eeprom import decode_eeprom_maps, decode_eeprom_params
-from ecu.session import SessionManager
+from ecu.session import SessionManager, CellTracker, cell_key
 
 
 def _get_version():
@@ -61,6 +62,9 @@ class BuellLogger:
         self.web.network = self.network
         self.ecu     = DDFI2Connection(self.port)
         self.session = SessionManager(self.sessions_dir)
+        self.tracker = CellTracker()
+        obj_path = self.buell_dir / 'objectives.json'
+        self.objectives_cfg = json.load(open(obj_path)) if obj_path.exists() else {}
         
         # Señales
         signal.signal(signal.SIGTERM, self._handle_signal)
@@ -114,12 +118,14 @@ class BuellLogger:
                     # Escribir sample si ride activo
                     if ride_active:
                         self.session.write_sample(data, time.time())
+                    self.tracker.update(data)
                     # Detectar RPM=0 para cerrar ride
                     if ride_active and rpm < RPM_STOP:
                         if rpm_zero_since is None:
                             rpm_zero_since = time.monotonic()
                         elif time.monotonic() - rpm_zero_since >= STOP_CONFIRM_S:
-                            self.session.close_current_ride(f"RPM=0 por {STOP_CONFIRM_S:.0f}s")
+                            self.session.close_current_ride(f"RPM=0 por {STOP_CONFIRM_S:.0f}s", tracker_snapshot=self.tracker.snapshot(), objectives_cfg=self.objectives_cfg)
+                            self.tracker.reset()
                             ride_active    = False
                             rpm_zero_since = None
                     elif rpm >= RPM_STOP:
@@ -133,7 +139,7 @@ class BuellLogger:
                 time.sleep(sleep_t)
         # Cerrar ride si quedó abierto al detener el servicio
         if ride_active:
-            self.session.close_current_ride("servicio detenido")
+            self.session.close_current_ride("servicio detenido", tracker_snapshot=self.tracker.snapshot(), objectives_cfg=self.objectives_cfg)
         self.logger.info("ECU loop detenido")
 
     def run(self):

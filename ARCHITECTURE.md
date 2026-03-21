@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-21 00:02 | versión: v1.16.3-91-g8a7635f
+> Última actualización: 2026-03-21 00:28 | versión: v1.16.3-92-g40fd4ce
 
 ---
 
@@ -335,6 +335,15 @@ buell-xb12x-logger/
 | `close_current_ride` | — |
 | `_save_metadata` | — |
 | `_generate_consolidated` | — |
+
+**Clase `CellTracker`**
+
+| Método | Docstring |
+|--------|-----------|
+| `__init__` | — |
+| `reset` | — |
+| `update` | — |
+| `snapshot` | Retorna copia thread-safe del estado. |
 
 ---
 
