@@ -2,8 +2,22 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+
+
 ---
 
+## [2.5.2] - 2026-03-21
+
+### Fixed
+- `ecu/eeprom_params.py`: HEADER_OFFSET corregido de 4 a 0 — offsets XML son directos al blob de la Pi
+- `ecu/eeprom_params.py`: encoding corregido a little-endian para parámetros size=2
+- Validado 7/7 contra EcmSpy: Serial=651, Year=2006, FanOn=220°C, FanOff=180°C, KO_On=170°C, KO_Off=150°C, AFV=100%
+
+### Backlog
+- EDITOR EEPROM: tabla agrupada por categoría, valor actual + campo editable, aviso cambio checksum
+- HISTORIAL FETCHES: poder revertir a versión anterior de EEPROM desde dashboard
+- VIN/ID MOTO: usar ECM Serial Number para identificar moto y advertir si EEPROM es de otra moto
+- AUTO-FLUSH FIFO: reset_input_buffer() cuando buf_pct > umbral
 
 ---
 
