@@ -1,0 +1,3718 @@
+<?xml version="1.0" standalone="yes"?>
+<dataSet xmlns="BUEIA">
+ <xs:schema id="dataSet" targetNamespace="BUEIA" xmlns:mstns="BUEIA" xmlns="BUEIA" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" attributeFormDefault="qualified" elementFormDefault="qualified">
+ <xs:element name="dataSet" msdata:IsDataSet="true" msdata:Locale="en-US">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="eeprom">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="pages" type="xs:integer"  minOccurs="0" />
+              <xs:element name="version" type="xs:integer"  minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="pages">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="page" type="xs:integer"  minOccurs="0" />
+              <xs:element name="size" type="xs:integer"  minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="bits">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="uniqueid" type="xs:integer" minOccurs="0" />
+              <xs:element name="name" type="xs:string" minOccurs="0" />
+              <xs:element name="category" type="xs:string" minOccurs="0" />
+              <xs:element name="offset" type="xs:integer" minOccurs="0" />
+              <xs:element name="byte" type="xs:integer" minOccurs="0" />
+              <xs:element name="bit1" type="xs:string" minOccurs="0" />
+              <xs:element name="bit2" type="xs:string" minOccurs="0" />
+              <xs:element name="bit3" type="xs:string" minOccurs="0" />
+              <xs:element name="bit4" type="xs:string" minOccurs="0" />
+              <xs:element name="bit5" type="xs:string" minOccurs="0" />
+              <xs:element name="bit6" type="xs:string" minOccurs="0" />
+              <xs:element name="bit7" type="xs:string" minOccurs="0" />
+              <xs:element name="bit8" type="xs:string" minOccurs="0" />
+              <xs:element name="dtc1" type="xs:string" minOccurs="0" />
+              <xs:element name="dtc2" type="xs:string" minOccurs="0" />
+              <xs:element name="dtc3" type="xs:string" minOccurs="0" />
+              <xs:element name="dtc4" type="xs:string" minOccurs="0" />
+              <xs:element name="dtc5" type="xs:string" minOccurs="0" />
+              <xs:element name="dtc6" type="xs:string" minOccurs="0" />
+              <xs:element name="dtc7" type="xs:string" minOccurs="0" />
+              <xs:element name="dtc8" type="xs:string" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="bitnames">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="uniqueid" type="xs:integer" minOccurs="0" />
+              <xs:element name="name" type="xs:string" minOccurs="0" />
+              <xs:element name="offset" type="xs:integer" minOccurs="0" />
+              <xs:element name="bitname" type="xs:string" minOccurs="0" />
+              <xs:element name="byte" type="xs:integer" minOccurs="0" />
+              <xs:element name="bit" type="xs:integer" minOccurs="0" />
+              <xs:element name="dtc" type="xs:string" minOccurs="0" />
+              <xs:element name="text" type="xs:string" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="eeoffsets">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="uniqueid" type="xs:integer" minOccurs="0"  nillable="false"/>
+              <xs:element name="name" type="xs:string" minOccurs="0"  nillable="false"/>
+              <xs:element name="type" type="xs:string" minOccurs="0"  nillable="false"/>
+              <xs:element name="size" type="xs:integer" minOccurs="0"  nillable="false"/>
+              <xs:element name="offset" type="xs:integer" minOccurs="0"  nillable="false"/>
+              <xs:element name="remark" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="scale" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="translate" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="units" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="format" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="elements" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="elemsize" type="xs:integer" minOccurs="0" nillable="true"/>
+              <xs:element name="cols" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="rows" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="skip" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="axistranslate" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="axisscale" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="axisunits" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="xaxis" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="axisformat" type="xs:string" minOccurs="0"  nillable="true"/>
+              <xs:element name="yaxis" type="xs:string" minOccurs="0"  nillable="true"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+ </xs:schema>
+  <eeprom>
+    <pages>5</pages>
+    <version>3</version>
+  </eeprom>
+  <pages>
+    <page>1</page>
+    <size>256</size>
+  </pages>
+  <pages>
+    <page>2</page>
+    <size>256</size>
+  </pages>
+  <pages>
+    <page>3</page>
+    <size>32</size>
+  </pages>
+  <pages>
+    <page>4</page>
+    <size>256</size>
+  </pages>
+  <pages>
+    <page>5</page>
+    <size>256</size>
+  </pages>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Stored (historic) trouble codes, byte 0</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>0</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Stored Error Byte 0</name>
+    <uniqueid>8472</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Stored (historic) trouble codes, byte 1</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>1</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Stored Error Byte 1</name>
+    <uniqueid>8473</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Stored (historic) trouble codes, byte 2</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>2</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Stored Error Byte 2</name>
+    <uniqueid>8474</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Stored (historic) trouble codes, byte 3</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>3</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Stored Error Byte 3</name>
+    <uniqueid>8475</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of rides since a trouble code was set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>4</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Number of Rides since Error Set</name>
+    <uniqueid>8476</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Rides</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Country specific calibration identifier</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>5</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Calibration ID</name>
+    <uniqueid>8477</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Adaptive fuel value rear cylinder</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>6</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>AFV Rear</name>
+    <uniqueid>8478</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Global ECM setup</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>8</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>System Configuration</name>
+    <uniqueid>8479</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Year of manufacture</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>9</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>ECM Manufacturing Year</name>
+    <uniqueid>8480</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Julian date (day of year) of manufacture</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>10</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>ECM Manufacturing Day</name>
+    <uniqueid>8481</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Days</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Serial number</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>12</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>ECM Manufacturing Number</name>
+    <uniqueid>8482</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Minimum RPM indicating a running engine cranking otherwise)</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>14</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Engine Running Minimum RPM</name>
+    <uniqueid>8483</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>TPS voltage with a fully closed throttle, written on a TPS reset</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>18</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Throttle Position Sensor Reset Voltage</name>
+    <uniqueid>8485</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.010000</scale>
+    <type>Value</type>
+    <units>Volts</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>TPS voltage difference from fully closed to WOT</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>20</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Throttle Position Sensor Voltage Range</name>
+    <uniqueid>8486</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.010000</scale>
+    <type>Value</type>
+    <units>Volts</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>TPS degrees difference from fully closed to WOT</remarks>
+    <offset>22</offset>
+    <elements>1</elements>
+    <name>Throttle Position Sensor Degrees Range</name>
+    <uniqueid>8487</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Degrees</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>TPS fraction used to detect TP changes</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>24</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Throttle Position Sensor Moving Average Fraction</name>
+    <uniqueid>8488</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>O2 sensor target voltage</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>25</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>O2 Sensor Target Voltage</name>
+    <uniqueid>8489</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.004878</scale>
+    <type>Value</type>
+    <units>Volts</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>O2 sensor voltage indicating a rich mixture</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>26</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>O2 Sensor Rich Voltage</name>
+    <uniqueid>8490</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.004878</scale>
+    <type>Value</type>
+    <units>Volts</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>O2 sensor voltage indicating a lean mixture</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>27</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>O2 Sensor Lean Voltage</name>
+    <uniqueid>8491</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.004878</scale>
+    <type>Value</type>
+    <units>Volts</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Minimum RPM to activate O2 sensor</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>28</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Closed Loop Feature Minimum RPM</name>
+    <uniqueid>8492</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>50.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Minimum throttle to activate O2 sensor</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>29</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Closed Loop Feature Minimum Throttle</name>
+    <uniqueid>8493</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>TPS 8-bit</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>O2 sensor activation delay</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>30</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>O2 Sensor Activation Time</name>
+    <uniqueid>8494</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>O2 sensor deactivation delay</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>31</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>O2 Sensor Deactivation Time</name>
+    <uniqueid>8495</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>3</rows>
+    <cols>2</cols>
+    <size>6</size>
+    <remarks>Starting fuel pulse length</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>32</offset>
+    <axisscale>1.000000</axisscale>
+    <elements>6</elements>
+    <name>Startup Fuel Pulsewidth</name>
+    <uniqueid>8496</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>TPS (8-bit)</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.133000</scale>
+    <type>Table</type>
+    <units>Milliseconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>3</rows>
+    <cols>2</cols>
+    <size>6</size>
+    <remarks>Fuel pump duty cycle table</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>38</offset>
+    <axisscale>50.000000</axisscale>
+    <elements>6</elements>
+    <name>Fuel Pump Duty Cycle Table</name>
+    <uniqueid>8497</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>RPM</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Fuel pump PWM frequency</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>44</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel Pump Frequency</name>
+    <uniqueid>8498</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Hertz</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>TPS change indicating a light accel. condition</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>45</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Light Acceleration Condition</name>
+    <uniqueid>8499</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.1</scale>
+    <type>Value</type>
+    <units>Degree/10ms</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Change in throttle movement indicationg a full acceleration condition</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>46</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Full Acceleration Condition</name>
+    <uniqueid>8500</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.1</scale>
+    <type>Value</type>
+    <units>Deg./10ms</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Full acceleration enrichment duration in engine revs</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>47</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Acceleration Enrichment Duration</name>
+    <uniqueid>8501</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Engine Revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>4</rows>
+    <cols>2</cols>
+    <size>8</size>
+    <remarks>Acceleration enrichment</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>48</offset>
+    <axisscale>50.000000</axisscale>
+    <elements>8</elements>
+    <name>Acceleration Enrichment</name>
+    <uniqueid>8502</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>RPM</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>4</rows>
+    <cols>2</cols>
+    <size>8</size>
+    <remarks>Deceleration correction region</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>56</offset>
+    <axisscale>50.000000</axisscale>
+    <elements>8</elements>
+    <name>Deceleration Correction Region</name>
+    <uniqueid>8503</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>RPM</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Load</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Deceleration correction</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>64</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Deceleration Correction</name>
+    <uniqueid>8504</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Deceleration condition throttle hysteresis</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>65</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Deceleration Condition Hysteresis</name>
+    <uniqueid>8505</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.390630</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>2</rows>
+    <cols>2</cols>
+    <size>4</size>
+    <remarks>Fuel cut region</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>66</offset>
+    <axisscale>50.000000</axisscale>
+    <elements>4</elements>
+    <name>Fuel Cut Region</name>
+    <uniqueid>8506</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>RPM</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>-40.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>TE degC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>2</rows>
+    <cols>2</cols>
+    <size>4</size>
+    <remarks>Wide-Open Throttle definition</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>70</offset>
+    <axisscale>50.000000</axisscale>
+    <elements>4</elements>
+    <name>WOT Region</name>
+    <uniqueid>8507</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>RPM</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Load</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Default fuel correction, applied to WOT regions</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>74</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>WOT Enrichment</name>
+    <uniqueid>8508</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>4</rows>
+    <cols>2</cols>
+    <size>8</size>
+    <remarks>Idle correction</remarks>
+    <axistranslate>-40.000000</axistranslate>
+    <offset>76</offset>
+    <axisscale>1.000000</axisscale>
+    <elements>8</elements>
+    <name>Idle Correction</name>
+    <uniqueid>8509</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>Degrees C</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Idle region maximum RPM</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>84</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Idle Maximum Engine Speed</name>
+    <uniqueid>8510</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Idle region maximum load</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>86</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Idle Maximum Load</name>
+    <uniqueid>8511</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>4</rows>
+    <cols>1</cols>
+    <size>4</size>
+    <remarks>Startup condition temperature axis</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>88</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>4</elements>
+    <name>Startup Enrichment Temperature Axis</name>
+    <uniqueid>8512</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>-40.000000</translate>
+    <scale>1.000000</scale>
+    <type>Axis</type>
+    <units>Degrees C</units>
+  </eeoffsets>
+  <eeoffsets>
+    <xaxis>Startup Enrichment Temperature Axis</xaxis>
+    <rows>1</rows>
+    <cols>4</cols>
+    <size>4</size>
+    <remarks>Fuell correction after egine startup</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>92</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>4</elements>
+    <name>Startup Enrichment</name>
+    <uniqueid>8513</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>4</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Map</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <xaxis>Startup Enrichment Temperature Axis</xaxis>
+    <rows>1</rows>
+    <cols>4</cols>
+    <size>4</size>
+    <remarks>Duration of startup fuel enrichment</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>96</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>4</elements>
+    <name>Startup Enrichment Duration</name>
+    <uniqueid>8514</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Map</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Default fuel correction, applied to open loop regions</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>100</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Open Loop Default Correction</name>
+    <uniqueid>8515</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>4</rows>
+    <cols>2</cols>
+    <size>16</size>
+    <remarks>Front cylinder fuel enrichment on engine temperature</remarks>
+    <axistranslate>-40.000000</axistranslate>
+    <offset>102</offset>
+    <axisscale>0.100000</axisscale>
+    <elements>8</elements>
+    <name>Front Cylinder Correction</name>
+    <uniqueid>8516</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>Degrees C</axisunits>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Table</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>7</rows>
+    <cols>2</cols>
+    <size>28</size>
+    <remarks>Engine temperature fuel correction</remarks>
+    <axistranslate>-40.000000</axistranslate>
+    <offset>118</offset>
+    <axisscale>0.100000</axisscale>
+    <elements>14</elements>
+    <name>Warmup Enrichment</name>
+    <uniqueid>8517</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>Degrees C</axisunits>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Table</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Engine temperature indicating a hot start condition</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>146</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Hot Start Condition</name>
+    <uniqueid>8518</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>2</elemsize>
+    <translate>-40.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Degrees C</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>7</rows>
+    <cols>2</cols>
+    <size>28</size>
+    <remarks>Engine temperature senor data</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>148</offset>
+    <axisscale>0.010000</axisscale>
+    <elements>14</elements>
+    <name>Engine Temperature Sensor Conversion Data</name>
+    <uniqueid>8519</uniqueid>
+    <axisformat>0.0</axisformat>
+    <axisunits>Volts</axisunits>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <skip>0</skip>
+    <translate>-40.000000</translate>
+    <scale>0.100000</scale>
+    <type>Table</type>
+    <units>Degrees C</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>7</rows>
+    <cols>2</cols>
+    <size>28</size>
+    <remarks>Air Temp correction</remarks>
+    <axistranslate>-40.000000</axistranslate>
+    <offset>176</offset>
+    <axisscale>0.100000</axisscale>
+    <elements>14</elements>
+    <name>Air Temperature  Correction</name>
+    <uniqueid>8520</uniqueid>
+    <axisformat>0.0</axisformat>
+    <axisunits>Degrees C</axisunits>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Table</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>7</rows>
+    <cols>2</cols>
+    <size>28</size>
+    <remarks>Air temperature sensor data</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>204</offset>
+    <axisscale>0.010000</axisscale>
+    <elements>14</elements>
+    <name>Air Temperature Sensor Data</name>
+    <uniqueid>8521</uniqueid>
+    <axisformat>0.0</axisformat>
+    <axisunits>Volts</axisunits>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <skip>0</skip>
+    <translate>-40.000000</translate>
+    <scale>0.100000</scale>
+    <type>Table</type>
+    <units>Degrees C</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>6</rows>
+    <cols>2</cols>
+    <size>24</size>
+    <remarks>Battery voltage correction</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>232</offset>
+    <axisscale>0.010000</axisscale>
+    <elements>12</elements>
+    <name>Battery Voltage Correction</name>
+    <uniqueid>8522</uniqueid>
+    <axisformat>0.0</axisformat>
+    <axisunits>Volts</axisunits>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.001333</scale>
+    <type>Table</type>
+    <units>Milliseconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>4</rows>
+    <cols>2</cols>
+    <size>8</size>
+    <remarks>Closed loop upper boundary</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>256</offset>
+    <axisscale>50.000000</axisscale>
+    <elements>8</elements>
+    <name>Closed Loop Region Upper Boundary</name>
+    <uniqueid>8523</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>RPM</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Load</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>9</rows>
+    <cols>2</cols>
+    <size>18</size>
+    <remarks>Closed loop lower boundary</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>264</offset>
+    <axisscale>50.000000</axisscale>
+    <elements>18</elements>
+    <name>Closed Loop Region Lower Boundary</name>
+    <uniqueid>8524</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>RPM</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Load</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Closed loop upper boundary throttle hysteresis</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>282</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Closed Loop Upper Boundary Load Hysteresis</name>
+    <uniqueid>8525</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>TPS (8-bit)</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Closed loop lower boundary throttle hysteresis</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>283</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Closed Loop Lower Boundary Load Hysteresis</name>
+    <uniqueid>8526</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>TPS (8-bit)</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Closed loop upper boundary RPM hysteresis</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>284</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Closed Loop Upper Boundary RPM Hysteresis</name>
+    <uniqueid>8527</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Closed loop lower boundary RPM hysteresis</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>286</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Closed Loop Lower Boundary RPM Hysteresis</name>
+    <uniqueid>8528</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Maximum closed loop EGO correction</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>288</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>EGO Correction Maximum Value</name>
+    <uniqueid>8529</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Minimum closed loop EGO correction</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>290</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>EGO Correction Minimum Value</name>
+    <uniqueid>8530</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of O2 sensor readings required to adjust AFV</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>292</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Calibration Mode Number of Readings</name>
+    <uniqueid>8531</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Count</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Time between AFV writes to EEPROM</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>293</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>AFV Storage Delay</name>
+    <uniqueid>8532</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Maximum allowed AFV</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>294</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>AFV Maximum Value</name>
+    <uniqueid>8533</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Minimum allowed AFV</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>296</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>AFV Minimum Value</name>
+    <uniqueid>8534</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Factor applied to increase AFV</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>298</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>AFV Increase Factor</name>
+    <uniqueid>8535</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Factor applied to decrease AFV</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>300</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>AFV Decrease Factor</name>
+    <uniqueid>8536</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Maximum engine temperature to enable calibration mode</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>302</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Calibration Mode Maximum Engine Temperature</name>
+    <uniqueid>8537</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>-40.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Degrees C</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Minimum engine temperature to enable calibration mode</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>304</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Calibration Mode Minimum Engine Temperature</name>
+    <uniqueid>8538</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>-40.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Degrees C</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>4</rows>
+    <cols>2</cols>
+    <size>8</size>
+    <remarks>Calibration mode region upper boundary</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>306</offset>
+    <axisscale>50.000000</axisscale>
+    <elements>8</elements>
+    <name>Calibration Mode Region Upper Boundary</name>
+    <uniqueid>8539</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>RPM</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Load</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>7</rows>
+    <cols>2</cols>
+    <size>14</size>
+    <remarks>Calibration mode region lower boundary</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>314</offset>
+    <axisscale>50.000000</axisscale>
+    <elements>14</elements>
+    <name>Calibration Mode Region Lower Boundary</name>
+    <uniqueid>8540</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>RPM</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Load</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>PI controller high value RPM limit</remarks>
+    <offset>328</offset>
+    <elements>0</elements>
+    <name>Fuel PI Controller High RPM Threshold</name>
+    <uniqueid>8541</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>0</elemsize>
+    <translate>0.0000000</translate>
+    <scale>50.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>PI controller high value throttle limit</remarks>
+    <offset>329</offset>
+    <elements>0</elements>
+    <name>Fuel PI Controller High Throttle Threshold</name>
+    <uniqueid>8542</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>0</elemsize>
+    <translate>0.0000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>TPS (8-bit)</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>High P value used for PI controller</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>330</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel PI Controller High P-Value</name>
+    <uniqueid>8543</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>High I value used for PI controller</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>331</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel PI Controller High I-Value</name>
+    <uniqueid>8544</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Low P value used for PI controller</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>332</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel PI Controller Low P-Value</name>
+    <uniqueid>8545</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Low I value used for PI controller</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>333</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel PI Controller Low I-Value</name>
+    <uniqueid>8546</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Idle P value used for PI controller</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>334</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel PI Controller Idle P-Value</name>
+    <uniqueid>8547</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Idle I value used for PI controller</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>335</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel PI Controller Idle I-Value</name>
+    <uniqueid>8548</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Percent</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>3</rows>
+    <cols>2</cols>
+    <size>6</size>
+    <remarks>Fuel pulse endpoint temperature correction</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>336</offset>
+    <axisscale>1.000000</axisscale>
+    <elements>156</elements>
+    <name>Fuel Pulse Endpoint Table for Engine Temperature</name>
+    <uniqueid>8549</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>Degrees C</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Degrees BDD</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>3</rows>
+    <cols>2</cols>
+    <size>6</size>
+    <remarks>Fuel pulse endpoint throttle correction</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>342</offset>
+    <axisscale>1.000000</axisscale>
+    <elements>156</elements>
+    <name>Fuel Pulse Endpoint Table for Load</name>
+    <uniqueid>8550</uniqueid>
+    <axisformat>0</axisformat>
+    <axisunits>TPS (8-bit)</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Table</type>
+    <units>Degrees BDD</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>4</rows>
+    <cols>2</cols>
+    <size>8</size>
+    <remarks>Idle spark advance temperature correction</remarks>
+    <axistranslate>-40.000000</axistranslate>
+    <offset>350</offset>
+    <axisscale>1.000000</axisscale>
+    <elements>8</elements>
+    <name>Idle Spark Advance Temperature Adjustment</name>
+    <uniqueid>8551</uniqueid>
+    <axisformat>0.00</axisformat>
+    <axisunits>Degrees C</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.250000</scale>
+    <type>Table</type>
+    <units>Degrees</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>4</rows>
+    <cols>2</cols>
+    <size>8</size>
+    <remarks>WOT spark advance reduction</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>358</offset>
+    <axisscale>1.000000</axisscale>
+    <elements>8</elements>
+    <name>WOT Spark Advance Reduction</name>
+    <uniqueid>8552</uniqueid>
+    <axisformat>0.00</axisformat>
+    <axisunits>Degrees C</axisunits>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.250000</scale>
+    <type>Table</type>
+    <units>Degrees</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Spark advance and fuel reduction configuration</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>366</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Spark Advance Retard Configuration</name>
+    <uniqueid>8553</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>1</rows>
+    <cols>4</cols>
+    <size>8</size>
+    <remarks>RPM values for spark advance and fuel reduction</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>368</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>4</elements>
+    <name>Spark Advance Reduction RPM Axis</name>
+    <uniqueid>8554</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Array</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>1</rows>
+    <cols>4</cols>
+    <size>4</size>
+    <remarks>The spark advance reduction while noise abatement is active</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>376</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>4</elements>
+    <name>Spark Advance Reduction</name>
+    <uniqueid>8555</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.250000</scale>
+    <type>Array</type>
+    <units>Degree BTDC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>1</rows>
+    <cols>4</cols>
+    <size>4</size>
+    <remarks>Spark advance reduction ramp-in duration</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>380</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>4</elements>
+    <name>Spark Advance Reduction Ramp-In Duration</name>
+    <uniqueid>8556</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Array</type>
+    <units>Cam revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>1</rows>
+    <cols>4</cols>
+    <size>4</size>
+    <remarks>Spark advance reduction hold duration</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>384</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>4</elements>
+    <name>Spark Advance Reduction Hold Duration</name>
+    <uniqueid>8557</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Array</type>
+    <units>Cam revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>1</rows>
+    <cols>4</cols>
+    <size>4</size>
+    <remarks>Spark advance reduction ramp-out duration</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>388</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>4</elements>
+    <name>Spark Advance Reduction Ramp-Out Duration</name>
+    <uniqueid>8558</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Array</type>
+    <units>Cam revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Kill limit trigger RPM</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>398</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>RPM Fixed Kill Limit Trigger</name>
+    <uniqueid>8559</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Kill limit release RPM</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>400</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>RPM Fixed Kill Limit Recharge</name>
+    <uniqueid>8560</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Front Soft Limit Fire Pattern</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>404</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Soft Limit Ignition Pattern Front</name>
+    <uniqueid>8561</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0</translate>
+    <scale>1</scale>
+    <type>Value</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Rear Soft Limit Fire Pattern</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>405</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Soft Limit Ignition Pattern Rear</name>
+    <uniqueid>8562</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0</translate>
+    <scale>1</scale>
+    <type>Value</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Front Hard Limit Fire Pattern</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>406</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Hard Limit Ignition Pattern Front</name>
+    <uniqueid>8563</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0</translate>
+    <scale>1</scale>
+    <type>Value</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Rear Hard Limit Fire Pattern</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>407</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Hard Limit Ignition Pattern Rear</name>
+    <uniqueid>8564</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0</translate>
+    <scale>1</scale>
+    <type>Value</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of rides without error codes set to clear store errors</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>408</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Rides Required to Clear DTC</name>
+    <uniqueid>8565</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Ride</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of TPS read failures before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>409</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Throttle Position Sensor Number of Errors</name>
+    <uniqueid>8566</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.010000</scale>
+    <type>Value</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Maximum TPS reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>410</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Throttle Position Sensor Highest Reading Allowed</name>
+    <uniqueid>8567</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>10-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Minimum TPS reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>412</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Throttle Position Sensor Lowest Reading Allowed</name>
+    <uniqueid>8568</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>10-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>TPS default value set on failure</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>414</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Throttle Position Sensor Default Value</name>
+    <uniqueid>8569</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>10-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Minimum RPM to check for O2 activity</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>416</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>O2 Sensor Test Minimum RPM</name>
+    <uniqueid>8570</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Minimum throttle to check for O2 activity</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>418</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>O2 Sensor Test Minimum Throttle</name>
+    <uniqueid>8571</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>TPS (8-bit)</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of O2 sensor read failures before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>419</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>O2 Sensor Number of Errors</name>
+    <uniqueid>8572</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of inactive results before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>420</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>O2 Sensor Number of Inactive Reads</name>
+    <uniqueid>8573</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Cam revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of  ET sensor read failures before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>421</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Engine Temperature Sensor Number of Errors</name>
+    <uniqueid>8574</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Maximum ET sensor reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>422</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Engine Temperature Sensor Highest Reading Allowed</name>
+    <uniqueid>8575</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Minimum ET sensor reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>423</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Engine Temperature Sensor Lowest Reading Allowed</name>
+    <uniqueid>8576</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>ET sensor default value set on failure</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>424</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Engine Temperature Sensor Default Value</name>
+    <uniqueid>8577</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Maximum allowed air temperature sensor reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>425</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Air Temperature Sensor Highest Reading Allowed</name>
+    <uniqueid>8578</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Minimum allowed air temperature sensor reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>426</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Air Temperature Sensor Lowest Reading Allowed</name>
+    <uniqueid>8579</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Air temperature sensor default value, set on failure</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>427</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Air Temperature Sensor Default Value</name>
+    <uniqueid>8580</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of air temperature sensor test failures before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>428</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Air Temperature Sensor Number of Errors</name>
+    <uniqueid>8581</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.100000</scale>
+    <type>Value</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of battery voltage test failures before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>429</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Battery Voltage Number of Errors</name>
+    <uniqueid>8582</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Cam revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Battery voltage maximum reading allowed</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>430</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Battery Voltage Highest Reading Allowed</name>
+    <uniqueid>8583</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.03125</scale>
+    <type>Value</type>
+    <units>Volts</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Battery voltage minimum reading allowed</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>432</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Battery Voltage Lowest Reading Allowed</name>
+    <uniqueid>8584</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.03125</scale>
+    <type>Value</type>
+    <units>Volts</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>2</size>
+    <remarks>Battery voltage default value, set on failure</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>434</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Battery Voltage Default Value</name>
+    <uniqueid>8585</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>10-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Maximum injector feedback reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>436</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Injector Feedback Highest Reading Allowed</name>
+    <uniqueid>8586</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Minimum injector feedback reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>437</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Injector Feedback Lowest Reading Allowed</name>
+    <uniqueid>8587</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of  injector feedback test failures before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>438</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Injector Feedback Number of Errors</name>
+    <uniqueid>8588</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Cam revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Maximum allowed coil feedback reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>439</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Coil Feedback Highest Reading Allowed</name>
+    <uniqueid>8589</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Minimum allowed coil feedback reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>440</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Coil Feedback Lowest Reading Allowed</name>
+    <uniqueid>8590</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of failed coil feedback tests before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>441</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Coil Feedback Number of Errors</name>
+    <uniqueid>8591</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Cam revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Maximum fuelpump feedback reading</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>442</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel Pump Feedback Upper Limit</name>
+    <uniqueid>8592</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Pump period</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Off time before fuel pump feedback checked</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>443</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel Pump Feedback Off Time before Test</name>
+    <uniqueid>8593</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Milliseconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of fuelpump feedback test failures before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>444</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Fuel Pump Feedback Number of Errors</name>
+    <uniqueid>8594</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Pump period</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of tacho feedback test failures before error code is set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>445</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Tacho Feedback Number of Errors</name>
+    <uniqueid>8595</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Engine revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Bank angle sensor tip-over value (alternative: shifter minimum delay between activations)</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>447</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Bank Angle Sensor Tip-Over Value</name>
+    <uniqueid>8597</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Minimum bank angles sensor reading allowed (alternative: shifter debounce period)</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>448</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Bank Angle Sensor Lowest Reading Allowed</name>
+    <uniqueid>8598</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>8-bit ADC</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of bank angle sensor test failures before error code is set (alternative: shifter fuel cut duration)</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>449</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Bank Angle Sensor Number of Errors</name>
+    <uniqueid>8599</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.010000</scale>
+    <type>Value</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Bank angle sensor tip-over detection delay (alternative: shifter maximum input activation value)</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>450</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Bank Angle Sensor Tipover Delay</name>
+    <uniqueid>8600</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.010000</scale>
+    <type>Value</type>
+    <units>Seconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of failed A/D conversion tests before error code set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>451</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>AD-Converter Number of Errors</name>
+    <uniqueid>8601</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Conversions</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of failed EEPROM checksum tests before error code set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>452</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>EEPROM Test Number of Errors</name>
+    <uniqueid>8602</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of revs without sync detected before error code set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>453</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Camshaft Sensor Number of Sync Errors</name>
+    <uniqueid>8603</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Engine revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Number of consecutive out-of-sync revs before error code set</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>454</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Camshaft Sensor Test Number of Consecutive Sync Errors</name>
+    <uniqueid>8604</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Value</type>
+    <units>Engine revs</units>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Diagnostic trouble code mask, byte 0</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>455</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Error Mask Byte 0</name>
+    <uniqueid>8605</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Diagnostic trouble code mask, byte 1</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>456</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Error Mask Byte 1</name>
+    <uniqueid>8606</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Diagnostic trouble code mask, byte 2</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>457</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Error Mask Byte 2</name>
+    <uniqueid>8607</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <size>1</size>
+    <remarks>Diagnostic trouble code mask, byte 3</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>458</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>1</elements>
+    <name>Error Mask Byte 3</name>
+    <uniqueid>8608</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <translate>0.000000</translate>
+    <scale>0.000000</scale>
+    <type>Bits</type>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>1</rows>
+    <cols>17</cols>
+    <size>17</size>
+    <remarks>Dwell duration table</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>459</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>17</elements>
+    <name>Dwell Duration</name>
+    <uniqueid>8609</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>31.250000</scale>
+    <type>Array</type>
+    <units>Milliseconds</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>10</rows>
+    <cols>1</cols>
+    <size>10</size>
+    <remarks>Timing table load axis y-axis)</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>476</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>10</elements>
+    <name>Timing Table Load Axis</name>
+    <uniqueid>8610</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Axis</type>
+    <units>Load (8-bit)</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>10</rows>
+    <cols>1</cols>
+    <size>20</size>
+    <remarks>Timing table RPM axis x-axis)</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>486</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>10</elements>
+    <name>Timing Table RPM Axis</name>
+    <uniqueid>8611</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Axis</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>12</rows>
+    <cols>1</cols>
+    <size>12</size>
+    <remarks>Fuel load axis</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>506</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>12</elements>
+    <name>Fuel Map Load Axis</name>
+    <uniqueid>8612</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Axis</type>
+    <units>Load (8-bit)</units>
+  </eeoffsets>
+  <eeoffsets>
+    <rows>13</rows>
+    <cols>1</cols>
+    <size>26</size>
+    <remarks>Fuel RPM axis</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <offset>518</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>13</elements>
+    <name>Fuel Map RPM Axis</name>
+    <uniqueid>8613</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>2</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Axis</type>
+    <units>RPM</units>
+  </eeoffsets>
+  <eeoffsets>
+    <xaxis>Timing Table RPM Axis</xaxis>
+    <rows>10</rows>
+    <cols>10</cols>
+    <size>100</size>
+    <remarks>Timing table front cylinder</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <yaxis>Timing Table Load Axis</yaxis>
+    <offset>544</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>100</elements>
+    <name>Timing Table Front</name>
+    <uniqueid>8614</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.250000</scale>
+    <type>Map</type>
+    <units>Degree</units>
+  </eeoffsets>
+  <eeoffsets>
+    <xaxis>Timing Table RPM Axis</xaxis>
+    <rows>10</rows>
+    <cols>10</cols>
+    <size>100</size>
+    <remarks>Timing table rear cylinder</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <yaxis>Timing Table Load Axis</yaxis>
+    <offset>644</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>100</elements>
+    <name>Timing Table Rear</name>
+    <uniqueid>8615</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0.00</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>0.250000</scale>
+    <type>Map</type>
+    <units>Degree</units>
+  </eeoffsets>
+  <eeoffsets>
+    <xaxis>Fuel Map RPM Axis</xaxis>
+    <rows>12</rows>
+    <cols>13</cols>
+    <size>156</size>
+    <remarks>Front fuel table</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <yaxis>Fuel Map Load Axis</yaxis>
+    <offset>744</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>156</elements>
+    <name>Fuel Map Front</name>
+    <uniqueid>8616</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Map</type>
+    <units>fuel</units>
+  </eeoffsets>
+  <eeoffsets>
+    <xaxis>Fuel Map RPM Axis</xaxis>
+    <rows>12</rows>
+    <cols>13</cols>
+    <size>156</size>
+    <remarks>Fuel map rear cylinder</remarks>
+    <axistranslate>0.000000</axistranslate>
+    <yaxis>Fuel Map Load Axis</yaxis>
+    <offset>900</offset>
+    <axisscale>0.000000</axisscale>
+    <elements>156</elements>
+    <name>Fuel Map Rear</name>
+    <uniqueid>8617</uniqueid>
+    <axisformat>0</axisformat>
+    <format>0</format>
+    <elemsize>1</elemsize>
+    <skip>0</skip>
+    <translate>0.000000</translate>
+    <scale>1.000000</scale>
+    <type>Map</type>
+    <units>fuel</units>
+  </eeoffsets>
+  <bits>
+    <bit5>Rear O2 inactive</bit5>
+    <dtc8>36</dtc8>
+    <dtc4>13</dtc4>
+    <dtc1>14</dtc1>
+    <bit7>TPS too high/short to supply voltage</bit7>
+    <dtc3>13</dtc3>
+    <dtc2>14</dtc2>
+    <category>3</category>
+    <bit3>Rear O2 always rich</bit3>
+    <bit2>Eng. Temp. Voltg.  too high/short to ground</bit2>
+    <dtc5>13</dtc5>
+    <bit4>Rear O2 always lean</bit4>
+    <offset>455</offset>
+    <bit8>Cooling fan 1 (rear or right) short to ground</bit8>
+    <bit1>Eng. Temp. Voltg. too low/broken wire</bit1>
+    <uniqueid>8605</uniqueid>
+    <name>Error Mask Byte 0</name>
+    <bit6>TPS too low/short to ground</bit6>
+    <byte>1</byte>
+    <dtc6>11</dtc6>
+    <dtc7>11</dtc7>
+  </bits>
+  <bits>
+    <bit5>Battery voltage too low</bit5>
+    <dtc8>15</dtc8>
+    <dtc4>23</dtc4>
+    <dtc1>25</dtc1>
+    <bit7>Air Temperature too low/broken wire</bit7>
+    <dtc3>23</dtc3>
+    <dtc2>25</dtc2>
+    <category>3</category>
+    <bit3>Injector 1 short to ground/open</bit3>
+    <bit2>Coil 1 short to supply voltage</bit2>
+    <dtc5>16</dtc5>
+    <bit4>Injector 1 short to supply voltage</bit4>
+    <offset>456</offset>
+    <bit8>Air Temperature too high/short to ground</bit8>
+    <bit1>Coil 1 short to ground or open</bit1>
+    <uniqueid>8606</uniqueid>
+    <name>Error Mask Byte 1</name>
+    <bit6>Battery voltage too high</bit6>
+    <byte>2</byte>
+    <dtc6>16</dtc6>
+    <dtc7>15</dtc7>
+  </bits>
+  <bits>
+    <bit5>Injector 2 short to ground/broken wire</bit5>
+    <dtc8>24</dtc8>
+    <dtc4>33</dtc4>
+    <dtc1>35</dtc1>
+    <bit7>Coil 2 short to ground/broken wire</bit7>
+    <dtc3>33</dtc3>
+    <dtc2>35</dtc2>
+    <category>3</category>
+    <bit3>Fuel pump short to ground</bit3>
+    <bit2>Tachometer output short to supply voltage</bit2>
+    <dtc5>32</dtc5>
+    <bit4>Fuel pump short to supply voltage</bit4>
+    <offset>457</offset>
+    <bit8>Coil 2 short to supply voltage</bit8>
+    <bit1>Tachometer output short to ground</bit1>
+    <uniqueid>8607</uniqueid>
+    <name>Error Mask Byte 2</name>
+    <bit6>Injector 2 short to supply voltage</bit6>
+    <byte>3</byte>
+    <dtc6>32</dtc6>
+    <dtc7>24</dtc7>
+  </bits>
+  <bits>
+    <bit5>RAM Failure read/write verify</bit5>
+    <dtc8>44</dtc8>
+    <dtc4>53</dtc4>
+    <dtc1>56</dtc1>
+    <bit7>BAS too low</bit7>
+    <dtc3>54</dtc3>
+    <dtc2>55</dtc2>
+    <category>3</category>
+    <bit3>EEPROM error</bit3>
+    <bit2>ADC error</bit2>
+    <dtc5>52</dtc5>
+    <bit4>Flash Memory Checksum Error</bit4>
+    <offset>458</offset>
+    <bit8>BAS too high</bit8>
+    <bit1>Sync failure</bit1>
+    <uniqueid>8608</uniqueid>
+    <name>Error Mask Byte 3</name>
+    <bit6>Fan 1 (rear or right) short to supply voltage</bit6>
+    <byte>4</byte>
+    <dtc6>36</dtc6>
+    <dtc7>44</dtc7>
+  </bits>
+  <bits>
+    <bit5>Rear O2 inactive</bit5>
+    <dtc8>36</dtc8>
+    <dtc4>13</dtc4>
+    <dtc1>14</dtc1>
+    <bit7>TPS too high/short to supply voltage</bit7>
+    <dtc3>13</dtc3>
+    <dtc2>14</dtc2>
+    <category>3</category>
+    <bit3>Rear O2 always rich</bit3>
+    <bit2>Engine Temperature too high/short to ground</bit2>
+    <dtc5>13</dtc5>
+    <bit4>Rear O2 always lean</bit4>
+    <offset>0</offset>
+    <bit8>Cooling fan 1 (rear or right) short to ground</bit8>
+    <bit1>Engine Temperature too low/broken wire</bit1>
+    <uniqueid>8472</uniqueid>
+    <name>Stored Errors Byte 0</name>
+    <bit6>TPS too low/short to ground</bit6>
+    <byte>1</byte>
+    <dtc6>11</dtc6>
+    <dtc7>11</dtc7>
+  </bits>
+  <bits>
+    <bit5>Battery voltage too low</bit5>
+    <dtc8>15</dtc8>
+    <dtc4>23</dtc4>
+    <dtc1>25</dtc1>
+    <bit7>Air Temperature too low/broken wire</bit7>
+    <dtc3>23</dtc3>
+    <dtc2>25</dtc2>
+    <category>3</category>
+    <bit3>Injector 1 short to ground/open</bit3>
+    <bit2>Coil 1 short to supply voltage</bit2>
+    <dtc5>16</dtc5>
+    <bit4>Injector 1 short to supply voltage</bit4>
+    <offset>1</offset>
+    <bit8>Air Temperature too high/short to ground</bit8>
+    <bit1>Coil 1 short to ground or open</bit1>
+    <uniqueid>8473</uniqueid>
+    <name>Stored Errors Byte 1</name>
+    <bit6>Battery voltage too high</bit6>
+    <byte>2</byte>
+    <dtc6>16</dtc6>
+    <dtc7>15</dtc7>
+  </bits>
+  <bits>
+    <bit5>Injector 2 short to ground/broken wire</bit5>
+    <dtc8>24</dtc8>
+    <dtc4>33</dtc4>
+    <dtc1>35</dtc1>
+    <bit7>Coil 2 short to ground/broken wire</bit7>
+    <dtc3>33</dtc3>
+    <dtc2>35</dtc2>
+    <category>3</category>
+    <bit3>Fuel pump short to ground</bit3>
+    <bit2>Tachometer output short to supply voltage</bit2>
+    <dtc5>32</dtc5>
+    <bit4>Fuel pump short to supply voltage</bit4>
+    <offset>2</offset>
+    <bit8>Coil 2 short to supply voltage</bit8>
+    <bit1>Tachometer output short to ground</bit1>
+    <uniqueid>8474</uniqueid>
+    <name>Stored Errors Byte 2</name>
+    <bit6>Injector 2 short to supply voltage</bit6>
+    <byte>3</byte>
+    <dtc6>32</dtc6>
+    <dtc7>24</dtc7>
+  </bits>
+  <bits>
+    <bit5>RAM Failure read/write verify</bit5>
+    <dtc8>44</dtc8>
+    <dtc4>53</dtc4>
+    <dtc1>56</dtc1>
+    <bit7>BAS too low</bit7>
+    <dtc3>54</dtc3>
+    <dtc2>55</dtc2>
+    <category>3</category>
+    <bit3>EEPROM error</bit3>
+    <bit2>ADC error</bit2>
+    <dtc5>52</dtc5>
+    <bit4>Flash Memory Checksum Error</bit4>
+    <offset>3</offset>
+    <bit8>BAS too high</bit8>
+    <bit1>Sync failure</bit1>
+    <uniqueid>8475</uniqueid>
+    <name>Stored Errors Byte 3</name>
+    <bit6>Fan 1 (rear or right) short to supply voltage</bit6>
+    <byte>4</byte>
+    <dtc6>36</dtc6>
+    <dtc7>44</dtc7>
+  </bits>
+  <bits>
+    <bit5>Bank Angle Sensor enabled</bit5>
+    <dtc8></dtc8>
+    <dtc4></dtc4>
+    <dtc1></dtc1>
+    <bit7></bit7>
+    <dtc3></dtc3>
+    <dtc2></dtc2>
+    <category>3</category>
+    <bit3>Fuel cut enabled</bit3>
+    <bit2>Enable closed loop in idle</bit2>
+    <dtc5></dtc5>
+    <bit4>Enable open loop learning</bit4>
+    <offset>8</offset>
+    <bit8></bit8>
+    <bit1>Idle spark and fuel adjustment enabled</bit1>
+    <uniqueid>8479</uniqueid>
+    <name>System Configuration</name>
+    <bit6>Enable fuel pump duty cycle lookup</bit6>
+    <byte>0</byte>
+    <dtc6></dtc6>
+    <dtc7></dtc7>
+  </bits>
+  <bits>
+    <bit5>Deactivate when leaving WOT</bit5>
+    <dtc8></dtc8>
+    <dtc4></dtc4>
+    <dtc1></dtc1>
+    <bit7>Enable ramp out</bit7>
+    <dtc3></dtc3>
+    <dtc2></dtc2>
+    <category>3</category>
+    <bit3>Activate only if accel and WOT</bit3>
+    <bit2>Activate on WOT transition</bit2>
+    <dtc5></dtc5>
+    <bit4>Use initial values</bit4>
+    <offset>366</offset>
+    <bit8>Stop accel enrichment when activated</bit8>
+    <bit1>Activate on accel</bit1>
+    <uniqueid>8553</uniqueid>
+    <name>Spark Advance Reduction Configuration</name>
+    <bit6>Deactivate when no accel</bit6>
+    <byte>0</byte>
+    <dtc6></dtc6>
+    <dtc7></dtc7>
+  </bits>
+  <bitnames>
+    <uniqueid>2</uniqueid>
+    <name>Error Mask Byte 0</name>
+    <offset>455</offset>
+    <byte>1</byte>
+    <bitname>ETS low</bitname>
+    <bit>1</bit>
+    <dtc>14</dtc>
+    <text>Eng. Temp. Voltg. too low/broken wire</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>2</uniqueid>
+    <name>Error Mask Byte 0</name>
+    <offset>455</offset>
+    <byte>1</byte>
+    <bitname>ETS high</bitname>
+    <bit>2</bit>
+    <dtc>14</dtc>
+    <text>Eng. Temp. Voltg.  too high/short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>2</uniqueid>
+    <name>Error Mask Byte 0</name>
+    <offset>455</offset>
+    <byte>1</byte>
+    <bitname>O2 rich</bitname>
+    <bit>3</bit>
+    <dtc>13</dtc>
+    <text>Rear O2 always rich</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>2</uniqueid>
+    <name>Error Mask Byte 0</name>
+    <offset>455</offset>
+    <byte>1</byte>
+    <bitname>O2 lean</bitname>
+    <bit>4</bit>
+    <dtc>13</dtc>
+    <text>Rear O2 always lean</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>2</uniqueid>
+    <name>Error Mask Byte 0</name>
+    <offset>455</offset>
+    <byte>1</byte>
+    <bitname>O2 inactive</bitname>
+    <bit>5</bit>
+    <dtc>13</dtc>
+    <text>Rear O2 inactive</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>2</uniqueid>
+    <name>Error Mask Byte 0</name>
+    <offset>455</offset>
+    <byte>1</byte>
+    <bitname>TPS low</bitname>
+    <bit>6</bit>
+    <dtc>11</dtc>
+    <text>TPS too low/short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>2</uniqueid>
+    <name>Error Mask Byte 0</name>
+    <offset>455</offset>
+    <byte>1</byte>
+    <bitname>TPS high</bitname>
+    <bit>7</bit>
+    <dtc>11</dtc>
+    <text>TPS too high/short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>2</uniqueid>
+    <name>Error Mask Byte 0</name>
+    <offset>455</offset>
+    <byte>1</byte>
+    <bitname>Fan low</bitname>
+    <bit>8</bit>
+    <dtc>36</dtc>
+    <text>Cooling fan 1 (rear or right) short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>3</uniqueid>
+    <name>Error Mask Byte 1</name>
+    <offset>456</offset>
+    <byte>2</byte>
+    <bitname>Coil1 low</bitname>
+    <bit>1</bit>
+    <dtc>25</dtc>
+    <text>Coil 1 short to ground or open</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>3</uniqueid>
+    <name>Error Mask Byte 1</name>
+    <offset>456</offset>
+    <byte>2</byte>
+    <bitname>Coil1 high</bitname>
+    <bit>2</bit>
+    <dtc>25</dtc>
+    <text>Coil 1 short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>3</uniqueid>
+    <name>Error Mask Byte 1</name>
+    <offset>456</offset>
+    <byte>2</byte>
+    <bitname>Inj1 low</bitname>
+    <bit>3</bit>
+    <dtc>23</dtc>
+    <text>Injector 1 short to ground/open</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>3</uniqueid>
+    <name>Error Mask Byte 1</name>
+    <offset>456</offset>
+    <byte>2</byte>
+    <bitname>Inj1 high</bitname>
+    <bit>4</bit>
+    <dtc>23</dtc>
+    <text>Injector 1 short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>3</uniqueid>
+    <name>Error Mask Byte 1</name>
+    <offset>456</offset>
+    <byte>2</byte>
+    <bitname>Batt low</bitname>
+    <bit>5</bit>
+    <dtc>16</dtc>
+    <text>Battery voltage too low</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>3</uniqueid>
+    <name>Error Mask Byte 1</name>
+    <offset>456</offset>
+    <byte>2</byte>
+    <bitname>Batt high</bitname>
+    <bit>6</bit>
+    <dtc>16</dtc>
+    <text>Battery voltage too high</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>3</uniqueid>
+    <name>Error Mask Byte 1</name>
+    <offset>456</offset>
+    <byte>2</byte>
+    <bitname>IAT low</bitname>
+    <bit>7</bit>
+    <dtc>15</dtc>
+    <text>Air Temperature too low/broken wire</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>3</uniqueid>
+    <name>Error Mask Byte 1</name>
+    <offset>456</offset>
+    <byte>2</byte>
+    <bitname>IAT high</bitname>
+    <bit>8</bit>
+    <dtc>15</dtc>
+    <text>Air Temperature too high/short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>4</uniqueid>
+    <name>Error Mask Byte 2</name>
+    <offset>457</offset>
+    <byte>3</byte>
+    <bitname>Tacho low</bitname>
+    <bit>1</bit>
+    <dtc>35</dtc>
+    <text>Tachometer output short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>4</uniqueid>
+    <name>Error Mask Byte 2</name>
+    <offset>457</offset>
+    <byte>3</byte>
+    <bitname>Tacho high</bitname>
+    <bit>2</bit>
+    <dtc>35</dtc>
+    <text>Tachometer output short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>4</uniqueid>
+    <name>Error Mask Byte 2</name>
+    <offset>457</offset>
+    <byte>3</byte>
+    <bitname>FP low</bitname>
+    <bit>3</bit>
+    <dtc>33</dtc>
+    <text>Fuel pump short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>4</uniqueid>
+    <name>Error Mask Byte 2</name>
+    <offset>457</offset>
+    <byte>3</byte>
+    <bitname>FP high</bitname>
+    <bit>4</bit>
+    <dtc>33</dtc>
+    <text>Fuel pump short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>4</uniqueid>
+    <name>Error Mask Byte 2</name>
+    <offset>457</offset>
+    <byte>3</byte>
+    <bitname>Inj2 low</bitname>
+    <bit>5</bit>
+    <dtc>32</dtc>
+    <text>Injector 2 short to ground/broken wire</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>4</uniqueid>
+    <name>Error Mask Byte 2</name>
+    <offset>457</offset>
+    <byte>3</byte>
+    <bitname>Inj2 high</bitname>
+    <bit>6</bit>
+    <dtc>32</dtc>
+    <text>Injector 2 short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>4</uniqueid>
+    <name>Error Mask Byte 2</name>
+    <offset>457</offset>
+    <byte>3</byte>
+    <bitname>Coil2 low</bitname>
+    <bit>7</bit>
+    <dtc>24</dtc>
+    <text>Coil 2 short to ground/broken wire</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>4</uniqueid>
+    <name>Error Mask Byte 2</name>
+    <offset>457</offset>
+    <byte>3</byte>
+    <bitname>Coil2 high</bitname>
+    <bit>8</bit>
+    <dtc>24</dtc>
+    <text>Coil 2 short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>5</uniqueid>
+    <name>Error Mask Byte 3</name>
+    <offset>458</offset>
+    <byte>4</byte>
+    <bitname>Sync failure</bitname>
+    <bit>1</bit>
+    <dtc>56</dtc>
+    <text>Sync failure</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>5</uniqueid>
+    <name>Error Mask Byte 3</name>
+    <offset>458</offset>
+    <byte>4</byte>
+    <bitname>ADC failure</bitname>
+    <bit>2</bit>
+    <dtc>55</dtc>
+    <text>ADC error</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>5</uniqueid>
+    <name>Error Mask Byte 3</name>
+    <offset>458</offset>
+    <byte>4</byte>
+    <bitname>EEPROM failure</bitname>
+    <bit>3</bit>
+    <dtc>54</dtc>
+    <text>EEPROM error</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>5</uniqueid>
+    <name>Error Mask Byte 3</name>
+    <offset>458</offset>
+    <byte>4</byte>
+    <bitname>Flash failure</bitname>
+    <bit>4</bit>
+    <dtc>53</dtc>
+    <text>Flash Memory Checksum Error</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>5</uniqueid>
+    <name>Error Mask Byte 3</name>
+    <offset>458</offset>
+    <byte>4</byte>
+    <bitname>RAM failure</bitname>
+    <bit>5</bit>
+    <dtc>52</dtc>
+    <text>RAM Failure read/write verify</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>5</uniqueid>
+    <name>Error Mask Byte 3</name>
+    <offset>458</offset>
+    <byte>4</byte>
+    <bitname>Fan high</bitname>
+    <bit>6</bit>
+    <dtc>36</dtc>
+    <text>Fan 1 (rear or right) short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>5</uniqueid>
+    <name>Error Mask Byte 3</name>
+    <offset>458</offset>
+    <byte>4</byte>
+    <bitname>BAS low</bitname>
+    <bit>7</bit>
+    <dtc>44</dtc>
+    <text>BAS too low</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>5</uniqueid>
+    <name>Error Mask Byte 3</name>
+    <offset>458</offset>
+    <byte>4</byte>
+    <bitname>BAS high</bitname>
+    <bit>8</bit>
+    <dtc>44</dtc>
+    <text>BAS too high</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>24</uniqueid>
+    <name>Stored Errors Byte 0</name>
+    <offset>0</offset>
+    <byte>1</byte>
+    <bitname>ETS low</bitname>
+    <bit>1</bit>
+    <dtc>14</dtc>
+    <text>Engine Temperature too low/broken wire</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>24</uniqueid>
+    <name>Stored Errors Byte 0</name>
+    <offset>0</offset>
+    <byte>1</byte>
+    <bitname>ETS high</bitname>
+    <bit>2</bit>
+    <dtc>14</dtc>
+    <text>Engine Temperature too high/short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>24</uniqueid>
+    <name>Stored Errors Byte 0</name>
+    <offset>0</offset>
+    <byte>1</byte>
+    <bitname>O2 rich</bitname>
+    <bit>3</bit>
+    <dtc>13</dtc>
+    <text>Rear O2 always rich</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>24</uniqueid>
+    <name>Stored Errors Byte 0</name>
+    <offset>0</offset>
+    <byte>1</byte>
+    <bitname>O2 lean</bitname>
+    <bit>4</bit>
+    <dtc>13</dtc>
+    <text>Rear O2 always lean</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>24</uniqueid>
+    <name>Stored Errors Byte 0</name>
+    <offset>0</offset>
+    <byte>1</byte>
+    <bitname>O2 inactive</bitname>
+    <bit>5</bit>
+    <dtc>13</dtc>
+    <text>Rear O2 inactive</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>24</uniqueid>
+    <name>Stored Errors Byte 0</name>
+    <offset>0</offset>
+    <byte>1</byte>
+    <bitname>TPS low</bitname>
+    <bit>6</bit>
+    <dtc>11</dtc>
+    <text>TPS too low/short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>24</uniqueid>
+    <name>Stored Errors Byte 0</name>
+    <offset>0</offset>
+    <byte>1</byte>
+    <bitname>TPS high</bitname>
+    <bit>7</bit>
+    <dtc>11</dtc>
+    <text>TPS too high/short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>24</uniqueid>
+    <name>Stored Errors Byte 0</name>
+    <offset>0</offset>
+    <byte>1</byte>
+    <bitname>Fan low</bitname>
+    <bit>8</bit>
+    <dtc>36</dtc>
+    <text>Cooling fan 1 (rear or right) short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>25</uniqueid>
+    <name>Stored Errors Byte 1</name>
+    <offset>1</offset>
+    <byte>2</byte>
+    <bitname>Coil1 low</bitname>
+    <bit>1</bit>
+    <dtc>25</dtc>
+    <text>Coil 1 short to ground or open</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>25</uniqueid>
+    <name>Stored Errors Byte 1</name>
+    <offset>1</offset>
+    <byte>2</byte>
+    <bitname>Coil1 high</bitname>
+    <bit>2</bit>
+    <dtc>25</dtc>
+    <text>Coil 1 short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>25</uniqueid>
+    <name>Stored Errors Byte 1</name>
+    <offset>1</offset>
+    <byte>2</byte>
+    <bitname>Inj1 low</bitname>
+    <bit>3</bit>
+    <dtc>23</dtc>
+    <text>Injector 1 short to ground/open</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>25</uniqueid>
+    <name>Stored Errors Byte 1</name>
+    <offset>1</offset>
+    <byte>2</byte>
+    <bitname>Inj1 high</bitname>
+    <bit>4</bit>
+    <dtc>23</dtc>
+    <text>Injector 1 short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>25</uniqueid>
+    <name>Stored Errors Byte 1</name>
+    <offset>1</offset>
+    <byte>2</byte>
+    <bitname>Batt low</bitname>
+    <bit>5</bit>
+    <dtc>16</dtc>
+    <text>Battery voltage too low</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>25</uniqueid>
+    <name>Stored Errors Byte 1</name>
+    <offset>1</offset>
+    <byte>2</byte>
+    <bitname>Batt high</bitname>
+    <bit>6</bit>
+    <dtc>16</dtc>
+    <text>Battery voltage too high</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>25</uniqueid>
+    <name>Stored Errors Byte 1</name>
+    <offset>1</offset>
+    <byte>2</byte>
+    <bitname>IAT low</bitname>
+    <bit>7</bit>
+    <dtc>15</dtc>
+    <text>Air Temperature too low/broken wire</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>25</uniqueid>
+    <name>Stored Errors Byte 1</name>
+    <offset>1</offset>
+    <byte>2</byte>
+    <bitname>IAT high</bitname>
+    <bit>8</bit>
+    <dtc>15</dtc>
+    <text>Air Temperature too high/short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>26</uniqueid>
+    <name>Stored Errors Byte 2</name>
+    <offset>2</offset>
+    <byte>3</byte>
+    <bitname>Tacho low</bitname>
+    <bit>1</bit>
+    <dtc>35</dtc>
+    <text>Tachometer output short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>26</uniqueid>
+    <name>Stored Errors Byte 2</name>
+    <offset>2</offset>
+    <byte>3</byte>
+    <bitname>Tacho high</bitname>
+    <bit>2</bit>
+    <dtc>35</dtc>
+    <text>Tachometer output short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>26</uniqueid>
+    <name>Stored Errors Byte 2</name>
+    <offset>2</offset>
+    <byte>3</byte>
+    <bitname>FP low</bitname>
+    <bit>3</bit>
+    <dtc>33</dtc>
+    <text>Fuel pump short to ground</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>26</uniqueid>
+    <name>Stored Errors Byte 2</name>
+    <offset>2</offset>
+    <byte>3</byte>
+    <bitname>FP high</bitname>
+    <bit>4</bit>
+    <dtc>33</dtc>
+    <text>Fuel pump short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>26</uniqueid>
+    <name>Stored Errors Byte 2</name>
+    <offset>2</offset>
+    <byte>3</byte>
+    <bitname>Inj2 low</bitname>
+    <bit>5</bit>
+    <dtc>32</dtc>
+    <text>Injector 2 short to ground/broken wire</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>26</uniqueid>
+    <name>Stored Errors Byte 2</name>
+    <offset>2</offset>
+    <byte>3</byte>
+    <bitname>Inj2 high</bitname>
+    <bit>6</bit>
+    <dtc>32</dtc>
+    <text>Injector 2 short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>26</uniqueid>
+    <name>Stored Errors Byte 2</name>
+    <offset>2</offset>
+    <byte>3</byte>
+    <bitname>Coil2 low</bitname>
+    <bit>7</bit>
+    <dtc>24</dtc>
+    <text>Coil 2 short to ground/broken wire</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>26</uniqueid>
+    <name>Stored Errors Byte 2</name>
+    <offset>2</offset>
+    <byte>3</byte>
+    <bitname>Coil2 high</bitname>
+    <bit>8</bit>
+    <dtc>24</dtc>
+    <text>Coil 2 short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>27</uniqueid>
+    <name>Stored Errors Byte 3</name>
+    <offset>3</offset>
+    <byte>4</byte>
+    <bitname>Sync failure</bitname>
+    <bit>1</bit>
+    <dtc>56</dtc>
+    <text>Sync failure</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>27</uniqueid>
+    <name>Stored Errors Byte 3</name>
+    <offset>3</offset>
+    <byte>4</byte>
+    <bitname>ADC failure</bitname>
+    <bit>2</bit>
+    <dtc>55</dtc>
+    <text>ADC error</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>27</uniqueid>
+    <name>Stored Errors Byte 3</name>
+    <offset>3</offset>
+    <byte>4</byte>
+    <bitname>EEPROM failure</bitname>
+    <bit>3</bit>
+    <dtc>54</dtc>
+    <text>EEPROM error</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>27</uniqueid>
+    <name>Stored Errors Byte 3</name>
+    <offset>3</offset>
+    <byte>4</byte>
+    <bitname>Flash failure</bitname>
+    <bit>4</bit>
+    <dtc>53</dtc>
+    <text>Flash Memory Checksum Error</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>27</uniqueid>
+    <name>Stored Errors Byte 3</name>
+    <offset>3</offset>
+    <byte>4</byte>
+    <bitname>RAM failure</bitname>
+    <bit>5</bit>
+    <dtc>52</dtc>
+    <text>RAM Failure read/write verify</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>27</uniqueid>
+    <name>Stored Errors Byte 3</name>
+    <offset>3</offset>
+    <byte>4</byte>
+    <bitname>Fan high</bitname>
+    <bit>6</bit>
+    <dtc>36</dtc>
+    <text>Fan 1 (rear or right) short to supply voltage</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>27</uniqueid>
+    <name>Stored Errors Byte 3</name>
+    <offset>3</offset>
+    <byte>4</byte>
+    <bitname>BAS low</bitname>
+    <bit>7</bit>
+    <dtc>44</dtc>
+    <text>BAS too low</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>27</uniqueid>
+    <name>Stored Errors Byte 3</name>
+    <offset>3</offset>
+    <byte>4</byte>
+    <bitname>BAS high</bitname>
+    <bit>8</bit>
+    <dtc>44</dtc>
+    <text>BAS too high</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>56</uniqueid>
+    <name>System Configuration</name>
+    <offset>8</offset>
+    <byte>0</byte>
+    <bitname>Idle spark advance</bitname>
+    <bit>1</bit>
+    <dtc></dtc>
+    <text>Idle spark and fuel adjustment enabled</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>56</uniqueid>
+    <name>System Configuration</name>
+    <offset>8</offset>
+    <byte>0</byte>
+    <bitname>Idle closed loop</bitname>
+    <bit>2</bit>
+    <dtc></dtc>
+    <text>Enable closed loop in idle</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>56</uniqueid>
+    <name>System Configuration</name>
+    <offset>8</offset>
+    <byte>0</byte>
+    <bitname>Fuel cut</bitname>
+    <bit>3</bit>
+    <dtc></dtc>
+    <text>Fuel cut enabled</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>56</uniqueid>
+    <name>System Configuration</name>
+    <offset>8</offset>
+    <byte>0</byte>
+    <bitname>Open loop learn</bitname>
+    <bit>4</bit>
+    <dtc></dtc>
+    <text>Enable open loop learning</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>56</uniqueid>
+    <name>System Configuration</name>
+    <offset>8</offset>
+    <byte>0</byte>
+    <bitname>Enable BAS</bitname>
+    <bit>5</bit>
+    <dtc></dtc>
+    <text>Bank Angle Sensor enabled</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>56</uniqueid>
+    <name>System Configuration</name>
+    <offset>8</offset>
+    <byte>0</byte>
+    <bitname>Fuelpump duty cycle</bitname>
+    <bit>6</bit>
+    <dtc></dtc>
+    <text>Enable fuel pump duty cycle lookup</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>56</uniqueid>
+    <name>System Configuration</name>
+    <offset>8</offset>
+    <byte>0</byte>
+    <bitname>Realtime table adjust</bitname>
+    <bit>7</bit>
+    <dtc></dtc>
+    <text></text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>56</uniqueid>
+    <name>System Configuration</name>
+    <offset>8</offset>
+    <byte>0</byte>
+    <bitname>Table value locked</bitname>
+    <bit>8</bit>
+    <dtc></dtc>
+    <text></text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>64</uniqueid>
+    <name>Spark Advance Reduction Configuration</name>
+    <offset>366</offset>
+    <byte>0</byte>
+    <bitname>On accel</bitname>
+    <bit>1</bit>
+    <dtc></dtc>
+    <text>Activate on accel</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>64</uniqueid>
+    <name>Spark Advance Reduction Configuration</name>
+    <offset>366</offset>
+    <byte>0</byte>
+    <bitname>On WOT</bitname>
+    <bit>2</bit>
+    <dtc></dtc>
+    <text>Activate on WOT transition</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>64</uniqueid>
+    <name>Spark Advance Reduction Configuration</name>
+    <offset>366</offset>
+    <byte>0</byte>
+    <bitname>On accel and WOT</bitname>
+    <bit>3</bit>
+    <dtc></dtc>
+    <text>Activate only if accel and WOT</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>64</uniqueid>
+    <name>Spark Advance Reduction Configuration</name>
+    <offset>366</offset>
+    <byte>0</byte>
+    <bitname>Use initial values</bitname>
+    <bit>4</bit>
+    <dtc></dtc>
+    <text>Use initial values</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>64</uniqueid>
+    <name>Spark Advance Reduction Configuration</name>
+    <offset>366</offset>
+    <byte>0</byte>
+    <bitname>Cancel from WOT</bitname>
+    <bit>5</bit>
+    <dtc></dtc>
+    <text>Deactivate when leaving WOT</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>64</uniqueid>
+    <name>Spark Advance Reduction Configuration</name>
+    <offset>366</offset>
+    <byte>0</byte>
+    <bitname>Cancel from accel</bitname>
+    <bit>6</bit>
+    <dtc></dtc>
+    <text>Deactivate when no accel</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>64</uniqueid>
+    <name>Spark Advance Reduction Configuration</name>
+    <offset>366</offset>
+    <byte>0</byte>
+    <bitname>Ramp out</bitname>
+    <bit>7</bit>
+    <dtc></dtc>
+    <text>Enable ramp out</text>
+  </bitnames>
+  <bitnames>
+    <uniqueid>64</uniqueid>
+    <name>Spark Advance Reduction Configuration</name>
+    <offset>366</offset>
+    <byte>0</byte>
+    <bitname>Cancel accel enrichment</bitname>
+    <bit>8</bit>
+    <dtc></dtc>
+    <text>Stop accel enrichment when activated</text>
+  </bitnames>
+</dataSet>
