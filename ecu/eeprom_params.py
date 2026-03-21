@@ -16,7 +16,7 @@ from pathlib import Path
 logger = logging.getLogger("EepromParams")
 
 ECU_DEFS_DIR = Path(__file__).parent.parent / "ecu_defs"
-HEADER_OFFSET = 4  # XPR tiene 4 bytes de header antes del blob
+HEADER_OFFSET = 0  # blob_Pi ya no incluye header XPR — offsets XML son directos
 
 
 def _find_xml(version_string):
@@ -87,7 +87,7 @@ def decode_params(blob, version_string):
 
         # Leer raw — 1 o 2 bytes big-endian
         if size == 2:
-            raw = (blob[blob_i] << 8) | blob[blob_i + 1]
+            raw = blob[blob_i] | (blob[blob_i + 1] << 8)  # little-endian
         else:
             raw = blob[blob_i]
 
