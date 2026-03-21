@@ -9,6 +9,7 @@ import logging
 import time
 import signal
 import sys
+import subprocess
 import threading
 from pathlib import Path
 

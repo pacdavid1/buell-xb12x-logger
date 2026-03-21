@@ -135,8 +135,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if path == '/shutdown':
             self.server_instance.pending_shutdown = True
             self._json({"ok": True, "msg": "Apagando..."})
-            import threading, subprocess
-            threading.Timer(1.5, lambda: subprocess.run(["/usr/sbin/poweroff"])).start()
             return
 
         if path == '/keepalive':
