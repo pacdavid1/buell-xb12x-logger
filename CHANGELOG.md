@@ -6,6 +6,13 @@
 ---
 ---
 ---
+
+## [2.5.9] - 2026-03-21
+### Added
+- `main.py`: reads bike Serial Number from EEPROM blob offset 12 (little-endian uint16)
+- `web/server.py`: `bike_serial` field added to `live.json` and `WebServer.__init__`
+- `index.html`: Serial cell in dashboard header row 1 — shows `#651` when ECU connected
+
 ---
 
 ## [2.5.8] - 2026-03-21
