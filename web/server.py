@@ -62,7 +62,128 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json(self._get_live())
             return
 
+        if path.startswith('/csv/'):
+            fname = path.split('/csv/')[-1].split('?')[0]
+            rides = self.server_instance._get_rides()
+            fname_summary = fname.replace('.csv', '_summary.json')
+            match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
+            if match:
+                try:
+                    sdir = self.server_instance.buell_dir / 'sessions' / match['session']
+                    ride_num = match.get('ride_num', 0)
+                    parts = match.get('parts', 1)
+                    chunks = []
+                    first = True
+                    for part in range(1, parts+1):
+                        suffix = f'_p{part}' if part > 1 else ''
+                        csv_path = sdir / f'ride_{ride_num:03d}{suffix}.csv'
+                        if not csv_path.exists(): continue
+                        with open(csv_path, 'rb') as f:
+                            if not first: f.readline()
+                            chunks.append(f.read())
+                        first = False
+                    raw = b''.join(chunks)
+                    accept_enc = self.headers.get('Accept-Encoding', '')
+                    use_gzip = 'gzip' in accept_enc
+                    import zlib as _zlib
+                    body = _zlib.compress(raw, level=6, wbits=31) if use_gzip else raw
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'text/csv; charset=utf-8')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.send_header('Cache-Control', 'no-store')
+                    self.send_header('Content-Length', str(len(body)))
+                    if use_gzip: self.send_header('Content-Encoding', 'gzip')
+                    self.end_headers()
+                    self.wfile.write(body)
+                except Exception as e:
+                    self._json({'error': str(e)}, 500)
+            else:
+                self._json({'error': 'not found'}, 404)
+            return
+        if path.startswith('/ride/'):
+            fname = path.split('/ride/')[-1].split('?')[0]
+            rides = self.server_instance._get_rides()
+            fname_summary = fname.replace('.csv', '_summary.json')
+            match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
+            if match:
+                sdir = self.server_instance.buell_dir / 'sessions' / match['session']
+                fpath = sdir / fname
+                if not fpath.exists():
+                    fpath = sdir / fname.replace('_summary.json', '.csv')
+                try:
+                    if fpath.suffix == '.json':
+                        with open(fpath) as f:
+                            s = json.load(f)
+                        self._json({'cells': s.get('cells', {}), 'objectives': s.get('objectives', [])})
+                    else:
+                        self._json({'cells': {}, 'objectives': []})
+                except Exception as e:
+                    self._json({'error': str(e)}, 500)
+            else:
+                self._json({'error': 'not found'}, 404)
+            return
+        if path.startswith('/csv/'):
+            fname = path.split('/csv/')[-1].split('?')[0]
+            rides = self.server_instance._get_rides()
+            fname_summary = fname.replace('.csv', '_summary.json')
+            match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
+            if not match:
+                self._json({'error': 'not found'}, 404)
+                return
+            try:
+                sdir = self.server_instance.buell_dir / 'sessions' / match['session']
+                ride_num = match.get('ride_num', 0)
+                parts = match.get('parts', 1)
+                chunks = []
+                first = True
+                for part in range(1, parts+1):
+                    suffix = f'_p{part}' if part > 1 else ''
+                    csv_path = sdir / f'ride_{ride_num:03d}{suffix}.csv'
+                    if not csv_path.exists(): continue
+                    with open(csv_path, 'rb') as fh:
+                        if not first: fh.readline()
+                        chunks.append(fh.read())
+                    first = False
+                raw = b''.join(chunks)
+                import zlib as _zlib
+                accept_enc = self.headers.get('Accept-Encoding', '')
+                use_gzip = 'gzip' in accept_enc
+                body = _zlib.compress(raw, level=6, wbits=31) if use_gzip else raw
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/csv; charset=utf-8')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Cache-Control', 'no-store')
+                self.send_header('Content-Length', str(len(body)))
+                if use_gzip: self.send_header('Content-Encoding', 'gzip')
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
+            return
+        if path.startswith('/ride/'):
+            fname = path.split('/ride/')[-1].split('?')[0]
+            rides = self.server_instance._get_rides()
+            fname_summary = fname.replace('.csv', '_summary.json')
+            match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
+            if not match:
+                self._json({'error': 'not found'}, 404)
+                return
+            sdir = self.server_instance.buell_dir / 'sessions' / match['session']
+            fpath = sdir / fname
+            if not fpath.exists():
+                fpath = sdir / fname.replace('_summary.json', '.csv')
+            try:
+                if fpath.suffix == '.json':
+                    with open(fpath) as fh:
+                        s = json.load(fh)
+                    self._json({'cells': s.get('cells', {}), 'objectives': s.get('objectives', [])})
+                else:
+                    self._json({'cells': {}, 'objectives': []})
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
+            return
         if path == '/rides':
+
             rides = self.server_instance._get_rides()
             self._json({"rides": rides})
             return
