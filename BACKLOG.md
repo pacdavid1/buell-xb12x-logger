@@ -470,6 +470,36 @@ BACKLOG-SYNC1, BACKLOG-NET1, and BACKLOG-ECU3 (EEPROM editor) must be completed 
 
 ---
 
+**BACKLOG-LOG7** `CLOSED` v2.5.14
+Ride not recorded when Pi boots with engine already running
+
+### Problem
+If the Pi boots while the engine is already running above RPM_START (300 RPM),
+the ride is never recorded despite full telemetry being visible in the dashboard.
+
+### Context
+- `main.py` `_ecu_loop()`: reconnect path called `read_full_eeprom()` but had no
+  fallback if the fetch failed -- current_checksum stayed None
+- ride start guard `if self.session.current_checksum is None` silently skipped ride
+- Dashboard and heatmap receive samples via `web.ecu_live` regardless of ride state
+
+### Investigation
+- Confirmed `buffering=1` on CSV file handle -- flush was not the issue
+- Traced silence to `current_checksum is None` guard in ride start block
+- Startup path in `run()` had full fallback logic; reconnect path did not
+
+### Solution
+- `main.py`: reconnect path now mirrors startup fallback logic
+- Fallback 1: use most recent eeprom.bin from disk if live fetch fails
+- Fallback 2: use version string as checksum seed if no blob on disk
+- `open_session()` always called after connect
+
+### Result
+- Session always opens on reconnect regardless of EEPROM fetch success
+- Ride starts correctly even when Pi boots with engine already running
+
+---
+
 ## Closed Items Index
 
 | Item | Version | Summary |
@@ -479,3 +509,4 @@ BACKLOG-SYNC1, BACKLOG-NET1, and BACKLOG-ECU3 (EEPROM editor) must be completed 
 | BACKLOG-LOG3 | — | False positive — no code change needed |
 | BACKLOG-LOG4 | — | Verified — path correct, device must be connected |
 | BACKLOG-UX1 | v2.5.10 | IP tappable in Network tab |
+| BACKLOG-LOG7 | v2.5.14 | Ride not recorded when Pi boots with engine already running |

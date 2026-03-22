@@ -3,6 +3,17 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 
+## [2.5.14] - 2026-03-22
+### Fixed
+- `main.py`: reconnect path now applies same EEPROM fallback logic as startup path
+- If EEPROM fetch fails on reconnect: falls back to most recent cached blob on disk
+- If no blob on disk: uses version string as checksum seed (last resort)
+- Session now always opens on reconnect — ride start no longer silently skipped
+### Root Cause
+- Rides not recorded when Pi boots with engine already running above RPM_START threshold
+- EEPROM fetch failure on reconnect left `current_checksum=None`
+- `write_sample()` was never called despite full telemetry visible in dashboard
+
 ## [2.5.13] - 2026-03-21
 ### Fixed
 - `main.py`: EEPROM fallback to most recent cached blob on disk if live fetch fails
