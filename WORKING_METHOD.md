@@ -184,6 +184,72 @@ Verify with `git log --oneline -3` that HEAD matches origin/main after pushing.
 
 ---
 
+---
+
+## BACKLOG DISCIPLINE
+
+The backlog is a living technical document, not a simple to-do list.
+Every item tells a complete story — from discovery to resolution.
+Anyone reading the backlog should understand not just what was done, but why, and what was learned.
+
+### ADDING A NEW ITEM
+
+Every new backlog item must include:
+
+- **Status**: `OPEN`, `IN-PROGRESS`, or `CLOSED vX.X.X`
+- **Problem**: What is wrong or missing, and why it matters.
+- **Context**: Where in the codebase the issue lives. Which files, functions, or endpoints are involved.
+- **Reference**: Any external tools, screenshots, or documents that informed the discovery (e.g. EcmSpy comparison, oscilloscope capture, log output).
+- **Prerequisites**: Any other backlog items that must be resolved first.
+
+A backlog item without a clear problem statement is not allowed.
+Vague entries like "fix the map" or "improve performance" are not acceptable.
+
+### CLOSING AN ITEM
+
+When an item is resolved, its entry must be updated in place with:
+
+- **Investigation**: What was examined, what commands were run, what was discovered.
+- **Blockers**: Where progress stalled and how it was unblocked.
+- **Solution**: Exactly what was changed and in which files.
+- **Result**: Observed behavior after the fix — logs, screenshots, or validation commands.
+- **Version**: The version in which the fix shipped.
+
+The goal is a readable engineering history.
+Someone reading the backlog two years from now should understand the full arc of every problem.
+
+### FORMAT
+```markdown
+**BACKLOG-XXX** `CLOSED` vX.X.X
+Category name — short description
+
+### Problem
+What was wrong and why it mattered.
+
+### Context
+Files, functions, endpoints involved.
+
+### Reference
+External tools, screenshots, logs that informed the discovery.
+
+### Prerequisites
+Other items that had to be resolved first, if any.
+
+### Investigation
+What was examined, commands run, what was found.
+
+### Blockers
+Where progress stalled and how it was unblocked.
+
+### Solution
+Exact changes made and in which files.
+
+### Result
+Observed behavior after the fix.
+```
+
+---
+
 ## START OF A WORK SESSION
 
 ⚠️ MANDATORY VALIDATION — DO NOT SKIP
