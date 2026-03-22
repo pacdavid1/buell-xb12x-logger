@@ -9,6 +9,9 @@ import threading
 import time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
+import sys as _sys
+_sys.path.insert(0, '/home/pi/buell')
+from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 
 
 def _get_version():
@@ -207,7 +210,19 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({"rides": rides})
             return
         if path == '/maps':
-            self._json(self.server_instance.eeprom_maps)
+            maps = self.server_instance.eeprom_maps
+            if not maps or not maps.get('fuel_front'):
+                # No live maps — try most recent eeprom.bin from disk
+                try:
+                    sessions_dir = Path('/home/pi/buell/sessions')
+                    bins = sorted(sessions_dir.glob('*/eeprom.bin'),
+                                  key=lambda p: p.stat().st_mtime)
+                    if bins:
+                        blob = bins[-1].read_bytes()
+                        maps = _decode_eeprom_maps(blob)
+                except Exception as e:
+                    maps = {'error': str(e)}
+            self._json(maps)
             return
         if path == '/eeprom':
             self._json(self.server_instance.eeprom_params)
