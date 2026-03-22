@@ -127,3 +127,12 @@ VE table 3D view — interactive 3D surface chart of the VE map.
 X=RPM, Y=Load, Z=coverage or correction value.
 Color gradient by value. Renders in browser using Three.js or Plotly.
 Prerequisite: VE table data collection working correctly (BUG-3 RPM sort fixed first).
+
+---
+
+**BACKLOG-UX5** `OPEN`
+Dashboard freeze indicator — visual alert when live.json stops updating.
+Show timestamp of last successful fetch. Animation or color change
+when no data received for >5s. Helps detect ECU/TTL loss while riding.
+
+---
