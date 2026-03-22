@@ -146,6 +146,36 @@ None.
 Buffer flushes logged as `AUTO-FLUSH FIFO buf_in=Xb >50% — flushed`.
 Pre-flush value visible in CSV for correlation analysis.
 
+
+**BACKLOG-LOG6** `OPEN` — CONFIRMED BUG
+RT data failure after multiple killswitch/reconnect cycles
+
+### Problem
+After 2-3 killswitch events and reconnect cycles, `get_rt_data()` returns None
+consistently even though `get_version()` succeeds. The ECU appears to be stuck
+in a state where it responds to version requests but not to RT data requests.
+TTL% stays at 97%, BUF% stays at 0%, but no frames arrive.
+
+### Context
+- `ecu/connection.py` — `get_rt_data()` — `ser.read(1)` returns empty (timeout)
+- DTR toggle happens on `connect()` but does not recover this state
+- USB reset via sysfs fails with Permission denied (separate bug)
+- Hard reconnect (disconnect + connect + DTR toggle) does not recover either
+
+### Reference
+Observed during first real ride test 2026-03-21. Multiple killswitch events,
+ECU lost and recovered several times. After ~3 cycles, RT data stopped completely.
+Ride data was lost — tracker had 15min of heatmap data in memory but no CSV saved.
+
+### Investigation needed
+- Check if ECM Droid has same issue after multiple killswitch cycles
+- Try longer DTR toggle delay on reconnect (currently 0.2s)
+- Try full serial port close/reopen with 1s delay between
+- Check if issue is in FT232 chip state vs ECU protocol state
+
+### Prerequisites
+Requires moto connected and ability to reproduce killswitch cycles deliberately.
+
 ---
 
 **BACKLOG-LOG2** `OPEN` — CONFIRMED BUG
