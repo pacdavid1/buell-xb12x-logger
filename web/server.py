@@ -328,7 +328,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "ride_num":        0,
             "elapsed_s":       0,
             "live":            self.server_instance.ecu_live,
-            "cells":           {},
+            "cells":           self.server_instance.cell_tracker.snapshot()[0] if self.server_instance.cell_tracker else {},
             "objectives":      [],
             "serial_stats":    self.server_instance.serial_stats,
             "bike_serial":     self.server_instance.bike_serial,
@@ -351,6 +351,7 @@ class WebServer:
         self.eeprom_params    = {}
         self.serial_stats     = {'bps': 0, 'pct': 0.0, 'tx': 0, 'rx': 0}
         self.bike_serial      = None
+        self.cell_tracker     = None
 
     def _get_rides(self):
         rides = []

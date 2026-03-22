@@ -60,10 +60,11 @@ class BuellLogger:
         # Componentes modulares
         self.network = NetworkManager()
         self.web = WebServer(host='0.0.0.0', port=8080, buell_dir=self.buell_dir)
-        self.web.network = self.network
+        self.web.network      = self.network
         self.ecu     = DDFI2Connection(self.port)
         self.session = SessionManager(self.sessions_dir)
         self.tracker = CellTracker()
+        self.web.cell_tracker = self.tracker
         self.error_log = RideErrorLog()
         obj_path = self.buell_dir / 'objectives.json'
         self.objectives_cfg = json.load(open(obj_path)) if obj_path.exists() else {}
