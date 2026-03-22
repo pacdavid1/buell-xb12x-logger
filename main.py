@@ -137,8 +137,16 @@ class BuellLogger:
                     self.ecu.connect()
                     ecu_version = self.ecu.get_version()
                     if ecu_version:
-                        self.logger.info(f"ECU conectada: {ecu_version}")
-                        self.session.open_session(ecu_version)
+                        self.logger.info(f"ECU reconnected: {ecu_version}")
+                        # Fetch EEPROM on reconnect — detect parameter changes
+                        _blob = self.ecu.read_full_eeprom()
+                        if _blob:
+                            self.session.open_session(ecu_version, _blob)
+                            if not (self.session.current_session_dir / 'eeprom.bin').exists():
+                                self.session.save_eeprom(_blob)
+                            self.web.eeprom_maps   = decode_eeprom_maps(_blob)
+                            self.web.eeprom_params = decode_params(_blob, ecu_version)
+                            self.web.bike_serial   = int.from_bytes(_blob[12:14], 'little')
                         consecutive_errors = 0
                         ecu_lost_since = None
                     else:
@@ -354,26 +362,26 @@ class BuellLogger:
             self.ecu.connect()
             ver = self.ecu.get_version()
             if ver:
-                self.logger.info(f"ECU conectada: {ver}")
-                self.session.open_session(ver)
-                # Cargar o fetchear EEPROM
-                blob = self.session.load_eeprom()
-                if blob is None:
-                    self.logger.info("Leyendo EEPROM desde ECU...")
-                    blob = self.ecu.read_full_eeprom()
-                    if blob:
-                        self.session.save_eeprom(blob)
-                    else:
-                        self.logger.warning("EEPROM no pudo leerse")
-                else:
-                    self.logger.info("EEPROM cargada desde sesión")
+                self.logger.info(f"ECU connected: {ver}")
+                # Fetch EEPROM first — checksum derived from blob
+                self.logger.info("Reading EEPROM from ECU...")
+                blob = self.ecu.read_full_eeprom()
                 if blob:
+                    self.session.open_session(ver, blob)
+                    # Save blob if not already stored for this checksum
+                    if not (self.session.current_session_dir / 'eeprom.bin').exists():
+                        self.session.save_eeprom(blob)
+                        self.logger.info("EEPROM saved to session")
+                    else:
+                        self.logger.info("EEPROM already stored for this checksum")
                     self.web.eeprom_maps   = decode_eeprom_maps(blob)
                     self.web.eeprom_params = decode_params(blob, ver)
                     self.web.bike_serial   = int.from_bytes(blob[12:14], 'little')
-                    self.logger.info(f"EEPROM lista — {len(self.web.eeprom_params)} params | Serial={self.web.bike_serial}")
+                    self.logger.info(f"EEPROM ready — {len(self.web.eeprom_params)} params | Serial={self.web.bike_serial}")
+                else:
+                    self.logger.warning("EEPROM could not be read — session not opened")
             else:
-                self.logger.warning("ECU no respondió — continuando sin ECU")
+                self.logger.warning("ECU did not respond — continuing without ECU")
         except Exception as e:
             self.logger.warning(f"ECU no disponible: {e}")
 

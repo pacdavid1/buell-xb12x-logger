@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-21 17:06 | versión: v1.16.3-129-g103d2b2
+> Última actualización: 2026-03-21 17:24 | versión: v1.16.3-130-g7056f76
 
 ---
 
@@ -355,9 +355,10 @@ buell-xb12x-logger/
 | Método | Docstring |
 |--------|-----------|
 | `__init__` | — |
-| `_checksum` | — |
+| `_checksum` | Calculate session checksum from first 64 bytes of EEPROM blo |
 | `_load_or_create` | — |
-| `open_session` | — |
+| `open_session` | Open or resume session based on EEPROM blob checksum.
+A new  |
 | `save_eeprom` | Guarda blob EEPROM en sessions/CHECKSUM/eeprom.bin. |
 | `load_eeprom` | Carga eeprom.bin de la sesión actual. Retorna bytes o None. |
 | `start_ride` | — |

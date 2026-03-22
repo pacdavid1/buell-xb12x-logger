@@ -44,8 +44,10 @@ class SessionManager:
         self.current_part        = 1
         self.current_part_rows   = 0
 
-    def _checksum(self, v):
-        return hashlib.md5(v.encode()).hexdigest()[:6].upper()
+    def _checksum(self, blob):
+        """Calculate session checksum from first 64 bytes of EEPROM blob.
+        Changes whenever ECU parameters are modified."""
+        return hashlib.md5(blob[:64]).hexdigest()[:6].upper()
 
     def _load_or_create(self, cs, version_str):
         sdir = self.sessions_dir / cs
@@ -66,16 +68,18 @@ class SessionManager:
             self.logger.info(f"Nueva sesión: {cs} firmware={version_str}")
         return sdir, meta
 
-    def open_session(self, version_str):
-        new_cs = self._checksum(version_str)
+    def open_session(self, version_str, blob):
+        """Open or resume session based on EEPROM blob checksum.
+        A new session is created whenever ECU parameters change."""
+        new_cs = self._checksum(blob)
         if new_cs == self.current_checksum:
             return False
         if self.current_checksum is not None:
-            self.logger.info(f"Checksum cambió {self.current_checksum}→{new_cs}")
-            self.close_current_ride("cambio de mapa")
+            self.logger.info(f"Checksum changed {self.current_checksum}→{new_cs} — new session")
+            self.close_current_ride("eeprom_changed")
         self.current_checksum = new_cs
         self.current_session_dir, self.session_metadata = self._load_or_create(new_cs, version_str)
-        self.logger.info(f"Sesión activa: {new_cs}")
+        self.logger.info(f"Session active: {new_cs} | firmware={version_str}")
         self._generate_consolidated()
         eeprom_file = self.current_session_dir / "eeprom.bin"
         return not eeprom_file.exists()
