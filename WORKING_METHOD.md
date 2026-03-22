@@ -147,6 +147,15 @@ They exist because different assistants have different defaults, and those defau
 - Skip the `assert` step and go straight to replacement.
 - Commit without confirming the fix scripts have been removed.
 
+### CODE STYLE — NON-NEGOTIABLE
+
+- **All comments, docstrings, log messages, and variable names must be written in English.**
+- This applies to all new code and to any existing code that is modified.
+- Spanish comments in untouched legacy code are acceptable temporarily,
+  but must be converted to English when that section is modified.
+- This rule applies to both human and AI-written code.
+- No exceptions, even for quick fixes or one-liners.
+
 ### WHAT THE ASSISTANT MUST ALWAYS DO
 
 - Use `grep -n` and `sed -n 'X,Yp'` to locate target text before writing any fix script.
