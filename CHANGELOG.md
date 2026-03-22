@@ -3,6 +3,21 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 
+## [2.5.15] - 2026-03-22
+### Fixed
+- `ecu/eeprom.py`: RPM axis was read as big-endian — corrected to little-endian
+- `ecu/eeprom.py`: RPM axis stored in descending order in EEPROM — now reversed to ascending
+- Fuel map and spark map columns reversed to match corrected RPM axis
+- VE/FUEL/SPARK tabs now show correct RPM bins (0→8000 instead of mirrored)
+### Root Cause
+- Confirmed by comparing B2RIB.xml offsets against live eeprom.bin dump
+- XML offset 644: fuel RPM axis (13x uint16 LE) stored as [8000..0]
+- Hardcoded bins [0..8000] were correct — reading order was wrong
+### Closed
+- BACKLOG-LOG2
+
+---
+
 ## [2.5.14] - 2026-03-22
 ### Fixed
 - `main.py`: reconnect path now applies same EEPROM fallback logic as startup path

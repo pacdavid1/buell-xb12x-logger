@@ -178,9 +178,23 @@ Requires moto connected and ability to reproduce killswitch cycles deliberately.
 
 ---
 
-**BACKLOG-LOG2** `OPEN` — CONFIRMED BUG
+**BACKLOG-LOG2** `CLOSED v2.5.15
 EEPROM map heatmap RPM axis wrong
+### Investigation
+- Compared B2RIB.xml axis offsets against live eeprom.bin dump (Serial #651, checksum 9ECD1E)
+- XML offset 644: fuel RPM axis 13x uint16 little-endian, stored as [8000, 7000...0] descending
+- XML offset 612: spark RPM axis 10x uint16 little-endian, stored descending
+- Code was reading with big-endian ('>H') and no reversal — axis and map data both mirrored
+- LOAD axis (offset 632) was correct — stored ascending, read correctly
 
+### Solution
+- `ecu/eeprom.py`: `read_axis_2b()` changed to little-endian + reversed result
+- `ecu/eeprom.py`: `read_map()` now reverses each row to match corrected RPM axis
+
+### Result
+- fuel_rpm: [0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000] ✓
+- spark_rpm: [800, 1000, 1350, 2000, 3000, 4000, 4500, 5500, 6500, 7000] ✓
+- VE/FUEL/SPARK heatmaps now display correct RPM axis and correct cell values
 ### Problem
 The FUEL and SPARK map heatmaps in the VE tab show garbled RPM axis values
 (1.7k, 2.1k, 2.2k...) instead of the correct bins
@@ -203,6 +217,22 @@ Root cause likely in period→RPM conversion or wrong axis data from XML.
 
 ### Prerequisites
 BACKLOG-ECU1 (correct XML selection) may affect this bug.
+
+### Investigation
+- Compared B2RIB.xml axis offsets against live eeprom.bin dump (Serial #651, checksum 9ECD1E)
+- XML offset 644: fuel RPM axis 13x uint16 little-endian, stored as [8000, 7000...0] descending
+- XML offset 612: spark RPM axis 10x uint16 little-endian, stored descending
+- Code was reading with big-endian ('>H') and no reversal — axis and map data both mirrored
+- LOAD axis (offset 632) was correct — stored ascending, read correctly
+
+### Solution
+- `ecu/eeprom.py`: `read_axis_2b()` changed to little-endian + reversed result
+- `ecu/eeprom.py`: `read_map()` now reverses each row to match corrected RPM axis
+
+### Result
+- fuel_rpm: [0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000] ✓
+- spark_rpm: [800, 1000, 1350, 2000, 3000, 4000, 4500, 5500, 6500, 7000] ✓
+- VE/FUEL/SPARK heatmaps now display correct RPM axis and correct cell values
 
 ---
 
@@ -510,3 +540,4 @@ the ride is never recorded despite full telemetry being visible in the dashboard
 | BACKLOG-LOG4 | — | Verified — path correct, device must be connected |
 | BACKLOG-UX1 | v2.5.10 | IP tappable in Network tab |
 | BACKLOG-LOG7 | v2.5.14 | Ride not recorded when Pi boots with engine already running |
+| BACKLOG-LOG2 | v2.5.15 | FUEL/SPARK RPM axis wrong — big-endian + descending order |
