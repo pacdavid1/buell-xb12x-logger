@@ -145,14 +145,24 @@ class BuellLogger:
                         if self.session.current_checksum is None:
                             self.logger.info("No active session — fetching EEPROM to open session...")
                             _blob = self.ecu.read_full_eeprom()
-                            if _blob:
-                                self.session.open_session(ecu_version, _blob)
-                                if not (self.session.current_session_dir / 'eeprom.bin').exists():
-                                    self.session.save_eeprom(_blob)
-                                self.web.eeprom_maps   = decode_eeprom_maps(_blob)
-                                self.web.eeprom_params = decode_params(_blob, ecu_version)
-                                self.web.bike_serial   = int.from_bytes(_blob[12:14], 'little')
-                                self.logger.info(f"Session opened from reconnect: {self.session.current_checksum}")
+                            if _blob is None:
+                                # Fallback 1: use most recent cached blob on disk
+                                _bins = sorted(self.sessions_dir.glob("*/eeprom.bin"),
+                                               key=lambda p: p.stat().st_mtime)
+                                if _bins:
+                                    _blob = open(_bins[-1], 'rb').read()
+                                    self.logger.warning("EEPROM fetch failed — using cached blob from disk")
+                                else:
+                                    # Fallback 2: version string as checksum seed
+                                    _blob = ecu_version.encode().ljust(64, b'\x00')
+                                    self.logger.warning("EEPROM fetch failed — using version string as checksum")
+                            self.session.open_session(ecu_version, _blob)
+                            if not (self.session.current_session_dir / 'eeprom.bin').exists():
+                                self.session.save_eeprom(_blob)
+                            self.web.eeprom_maps   = decode_eeprom_maps(_blob)
+                            self.web.eeprom_params = decode_params(_blob, ecu_version)
+                            self.web.bike_serial   = int.from_bytes(_blob[12:14], 'little')
+                            self.logger.info(f"Session opened from reconnect: {self.session.current_checksum}")
                         consecutive_errors = 0
                         ecu_lost_since = None
                     else:
