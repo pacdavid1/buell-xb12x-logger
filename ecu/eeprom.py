@@ -77,13 +77,16 @@ def decode_eeprom_maps(eeprom_bytes):
         return [eeprom_bytes[off + i] for i in range(count)]
 
     def read_axis_2b(off, count):
-        return [struct.unpack_from('>H', eeprom_bytes, off + i*2)[0] for i in range(count)]
+        # EEPROM stores RPM axes in descending order — read as little-endian and reverse
+        axis = [struct.unpack_from('<H', eeprom_bytes, off + i*2)[0] for i in range(count)]
+        return list(reversed(axis))
 
     def read_map(off, rows, cols, scale):
+        # Columns are stored in descending RPM order — reverse each row to match axis
         table = []
         for r in range(rows):
             row = [round(eeprom_bytes[off + r*cols + c] * scale, 2) for c in range(cols)]
-            table.append(row)
+            table.append(list(reversed(row)))
         return table
 
     try:
