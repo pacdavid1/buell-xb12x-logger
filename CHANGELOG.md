@@ -3,6 +3,19 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 
 ---
+
+## [2.5.12] - 2026-03-21
+### Fixed
+- `main.py`: EEPROM fetch blocked RT loop on reconnect — removed from reconnect path
+- `main.py`: 3s stabilization delay before EEPROM fetch on startup
+- `main.py`: session guard on ride start — no crash when session not yet open
+- `main.py`: ride start guard indentation — `error_log.start()` and log inside `else` block
+- `main.py`: tracker initialized before being passed to web server
+- `web/server.py`: `snapshot()` returns tuple — fixed index from `["cells"]` to `[0]`
+### Added
+- `web/server.py`: live VE cell tracker passed to dashboard via `cell_tracker` attribute
+- VE heatmap now shows live cell coverage in real time during ride
+
 ---
 
 ## [2.5.11] - 2026-03-21
