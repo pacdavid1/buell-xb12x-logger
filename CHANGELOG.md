@@ -1,6 +1,27 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
+---
+
+## [2.5.17] - 2026-03-22
+### Fixed
+- `ecu/eeprom.py`: map reading rewritten — zero bytes are row separators, not structural markers
+- Previous logic read fixed 13-byte rows and treated zeros as empty cells — incorrect
+- Actual structure: 156 bytes = 11 zero separators + 12 segments of 13 values each
+- Each segment contains one complete row in descending RPM order (RPM=8k→RPM=0)
+- After reversal each row is in ascending RPM order matching the axis
+- Load=255 has only 2 valid values (RPM=7k, RPM=8k) — remaining 11 cols padded as None
+- `web/templates/index.html`: map cell renderer now handles null (empty region) correctly
+### Validated
+- Fuel Front verified cell-by-cell against EcmSpy with unique-value test matrix (values 10-165)
+- All 156 values match EcmSpy exactly after fix- `ecu/eeprom.py`: map reading now correctly splits by zero-byte separators
+- Each segment between zeros contains exactly 13 values in descending RPM order
+- Removed incorrect row trimming — all 13 values per row are now valid
+- Load=255 row padded to 13 cols (only 2 values stored, rest None)
+- `web/templates/index.html`: map renderer now handles null cells correctly
+- All 156 values match EcmSpy exactly
+### Closed
+- BACKLOG-LOG2 final — map display now fully correct
 
 ---
 

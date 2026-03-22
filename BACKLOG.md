@@ -238,6 +238,17 @@ BACKLOG-ECU1 (correct XML selection) may affect this bug.
 - Map rows were still reversed after axis fix — `read_map()` now reverses each row
 - Checksum expanded to full 1206 bytes — fuel/spark map changes now trigger new session
 - Validated with unique-value test matrix burned to ECU via EcmSpy
+
+### Final Fix (v2.5.17)
+Root cause fully identified via empirical test matrix (unique values 10-165 burned to ECU):
+- Map is NOT stored as simple 12×13 byte matrix
+- Actual structure: 156 bytes = 12 segments of 13 values, separated by 11 zero bytes
+- Each segment = one Load row, values in descending RPM order (8k→0)
+- Zero byte = row separator, NOT a structural empty cell
+- Previous code read fixed 13-byte rows crossing zero boundaries — mixed values from adjacent rows
+- XML (B2RIB.xml) only specifies offset/size/scale — does not describe zero separator structure
+- Structure discovered by burning known unique values to ECU and mapping bin layout
+
 ---
 
 **BACKLOG-LOG3** `CLOSED` — FALSE POSITIVE
@@ -546,3 +557,4 @@ the ride is never recorded despite full telemetry being visible in the dashboard
 | BACKLOG-LOG7 | v2.5.14 | Ride not recorded when Pi boots with engine already running |
 | BACKLOG-LOG2 | v2.5.15 | FUEL/SPARK RPM axis wrong — big-endian + descending order |
 | BACKLOG-LOG2 | v2.5.15/v2.5.16 | FUEL/SPARK RPM axis wrong + map rows reversed |
+| BACKLOG-LOG2 | v2.5.15/v2.5.16/v2.5.17 | FUEL/SPARK map reading — axis, orientation, zero separators |
