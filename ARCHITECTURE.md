@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-21 17:24 | versión: v1.16.3-130-g7056f76
+> Última actualización: 2026-03-21 17:29 | versión: v1.16.3-131-g41d3b57
 
 ---
 
@@ -44,6 +44,8 @@ buell-xb12x-logger/
 │   ├── __init__.py
 │   └── manager.py
 ├── sessions
+│   ├── 9ECD1E
+│   │   └── eeprom.bin
 │   └── EF4995
 │       ├── consolidated.csv
 │       ├── eeprom.bin

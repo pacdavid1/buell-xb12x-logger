@@ -4,6 +4,19 @@
 
 ---
 ---
+
+## [2.5.11] - 2026-03-21
+### Changed
+- `ecu/session.py`: session checksum now derived from first 64 bytes of EEPROM blob instead of version string
+- `main.py`: EEPROM fetched before `open_session()` on both startup and reconnect
+- New session created automatically whenever ECU parameters change
+### Result
+- Session EF4995 (version-based) → Session 9ECD1E (EEPROM-based)
+- Each parameter change in ECU produces a new session folder
+- Rides before/after tuning changes are now correctly separated
+### Closed
+- BACKLOG-ECU4 (partial) — session isolation by EEPROM content implemented
+
 ---
 
 ## [2.5.10] - 2026-03-21
