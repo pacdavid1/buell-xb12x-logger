@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-22 11:38 | versión: v1.16.3-148-g79654e4
+> Última actualización: 2026-03-22 15:41 | versión: v1.16.3-149-g9d4e4c2
 
 ---
 
@@ -67,6 +67,18 @@ buell-xb12x-logger/
 │   │   ├── ride_005.csv
 │   │   ├── ride_006.csv
 │   │   ├── ride_006_summary.json
+│   │   ├── ride_007.csv
+│   │   ├── ride_007_summary.json
+│   │   └── session_metadata.json
+│   ├── E8D511
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── ride_001.csv
+│   │   ├── ride_001_errorlog.json
+│   │   ├── ride_001_summary.json
+│   │   ├── ride_002.csv
+│   │   ├── ride_002_errorlog.json
+│   │   ├── ride_002_summary.json
 │   │   └── session_metadata.json
 │   └── EF4995
 │       ├── consolidated.csv

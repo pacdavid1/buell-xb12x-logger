@@ -980,8 +980,8 @@ function showMap(which){
     html += '<tr>';
     html += `<td style="padding:2px 4px;color:var(--dim);font-size:8px;white-space:nowrap">${loadVal}%</td>`;
     for(const val of row){
-      if(val === 0){
-        // Celda sin datos en el EEPROM — fondo oscuro, sin número
+      if(val === 0 || val === null){
+        // Empty cell — structural zero or out-of-range region
         html += `<td style="background:#1a1a22;color:#333;padding:1px 2px;text-align:center;
                  min-width:${cellW}px;height:${cellH}px;border:1px solid rgba(255,255,255,0.04);
                  font-size:7px" title="sin datos">·</td>`;
