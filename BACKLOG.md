@@ -38,8 +38,29 @@ Auto-flush FIFO — `reset_input_buffer()` when `buf_pct > threshold`
 to prevent FT232 saturation on low-quality hardware.
 → Implemented in v2.5.5 at 50% threshold (192b). Consider making threshold configurable.
 
-**BACKLOG-LOG2** `OPEN`
-VE heatmap RPM unsorted — BUG-3, RPM axis not sorted correctly in heatmap display.
+**BACKLOG-LOG2** `OPEN` — CONFIRMED BUG
+EEPROM map heatmap RPM axis wrong — affects FUEL FRONT/REAR and SPARK FRONT/REAR tabs in VE pane.
+
+Problem:
+- RPM axis shows garbled values (1.7k, 2.1k, 2.2k...) instead of correct bins
+  (0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000)
+- Values in cells do not match EcmSpy reference
+- Some cells appear black (missing data)
+- Root cause: period→RPM conversion in showMap() JS function is reading
+  wrong axis data from the XML-derived maps
+
+Note: This is NOT the VE coverage heatmap (buildGrid) — that one is correct.
+This bug is in the EEPROM map viewer (showMap / loadMaps endpoints).
+
+Reference: EcmSpy screenshot shows correct layout with BUEIB.xml bins.
+EcmSpy also shows cruise/WOT overlay lines — document but low priority.
+
+Files to investigate:
+- web/templates/index.html — showMap(), loadMaps(), heatColor()
+- web/server.py — /maps endpoint
+- ecu/eeprom.py — decode_eeprom_maps()
+
+Prerequisite: BACKLOG-ECU1 (correct XML selection) may affect this bug.
 
 **BACKLOG-LOG3** `OPEN`
 USB reset field validation — PENDING-R1, validate field before triggering USB reset.
