@@ -234,6 +234,10 @@ BACKLOG-ECU1 (correct XML selection) may affect this bug.
 - spark_rpm: [800, 1000, 1350, 2000, 3000, 4000, 4500, 5500, 6500, 7000] ✓
 - VE/FUEL/SPARK heatmaps now display correct RPM axis and correct cell values
 
+### Additional Fix (v2.5.16)
+- Map rows were still reversed after axis fix — `read_map()` now reverses each row
+- Checksum expanded to full 1206 bytes — fuel/spark map changes now trigger new session
+- Validated with unique-value test matrix burned to ECU via EcmSpy
 ---
 
 **BACKLOG-LOG3** `CLOSED` — FALSE POSITIVE
@@ -541,3 +545,4 @@ the ride is never recorded despite full telemetry being visible in the dashboard
 | BACKLOG-UX1 | v2.5.10 | IP tappable in Network tab |
 | BACKLOG-LOG7 | v2.5.14 | Ride not recorded when Pi boots with engine already running |
 | BACKLOG-LOG2 | v2.5.15 | FUEL/SPARK RPM axis wrong — big-endian + descending order |
+| BACKLOG-LOG2 | v2.5.15/v2.5.16 | FUEL/SPARK RPM axis wrong + map rows reversed |

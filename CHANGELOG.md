@@ -1,6 +1,24 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
+
+---
+
+## [2.5.16] - 2026-03-22
+### Fixed
+- `ecu/eeprom.py`: map rows now reversed to match ascending RPM axis
+- `ecu/eeprom.py`: structural zero cells marked as None (diagonal triangular region)
+- `ecu/session.py`: checksum now covers full EEPROM blob (1206 bytes) instead of first 64
+- `web/server.py`: /maps endpoint falls back to most recent eeprom.bin on disk
+- `web/templates/index.html`: removed legacy RPM period-to-RPM conversion in showMap()
+### Root Cause
+- Map rows stored in descending RPM order in EEPROM — reversal was missing
+- Checksum based on first 64 bytes missed fuel/spark map modifications
+- Full EEPROM checksum now detects any parameter or map change
+### Validated
+- Fuel Front map confirmed against EcmSpy using unique-value test matrix
+- Load=10 row: [10,11,12..22] matches EcmSpy exactly after fix
+
 ---
 
 ## [2.5.15] - 2026-03-22
