@@ -1,6 +1,19 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
+---
+
+## [2.5.13] - 2026-03-21
+### Fixed
+- `main.py`: EEPROM fallback to most recent cached blob on disk if live fetch fails
+- `main.py`: version string used as last-resort checksum if no blob available anywhere
+- Session now always opens regardless of EEPROM read success
+### Known Issue
+- `get_rt_data()` returns None consistently after multiple killswitch/reconnect cycles
+- ECU responds to `get_version()` but not to RT data requests in this state
+- Root cause under investigation — see BACKLOG-LOG6
+### Added
+- BACKLOG-LOG6: RT data failure after killswitch cycles — documented for next session
 
 ---
 
