@@ -939,13 +939,9 @@ function showMap(which){
   const rawXAxis = isFuel ? (axes.fuel_rpm  || []) : (axes.spark_rpm  || []);
   const yAxis    = isFuel ? (axes.fuel_load || []) : (axes.spark_load || []);
 
-  // ── Ordenar columnas: eje RPM guardado como período (μs/rev)
-  //    Período > 0 → convertir a RPM real. Columnas con período=0 se descartan.
-  //    Ordenar por período DESCENDENTE = RPM ASCENDENTE (izq=bajo, der=alto).
-  const validColIdx = rawXAxis.map((v,i)=>i).filter(i=>rawXAxis[i]>0);
-  validColIdx.sort((a,b)=>rawXAxis[b]-rawXAxis[a]);   // desc período = asc RPM
-  const sortedRPM   = validColIdx.map(i=>Math.round(60000000/rawXAxis[i]));
-  const sortedTable = table.map(row=>validColIdx.map(i=>row[i]));
+  // RPM axis is already in ascending order (0..8000) — use directly
+  const sortedRPM   = rawXAxis;
+  const sortedTable = table;
 
   // Min/max para heatmap (ignorar ceros estructurales para escala de color)
   const allVals = sortedTable.flat().filter(v=>v>0);

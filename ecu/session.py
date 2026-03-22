@@ -45,9 +45,9 @@ class SessionManager:
         self.current_part_rows   = 0
 
     def _checksum(self, blob):
-        """Calculate session checksum from first 64 bytes of EEPROM blob.
-        Changes whenever ECU parameters are modified."""
-        return hashlib.md5(blob[:64]).hexdigest()[:6].upper()
+        """Calculate session checksum from full EEPROM blob.
+        Detects any change including fuel/spark map modifications."""
+        return hashlib.md5(blob).hexdigest()[:6].upper()
 
     def _load_or_create(self, cs, version_str):
         sdir = self.sessions_dir / cs

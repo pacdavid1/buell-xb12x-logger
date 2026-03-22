@@ -82,7 +82,8 @@ def decode_eeprom_maps(eeprom_bytes):
         return list(reversed(axis))
 
     def read_map(off, rows, cols, scale):
-        # Columns are stored in descending RPM order — reverse each row to match axis
+        # EEPROM stores columns in descending RPM order — reverse each row
+        # to match the ascending RPM axis produced by read_axis_2b
         table = []
         for r in range(rows):
             row = [round(eeprom_bytes[off + r*cols + c] * scale, 2) for c in range(cols)]
