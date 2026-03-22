@@ -378,6 +378,18 @@ class BuellLogger:
                 # Fetch EEPROM first — checksum derived from blob
                 self.logger.info("Reading EEPROM from ECU...")
                 blob = self.ecu.read_full_eeprom()
+                if blob is None:
+                    # Fallback 1: use most recent eeprom.bin from any existing session
+                    self.logger.warning("EEPROM fetch failed — looking for cached blob on disk...")
+                    import glob as _glob
+                    _bins = sorted(_glob.glob(str(self.sessions_dir / '*' / 'eeprom.bin')))
+                    if _bins:
+                        blob = open(_bins[-1], 'rb').read()
+                        self.logger.warning(f"Using cached EEPROM from {_bins[-1]}")
+                    else:
+                        # Fallback 2: no blob anywhere — use version string as checksum
+                        self.logger.warning("No cached EEPROM found — opening session with version string checksum")
+                        blob = ver.encode().ljust(64, b'\x00')
                 if blob:
                     self.session.open_session(ver, blob)
                     # Save blob if not already stored for this checksum
