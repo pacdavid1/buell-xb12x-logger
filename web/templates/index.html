@@ -252,7 +252,7 @@ table.veg td:active{filter:brightness(1.6)}
 </div>
 
 <!-- PANE RIDE -->
-<div class="pane active content" id="pane-ride">
+<div class="pane active content" id="pane-ride" style="user-select:none;-webkit-user-select:none">
   <div class="big-display">
     <div class="big-card hot">
       <div class="big-label">CHT</div>
@@ -1962,9 +1962,12 @@ async function doRebootPi(){
     if(_overlay){ _overlay.remove(); _overlay = null; }
   }
 
+  let _startX=0, _startY=0;
   function _startHold(e){
     if(e.target.closest('button,a,input,select')) return;
+    e.preventDefault();
     if(_timer) return;
+    _startX=e.clientX; _startY=e.clientY;
     let remaining = 3;
     _overlay = document.createElement('div');
     _overlay.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'+
@@ -1992,7 +1995,9 @@ async function doRebootPi(){
     pane.addEventListener('pointerdown', _startHold);
     pane.addEventListener('pointerup',   _cancelHold);
     pane.addEventListener('pointerleave',_cancelHold);
-    pane.addEventListener('pointermove', _cancelHold);
+    pane.addEventListener('pointermove', (e)=>{
+      if(Math.abs(e.clientX-_startX)>30||Math.abs(e.clientY-_startY)>30) _cancelHold();
+    });
   });
 })();
 
