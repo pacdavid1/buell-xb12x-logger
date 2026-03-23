@@ -79,7 +79,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     first = True
                     for part in range(1, parts+1):
                         suffix = f'_p{part}' if part > 1 else ''
-                        csv_path = sdir / f'ride_{ride_num:03d}{suffix}.csv'
+                        csv_stem = match['filename'].replace('_summary.json','').replace('.csv','')
+                        csv_path = sdir / f'{csv_stem}{suffix}.csv'
                         if not csv_path.exists(): continue
                         with open(csv_path, 'rb') as f:
                             if not first: f.readline()
@@ -141,7 +142,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 first = True
                 for part in range(1, parts+1):
                     suffix = f'_p{part}' if part > 1 else ''
-                    csv_path = sdir / f'ride_{ride_num:03d}{suffix}.csv'
+                    csv_stem = match['filename'].replace('_summary.json','').replace('.csv','')
+                    csv_path = sdir / f'{csv_stem}{suffix}.csv'
                     if not csv_path.exists(): continue
                     with open(csv_path, 'rb') as fh:
                         if not first: fh.readline()
@@ -402,7 +404,7 @@ class WebServer:
                     rides.append({
                         'session': session_dir.name,
                         'firmware': fw,
-                        'filename': f'ride_{ride_num:03d}_summary.json',
+                        'filename': sf.name,
                         'ride_num': ride_num,
                         'samples': summary.get('samples', 0),
                         'duration_s': summary.get('duration_s', 0),
@@ -418,7 +420,7 @@ class WebServer:
                     pass
             for rf in sorted(session_dir.glob('ride_[0-9]*.csv')):
                 try:
-                    rnum = int(rf.stem.split('_')[1])
+                    rnum = int(rf.stem.split('_')[-1])
                     if rnum in summary_nums:
                         continue
                     with open(rf) as f:

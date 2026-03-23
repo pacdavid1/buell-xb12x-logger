@@ -3,6 +3,19 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 
+## [2.5.18] - 2026-03-22
+### Changed
+- `ecu/session.py`: ride filenames now include session checksum — `ride_{checksum}_{NNN}.csv`
+- `ecu/session.py`: summary and errorlog filenames follow same pattern
+- `web/server.py`: `_get_rides()` uses `sf.name` directly instead of hardcoded filename
+- `web/server.py`: fallback CSV parse uses `split('_')[-1]` — backward compat old + new format
+- `web/server.py`: CSV handler derives path from `filename` stem — no longer hardcodes `ride_num`
+- `web/templates/index.html`: ride list shows filename-based label; download uses correct filename
+### Notes
+- Existing rides with old format (`ride_NNN.csv`) continue to load correctly
+
+---
+
 ## [2.5.17] - 2026-03-22
 ### Fixed
 - `ecu/eeprom.py`: map reading rewritten — zero bytes are row separators, not structural markers
@@ -967,3 +980,7 @@ Base version from which active development started.
 | MODULAR-2 | Integrar `ecu/connection.py` en `main.py` | High | ✅ Closed — ECU conectada en arranque, fix poweroff en SIGTERM |
 | MODULAR-3 | Thread RT 8Hz — dashboard live con datos ECU reales | High | ✅ Closed — CHT, Batt, EGO, TPS visibles en HTML |
 | v2.0 | Code modularization into independent modules | Future | ✅ Closed — ecu/connection.py, ecu/protocol.py, thread RT integrados |
+| BACKLOG-LOG6 | `get_rt_data()` returns None after multiple killswitch/reconnect cycles — 13 failed reconnects in ride_003 session 917900 | High | Open |
+| BACKLOG-UX4 | Dashboard freeze indicator when TTL disconnects | Medium | Open |
+| BACKLOG-ECU1 | Hardcoded offsets for BUEIB — real ECU is B2RIB | Medium | Open |
+| BACKLOG-ECU3 | EEPROM editor — write to ECU with checksum recalculation | Low | Open |

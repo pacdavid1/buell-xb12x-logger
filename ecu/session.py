@@ -123,7 +123,7 @@ class SessionManager:
     def _open_csv_part(self):
         """Abre el archivo CSV de la parte actual del ride."""
         suffix    = f"_p{self.current_part}" if self.current_part > 1 else ""
-        ride_file = self.current_session_dir / f"ride_{self.current_ride_num:03d}{suffix}.csv"
+        ride_file = self.current_session_dir / f"ride_{self.current_checksum}_{self.current_ride_num:03d}{suffix}.csv"
         if self.current_csv_fh:
             self.current_csv_fh.close()
         self.current_csv_fh = open(ride_file, "w", newline="", buffering=1)
@@ -208,7 +208,7 @@ class SessionManager:
                 "objectives": objectives_out,
                 "dtc_events": dtc_log or [],
             }
-            sfile = self.current_session_dir / f"ride_{self.current_ride_num:03d}_summary.json"
+            sfile = self.current_session_dir / f"ride_{self.current_checksum}_{self.current_ride_num:03d}_summary.json"
             try:
                 tmp = sfile.with_suffix(".tmp")
                 with open(tmp, "w") as f:

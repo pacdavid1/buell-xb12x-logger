@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-22 15:47 | versión: v1.16.3-150-g40f3fd3
+> Última actualización: 2026-03-22 17:33 | versión: v1.16.3-151-gfce0829
 
 ---
 
@@ -53,6 +53,19 @@ buell-xb12x-logger/
 │   │   ├── ride_002_summary.json
 │   │   ├── ride_003.csv
 │   │   └── session_metadata.json
+│   ├── 917900
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── ride_001.csv
+│   │   ├── ride_001_errorlog.json
+│   │   ├── ride_001_summary.json
+│   │   ├── ride_002.csv
+│   │   ├── ride_002_errorlog.json
+│   │   ├── ride_002_summary.json
+│   │   ├── ride_003.csv
+│   │   ├── ride_003_errorlog.json
+│   │   ├── ride_003_summary.json
+│   │   └── session_metadata.json
 │   ├── 9ECD1E
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
@@ -72,6 +85,7 @@ buell-xb12x-logger/
 │   │   └── session_metadata.json
 │   ├── E8D511
 │   │   ├── consolidated.csv
+│   │   ├── consolidated.tmp
 │   │   ├── eeprom.bin
 │   │   ├── ride_001.csv
 │   │   ├── ride_001_errorlog.json
@@ -79,6 +93,11 @@ buell-xb12x-logger/
 │   │   ├── ride_002.csv
 │   │   ├── ride_002_errorlog.json
 │   │   ├── ride_002_summary.json
+│   │   ├── ride_003.csv
+│   │   ├── ride_003_errorlog.json
+│   │   ├── ride_003_summary.json
+│   │   ├── ride_004.csv
+│   │   ├── ride_004_summary.json
 │   │   └── session_metadata.json
 │   └── EF4995
 │       ├── consolidated.csv

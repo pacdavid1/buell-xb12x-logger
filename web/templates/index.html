@@ -1294,7 +1294,7 @@ async function loadSessions(){
         html+=`<div class="ride-item" style="gap:4px;opacity:${live?0.5:1};pointer-events:${live?'none':'auto'}">
           <div style="flex:1;min-width:0">
             <div class="ride-name" style="display:flex;align-items:center;gap:5px">
-              ride_${String(r.ride_num).padStart(3,'0')} ${dtcBadge} ${noteBadge} ${errBadge}
+              ${r.filename.replace('_summary.json','')} ${dtcBadge} ${noteBadge} ${errBadge}
             </div>
             <div class="ride-meta">${dur} · ${r.samples} muestras${closeR}</div>
             ${r.has_note?`<div style="font-family:var(--mono);font-size:8px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.note_preview}</div>`:''}
@@ -1303,7 +1303,7 @@ async function loadSessions(){
             <button class="btn" style="font-size:9px;padding:4px 7px" onclick="viewSingleRide(${ri})">Ver</button>
             <button class="btn p" style="font-size:9px;padding:4px 7px" onclick="openRideGraph(${ri})">Graf</button>
             <button class="btn" style="font-size:9px;padding:4px 7px" onclick="openNoteModal('${sk}',${r.ride_num})">📝</button>
-            <a href="/csv/${r.filename}?t=${Date.now()}" download="ride_${r.ride_num}.csv"
+            <a href="/csv/${r.filename}?t=${Date.now()}" download="${r.filename.replace('_summary.json','.csv')}"
                onclick="event.stopPropagation()"
                style="font-family:var(--mono);font-size:9px;color:var(--blue);text-decoration:none;
                       border:1px solid var(--blue);padding:4px 6px">CSV</a>
