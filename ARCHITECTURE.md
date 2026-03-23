@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-22 20:18 | versión: v1.16.3-163-ga2fe589
+> Última actualización: 2026-03-22 20:26 | versión: v1.16.3-164-g373a641
 
 ---
 
@@ -46,6 +46,7 @@ buell-xb12x-logger/
 ├── sessions
 │   ├── 243FAC
 │   │   ├── consolidated.csv
+│   │   ├── ride_001_errorlog.tmp
 │   │   ├── ride_243FAC_001.csv
 │   │   └── session_metadata.json
 │   ├── 5F94A1
@@ -130,7 +131,6 @@ buell-xb12x-logger/
 ├── ddfi2_logger.py
 ├── fix_server_rides.py.save
 ├── fix_server_rides.py.save.1
-├── fix_session_fallback.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
@@ -460,10 +460,6 @@ A new  |
 | `counts` | — |
 | `has_events` | — |
 | `clear` | — |
-
----
-
-### `fix_session_fallback.py`
 
 ---
 
