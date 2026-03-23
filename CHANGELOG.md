@@ -1049,3 +1049,9 @@ Base version from which active development started.
 | BACKLOG-UX4 | Dashboard freeze indicator when TTL disconnects | Medium | Open |
 | BACKLOG-ECU1 | Hardcoded offsets for BUEIB — real ECU is B2RIB | Medium | Open |
 | BACKLOG-ECU3 | EEPROM editor — write to ECU with checksum recalculation | Low | Open |
+| BACKLOG-UX5 | Ride notes not saving — investigate /ride_note endpoint | High | Open |
+| BACKLOG-UX6 | Time table display broken — review layout | Medium | Open |
+| BACKLOG-UX7 | CONFIG system buttons too small — enlarge or rely on long press | Low | Open |
+| BACKLOG-ECU2 | EEPROM params not loading in CONFIG tab — need to load .bin from selected ride session | High | Open |
+^O
+
