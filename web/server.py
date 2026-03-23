@@ -441,12 +441,25 @@ class WebServer:
                     rnum = int(rf.stem.split('_')[-1])
                     if rnum in summary_nums:
                         continue
+                    opened_utc = ''
+                    n = 0
                     with open(rf) as f:
-                        n = sum(1 for _ in f) - 1
+                        header = None
+                        for line in f:
+                            if line.startswith('#'): continue
+                            if header is None: header = line.strip().split(','); continue
+                            n += 1
+                            if opened_utc: continue
+                            try:
+                                idx = header.index('timestamp_iso')
+                                opened_utc = line.strip().split(',')[idx]
+                            except Exception:
+                                pass
                     rides.append({
                         'session': session_dir.name, 'firmware': fw,
                         'filename': rf.name, 'ride_num': rnum,
                         'samples': n, 'duration_s': 0, 'parts': 1,
+                        'opened_utc': opened_utc,
                     })
                 except Exception:
                     pass
