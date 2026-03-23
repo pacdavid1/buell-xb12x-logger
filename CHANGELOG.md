@@ -2,6 +2,15 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [2.5.20] - 2026-03-22
+### Added
+- `web/templates/index.html`: Restart Logger + Reboot Pi buttons now side-by-side 2-column grid in CONFIG
+- `web/templates/index.html`: long press 3s on RIDE pane → saves active ride + reboots Pi (countdown overlay)
+- `web/server.py`: `/close_ride` endpoint — calls `session.close_current_ride(reason="dashboard_request")`
+- `main.py`: `self.web.session = self.session` — SessionManager now accessible from WebServer
+### Fixed
+- Button labels changed to English: "Restart Logger", "Reboot Pi"
+---
 
 ## [2.5.19] - 2026-03-22
 ### Fixed

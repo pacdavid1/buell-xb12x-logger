@@ -324,6 +324,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
             self._json({"ok": ok, "output": output})
             return
+        if path == '/close_ride':
+            session = getattr(self.server_instance, 'session', None)
+            if session and session.current_csv_fh:
+                session.close_current_ride(reason="dashboard_request")
+                self._json({"ok": True, "msg": "Ride cerrado"})
+            else:
+                self._json({"ok": False, "msg": "Sin ride activo"})
+            return
         if path == '/restart_logger':
             import subprocess
             subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])

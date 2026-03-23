@@ -522,15 +522,14 @@ table.veg td:active{filter:brightness(1.6)}
     <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
       Reconexión completa: cierra puerto, espera 1s, reconecta, verifica ECU y relee EEPROM
     </div>
-    <button class="btn" style="width:100%;padding:10px;margin-bottom:4px;background:#e67e22"
-      onclick="if(confirm('¿Reiniciar el logger? El ride activo se guardará.')) doRestartLogger()">
-      &#x1F504; Reiniciar Logger
-    </button>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
-      Reinicia solo el proceso — vuelve a detectar la ECU automáticamente
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
+      <button class="btn" style="padding:10px;background:#e67e22"
+        onclick="if(confirm('Restart logger? Active ride will be saved.')) doRestartLogger()">
+        &#x1F504; Restart Logger
+      </button>
+      <button class="btn-danger" style="padding:10px" onclick="doRebootPi()">&#x1F501; Reboot Pi</button>
     </div>
-    <button class="btn-danger" style="margin-bottom:4px" onclick="doRebootPi()">&#x1F501; Reiniciar Pi</button>
-    <button class="btn-danger" onclick="confirmShutdown()">Apagar Pi</button>
+    <button class="btn-danger" style="width:100%;margin-bottom:4px" onclick="confirmShutdown()">Apagar Pi</button>
   </div>
 
   <div class="cfg-section">
@@ -1951,6 +1950,50 @@ async function doRebootPi(){
     alert('Pi reiniciando... reconecta en ~30 segundos');
   }catch(e){ /* normal */ }
 }
+
+// Long press 3s on RIDE pane → close ride + reboot Pi
+(function(){
+  const HOLD_MS = 3000;
+  let _timer = null, _overlay = null, _interval = null;
+
+  function _cancelHold(){
+    clearTimeout(_timer); clearInterval(_interval); _timer = null;
+    if(_overlay){ _overlay.remove(); _overlay = null; }
+  }
+
+  function _startHold(e){
+    if(e.target.closest('button,a,input,select')) return;
+    if(_timer) return;
+    let remaining = 3;
+    _overlay = document.createElement('div');
+    _overlay.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'+
+      'background:rgba(0,0,0,0.85);border:2px solid #e74c3c;color:#fff;'+
+      'font-family:monospace;font-size:48px;padding:30px 50px;z-index:9999;border-radius:8px;text-align:center;pointer-events:none';
+    _overlay.innerHTML = remaining + '<div style="font-size:14px;margin-top:8px">Suelta para cancelar</div>';
+    document.body.appendChild(_overlay);
+    _interval = setInterval(()=>{
+      remaining--;
+      if(_overlay) _overlay.innerHTML = remaining + '<div style="font-size:14px;margin-top:8px">Suelta para cancelar</div>';
+    }, 1000);
+    _timer = setTimeout(async ()=>{
+      clearInterval(_interval);
+      if(_overlay){ _overlay.innerHTML = '<div style="font-size:16px">Guardando ride...<br>Reiniciando Pi</div>'; }
+      try{ await fetch('/close_ride',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); } catch(e){}
+      await new Promise(r=>setTimeout(r,800));
+      try{ await fetch('/reboot_pi',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); } catch(e){}
+      if(_overlay){ _overlay.innerHTML = '<div style="font-size:16px">Reiniciando...<br>~30s</div>'; }
+    }, HOLD_MS);
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    const pane = document.getElementById('pane-ride');
+    if(!pane) return;
+    pane.addEventListener('pointerdown', _startHold);
+    pane.addEventListener('pointerup',   _cancelHold);
+    pane.addEventListener('pointerleave',_cancelHold);
+    pane.addEventListener('pointermove', _cancelHold);
+  });
+})();
 
 async function loadVssCal(){
   try{

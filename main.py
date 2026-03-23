@@ -65,6 +65,7 @@ class BuellLogger:
         self.session = SessionManager(self.sessions_dir)
         self.tracker = CellTracker()
         self.web.cell_tracker = self.tracker
+        self.web.session      = self.session
         self.error_log = RideErrorLog()
         obj_path = self.buell_dir / 'objectives.json'
         self.objectives_cfg = json.load(open(obj_path)) if obj_path.exists() else {}
