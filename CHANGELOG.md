@@ -1,6 +1,18 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
+
+
+---
+
+## [2.5.25] - 2026-03-22
+### Added
+- `web/templates/index.html`: 通信斷開 banner — large red alert when ECU signal lost during active ride
+- `main.py`: exposes `ecu_connected`, `ecu_lost_s`, `ride_active`, `elapsed_s` to WebServer on every frame
+- `web/server.py`: `_get_live()` now returns `ecu_connected`, `ecu_lost_s`, `ride_active`, `elapsed_s` from live thread
+### Notes
+- Banner only shows during active ride — not on startup or idle
+- Compatible with long press 3s reboot — banner is non-blocking
 ---
 
 ## [2.5.24] - 2026-03-22
