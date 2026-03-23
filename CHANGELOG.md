@@ -5,6 +5,15 @@
 
 ---
 
+## [2.5.26] - 2026-03-22
+### Fixed
+- `ecu/session.py`: checksum now hashes only EEPROM bytes 327+ (tune region) — excludes volatile bytes 0-326 (DTC counters, boot state)
+- `main.py`: session opens from cached EEPROM when `get_version()` fails but ECU sends RT data
+### Notes
+- Sessions 917900 and 6207C9 were same tune — now correctly maps to 243FAC
+- Stable checksum means same tune = same session across restarts
+---
+
 ## [2.5.25] - 2026-03-22
 ### Added
 - `web/templates/index.html`: 通信斷開 banner — large red alert when ECU signal lost during active ride
