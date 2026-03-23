@@ -3,6 +3,12 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 
+## [2.5.24] - 2026-03-22
+### Added
+- `ecu/protocol.py`: added `ttl_pct`, `cpu_pct`, `cpu_temp`, `mem_pct` to CSV_COLUMNS
+- `main.py`: Pi telemetry injected into each sample before `write_sample()` — pulled from `web.serial_stats`
+---
+
 ## [2.5.23] - 2026-03-22
 ### Fixed
 - `web/server.py`: rides without summary.json now extract `opened_utc` from CSV `timestamp_iso` column — sorts correctly by date
