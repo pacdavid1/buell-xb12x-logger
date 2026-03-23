@@ -202,6 +202,8 @@ class BuellLogger:
                     self.logger.warning("ECU sin respuesta — esperando recuperación")
 
                 lost_total = time.monotonic() - ecu_lost_since
+                self.web.ecu_connected = False
+                self.web.ecu_lost_s = lost_total
 
                 # Loguear timeout cada 10s
                 lost_interval = int(lost_total) // 10
@@ -269,6 +271,10 @@ class BuellLogger:
             last_lost_interval = -1
 
             self.web.ecu_live = data
+            self.web.ecu_connected = True
+            self.web.ecu_lost_s = 0.0
+            self.web.ride_active = ride_active
+            self.web.elapsed_s = elapsed_s
             if ride_active:
                 self.error_log.update_last_sample(data)
             rpm = data.get("RPM", 0) or 0

@@ -235,10 +235,14 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
   </div>
 </div>
-<div id="ecuLostBanner" style="display:none;pointer-events:none;background:#c0392b;color:#fff;text-align:center;
-  padding:8px;font-size:0.9rem;font-weight:bold;letter-spacing:1px;">
-  ⚠️ ECU SIN RESPUESTA — <span id="ecuLostSecs">0</span>s —
-  <span onclick="doReconnect()" style="cursor:pointer;text-decoration:underline;pointer-events:auto">RECONECTAR</span>
+<div id="ecuLostBanner" style="display:none;pointer-events:none;background:transparent;text-align:center;padding:6px 0 2px">
+  <div style="font-family:monospace;font-size:2.2rem;font-weight:900;color:#e74c3c;letter-spacing:2px;line-height:1">
+    通信斷開
+  </div>
+  <div style="font-family:monospace;font-size:0.7rem;color:#e74c3c;letter-spacing:3px;margin-top:2px">
+    ECU SIGNAL LOST · <span id="ecuLostSecs">0</span>s
+    · <span onclick="doReconnect()" style="cursor:pointer;text-decoration:underline;pointer-events:auto">RECONNECT</span>
+  </div>
 </div>
 
 <!-- TABS -->

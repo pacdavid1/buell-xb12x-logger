@@ -358,10 +358,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "network_mode":    net.current_mode(),
             "ip":              net.get_ip(),
             "switch_status":   net.get_switch_status(),
-            "ride_active":     False,
-            "waiting":         True,
-            "ride_num":        0,
-            "elapsed_s":       0,
+            "ride_active":     self.server_instance.ride_active,
+            "waiting":         not self.server_instance.ride_active,
+            "ride_num":        self.server_instance.session.current_ride_num if self.server_instance.session else 0,
+            "elapsed_s":       self.server_instance.elapsed_s,
+            "ecu_connected":   self.server_instance.ecu_connected,
+            "ecu_lost_s":      self.server_instance.ecu_lost_s,
             "live":            self.server_instance.ecu_live,
             "cells":           self.server_instance.cell_tracker.snapshot()[0] if self.server_instance.cell_tracker else {},
             "objectives":      [],
@@ -382,6 +384,10 @@ class WebServer:
         self.pending_shutdown = False
         self.last_keepalive   = time.time()
         self.ecu_live         = {}
+        self.ecu_connected    = False
+        self.ecu_lost_s       = 0.0
+        self.ride_active      = False
+        self.elapsed_s        = 0.0
         self.eeprom_maps      = {}
         self.eeprom_params    = {}
         self.serial_stats     = {'bps': 0, 'pct': 0.0, 'tx': 0, 'rx': 0}
