@@ -293,6 +293,11 @@ class BuellLogger:
                 if data['buf_in'] > 192 and self.ecu.ser and self.ecu.ser.is_open:
                     self.ecu.ser.reset_input_buffer()
                     self.logger.warning(f"AUTO-FLUSH FIFO buf_in={data['buf_in']}b >50% — flushed")
+                ss = self.web.serial_stats or {}
+                data['ttl_pct']  = ss.get('pct', 0)
+                data['cpu_pct']  = ss.get('cpu_pct', 0)
+                data['cpu_temp'] = ss.get('cpu_temp', 0)
+                data['mem_pct']  = ss.get('mem_pct', 0)
                 self.session.write_sample(data, time.time())
             self.tracker.update(data)
 
