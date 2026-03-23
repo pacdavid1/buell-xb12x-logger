@@ -2,6 +2,12 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+
+## [2.5.23] - 2026-03-22
+### Fixed
+- `web/server.py`: rides without summary.json now extract `opened_utc` from CSV `timestamp_iso` column — sorts correctly by date
+---
+
 ## [2.5.22] - 2026-03-22
 ### Fixed
 - `web/templates/index.html`: long press on RIDE pane no longer selects text (`user-select:none`)
