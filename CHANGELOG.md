@@ -2,6 +2,13 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+
+## [2.5.21] - 2026-03-22
+### Changed
+- `web/templates/index.html`: sessions tab now sorted by most recent ride date descending
+- `web/templates/index.html`: session header shows readable date next to checksum
+---
+
 ## [2.5.20] - 2026-03-22
 ### Added
 - `web/templates/index.html`: Restart Logger + Reboot Pi buttons now side-by-side 2-column grid in CONFIG

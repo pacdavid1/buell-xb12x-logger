@@ -1266,11 +1266,12 @@ async function loadSessions(){
     }
     const sessions={};
     for(const r of ridesCache){
-      if(!sessions[r.session]) sessions[r.session]={rides:[],latest:0};
+      if(!sessions[r.session]) sessions[r.session]={rides:[],latest:0,latestUtc:''};
       sessions[r.session].rides.push(r);
       if((r.ride_num||0)>sessions[r.session].latest) sessions[r.session].latest=r.ride_num||0;
+      if((r.opened_utc||'')>sessions[r.session].latestUtc) sessions[r.session].latestUtc=r.opened_utc||'';
     }
-    const sesKeys=Object.keys(sessions).sort((a,b)=>sessions[b].latest-sessions[a].latest);
+    const sesKeys=Object.keys(sessions).sort((a,b)=>(sessions[b].latestUtc||'').localeCompare(sessions[a].latestUtc||''));
     const live=lastData?.ride_active;
     let html='';
     if(live) html+='<div style="font-family:var(--mono);font-size:9px;color:var(--accent);padding:4px 0 10px">⚡ Ride activo — historial disponible al terminar</div>';
@@ -1279,7 +1280,7 @@ async function loadSessions(){
       html+=`<div style="margin-bottom:12px">
         <div onclick="toggleSession('ses_${sk}')" style="cursor:pointer;display:flex;justify-content:space-between;
              align-items:center;background:#1a1a1a;border:1px solid var(--border);padding:7px 10px;margin-bottom:2px">
-          <span style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.1em">${sk}</span>
+          <span style="font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.1em">${sk}<span style="font-size:8px;margin-left:8px;color:#666">${s.latestUtc?new Date(s.latestUtc).toLocaleDateString():''}</span></span>
           <span style="font-family:var(--mono);font-size:9px;color:var(--dim)">${s.rides.length} rides ▾</span>
         </div>
         <div id="ses_${sk}">`;
