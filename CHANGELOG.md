@@ -2,6 +2,12 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [2.5.22] - 2026-03-22
+### Fixed
+- `web/templates/index.html`: long press on RIDE pane no longer selects text (`user-select:none`)
+- `web/templates/index.html`: `preventDefault` on pointerdown prevents context menu interference
+- `web/templates/index.html`: 30px movement tolerance — vibration while riding no longer cancels countdown
+---
 
 ## [2.5.21] - 2026-03-22
 ### Changed
