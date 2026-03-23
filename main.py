@@ -168,6 +168,19 @@ class BuellLogger:
                         ecu_lost_since = None
                     else:
                         self.logger.warning("ECU no respondió — reintento en 5s")
+                        # If no session and cached EEPROM exists, open session anyway
+                        if self.session.current_checksum is None:
+                            import glob as _glob
+                            _bins = sorted(_glob.glob(str(self.sessions_dir / '*' / 'eeprom.bin')),
+                                           key=lambda p: __import__('os').path.getmtime(p))
+                            if _bins:
+                                _blob = open(_bins[-1], 'rb').read()
+                                _ver  = 'cached'
+                                self.session.open_session(_ver, _blob)
+                                self.web.eeprom_maps   = decode_eeprom_maps(_blob)
+                                self.web.eeprom_params = decode_params(_blob, _ver)
+                                self.web.bike_serial   = int.from_bytes(_blob[12:14], 'little')
+                                self.logger.warning(f"Session opened from cached EEPROM: {self.session.current_checksum}")
                         time.sleep(5)
                         continue
                 except Exception as e:

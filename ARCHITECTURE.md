@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-22 19:43 | versión: v1.16.3-162-g8bbd43c
+> Última actualización: 2026-03-22 20:18 | versión: v1.16.3-163-ga2fe589
 
 ---
 
@@ -44,6 +44,10 @@ buell-xb12x-logger/
 │   ├── __init__.py
 │   └── manager.py
 ├── sessions
+│   ├── 243FAC
+│   │   ├── consolidated.csv
+│   │   ├── ride_243FAC_001.csv
+│   │   └── session_metadata.json
 │   ├── 5F94A1
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
@@ -126,6 +130,7 @@ buell-xb12x-logger/
 ├── ddfi2_logger.py
 ├── fix_server_rides.py.save
 ├── fix_server_rides.py.save.1
+├── fix_session_fallback.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
@@ -414,8 +419,8 @@ buell-xb12x-logger/
 | Método | Docstring |
 |--------|-----------|
 | `__init__` | — |
-| `_checksum` | Calculate session checksum from full EEPROM blob.
-Detects an |
+| `_checksum` | Calculate session checksum from tune region of EEPROM blob.
+ |
 | `_load_or_create` | — |
 | `open_session` | Open or resume session based on EEPROM blob checksum.
 A new  |
@@ -455,6 +460,10 @@ A new  |
 | `counts` | — |
 | `has_events` | — |
 | `clear` | — |
+
+---
+
+### `fix_session_fallback.py`
 
 ---
 
