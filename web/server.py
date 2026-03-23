@@ -324,6 +324,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
             self._json({"ok": ok, "output": output})
             return
+        if path == '/restart_logger':
+            import subprocess
+            subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
+            self._json({"ok": True, "msg": "Reiniciando logger..."})
+            return
+        if path == '/reboot_pi':
+            import subprocess
+            subprocess.Popen(['sudo', '/usr/sbin/reboot'])
+            self._json({"ok": True, "msg": "Reiniciando Pi..."})
+            return
         self._json({"error": "unknown endpoint"}, 404)
 
     def _load_html(self):

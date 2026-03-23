@@ -3,6 +3,16 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 
+## [2.5.19] - 2026-03-22
+### Fixed
+- `web/server.py`: added `/restart_logger` endpoint — restarts buell-logger service via systemd
+- `web/server.py`: added `/reboot_pi` endpoint — reboots Pi using `sudo /usr/sbin/reboot`
+- `/etc/sudoers.d/buell-reboot`: added NOPASSWD rule for `/usr/sbin/reboot`
+### Closed
+- TASK-3: Restart Logger and Reboot Pi buttons now functional
+
+---
+
 ## [2.5.18] - 2026-03-22
 ### Changed
 - `ecu/session.py`: ride filenames now include session checksum — `ride_{checksum}_{NNN}.csv`
