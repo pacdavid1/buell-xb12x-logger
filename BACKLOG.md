@@ -363,6 +363,36 @@ BACKLOG-GPS1 (hardware) must be completed first.
 
 ## Dashboard / UX
 
+**BACKLOG-UX5** `CLOSED` v2.5.27
+Ride notes not saving
+
+### Problem
+The note modal opened and showed "✓ Guardado" but nothing was persisted.
+The close ride button opened the modal but never populated session/ride_num.
+
+### Context
+- `web/server.py` — no POST `/ride_note` endpoint existed
+- `web/server.py` — GET `/ride_note` endpoint missing — modal stuck on "Cargando..."
+- `web/server.py` — `/close_ride` returned `{"ok": true}` without `session` or `ride_num`
+- `web/templates/index.html` — `saveNote()` POSTs to `/ride_note`, `closeRide()` checks `d.session && d.ride_num`
+
+### Investigation
+- curl GET `/ride_note` returned empty — handler unreachable due to query string being stripped by `path = self.path.split('?')[0]` before handler; fixed by using `self.path` inside handler
+- curl POST `/ride_note` hung — handler was calling `self.rfile.read()` after `do_POST` already consumed the body; fixed by using `payload` dict already parsed at top of `do_POST`
+- `/close_ride` response missing fields — JS condition `d.ok && d.session && d.ride_num` always failed silently
+
+### Solution
+- `web/server.py`: added `GET /ride_note` — reads `ride_{session}_{num:03d}_notes.txt` from session dir
+- `web/server.py`: added `POST /ride_note` — writes note file using `payload` already read by `do_POST`
+- `web/server.py`: `/close_ride` now captures `current_checksum` and `current_ride_num` before closing and returns them in response
+
+### Result
+Notes save and reload correctly. Close ride button closes ride and opens note modal automatically.
+
+---
+
+
+
 **BACKLOG-UX1** `CLOSED` v2.5.10
 IP address tappable in Network tab
 
@@ -554,6 +584,7 @@ the ride is never recorded despite full telemetry being visible in the dashboard
 | BACKLOG-LOG3 | — | False positive — no code change needed |
 | BACKLOG-LOG4 | — | Verified — path correct, device must be connected |
 | BACKLOG-UX1 | v2.5.10 | IP tappable in Network tab |
+| BACKLOG-UX5 | v2.5.27 | Ride notes not saving + close ride modal broken |
 | BACKLOG-LOG7 | v2.5.14 | Ride not recorded when Pi boots with engine already running |
 | BACKLOG-LOG2 | v2.5.15 | FUEL/SPARK RPM axis wrong — big-endian + descending order |
 | BACKLOG-LOG2 | v2.5.15/v2.5.16 | FUEL/SPARK RPM axis wrong + map rows reversed |

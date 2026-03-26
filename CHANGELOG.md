@@ -1055,3 +1055,9 @@ Base version from which active development started.
 | BACKLOG-ECU2 | EEPROM params not loading in CONFIG tab — need to load .bin from selected ride session | High | Open |
 ^O
 
+
+## [2.5.27] - 2026-03-25
+### Fixed
+- `web/server.py`: added `GET /ride_note` endpoint — loads existing note text into modal
+- `web/server.py`: added `POST /ride_note` endpoint — saves note to `ride_{session}_{num:03d}_notes.txt`
+- `web/server.py`: `/close_ride` now returns `session` and `ride_num` in response — note modal opens correctly after closing a ride
