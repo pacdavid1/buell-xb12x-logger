@@ -101,7 +101,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 .grid-section{margin-bottom:4px}
 .grid-label{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.15em;
              text-transform:uppercase;margin-bottom:6px}
-.grid-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.grid-wrap{overflow-x:hidden;padding-bottom:4px}
 table.veg{border-collapse:collapse;font-family:var(--mono);white-space:nowrap}
 table.veg th{font-size:7px;color:var(--dim);padding:2px 3px;text-align:center;font-weight:400;min-width:28px}
 table.veg th.rh{text-align:right;min-width:26px;padding-right:4px}
@@ -189,9 +189,7 @@ table.veg td:active{filter:brightness(1.6)}
 .coming-soon p{font-family:var(--mono);font-size:10px;letter-spacing:.1em;line-height:1.8}
 
 /* BOTTOM SHEET */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100}
-.overlay.open{display:flex;align-items:flex-end}
-.overlay-close{position:absolute;top:12px;right:16px;font-size:24px;color:#fff;cursor:pointer;z-index:101;padding:8px;}
+
 .sheet{background:#18181c;border-top:2px solid var(--accent);padding:16px;
        width:100%;max-height:60vh;overflow-y:auto}
 .sheet-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;
@@ -217,10 +215,6 @@ table.veg td:active{filter:brightness(1.6)}
       <div class="hs"><div class="hs-label">Serial</div><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
     </div>
     <div id="hPill" class="pill-dot off"></div>
-    <button id="btnCloseRide" onclick="closeRide()"
-      style="display:none;margin-left:8px;padding:4px 12px;background:#c0392b;color:#fff;border:none;border-radius:6px;font-size:0.85rem;cursor:pointer;">
-      ⏹ CERRAR RIDE
-    </button>
   </div>
   <!-- Fila 2: comunicación serial -->
   <div class="hdr-row">
@@ -232,6 +226,19 @@ table.veg td:active{filter:brightness(1.6)}
       <div class="hs-sm"><div class="hs-label">CPU%</div><div class="hs-val gn" id="hCpu">--</div></div>
       <div class="hs-sm"><div class="hs-label">TEMP</div><div class="hs-val gn" id="hTemp">--</div></div>
       <div class="hs-sm"><div class="hs-label">ERR</div><div class="hs-val gn" id="hErr" title="Eventos de error del ride actual">--</div></div>
+    </div>
+  </div>
+  <!-- Fila 3: sistema -->
+  <div class="hdr-row">
+    <div class="hdr-comms">
+      <div class="hs-sm"><div class="hs-label">系統</div><div class="hs-val" id="freezeIndicator" style="color:#2ecc71">正常</div></div>
+      <div class="hs-sm" id="btnCloseRideWrap" style="padding:1px 6px">
+        <div class="hs-label">騎行</div>
+        <button id="btnCloseRide" onclick="closeRide()"
+          style="background:#c0392b;color:#fff;border:none;padding:4px 12px;font-family:var(--mono);font-size:16px;font-weight:900;cursor:pointer;letter-spacing:2px;">
+          終
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -253,6 +260,7 @@ table.veg td:active{filter:brightness(1.6)}
   <div class="tab" onclick="showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()">VE</div>
   <div class="tab" onclick="showTab('cfg');trackUsage('tab_config');loadUsageStats()">Config</div>
   <div class="tab" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</div>
+  <div class="tab" onclick="showTab('games');trackUsage('tab_games')">Games</div>
 </div>
 
 <!-- PANE RIDE -->
@@ -410,7 +418,7 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 
   <!-- Tabla del mapa -->
-  <div id="mapContainer" style="overflow-x:auto">
+  <div id="mapContainer" style="overflow-x:hidden">
     <div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:20px">
       Conecta la ECU · los mapas se leen del EEPROM al arrancar
     </div>
@@ -585,6 +593,30 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 </div>
 
+<!-- PANE GAMES -->
+<div class="pane content" id="pane-games">
+  <div style="padding:12px 16px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:12px">GAME BOY EMULATOR</div>
+    <div id="gamesStatus" style="color:var(--accent);margin-bottom:12px">Cargando...</div>
+    <div id="gamesContainer" style="display:none">
+      <div style="margin-bottom:12px">
+        <select id="romSelect" style="background:var(--panel);color:var(--fg);border:1px solid var(--border);padding:4px 8px;font-family:var(--mono);font-size:11px;width:100%">
+          <option value="">-- Selecciona ROM --</option>
+        </select>
+      </div>
+      <div id="emuFrame" style="width:100%;height:400px;background:#000;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:var(--mono);font-size:11px">
+        Selecciona un ROM
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button onclick="loadRom()" style="flex:1;background:var(--accent);color:#000;border:none;padding:8px;font-family:var(--mono);font-size:10px;cursor:pointer">CARGAR</button>
+      </div>
+    </div>
+    <div id="gamesDisabled" style="display:none;color:var(--red);font-family:var(--mono);font-size:11px">
+      No disponible durante ride activo
+    </div>
+  </div>
+</div>
+
 <div class="pane content" id="pane-net">
   <!-- Modal de transicion de red -->
   <div id="switchModal" style="display:none;background:var(--panel);border:1px solid var(--accent);
@@ -632,17 +664,7 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 </div>
 
-<!-- BOTTOM SHEET -->
-<div class="overlay" id="overlay" onclick="closeSheet()">
-  <span class="overlay-close" onclick="closeSheet()">✕</span>
-  <div class="sheet" onclick="event.stopPropagation()">
-    <div class="sheet-title">
-      <span id="sheetTitle">Celda</span>
-      <span class="sheet-close" onclick="closeSheet()">x</span>
-    </div>
-    <div id="sheetBody"></div>
-  </div>
-</div>
+
 
 <script>
 const RPM_BINS  = [0,800,1000,1350,1900,2400,2900,3400,4000,5000,6000,7000,8000];
@@ -651,13 +673,14 @@ let lastData = null;
 
 // ── TABS ──────────────────────────────────────────────────────────
 function showTab(id) {
-  const ids = ['ride','rides','graph','ve','cfg'];
+  const ids = ['ride','rides','graph','ve','cfg','net','games'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-'+id).classList.add('active');
   if(id==='cfg')     { loadObj(); loadTpsCal(); loadVssCal(); loadEcu(); loadEepromParams(); }
   if(id==='rides')   loadRidesList();
   if(id==='graph')   initGraphPane();
+  if(id==='games')   initGamesPane();
 }
 
 // ── GRID ──────────────────────────────────────────────────────────
@@ -671,7 +694,7 @@ function buildGrid() {
     html += `<tr><th class="rh">${LOAD_BINS[li]}</th>`;
     for(let ri=0; ri<RPM_BINS.length; ri++) {
       const key = `${RPM_BINS[ri]}_${LOAD_BINS[li]}`;
-      html += `<td id="c_${key}" class="c0" onclick="openSheet('${key}',${ri},${li})">
+      html += `<td id="c_${key}" class="c0" >
         <div class="cv" id="s_${key}"></div></td>`;
     }
     html += '</tr>';
@@ -697,23 +720,7 @@ function updateGrid(cells, activeCell) {
 }
 
 // ── BOTTOM SHEET ──────────────────────────────────────────────────
-function openSheet(key, ri, li) {
-  const cell = lastData?.cells?.[key];
-  document.getElementById('sheetTitle').textContent = `RPM ${RPM_BINS[ri]}  Load ${LOAD_BINS[li]}`;
-  let rows = '';
-  const add = (k,v) => rows += `<div class="sheet-row"><span class="sheet-key">${k}</span><span class="sheet-val">${v}</span></div>`;
-  if(cell) {
-    add('Tiempo', cell.seconds.toFixed(1)+' s');
-    add('EGO promedio', cell.ego_avg.toFixed(1)+' %');
-    const st = cell.ego_avg>106?'LEAN':cell.ego_avg<94?'RICH':'OK';
-    add('Estado EGO', st);
-  } else {
-    add('Estado','Sin datos este ride');
-  }
-  document.getElementById('sheetBody').innerHTML = rows;
-  document.getElementById('overlay').classList.add('open');
-}
-function closeSheet() { document.getElementById('overlay').classList.remove('open'); }
+
 
 // ── HEADER ────────────────────────────────────────────────────────
 function fmtTime(s){ return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
@@ -792,7 +799,11 @@ function updateHeader(d) {
 
   // Botón cerrar ride
   const btnClose = document.getElementById('btnCloseRide');
-  if(btnClose) btnClose.style.display = d.ride_active ? 'inline-block' : 'none';
+  if(btnClose){
+    btnClose.disabled = !d.ride_active;
+    btnClose.style.opacity = d.ride_active ? '1' : '0.25';
+    btnClose.style.cursor = d.ride_active ? 'pointer' : 'default';
+  }
 
   // EGO color
   const egoEl = document.getElementById('hEGO');
@@ -866,12 +877,14 @@ function renderIndicators(ind) {
 }
 
 // ── FETCH LOOP ────────────────────────────────────────────────────
+let _lastLiveOk = Date.now();
 async function fetchLive() {
   if(window._viewingHistory) return;
   try {
     const r = await fetch('/live.json?t='+Date.now());
     if(!r.ok) return;
     const d = await r.json();
+    _lastLiveOk = Date.now();
     lastData = d;
     updateHeader(d);
     updateGrid(d.cells||{}, d.active_cell);
@@ -899,6 +912,18 @@ async function fetchLive() {
   } catch(e){}
 }
 setInterval(fetchLive, 2000);
+setInterval(()=>{
+  const frozen = (Date.now() - _lastLiveOk) > 5000;
+  const tabs = document.querySelector('.tabs');
+  const ind = document.getElementById('freezeIndicator');
+  if(frozen){
+    if(tabs) tabs.style.borderBottom = '2px solid #e74c3c';
+    if(ind){ ind.textContent='凍結'; ind.style.color='#e74c3c'; }
+  } else {
+    if(tabs) tabs.style.borderBottom = '';
+    if(ind){ ind.textContent='正常'; ind.style.color='#2ecc71'; }
+  }
+}, 3000);
 
 // ── MAPAS EEPROM ──────────────────────────────────────────────────
 let _mapsData = null;
@@ -1067,7 +1092,6 @@ function parseMsq(xml,fname){
 
 // ── CERRAR RIDE ─────────────────────────────────────────────────────
 async function closeRide(){
-  if(!confirm('¿Cerrar el ride actual?')) return;
   trackUsage('btn_close_ride');
   try{
     const r=await fetch('/close_ride',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
@@ -1834,21 +1858,27 @@ setInterval(()=>{try{fetch('/keepalive',{method:'POST',headers:{'Content-Type':'
 
 // ── APAGADO ────────────────────────────────────────────────────────
 function confirmShutdown(){
-  document.getElementById('sheetTitle').textContent='Apagar Pi';
-  document.getElementById('sheetBody').innerHTML=`
-    <div style="text-align:center;padding:8px 0 16px;font-size:13px;line-height:1.7">
-      Se cerrara el ride activo y la Pi se apagara.<br>
-      <span style="font-family:var(--mono);font-size:9px;color:var(--dim)">Asegurate de estar detenido.</span>
-    </div>
-    <div style="display:flex;gap:8px">
-      <button class="btn" style="flex:1;padding:10px" onclick="closeSheet()">Cancelar</button>
-      <button class="btn-danger" style="flex:1;margin:0;padding:10px" onclick="doShutdown()">Apagar</button>
+  const modal = document.createElement('div');
+  modal.id = 'shutdownModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:flex;align-items:center;justify-content:center';
+  modal.innerHTML = `
+    <div style="background:var(--panel);border:1px solid var(--border);padding:20px;max-width:280px;width:90%;font-family:var(--mono)">
+      <div style="font-size:11px;color:var(--accent);letter-spacing:2px;margin-bottom:12px">電源關閉</div>
+      <div style="font-size:12px;line-height:1.7;margin-bottom:16px;color:var(--fg)">
+        Se cerrará el ride activo y la Pi se apagará.<br>
+        <span style="font-size:9px;color:var(--dim)">Asegúrate de estar detenido.</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn" style="flex:1;padding:10px" onclick="document.getElementById('shutdownModal').remove()">取消</button>
+        <button class="btn-danger" style="flex:1;margin:0;padding:10px" onclick="doShutdown()">關閉</button>
+      </div>
     </div>`;
-  document.getElementById('overlay').classList.add('open');
+  document.body.appendChild(modal);
 }
 async function doShutdown(){
   trackUsage('btn_poweroff');
-  closeSheet();
+  const m = document.getElementById('shutdownModal');
+  if(m) m.remove();
   try{await fetch('/shutdown',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(e){}
   document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100dvh;font-family:var(--mono);font-size:12px;color:var(--dim);background:#0a0a0b">Apagando Pi...</div>';
 }
@@ -2138,6 +2168,45 @@ loadTpsCal();
 
 // cargar cal al arrancar (no solo al abrir tab)
 document.addEventListener("DOMContentLoaded", ()=>{ loadTpsCal(); loadVssCal(); buildGrid(); fetchLive(); });
+
+// --- GAME BOY EMULATOR ---
+let _rideActiveForGames = false;
+
+function initGamesPane() {
+  fetch("/live.json").then(r=>r.json()).then(d=>{
+    _rideActiveForGames = d.ride_active;
+    if(d.ride_active) {
+      document.getElementById("gamesStatus").style.display="none";
+      document.getElementById("gamesContainer").style.display="none";
+      document.getElementById("gamesDisabled").style.display="block";
+    } else {
+      document.getElementById("gamesStatus").style.display="none";
+      document.getElementById("gamesContainer").style.display="block";
+      document.getElementById("gamesDisabled").style.display="none";
+      loadRomList();
+    }
+  });
+}
+
+function loadRomList() {
+  fetch("/games/roms").then(r=>r.json()).then(d=>{
+    const sel = document.getElementById("romSelect");
+    sel.innerHTML = "<option value=\"\">-- Selecciona ROM --</option>";
+    d.roms.forEach(r=>{
+      const opt = document.createElement("option");
+      opt.value = r.file;
+      opt.textContent = r.name;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function loadRom() {
+  const file = document.getElementById("romSelect").value;
+  if(!file) return;
+  const frame = document.getElementById("emuFrame");
+  frame.innerHTML = "<iframe src=\"/games/play?rom="+encodeURIComponent(file)+"\" style=\"width:100%;height:100%;border:none;\"></iframe>";
+}
 </script>
 </body>
 </html>
