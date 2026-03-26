@@ -37,3 +37,11 @@ print(repr(content[idx-20:idx+60]))
 repr() reveals hidden spaces, tabs, and newlines that would cause silent assert failures.
 
 ---
+
+---
+
+## CHANGELOG
+
+**2026-03-25** — Always insert new CHANGELOG entries at the top, not the bottom.
+Use a fix_*.py script that targets the `---` separator after the header and inserts before it.
+`cat >>` appends to end — wrong for changelogs that show newest first.
