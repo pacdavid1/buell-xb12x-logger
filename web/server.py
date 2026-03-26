@@ -4,6 +4,7 @@ v2.1.0 - Fix scan GET, redirect URL, switch status polling
 """
 
 import json
+import urllib.parse
 import re
 import threading
 import time
@@ -254,6 +255,69 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({"url": url, "action": action})
             return
 
+        if path == '/games/roms':
+            games_dir = Path('/home/pi/buell/games')
+            roms = []
+            if games_dir.exists():
+                for f in sorted(games_dir.glob('*.gb')):
+                    roms.append({'file': f.name, 'name': f.stem})
+                for f in sorted(games_dir.glob('*.gbc')):
+                    roms.append({'file': f.name, 'name': f.stem})
+            self._json({"roms": roms})
+            return
+        if path.startswith('/games/play'):
+            rom = self.path.split('rom=')[-1].split('&')[0] if 'rom=' in self.path else ''
+            rom = urllib.parse.unquote(rom)
+            html = """<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Game Boy</title>
+<style>
+body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden;}
+#game{max-width:100%;max-height:100%;}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
+<script>
+EJS_player = "#game";
+EJS_core = "gb";
+EJS_gameUrl = "/games/rom/""" + rom + """";
+EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+</script>
+</body>
+</html>"""
+            self._html(html)
+            return
+        if path.startswith('/games/rom/'):
+            rom = path.split('/games/rom/')[-1]
+            rom = urllib.parse.unquote(rom)
+            rom_path = Path('/home/pi/buell/games') / rom
+            if rom_path.exists():
+                with open(rom_path, 'rb') as f:
+                    data = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/octet-stream')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(data)
+            else:
+                self._json({"error": "rom not found"}, 404)
+            return
+        if path == '/ride_note':
+            try:
+                params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+                session_id = params.get('session', [''])[0]
+                ride_num = int(params.get('ride', [0])[0])
+                note_path = self.server_instance.buell_dir / 'sessions' / session_id / f'ride_{session_id}_{ride_num:03d}_notes.txt'
+                note = note_path.read_text(encoding='utf-8') if note_path.exists() else ''
+                self._json({"ok": True, "note": note})
+            except Exception as e:
+                self._json({"ok": False, "note": "", "error": str(e)})
+            return
         self._json({"error": "not found"}, 404)
 
     def do_POST(self):
@@ -324,11 +388,24 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
             self._json({"ok": ok, "output": output})
             return
+        if path == '/ride_note':
+            try:
+                session_id = payload.get('session', '')
+                ride_num = int(payload.get('ride_num', 0))
+                note = payload.get('note', '').strip()
+                note_path = self.server_instance.buell_dir / 'sessions' / session_id / f'ride_{session_id}_{ride_num:03d}_notes.txt'
+                note_path.write_text(note, encoding='utf-8')
+                self._json({"ok": True})
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)})
+            return
         if path == '/close_ride':
             session = getattr(self.server_instance, 'session', None)
             if session and session.current_csv_fh:
+                checksum = session.current_checksum
+                ride_num = session.current_ride_num
                 session.close_current_ride(reason="dashboard_request")
-                self._json({"ok": True, "msg": "Ride cerrado"})
+                self._json({"ok": True, "msg": "Ride cerrado", "session": checksum, "ride_num": ride_num})
             else:
                 self._json({"ok": False, "msg": "Sin ride activo"})
             return

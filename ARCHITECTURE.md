@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-25 20:57 | versión: v1.16.3-167-ga8c890e
+> Última actualización: 2026-03-25 21:34 | versión: v1.16.3-168-g1717f13
 
 ---
 
@@ -52,9 +52,11 @@ buell-xb12x-logger/
 │   │   ├── ride_001_errorlog.tmp
 │   │   ├── ride_002_errorlog.json
 │   │   ├── ride_243FAC_001.csv
+│   │   ├── ride_243FAC_001_notes.txt
 │   │   ├── ride_243FAC_002.csv
 │   │   ├── ride_243FAC_003.csv
 │   │   ├── ride_243FAC_004.csv
+│   │   ├── ride_243FAC_004_notes.txt
 │   │   └── session_metadata.json
 │   ├── 5F94A1
 │   │   ├── consolidated.csv
@@ -610,6 +612,7 @@ Upd |
 - `/games/roms`
 - `/games/play`
 - `/games/rom/`
+- `/ride_note`
 - `/network`
 - `/wifi/connect`
 - `/wifi/add`
