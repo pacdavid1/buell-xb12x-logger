@@ -270,10 +270,15 @@ STEP 1 — Fetch and read ARCHITECTURE.md from the ROOT of this repo (not /docs)
 STEP 2 — Report EXACTLY this:
 📊 Repo snapshot: [X] archivos Python | [Y] endpoints HTTP | último cambio: [filename]
 
-STEP 3 — Share one useful dev tip for Raspberry Pi, Python, or embedded systems. Label it:
+STEP 3 — Read DEV_TIPS.md from the ROOT of this repo. Internalize the tips — they apply to every editing session.
+
+STEP 4 — Read BACKLOG.md. Identify all OPEN items and summarize in one line each. Label it:
+📋 Backlog abierto: [item] — [one line summary]
+
+STEP 5 — Share one useful dev tip for Raspberry Pi, Python, or embedded systems. Label it:
 💡 Dato útil: [tip]
 
-STEP 4 — Only after steps 1-3, ask:
+STEP 6 — Only after steps 1-5, ask:
 **¿Qué vamos a hacer hoy?**
 
-If you cannot complete steps 1-3, say so explicitly. Do not ask what we will do today without completing the validation.
+If you cannot complete steps 1-5, say so explicitly. Do not ask what we will do today without completing the validation.
