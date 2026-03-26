@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-25 21:53 | versión: v1.16.3-170-g2fd1ac4
+> Última actualización: 2026-03-25 22:12 | versión: v1.16.3-171-gbfac7a2
 
 ---
 
@@ -16,7 +16,8 @@ buell-xb12x-logger/
 │   ├── 04_DECISIONS.md
 │   ├── 05_TROUBLESHOOTING.md
 │   ├── 06_INSTALLATION_GOALS.md
-│   └── 07_SENSOR_EXPANSION_PLAN.md
+│   ├── 07_SENSOR_EXPANSION_PLAN.md
+│   └── 08_ANALYSIS_TUNING.md
 ├── ecu
 │   ├── __init__.py
 │   ├── connection.py

@@ -575,6 +575,78 @@ the ride is never recorded despite full telemetry being visible in the dashboard
 
 ---
 
+## Analysis / Tuning
+
+> Technical reference: `docs/08_ANALYSIS_TUNING.md`
+
+**BACKLOG-ANL1** `OPEN`
+EGO correction heatmap per RPM/Load cell
+
+### Problem
+No tool exists to identify which VE map cells need adjustment based on
+real ride data. EGO_Corr oscillates in closed loop but is never aggregated
+per cell to produce actionable tuning recommendations.
+
+### Context
+- `ecu/session.py` — ride CSVs contain `EGO_Corr`, `fl_closed_loop`, `CLT`, `RPM`, `Load`
+- `web/server.py` — new endpoint needed to aggregate CSV data per cell
+- `web/templates/index.html` — new overlay or tab in VE pane
+- Logic: avg EGO_Corr per cell where fl_closed_loop=1 and CLT > warmup threshold
+- Recommendation: if avg > 105% increase cell, if avg < 95% decrease cell
+
+### Reference
+See `docs/08_ANALYSIS_TUNING.md` — EGO Correction Logic section.
+
+### Prerequisites
+BACKLOG-ECU1 (correct XML) recommended for accurate cell mapping.
+
+---
+
+**BACKLOG-ANL2** `OPEN`
+O2_ADC rich/lean trend overlay on VE heatmap
+
+### Problem
+The VE heatmap shows time-in-cell but not mixture quality.
+No visual indication of whether each cell runs rich or lean
+based on historical ride data.
+
+### Context
+- `web/templates/index.html` — `buildGrid()`, `updateGrid()` in VE tab
+- New overlay mode: color cells by avg O2_ADC relative to 128 (stoich)
+- Green = near stoich, blue = lean, red = rich
+- Only samples where fl_closed_loop=1 count
+
+### Reference
+See `docs/08_ANALYSIS_TUNING.md` — NB Oxygen Sensor section.
+
+### Prerequisites
+BACKLOG-ANL1 data pipeline can be reused here.
+
+---
+
+**BACKLOG-ANL3** `OPEN`
+Ride data heatmap export from dashboard
+
+### Problem
+Heatmap generation currently requires Excel VBA macros run manually offline.
+Should be available directly from the dashboard without external tools.
+
+### Context
+- `web/server.py` — new endpoint to aggregate ride CSVs into heatmap matrix
+- `web/templates/index.html` — export button in rides or VE tab
+- Output: JSON or CSV matrix matching EEPROM map axes (13 RPM x 12 Load bins)
+- Replaces Excel GenerateHeatmapFromJSON macro
+
+### Reference
+See `docs/08_ANALYSIS_TUNING.md` — VBA Tools section for axis definitions.
+RPM bins: [0,800,1000,1350,1900,2400,2900,3400,4000,5000,6000,7000,8000]
+Load bins: [10,15,20,30,40,50,60,80,100,125,175,255]
+
+### Prerequisites
+None — can be implemented independently.
+
+---
+
 ## Closed Items Index
 
 | Item | Version | Summary |
