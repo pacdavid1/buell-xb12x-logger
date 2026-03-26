@@ -1061,3 +1061,15 @@ Base version from which active development started.
 - `web/server.py`: added `GET /ride_note` endpoint — loads existing note text into modal
 - `web/server.py`: added `POST /ride_note` endpoint — saves note to `ride_{session}_{num:03d}_notes.txt`
 - `web/server.py`: `/close_ride` now returns `session` and `ride_num` in response — note modal opens correctly after closing a ride
+
+## [2.5.28] - 2026-03-25
+### Added
+- `index.html`: header row 3 — 系統/freeze indicator (正常/凍結) and 終 close-ride button
+- `index.html`: freeze indicator — detects >5s without live.json update, shows 凍結 in red
+- `index.html`: self-contained shutdown modal (電源關閉) — no longer depends on bottom sheet overlay
+### Changed
+- `index.html`: close ride button moved to header row 3, cyberpunk style (終)
+- `index.html`: removed confirm() dialog from closeRide — closes immediately
+- `index.html`: removed scrollbars from VE heatmap and map container
+- `index.html`: removed cell tap sheet — openSheet/closeSheet/overlay removed
+- `index.html`: close ride button disabled/faded when no active ride instead of hidden
