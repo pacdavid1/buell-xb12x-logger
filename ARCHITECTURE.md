@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-22 21:22 | versión: v1.16.3-166-gdec1b3d
+> Última actualización: 2026-03-25 20:57 | versión: v1.16.3-167-ga8c890e
 
 ---
 
@@ -40,14 +40,21 @@ buell-xb12x-logger/
 │   ├── BUEYD.xml
 │   ├── BUEZD.xml
 │   └── README.md
+├── games
+│   └── Pokemon - Gold Version (USA, Europe) (SGB Enhanced) (GB Compatible).gbc
 ├── network
 │   ├── __init__.py
 │   └── manager.py
 ├── sessions
 │   ├── 243FAC
 │   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
 │   │   ├── ride_001_errorlog.tmp
+│   │   ├── ride_002_errorlog.json
 │   │   ├── ride_243FAC_001.csv
+│   │   ├── ride_243FAC_002.csv
+│   │   ├── ride_243FAC_003.csv
+│   │   ├── ride_243FAC_004.csv
 │   │   └── session_metadata.json
 │   ├── 5F94A1
 │   │   ├── consolidated.csv
@@ -125,6 +132,7 @@ buell-xb12x-logger/
 ├── ARCHITECTURE.md
 ├── BACKLOG.md
 ├── CHANGELOG.md
+├── DEV_TIPS.md
 ├── README.md
 ├── WORKING_METHOD.md
 ├── WORKING_METHOD.md.save
@@ -599,6 +607,9 @@ Upd |
 - `/wifi/scan`
 - `/wifi/status`
 - `/wifi/redirect_url`
+- `/games/roms`
+- `/games/play`
+- `/games/rom/`
 - `/network`
 - `/wifi/connect`
 - `/wifi/add`
@@ -622,6 +633,7 @@ Upd |
 - `ve`
 - `cfg`
 - `net`
+- `games`
 
 **Funciones JS**
 
@@ -698,6 +710,9 @@ Upd |
 - `calcTpsPct()`
 - `saveTpsCal()`
 - `startTpsCapture()`
+- `initGamesPane()`
+- `loadRomList()`
+- `loadRom()`
 
 ---
 
