@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-25 23:11 | versión: v1.16.3-175-g567e031
+> Última actualización: 2026-03-26 23:50 | versión: v1.16.3-176-g409152f
 
 ---
 
@@ -128,6 +128,12 @@ buell-xb12x-logger/
 │   ├── test_ecu.py
 │   └── test_ecu.py.save
 ├── web
+│   ├── static
+│   │   └── emulatorjs
+│   │       ├── cores
+│   │       ├── emulator.min.css
+│   │       ├── emulator.min.js
+│   │       └── loader.js
 │   ├── templates
 │   │   └── index.html
 │   ├── __init__.py

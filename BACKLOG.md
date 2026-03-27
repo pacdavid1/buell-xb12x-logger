@@ -20,9 +20,30 @@ BUEIB uses BAS scale 0.01, B2RIB uses 10.0. Wrong XML = wrong parameter values.
 - `ecu_defs/` — 14 XML files for ECU variants
 - `ecu/eeprom.py` — `decode_eeprom_maps()` uses hardcoded BUEIB.xml
 
+### Theory — Version String Structure
+The response to command `0x56` follows the pattern: `BUE` + layout_id + revision.
+Example: `BUEIB310` = `BUE` + `IB` + `310` where `IB` identifies layout IB310.
+
+| Firmware prefix | Layout | XML file |
+|----------------|--------|----------|
+| BUEIA, BUEGC, BUEKA | CB050/CB060 | BUEIA.xml etc |
+| BUEGB | GB231 | BUEGB.xml |
+| BUEIB, BUEIC, B2RIB | IB310 | B2RIB.xml |
+
+Layout page boundaries (from EcmSpy reference):
+- CB050/060: Page 3 ends at 0x0259, Page 6 at 0x0471
+- GB231: Page 3 ends at 0x0295, Page 6 at 0x04ad
+- IB310: Page 3 ends at 0x029d, Page 6 at 0x04b5
+
+### Proposed Fix
+Add VERSION_TO_XML dict in `ecu/eeprom.py`. Use `startswith` matching to handle
+revision suffix (e.g. `BUEIB310` matches `BUEIB`). Pass detected XML path from
+`get_version()` through to `decode_eeprom_maps()`.
+
 ### Reference
-EcmSpy maps version string to model code internally.
-`BUEIB310` → `B2RIB` mapping not yet understood.
+- EcmSpy maps version string to layout internally using same prefix logic.
+- `BUEIB310` → prefix `BUEIB` → layout IB310 → `B2RIB.xml`
+- Page boundaries validated against EcmSpy reference table.
 
 ### Prerequisites
 None.
@@ -173,8 +194,19 @@ Ride data was lost — tracker had 15min of heatmap data in memory but no CSV sa
 - Try full serial port close/reopen with 1s delay between
 - Check if issue is in FT232 chip state vs ECU protocol state
 
+### Evidence — ride_243FAC_003.csv (2026-03-25)
+- Ride 3: 2526 samples, 385s, TTL drops observed from t=2.6s throughout entire ride
+- TTL% drops are NOT correlated with temperature — Pi cpu_temp stable 33→42°C
+- TTL drops pattern: brief dips (1-2s) then recovery — consistent with electrical noise
+- Unk63 changed 4 times at t=329s when fl_hot=1 activated — possible ECU internal state register
+- Ride ended normally at 385s — the hard disconnect that did not recover happened AFTER ride 3
+- Ride 4 was recorded after ~1h break at gas station — suggests ECU recovered on its own
+- Root cause hypothesis: FT232 chip enters undefined state after sustained TTL noise,
+  not recoverable by DTR toggle alone — may require full USB power cycle
+
 ### Prerequisites
 Requires moto connected and ability to reproduce killswitch cycles deliberately.
+CRITICAL prerequisite for BACKLOG-ECU3 (map write) — writing with unstable connection risks EEPROM corruption.
 
 ---
 
@@ -454,7 +486,7 @@ BACKLOG-LOG2 (EEPROM map axis bug) should be fixed first for reference compariso
 
 ---
 
-**BACKLOG-UX4** `OPEN`
+**BACKLOG-UX4** `CLOSED` v2.5.28
 Dashboard freeze indicator
 
 ### Problem
@@ -467,8 +499,15 @@ simply idle. Especially problematic while riding.
 - Need to track timestamp of last successful fetch
 - If no update received for >5s: change header color, show alert, animate indicator
 
-### Prerequisites
-None.
+### Solution
+- `index.html`: added `_lastLiveOk = Date.now()` updated on every successful fetch
+- `index.html`: `setInterval` every 3s checks if >5s since last update
+- `index.html`: header row 3 shows 系統/正常 (green) or 凍結 (red) — always visible
+- `index.html`: tab bar border turns red when frozen
+
+### Result
+Dashboard shows 凍結 in red within 3-5s of Pi becoming unreachable.
+Recovers automatically when connection resumes.
 
 ---
 
@@ -647,6 +686,147 @@ None — can be implemented independently.
 
 ---
 
+## Hardware
+
+> Reference: `docs/09_ROADMAP.md` (pending creation)
+
+**BACKLOG-HW1** `OPEN`
+LSU 4.9 wideband sensor integration
+
+### Problem
+Stock NB sensor only indicates rich/lean relative to stoich (14.7 AFR).
+No precise AFR measurement available for open-loop tuning or map validation.
+
+### Context
+- Bosch LSU 4.9 sensor ordered
+- Requires wideband controller (Spartan 3, Innovate LC-2 or equivalent)
+- Controller outputs 0-5V analog or serial — readable by Pi ADC or UART
+- Replaces or supplements O2_ADC column in CSV
+- EcmSpy supports up to 2 wideband sensors — follow same integration logic
+
+### Prerequisites
+Wideband controller hardware must be purchased and installed first.
+
+---
+
+**BACKLOG-HW2** `OPEN`
+GPIO forensic event button
+
+### Problem
+Column `forensic_event` exists in CSV but is never populated.
+No way to mark a specific moment during a ride for post-analysis.
+
+### Context
+- Pi Zero 2W has GPIO pins available
+- Physical button on handlebar connected to GPIO pin
+- `main.py` — set `forensic_event=1` on next sample when button pressed
+- Useful for correlating O2_ADC, CLT, EGO_Corr at exact moment of interest
+
+### Prerequisites
+Hardware installation required first.
+
+---
+
+**BACKLOG-HW3** `OPEN`
+Power supply filtering for sensor expansion
+
+### Problem
+Adding GPS, IMU, and wideband controller increases current draw.
+Alternator voltage spikes can cause Pi resets or data corruption.
+TTL drops in ride data suggest electrical noise already present on USB line.
+
+### Context
+- Current setup: unspecified buck converter 12V→5V
+- Recommended: automotive-grade buck with LC filter
+- Priority increases before adding more hardware
+
+### Prerequisites
+None — evaluate before adding HW1, HW4, HW5.
+
+---
+
+**BACKLOG-HW4** `OPEN`
+GPS module integration
+
+### Problem
+No position, altitude, or GPS-derived speed data is logged.
+
+### Context
+- Pi Zero 2W has UART GPIO available (pins 14/15)
+- Recommended: NEO-6M (1Hz) or NEO-8M (5Hz)
+- Libraries: `gpsd` + `pynmea2`
+- See also: BACKLOG-GPS1 through GPS4
+
+### Prerequisites
+BACKLOG-HW3 (power filtering) recommended first.
+
+---
+
+**BACKLOG-HW5** `OPEN`
+IMU — lean angle and acceleration logging
+
+### Problem
+No inertial data captured. Cannot correlate engine behavior with
+lean angle, braking, or acceleration forces.
+
+### Context
+- Recommended: LSM6DSOX (I2C, 6-axis)
+- New CSV columns: lean_deg, accel_x, accel_y, accel_z
+- Foundation for lap timing and cornering analysis
+
+### Prerequisites
+BACKLOG-HW3 (power filtering) recommended first.
+
+---
+
+## Map Management
+
+> Technical reference: `docs/09_ROADMAP.md` (pending creation)
+
+**BACKLOG-MAP1** `OPEN`
+Virtual Page 32 — ECU busy state check
+
+### Problem
+No safety check exists before any EEPROM write operation.
+Writing to ECU while busy risks EEPROM corruption or brick.
+
+### Context
+- `ecu/connection.py` — new method `check_ecu_ready()` needed
+- Protocol: read Page 32 offset 0 — `0x00` = ready, any other value = busy
+- Must be called before every write operation
+- Low risk — read-only operation
+
+### Prerequisites
+None. Implement before any write functionality.
+
+---
+
+**BACKLOG-MAP2** `OPEN`
+Map switching — apply fuel/timing maps from dashboard
+
+### Problem
+No way to write maps to ECU from logger. Full tuning loop requires write capability.
+
+### Context
+- Protocol: command `0x57` (Set EEPROM Data)
+- Target: Pages 4 and 5 (fuel maps and timing tables)
+- Pi stores maps as JSON or binary files on SD card
+- Dashboard UI: select map file, apply to ECU
+- Post-write: verify checksum to confirm correct write
+- HIGH RISK: incorrect write can brick ECU parameters
+
+### Reference
+See `docs/09_ROADMAP.md` — Map Switching section.
+IB310 page boundaries: Page 3 ends 0x029d, Page 6 ends 0x04b5.
+
+### Prerequisites
+BACKLOG-ECU1 — CRITICAL: wrong layout = wrong offsets
+BACKLOG-LOG6 — CRITICAL: mid-write disconnect = EEPROM corruption
+BACKLOG-MAP1 — CRITICAL: busy check safety prerequisite
+BACKLOG-ECU3 — recommended: complete lower-risk write path first
+
+---
+
 ## Closed Items Index
 
 | Item | Version | Summary |
@@ -657,6 +837,7 @@ None — can be implemented independently.
 | BACKLOG-LOG4 | — | Verified — path correct, device must be connected |
 | BACKLOG-UX1 | v2.5.10 | IP tappable in Network tab |
 | BACKLOG-UX5 | v2.5.27 | Ride notes not saving + close ride modal broken |
+| BACKLOG-UX4 | v2.5.28 | Dashboard freeze indicator — 凍結/正常 in header row 3 |
 | BACKLOG-LOG7 | v2.5.14 | Ride not recorded when Pi boots with engine already running |
 | BACKLOG-LOG2 | v2.5.15 | FUEL/SPARK RPM axis wrong — big-endian + descending order |
 | BACKLOG-LOG2 | v2.5.15/v2.5.16 | FUEL/SPARK RPM axis wrong + map rows reversed |
