@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-28 10:53 | versión: v1.16.3-178-gd432573
+> Última actualización: 2026-03-28 11:42 | versión: v1.16.3-179-g97b179e
 
 ---
 
@@ -162,6 +162,7 @@ buell-xb12x-logger/
 │       ├── ride_001.csv
 │       └── session_metadata.json
 ├── tools
+│   ├── eeprom_spark_maps_fix.py
 │   ├── make_index.py
 │   ├── test_ecu.py
 │   └── test_ecu.py.save
@@ -597,6 +598,32 @@ Upd |
 | `start_monitor` | — |
 | `stop_monitor` | — |
 | `ssh_active` | — |
+
+---
+
+### `tools/eeprom_spark_maps_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `OLD_SPARK_BLOCK` | `            "spark_front": read_map(670,  10, 10, 0.25),
+            "spark_rear":  read_map(770,  10, 10, 0.25),` |
+| `NEW_SPARK_BLOCK` | `            "spark_front": read_map_spark(670, 10, 10, 0.25),
+            "spark_rear":  read_map_spark(770, 10, 10, 0.25),` |
+| `READ_MAP_SPARK_FUNC` | `
+    def read_map_spark(off, rows, cols, scale):
+        # Spark maps are dense rectangular grids (no zero separators).
+        # Each row contains exactly `cols` values.
+        # RPM axis is stored in descending order → reverse per row.
+        raw = eeprom_bytes[off : off + rows * cols]
+        table = []
+        for r in range(rows):
+            row_raw = raw[r*cols:(r+1)*cols]
+            row = [round(v * scale, 2) for v in row_raw]
+            table.append(list(reversed(row)))
+        return table
+` |
 
 ---
 

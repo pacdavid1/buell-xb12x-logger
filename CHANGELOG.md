@@ -1,6 +1,22 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
+
+---
+
+##[v2.5.30] — 2026-03-28
+### Fixed
+- Corrected Spark (Ignition Advance) EEPROM map decoding.
+- Spark maps are now decoded as dense 10×10 rectangular grids instead of triangular VE-style layouts.
+- Zero values in Spark maps are treated as valid data, not structural separators.
+- Spark RPM axis handling corrected independently of VE axis logic.
+
+### Verified
+- Spark Front / Rear heatmaps now display correct rectangular geometry.
+- Values are coherent across RPM/TPS with no diagonal padding artifacts.
+- Runtime validated against EEPROM: Spark Advance visible and consistent.
+
+
 ---
 
 ##[v2.5.29] — 2026-03-28

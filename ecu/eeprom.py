@@ -110,6 +110,18 @@ def decode_eeprom_maps(eeprom_bytes):
             table.append(row)
         return table
 
+    def read_map_spark(off, rows, cols, scale):
+        # Spark maps are dense rectangular grids (no zero separators).
+        # Each row contains exactly `cols` values.
+        # RPM axis is stored in descending order → reverse per row.
+        raw = eeprom_bytes[off : off + rows * cols]
+        table = []
+        for r in range(rows):
+            row_raw = raw[r*cols:(r+1)*cols]
+            row = [round(v * scale, 2) for v in row_raw]
+            table.append(list(reversed(row)))
+        return table
+
     try:
         return {
             "axes": {
@@ -120,8 +132,8 @@ def decode_eeprom_maps(eeprom_bytes):
             },
             "fuel_front":  read_map(870,  12, 13, 1.0),
             "fuel_rear":   read_map(1038, 12, 13, 1.0),
-            "spark_front": read_map(670,  10, 10, 0.25),
-            "spark_rear":  read_map(770,  10, 10, 0.25),
+            "spark_front": read_map_spark(670, 10, 10, 0.25),
+            "spark_rear":  read_map_spark(770, 10, 10, 0.25),
         }
     except Exception as e:
         return {"error": str(e)}
