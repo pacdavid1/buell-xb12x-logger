@@ -4,7 +4,7 @@
 
 ---
 
-##[v2.5.30] — 2026-03-28
+## [v2.5.30] — 2026-03-28
 ### Fixed
 - Corrected Spark (Ignition Advance) EEPROM map decoding.
 - Spark maps are now decoded as dense 10×10 rectangular grids instead of triangular VE-style layouts.
@@ -19,7 +19,7 @@
 
 ---
 
-##[v2.5.29] — 2026-03-28
+## [v2.5.29] — 2026-03-28
 ### Added
 - Deterministic ECU variant resolution using `ecu_defs/files.xml`.
 - New ECU version resolver maps `get_version()` strings (e.g. `BUEIB310`) to the correct EEPROM XML definition via `dbfile`.
