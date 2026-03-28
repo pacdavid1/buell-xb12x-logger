@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-26 23:52 | versión: v1.16.3-177-gdd5f62d
+> Última actualización: 2026-03-28 10:53 | versión: v1.16.3-178-gd432573
 
 ---
 
@@ -25,7 +25,8 @@ buell-xb12x-logger/
 │   ├── eeprom.py
 │   ├── eeprom_params.py
 │   ├── protocol.py
-│   └── session.py
+│   ├── session.py
+│   └── version_resolver.py
 ├── ecu_defs
 │   ├── B2RIB.xml
 │   ├── BUE1D.xml
@@ -41,7 +42,8 @@ buell-xb12x-logger/
 │   ├── BUEWD.xml
 │   ├── BUEYD.xml
 │   ├── BUEZD.xml
-│   └── README.md
+│   ├── README.md
+│   └── files.xml
 ├── games
 │   └── Pokemon - Gold Version (USA, Europe) (SGB Enhanced) (GB Compatible).gbc
 ├── network
@@ -53,12 +55,34 @@ buell-xb12x-logger/
 │   │   ├── eeprom.bin
 │   │   ├── ride_001_errorlog.tmp
 │   │   ├── ride_002_errorlog.json
+│   │   ├── ride_006_errorlog.json
+│   │   ├── ride_007_errorlog.json
+│   │   ├── ride_008_errorlog.json
+│   │   ├── ride_009_errorlog.json
+│   │   ├── ride_010_errorlog.json
+│   │   ├── ride_011_errorlog.json
+│   │   ├── ride_012_errorlog.json
 │   │   ├── ride_243FAC_001.csv
 │   │   ├── ride_243FAC_001_notes.txt
 │   │   ├── ride_243FAC_002.csv
 │   │   ├── ride_243FAC_003.csv
 │   │   ├── ride_243FAC_004.csv
 │   │   ├── ride_243FAC_004_notes.txt
+│   │   ├── ride_243FAC_005.csv
+│   │   ├── ride_243FAC_005_notes.txt
+│   │   ├── ride_243FAC_006.csv
+│   │   ├── ride_243FAC_007.csv
+│   │   ├── ride_243FAC_007_summary.json
+│   │   ├── ride_243FAC_008.csv
+│   │   ├── ride_243FAC_008_summary.json
+│   │   ├── ride_243FAC_009.csv
+│   │   ├── ride_243FAC_009_summary.json
+│   │   ├── ride_243FAC_010.csv
+│   │   ├── ride_243FAC_010_summary.json
+│   │   ├── ride_243FAC_011.csv
+│   │   ├── ride_243FAC_011_summary.json
+│   │   ├── ride_243FAC_012.csv
+│   │   ├── ride_243FAC_012_summary.json
 │   │   └── session_metadata.json
 │   ├── 5F94A1
 │   │   ├── consolidated.csv
@@ -102,6 +126,19 @@ buell-xb12x-logger/
 │   │   ├── ride_006_summary.json
 │   │   ├── ride_007.csv
 │   │   ├── ride_007_summary.json
+│   │   └── session_metadata.json
+│   ├── D7B333
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── ride_001_errorlog.json
+│   │   ├── ride_002_errorlog.json
+│   │   ├── ride_003_errorlog.json
+│   │   ├── ride_D7B333_001.csv
+│   │   ├── ride_D7B333_001_summary.json
+│   │   ├── ride_D7B333_002.csv
+│   │   ├── ride_D7B333_002_summary.json
+│   │   ├── ride_D7B333_003.csv
+│   │   ├── ride_D7B333_003_summary.json
 │   │   └── session_metadata.json
 │   ├── E8D511
 │   │   ├── consolidated.csv
@@ -478,6 +515,16 @@ A new  |
 | `counts` | — |
 | `has_events` | — |
 | `clear` | — |
+
+---
+
+### `ecu/version_resolver.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `_ECM_TABLE` | `None` |
 
 ---
 

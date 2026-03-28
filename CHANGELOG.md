@@ -1,6 +1,20 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
+---
+
+##[v2.5.29] — 2026-03-28
+### Added
+- Deterministic ECU variant resolution using `ecu_defs/files.xml`.
+- New ECU version resolver maps `get_version()` strings (e.g. `BUEIB310`) to the correct EEPROM XML definition via `dbfile`.
+
+### Changed
+- EEPROM parameter decoding no longer relies on heuristic prefix matching.
+- XML selection for EEPROM decoding is now aligned with EcmSpy behavior.
+
+### Verified
+- BUEIB310 / B2RIB / BUEIC variants correctly resolve to `BUEIB.xml`.
+- Runtime confirmed: `Decoded 173 params from BUEIB.xml`.
 
 ---
 

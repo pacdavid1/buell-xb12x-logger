@@ -1,32 +1,31 @@
 #!/usr/bin/env python3
 """
 ecu/eeprom_params.py — Parser de parámetros EEPROM desde XMLs de EcmSpy.
-Lee ecu_defs/XXXX.xml según version_string de la ECU y decodifica
-todos los parámetros Value del blob de 1206 bytes leído por read_full_eeprom().
 
-Offset mapping:
-  XML offset = posición en archivo XPR (incluye 4 bytes de header)
-  blob_Pi[i] = XPR[i + 4]
-  → blob_Pi[offset_XML - 4]
+Lee ecu_defs/*.xml según la versión real de la ECU resuelta vía files.xml
+y decodifica todos los parámetros type=Value del blob EEPROM.
+
+Este archivo fue reemplazado completamente para evitar edición manual.
 """
+
 import xml.etree.ElementTree as ET
 import logging
 from pathlib import Path
 
+from ecu.version_resolver import resolve_ecu
+
 logger = logging.getLogger("EepromParams")
 
 ECU_DEFS_DIR = Path(__file__).parent.parent / "ecu_defs"
-HEADER_OFFSET = 0  # blob_Pi ya no incluye header XPR — offsets XML son directos
+HEADER_OFFSET = 0  # offsets XML son directos al blob
 
 
-def _find_xml(version_string):
+def _find_xml_fallback(version_string):
     """
-    Mapea version_string → archivo XML.
-    'BUEIB310 12-11-03' → ecu_defs/BUEIB.xml
-    Toma el prefijo alfabético del primer token.
+    Fallback heurístico antiguo (se mantiene solo como respaldo).
     """
-    token = version_string.strip().split()[0]  # 'BUEIB310'
-    prefix = ''.join(c for c in token if c.isalpha())  # 'BUEIB'
+    token = version_string.strip().split()[0]
+    prefix = ''.join(c for c in token if c.isalpha())
     candidates = [
         ECU_DEFS_DIR / f"{prefix}.xml",
         ECU_DEFS_DIR / f"{token}.xml",
@@ -39,14 +38,21 @@ def _find_xml(version_string):
 
 def decode_params(blob, version_string):
     """
-    Decodifica parámetros Value del blob EEPROM (1206 bytes).
-    Retorna lista de dicts:
-      {name, offset, raw, value, units, scale, translate, remark}
-    Solo procesa type=Value con offset >= HEADER_OFFSET.
+    Decodifica parámetros EEPROM type=Value del blob.
+    Retorna lista de dicts con:
+      name, offset, size, raw, value, units, remark
     """
-    xml_path = _find_xml(version_string)
-    if xml_path is None:
-        logger.warning(f"No se encontró XML para: {version_string}")
+
+    ecu = resolve_ecu(version_string)
+
+    if ecu:
+        xml_path = ECU_DEFS_DIR / f"{ecu.get('dbfile')}.xml"
+    else:
+        logger.warning(f"No se pudo resolver ECU para '{version_string}', usando fallback")
+        xml_path = _find_xml_fallback(version_string)
+
+    if not xml_path or not xml_path.exists():
+        logger.warning(f"No se encontró XML válido para '{version_string}'")
         return []
 
     try:
@@ -56,52 +62,53 @@ def decode_params(blob, version_string):
         logger.error(f"Error parseando {xml_path}: {e}")
         return []
 
-    # Detectar namespace del XML
-    ns_tag = root.tag  # '{BUEIB}dataSet' o similar
+    # detectar namespace
+    ns_tag = root.tag
     ns = ns_tag.split('}')[0].lstrip('{') if '}' in ns_tag else ''
     prefix = f'{{{ns}}}' if ns else ''
 
     results = []
+
     for e in root.findall(f'{prefix}eeoffsets'):
         ptype = e.findtext(f'{prefix}type', default='')
         if ptype != 'Value':
             continue
 
         offset_str = e.findtext(f'{prefix}offset', default='')
-        size_str   = e.findtext(f'{prefix}size', default='1')
+        size_str = e.findtext(f'{prefix}size', default='1')
+
         if not offset_str:
             continue
 
         offset = int(offset_str)
-        size   = int(size_str) if size_str else 1
+        size = int(size_str) if size_str else 1
         blob_i = offset - HEADER_OFFSET
 
         if blob_i < 0 or blob_i + size > len(blob):
             continue
 
         try:
-            scale     = float(e.findtext(f'{prefix}scale',     default='1') or 1)
+            scale = float(e.findtext(f'{prefix}scale', default='1') or 1)
             translate = float(e.findtext(f'{prefix}translate', default='0') or 0)
         except ValueError:
             scale, translate = 1.0, 0.0
 
-        # Leer raw — 1 o 2 bytes big-endian
         if size == 2:
-            raw = blob[blob_i] | (blob[blob_i + 1] << 8)  # little-endian
+            raw = blob[blob_i] | (blob[blob_i + 1] << 8)
         else:
             raw = blob[blob_i]
 
         value = round(raw * scale + translate, 4)
 
         results.append({
-            'name':      e.findtext(f'{prefix}name',    default='?'),
-            'offset':    offset,
-            'size':      size,
-            'raw':       raw,
-            'value':     value,
-            'units':     e.findtext(f'{prefix}units',   default=''),
-            'remark':    e.findtext(f'{prefix}remarks', default='') or
-                         e.findtext(f'{prefix}remark',  default=''),
+            'name': e.findtext(f'{prefix}name', default='?'),
+            'offset': offset,
+            'size': size,
+            'raw': raw,
+            'value': value,
+            'units': e.findtext(f'{prefix}units', default=''),
+            'remark': e.findtext(f'{prefix}remarks', default='')
+                      or e.findtext(f'{prefix}remark', default=''),
         })
 
     logger.info(f"Decoded {len(results)} params from {xml_path.name}")
@@ -110,7 +117,6 @@ def decode_params(blob, version_string):
 
 def decode_params_dict(blob, version_string):
     """
-    Igual que decode_params pero retorna dict keyed por name.
-    Para acceso rápido por nombre.
+    Igual que decode_params pero indexado por nombre.
     """
     return {p['name']: p for p in decode_params(blob, version_string)}
