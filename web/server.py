@@ -255,58 +255,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({"url": url, "action": action})
             return
 
-        if path == '/games/roms':
-            games_dir = Path('/home/pi/buell/games')
-            roms = []
-            if games_dir.exists():
-                for f in sorted(games_dir.glob('*.gb')):
-                    roms.append({'file': f.name, 'name': f.stem})
-                for f in sorted(games_dir.glob('*.gbc')):
-                    roms.append({'file': f.name, 'name': f.stem})
-            self._json({"roms": roms})
-            return
-        if path.startswith('/games/play'):
-            rom = self.path.split('rom=')[-1].split('&')[0] if 'rom=' in self.path else ''
-            rom = urllib.parse.unquote(rom)
-            html = """<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Game Boy</title>
-<style>
-body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden;}
-#game{max-width:100%;max-height:100%;}
-</style>
-</head>
-<body>
-<div id="game"></div>
-<script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
-<script>
-EJS_player = "#game";
-EJS_core = "gb";
-EJS_gameUrl = "/games/rom/""" + rom + """";
-EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
-</script>
-</body>
-</html>"""
-            self._html(html)
-            return
-        if path.startswith('/games/rom/'):
-            rom = path.split('/games/rom/')[-1]
-            rom = urllib.parse.unquote(rom)
-            rom_path = Path('/home/pi/buell/games') / rom
-            if rom_path.exists():
-                with open(rom_path, 'rb') as f:
-                    data = f.read()
-                self.send_response(200)
-                self.send_header('Content-Type', 'application/octet-stream')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                self.wfile.write(data)
-            else:
-                self._json({"error": "rom not found"}, 404)
-            return
         if path == '/ride_note':
             try:
                 params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
