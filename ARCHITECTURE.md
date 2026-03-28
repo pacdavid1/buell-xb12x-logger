@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-28 14:51 | versión: v1.16.3-183-gf43133c
+> Última actualización: 2026-03-28 15:08 | versión: v1.16.3-184-g53586fd
 
 ---
 
@@ -680,7 +680,6 @@ Upd |
 - `ve`
 - `cfg`
 - `net`
-- `games`
 
 **Funciones JS**
 
@@ -755,9 +754,6 @@ Upd |
 - `calcTpsPct()`
 - `saveTpsCal()`
 - `startTpsCapture()`
-- `initGamesPane()`
-- `loadRomList()`
-- `loadRom()`
 
 ---
 

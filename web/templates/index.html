@@ -260,7 +260,6 @@ table.veg td:active{filter:brightness(1.6)}
   <div class="tab" onclick="showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()">VE</div>
   <div class="tab" onclick="showTab('cfg');trackUsage('tab_config');loadUsageStats()">Config</div>
   <div class="tab" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</div>
-  <div class="tab" onclick="showTab('games');trackUsage('tab_games')">Games</div>
 </div>
 
 <!-- PANE RIDE -->
@@ -623,31 +622,6 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 </div>
 
-<!-- PANE GAMES -->
-<div class="pane content" id="pane-games">
-  <div style="padding:12px 16px">
-    <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:12px">GAME BOY EMULATOR</div>
-    <div id="gamesStatus" style="color:var(--accent);margin-bottom:12px">Cargando...</div>
-    <div id="gamesContainer" style="display:none">
-      <div style="margin-bottom:12px">
-        <select id="romSelect" style="background:var(--panel);color:var(--fg);border:1px solid var(--border);padding:4px 8px;font-family:var(--mono);font-size:11px;width:100%">
-          <option value="">-- Selecciona ROM --</option>
-        </select>
-      </div>
-      <div id="emuFrame" style="width:100%;height:400px;background:#000;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--dim);font-family:var(--mono);font-size:11px">
-        Selecciona un ROM
-      </div>
-      <div style="margin-top:12px;display:flex;gap:8px">
-        <button onclick="loadRom()" style="flex:1;background:var(--accent);color:#000;border:none;padding:8px;font-family:var(--mono);font-size:10px;cursor:pointer">CARGAR</button>
-      </div>
-    </div>
-    <div id="gamesDisabled" style="display:none;color:var(--red);font-family:var(--mono);font-size:11px">
-      No disponible durante ride activo
-    </div>
-  </div>
-</div>
-
-<div class="pane content" id="pane-net">
   <!-- Modal de transicion de red -->
   <div id="switchModal" style="display:none;background:var(--panel);border:1px solid var(--accent);
        border-radius:6px;padding:16px;margin-bottom:12px;font-family:var(--mono);font-size:11px;
@@ -703,7 +677,7 @@ let lastData = null;
 
 // ── TABS ──────────────────────────────────────────────────────────
 function showTab(id) {
-  const ids = ['ride','rides','graph','ve','cfg','net','games'];
+  const ids = ['ride','rides','graph','ve','cfg','net'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-'+id).classList.add('active');
@@ -711,7 +685,6 @@ function showTab(id) {
   if(id==='ve')      { setTimeout(loadEepromParams, 0); }
   if(id==='rides')   loadRidesList();
   if(id==='graph')   initGraphPane();
-  if(id==='games')   initGamesPane();
 }
 
 // ── GRID ──────────────────────────────────────────────────────────
@@ -2200,44 +2173,6 @@ loadTpsCal();
 // cargar cal al arrancar (no solo al abrir tab)
 document.addEventListener("DOMContentLoaded", ()=>{ loadTpsCal(); loadVssCal(); buildGrid(); fetchLive(); });
 
-// --- GAME BOY EMULATOR ---
-let _rideActiveForGames = false;
-
-function initGamesPane() {
-  fetch("/live.json").then(r=>r.json()).then(d=>{
-    _rideActiveForGames = d.ride_active;
-    if(d.ride_active) {
-      document.getElementById("gamesStatus").style.display="none";
-      document.getElementById("gamesContainer").style.display="none";
-      document.getElementById("gamesDisabled").style.display="block";
-    } else {
-      document.getElementById("gamesStatus").style.display="none";
-      document.getElementById("gamesContainer").style.display="block";
-      document.getElementById("gamesDisabled").style.display="none";
-      loadRomList();
-    }
-  });
-}
-
-function loadRomList() {
-  fetch("/games/roms").then(r=>r.json()).then(d=>{
-    const sel = document.getElementById("romSelect");
-    sel.innerHTML = "<option value=\"\">-- Selecciona ROM --</option>";
-    d.roms.forEach(r=>{
-      const opt = document.createElement("option");
-      opt.value = r.file;
-      opt.textContent = r.name;
-      sel.appendChild(opt);
-    });
-  });
-}
-
-function loadRom() {
-  const file = document.getElementById("romSelect").value;
-  if(!file) return;
-  const frame = document.getElementById("emuFrame");
-  frame.innerHTML = "<iframe src=\"/games/play?rom="+encodeURIComponent(file)+"\" style=\"width:100%;height:100%;border:none;\"></iframe>";
-}
 </script>
 </body>
 </html>
