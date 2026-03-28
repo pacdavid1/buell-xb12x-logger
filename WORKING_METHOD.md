@@ -256,6 +256,17 @@ Exact changes made and in which files.
 ### Result
 Observed behavior after the fix.
 ```
+---
+
+## 🔍 Mandatory Raspberry Pi snapshot
+
+Before starting **any debugging session, refactor, UI change, or renaming task**,
+the current state of the Raspberry Pi and repository MUST be captured.
+
+Run:
+
+```bash
+./tools/diagnose_pi.sh
 
 ---
 
