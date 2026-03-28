@@ -430,10 +430,47 @@ table.veg td:active{filter:brightness(1.6)}
     <span style="display:inline-block;width:12px;height:12px;background:#c85000;margin-right:4px;margin-left:8px;vertical-align:middle"></span>alto ·
     Eje X = RPM · Eje Y = TPS (Load)
   </div>
+
+  
+  <div id="ecu-params-panel" style="
+       margin-top:24px;
+       padding-top:16px;
+       border-top:1px solid var(--border);
+       display:block;
+       position:relative;
+  ">
+
+    <div class="cfg-title" style="margin-bottom:8px">
+      ECU Parameters (EEPROM)
+    </div>
+<!-- PARAMETROS EEPROM -->
+  <div class="cfg-section">
+    <div class="cfg-title">Parametros EEPROM
+      <button class="btn" style="font-size:9px;padding:3px 8px;float:right" onclick="loadEepromParams()">Refrescar</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
+      173 parametros leidos desde la ECU - Solo lectura por ahora
+    </div>
+  </div>
+
+
+</div>
+
 </div>
 
 <!-- PANE CONFIG -->
 <div class="pane content" id="pane-cfg">
+  
+<div style="
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:.15em;
+  color:#aaa;
+  margin-bottom:12px;
+">
+  CONFIGURATION
+</div>
+
   <div class="cfg-section" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px">
     <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em">LOGGER VERSION</div>
     <div style="font-family:var(--mono);font-size:14px;color:#7df;margin-top:4px;font-weight:bold" id="cfgVersion">--</div>
@@ -581,14 +618,7 @@ table.veg td:active{filter:brightness(1.6)}
       </div>
     </div>
   </div>
-  <!-- PARAMETROS EEPROM -->
-  <div class="cfg-section">
-    <div class="cfg-title">Parametros EEPROM
-      <button class="btn" style="font-size:9px;padding:3px 8px;float:right" onclick="loadEepromParams()">Refrescar</button>
-    </div>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
-      173 parametros leidos desde la ECU - Solo lectura por ahora
-    </div>
+  
     <div id="eepromParamsTable" style="font-family:var(--mono);font-size:9px"></div>
   </div>
 </div>
@@ -678,6 +708,7 @@ function showTab(id) {
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-'+id).classList.add('active');
   if(id==='cfg')     { loadObj(); loadTpsCal(); loadVssCal(); loadEcu(); loadEepromParams(); }
+  if(id==='ve')      { setTimeout(loadEepromParams, 0); }
   if(id==='rides')   loadRidesList();
   if(id==='graph')   initGraphPane();
   if(id==='games')   initGamesPane();

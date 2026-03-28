@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-28 11:50 | versión: v1.16.3-181-gb7303f1
+> Última actualización: 2026-03-28 14:16 | versión: v1.16.3-182-g85717fe
 
 ---
 
@@ -165,7 +165,18 @@ buell-xb12x-logger/
 │   ├── eeprom_spark_maps_fix.py
 │   ├── make_index.py
 │   ├── test_ecu.py
-│   └── test_ecu.py.save
+│   ├── test_ecu.py.save
+│   ├── ui_fix_close_pane_ve_fix.py
+│   ├── ui_fix_config_visibility_fix.py
+│   ├── ui_fix_eeprom_params_timing_in_ve_fix.py
+│   ├── ui_fix_showtab_linesafe_fix.py
+│   ├── ui_fix_showtab_mapping_fix.py
+│   ├── ui_fix_showtab_mapping_robust_fix.py
+│   ├── ui_fix_showtab_rewrite_fix.py
+│   ├── ui_fix_showtab_safe_literal_fix.py
+│   ├── ui_load_eeprom_params_in_ve_fix.py
+│   ├── ui_move_eeprom_params_to_ve_fix.py
+│   └── ui_wrap_eeprom_params_in_ve_panel_fix.py
 ├── web
 │   ├── static
 │   │   └── emulatorjs
@@ -640,6 +651,203 @@ Upd |
 | `SOT` | `2` |
 | `EOT` | `3` |
 | `ACK` | `6` |
+
+---
+
+### `tools/ui_fix_close_pane_ve_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `MARKER` | `<!-- PANE CONFIG -->` |
+
+---
+
+### `tools/ui_fix_config_visibility_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `MARKER` | `<div class="pane content" id="pane-cfg">` |
+| `INSERT` | `
+<div style="
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:.15em;
+  color:#aaa;
+  margin-bottom:12px;
+">
+  CONFIGURATION
+</div>
+` |
+
+---
+
+### `tools/ui_fix_eeprom_params_timing_in_ve_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `OLD` | `if(id==='ve')      { loadEepromParams(); }` |
+| `NEW` | `if(id==='ve')      { setTimeout(loadEepromParams, 0); }` |
+
+---
+
+### `tools/ui_fix_showtab_linesafe_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `OLD_LINES` | `  const ids = ['ride','rides','graph','ve','cfg','net','games'];
+  document.querySelectorAll('.tab').forEach((t,i) =&gt; t.classList.toggle('active', ids[i]===id));` |
+| `NEW_LINES` | `  document.querySelectorAll('.tab')
+    .forEach(t =&gt; {
+      const oc = t.getAttribute('onclick');
+      t.classList.toggle(
+        'active',
+        oc &amp;&amp; oc.includes("showTab('" + id + "')")
+      );
+    });` |
+
+---
+
+### `tools/ui_fix_showtab_mapping_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `OLD` | `  const ids = ['ride','rides','graph','ve','cfg','net','games'];
+  document.querySelectorAll('.tab')
+    .forEach((t,i) => t.classList.toggle('active', ids[i]===id));` |
+| `NEW` | `  document.querySelectorAll('.tab')
+    .forEach(t => t.classList.toggle(
+      'active',
+      t.getAttribute('onclick') &&
+      t.getAttribute('onclick').includes("showTab('"+id+"')")
+    ));` |
+
+---
+
+### `tools/ui_fix_showtab_mapping_robust_fix.py`
+
+---
+
+### `tools/ui_fix_showtab_rewrite_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `NEW_SHOWTAB` | `function showTab(id) {
+  // Activar tab correcto sin depender de índices
+  document.querySelectorAll('.tab')
+    .forEach(t => {
+      const oc = t.getAttribute('onclick');
+      t.classList.toggle(
+        'active',
+        oc && oc.includes("showTab('" + id + "')")
+      );
+    });
+
+  // Ocultar todos los panes
+  document.querySelectorAll('.pane')
+    .forEach(p => p.classList.remove('active'));
+
+  // Mostrar pane correcto
+  const pane = document.getElementById('pane-' + id);
+  if (pane) pane.classList.add('active');
+
+  // Loaders por pestaña
+  if (id === 'cfg') {
+    loadObj();
+    loadTpsCal();
+    loadVssCal();
+    loadEcu();
+  }
+
+  if (id === 've') {
+    setTimeout(loadEepromParams, 0);
+  }
+
+  if (id === 'rides') loadRidesList();
+  if (id === 'graph') initGraphPane();
+  if (id === 'games') initGamesPane();
+}` |
+
+---
+
+### `tools/ui_fix_showtab_safe_literal_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `OLD` | `  const ids = ['ride','rides','graph','ve','cfg','net','games'];
+  document.querySelectorAll('.tab').forEach((t,i) =&gt; t.classList.toggle('active', ids[i]===id));` |
+| `NEW` | `  document.querySelectorAll('.tab')
+    .forEach(t =&gt; {
+      const oc = t.getAttribute('onclick');
+      t.classList.toggle(
+        'active',
+        oc &amp;&amp; oc.includes("showTab('" + id + "')")
+      );
+    });` |
+
+---
+
+### `tools/ui_load_eeprom_params_in_ve_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `OLD_LINE` | `  if(id==='cfg')     { loadObj(); loadTpsCal(); loadVssCal(); loadEcu(); loadEepromParams(); }` |
+| `NEW_LINE` | `  if(id==='cfg')     { loadObj(); loadTpsCal(); loadVssCal(); loadEcu(); loadEepromParams(); }
+  if(id==='ve')      { loadEepromParams(); }` |
+
+---
+
+### `tools/ui_move_eeprom_params_to_ve_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `MARKER_EEPROM` | `<!-- PARAMETROS EEPROM -->` |
+| `MARKER_PANE_VE` | `<!-- PANE VE -->` |
+| `MARKER_MAP_LEGEND` | `<div id="mapLegend"` |
+
+---
+
+### `tools/ui_wrap_eeprom_params_in_ve_panel_fix.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `MARKER` | `<!-- PARAMETROS EEPROM -->` |
+| `WRAP_START` | `
+  <div id="ecu-params-panel" style="
+       margin-top:24px;
+       padding-top:16px;
+       border-top:1px solid var(--border);
+       display:block;
+       position:relative;
+  ">
+` |
+| `WRAP_TITLE` | `
+    <div class="cfg-title" style="margin-bottom:8px">
+      ECU Parameters (EEPROM)
+    </div>
+` |
+| `WRAP_END` | `
+  </div>
+` |
 
 ---
 
