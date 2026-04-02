@@ -258,7 +258,7 @@ table.veg td:active{filter:brightness(1.6)}
   <div class="tab" onclick="showTab('rides');trackUsage('tab_sesiones')">Sesiones</div>
   <div class="tab" onclick="showTab('graph');trackUsage('tab_graph')">Graf</div>
   <div class="tab" onclick="showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()">VE</div>
-  <div class="tab" onclick="showTab('cfg');trackUsage('tab_config');loadUsageStats()">Config</div>
+  <div class="tab" onclick="showTab('cfg');trackUsage('tab_config')">Config</div>
   <div class="tab" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</div>
 </div>
 
@@ -344,6 +344,9 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 </div>
 
+
+</div>
+<!-- /PANE NET -->
 
 <!-- PANE GRAPH -->
 <div class="pane content" id="pane-graph">
@@ -575,24 +578,10 @@ table.veg td:active{filter:brightness(1.6)}
         onclick="if(confirm('Restart logger? Active ride will be saved.')) doRestartLogger()">
         &#x1F504; Restart Logger
       </button>
-      <button class="btn-danger" style="padding:10px" onclick="doRebootPi()">&#x1F501; Reboot Pi</button>
     </div>
     <button class="btn-danger" style="width:100%;margin-bottom:4px" onclick="confirmShutdown()">Apagar Pi</button>
   </div>
 
-  <div class="cfg-section">
-    <div class="cfg-title">Uso de funciones</div>
-    <div id="usageList" style="margin-bottom:8px">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--dim)">Cargando...</div>
-    </div>
-    <div style="display:flex;gap:6px">
-      <a href="/usage_stats" download="usage_stats.json"
-         style="flex:1;text-align:center;font-family:var(--mono);font-size:9px;color:var(--blue);
-                text-decoration:none;border:1px solid var(--blue);padding:6px 0"
-         onclick="trackUsage('btn_download_usage')">⬇ Descargar JSON</a>
-      <button class="btn" style="flex:1;font-size:9px" onclick="clearUsageStats()">Limpiar</button>
-    </div>
-  </div>
 
   <div class="cfg-section">
     <div class="cfg-title" style="cursor:pointer" onclick="toggleEcu()">
@@ -622,10 +611,9 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 </div>
 
-  <!-- Modal de transicion de red -->
-  <div id="switchModal" style="display:none;background:var(--panel);border:1px solid var(--accent);
-       border-radius:6px;padding:16px;margin-bottom:12px;font-family:var(--mono);font-size:11px;
-       color:var(--text);line-height:1.6;text-align:center"></div>
+<!-- PANE NET -->
+<div class="pane content" id="pane-net">
+
   <!-- Estado de red -->
   <div class="cfg-section">
     <div class="cfg-title">Red activa</div>
@@ -1457,42 +1445,11 @@ function exitHistory(){
 }
 
 // ── USAGE TRACKER ─────────────────────────────────────────────────
-function trackUsage(action){
-  fetch('/usage',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action})}).catch(()=>{});
-}
+function trackUsage(action){}
 
-async function loadUsageStats(){
-  const el=document.getElementById('usageList'); if(!el) return;
-  try{
-    const d=await(await fetch('/usage_stats?t='+Date.now())).json();
-    const entries=Object.entries(d).filter(([k])=>k!=='last_updated')
-      .sort((a,b)=>b[1]-a[1]);
-    if(!entries.length){ el.innerHTML='<div style="color:var(--dim);font-size:9px">Sin datos aún</div>'; return; }
-    const max=entries[0][1]||1;
-    el.innerHTML=entries.map(([k,v])=>{
-      const pct=Math.round(v/max*100);
-      return `<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-        <div style="font-family:var(--mono);font-size:8px;color:var(--dim);width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${k}</div>
-        <div style="flex:1;background:#222;height:6px;border-radius:2px">
-          <div style="width:${pct}%;background:#7df;height:100%;border-radius:2px"></div>
-        </div>
-        <div style="font-family:var(--mono);font-size:8px;color:#fff;width:24px;text-align:right">${v}</div>
-      </div>`;
-    }).join('');
-    const upd=d.last_updated||'';
-    if(upd) el.insertAdjacentHTML('beforeend',`<div style="font-family:var(--mono);font-size:7px;color:var(--dim);margin-top:6px">${upd}</div>`);
-  }catch(e){ el.innerHTML='<div style="color:var(--dim);font-size:9px">Error</div>'; }
-}
 
-async function clearUsageStats(){
-  if(!confirm('¿Limpiar todos los contadores de uso?')) return;
-  await fetch('/usage',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'__clear__'})}).catch(()=>{});
-  // limpiar en servidor vía endpoint dedicado
-  await fetch('/usage_clear',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).catch(()=>{});
-  loadUsageStats();
-}
+
+
 
 
 // ── GRÁFICAS ──────────────────────────────────────────────────────
@@ -1979,15 +1936,6 @@ async function doRestartLogger(){
     await fetch('/restart_logger',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     alert('Logger reiniciando... reconecta en ~10 segundos');
   }catch(e){ /* normal — el proceso muere antes de responder */ }
-}
-
-async function doRebootPi(){
-  if(!confirm('¿Reiniciar la Pi completa?')) return;
-  trackUsage('btn_reboot_pi');
-  try{
-    await fetch('/reboot_pi',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-    alert('Pi reiniciando... reconecta en ~30 segundos');
-  }catch(e){ /* normal */ }
 }
 
 // Long press 3s on RIDE pane → close ride + reboot Pi
