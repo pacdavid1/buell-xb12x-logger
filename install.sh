@@ -145,7 +145,7 @@ After=network.target
 Wants=network.target
 
 [Service]
-ExecStart=/usr/bin/python3 /home/pi/buell/main.py --port /dev/ttyUSB0 --sessions-dir /home/pi/buell/sessions --buell-dir /home/pi/buell
+ExecStart=/usr/bin/python3 /home/pi/buell/main.py --port /dev/ttyECU --sessions-dir /home/pi/buell/sessions --buell-dir /home/pi/buell
 WorkingDirectory=/home/pi/buell
 Restart=on-failure
 RestartSec=5

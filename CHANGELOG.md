@@ -1117,3 +1117,13 @@ Base version from which active development started.
 - Fix applied to `/boot/firmware/config.txt` (outside repo — system-level config).
 - Diagnosed via `dmesg` and `lsusb`: kernel was attempting USB enumeration but failing with `error -71`.
 - Co-diagnosed: Claude (Anthropic) — 2026-04-01
+
+---
+## [v2.5.32] — 2026-04-01
+### Added
+- udev rule `/etc/udev/rules.d/99-ecu-serial.rules` — auto-detects FT232RL (0403:6001) and CH343P (1a86:55d3), both symlinked to `/dev/ttyECU`.
+- `ftdi_sio` driver added to `/etc/modules-load.d/ftdi.conf` for automatic load on boot.
+- Service and install.sh updated to use `/dev/ttyECU` — adapter-agnostic, no code changes needed when switching TTL adapters.
+### Notes
+- CH343P (isolated) validated as drop-in replacement for FT232RL.
+- Co-diagnosed: Claude (Anthropic) — 2026-04-01
