@@ -1,6 +1,30 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
-> Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1  
+> Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
+---
+
+## [v2.5.32] — 2026-04-01
+### Added
+- udev rule `/etc/udev/rules.d/99-ecu-serial.rules` — auto-detects FT232RL (0403:6001) and CH343P (1a86:55d3), both symlinked to `/dev/ttyECU`.
+- `ftdi_sio` driver added to `/etc/modules-load.d/ftdi.conf` for automatic load on boot.
+- Service and install.sh updated to use `/dev/ttyECU` — adapter-agnostic, no code changes needed when switching TTL adapters.
+### Notes
+- CH343P (isolated) validated as drop-in replacement for FT232RL.
+- Co-diagnosed: Claude (Anthropic) — 2026-04-01
+
+
+---
+
+## [v2.5.31] — 2026-04-01
+### Fixed
+- USB host mode not working on Pi Zero 2W after OS update.
+- `dtoverlay=dwc2,dr_mode=host` was scoped under `[cm5]` in `/boot/firmware/config.txt` instead of `[all]`, causing FT232RL to never be detected by the kernel.
+- Moved overlay to `[all]` section — FT232RL now enumerates correctly as `ttyUSB0` on boot.
+### Notes
+- Fix applied to `/boot/firmware/config.txt` (outside repo — system-level config).
+- Diagnosed via `dmesg` and `lsusb`: kernel was attempting USB enumeration but failing with `error -71`.
+- Co-diagnosed: Claude (Anthropic) — 2026-04-01
+
 
 ---
 
@@ -16,8 +40,8 @@
 - Values are coherent across RPM/TPS with no diagonal padding artifacts.
 - Runtime validated against EEPROM: Spark Advance visible and consistent.
 
-
 ---
+
 
 ## [v2.5.29] — 2026-03-28
 ### Added
@@ -32,403 +56,9 @@
 - BUEIB310 / B2RIB / BUEIC variants correctly resolve to `BUEIB.xml`.
 - Runtime confirmed: `Decoded 173 params from BUEIB.xml`.
 
----
-
-## [2.5.28] - 2026-03-25
-### Added
-- `index.html`: header row 3 — 系統/freeze indicator (正常/凍結) and 終 close-ride button
-- `index.html`: freeze indicator — detects >5s without live.json update, shows 凍結 in red
-- `index.html`: self-contained shutdown modal (電源關閉) — no longer depends on bottom sheet overlay
-### Changed
-- `index.html`: close ride button moved to header row 3, cyberpunk style (終)
-- `index.html`: removed confirm() dialog from closeRide — closes immediately
-- `index.html`: removed scrollbars from VE heatmap and map container
-- `index.html`: removed cell tap sheet — openSheet/closeSheet/overlay removed
-- `index.html`: close ride button disabled/faded when no active ride instead of hidden
 
 ---
 
-## [2.5.27] - 2026-03-25
-### Fixed
-- `web/server.py`: added `GET /ride_note` endpoint — loads existing note text into modal
-- `web/server.py`: added `POST /ride_note` endpoint — saves note to `ride_{session}_{num:03d}_notes.txt`
-- `web/server.py`: `/close_ride` now returns `session` and `ride_num` in response — note modal opens correctly after closing a ride
----
-
-## [2.5.26] - 2026-03-22
-### Fixed
-- `ecu/session.py`: checksum now hashes only EEPROM bytes 327+ (tune region) — excludes volatile bytes 0-326 (DTC counters, boot state)
-- `main.py`: session opens from cached EEPROM when `get_version()` fails but ECU sends RT data
-### Notes
-- Sessions 917900 and 6207C9 were same tune — now correctly maps to 243FAC
-- Stable checksum means same tune = same session across restarts
----
-
-## [2.5.25] - 2026-03-22
-### Added
-- `web/templates/index.html`: 通信斷開 banner — large red alert when ECU signal lost during active ride
-- `main.py`: exposes `ecu_connected`, `ecu_lost_s`, `ride_active`, `elapsed_s` to WebServer on every frame
-- `web/server.py`: `_get_live()` now returns `ecu_connected`, `ecu_lost_s`, `ride_active`, `elapsed_s` from live thread
-### Notes
-- Banner only shows during active ride — not on startup or idle
-- Compatible with long press 3s reboot — banner is non-blocking
----
-
-## [2.5.24] - 2026-03-22
-### Added
-- `ecu/protocol.py`: added `ttl_pct`, `cpu_pct`, `cpu_temp`, `mem_pct` to CSV_COLUMNS
-- `main.py`: Pi telemetry injected into each sample before `write_sample()` — pulled from `web.serial_stats`
----
-
-## [2.5.23] - 2026-03-22
-### Fixed
-- `web/server.py`: rides without summary.json now extract `opened_utc` from CSV `timestamp_iso` column — sorts correctly by date
----
-
-## [2.5.22] - 2026-03-22
-### Fixed
-- `web/templates/index.html`: long press on RIDE pane no longer selects text (`user-select:none`)
-- `web/templates/index.html`: `preventDefault` on pointerdown prevents context menu interference
-- `web/templates/index.html`: 30px movement tolerance — vibration while riding no longer cancels countdown
----
-
-## [2.5.21] - 2026-03-22
-### Changed
-- `web/templates/index.html`: sessions tab now sorted by most recent ride date descending
-- `web/templates/index.html`: session header shows readable date next to checksum
----
-
-## [2.5.20] - 2026-03-22
-### Added
-- `web/templates/index.html`: Restart Logger + Reboot Pi buttons now side-by-side 2-column grid in CONFIG
-- `web/templates/index.html`: long press 3s on RIDE pane → saves active ride + reboots Pi (countdown overlay)
-- `web/server.py`: `/close_ride` endpoint — calls `session.close_current_ride(reason="dashboard_request")`
-- `main.py`: `self.web.session = self.session` — SessionManager now accessible from WebServer
-### Fixed
-- Button labels changed to English: "Restart Logger", "Reboot Pi"
----
-
-## [2.5.19] - 2026-03-22
-### Fixed
-- `web/server.py`: added `/restart_logger` endpoint — restarts buell-logger service via systemd
-- `web/server.py`: added `/reboot_pi` endpoint — reboots Pi using `sudo /usr/sbin/reboot`
-- `/etc/sudoers.d/buell-reboot`: added NOPASSWD rule for `/usr/sbin/reboot`
-### Closed
-- TASK-3: Restart Logger and Reboot Pi buttons now functional
-
----
-
-## [2.5.18] - 2026-03-22
-### Changed
-- `ecu/session.py`: ride filenames now include session checksum — `ride_{checksum}_{NNN}.csv`
-- `ecu/session.py`: summary and errorlog filenames follow same pattern
-- `web/server.py`: `_get_rides()` uses `sf.name` directly instead of hardcoded filename
-- `web/server.py`: fallback CSV parse uses `split('_')[-1]` — backward compat old + new format
-- `web/server.py`: CSV handler derives path from `filename` stem — no longer hardcodes `ride_num`
-- `web/templates/index.html`: ride list shows filename-based label; download uses correct filename
-### Notes
-- Existing rides with old format (`ride_NNN.csv`) continue to load correctly
-
----
-
-## [2.5.17] - 2026-03-22
-### Fixed
-- `ecu/eeprom.py`: map reading rewritten — zero bytes are row separators, not structural markers
-- Previous logic read fixed 13-byte rows and treated zeros as empty cells — incorrect
-- Actual structure: 156 bytes = 11 zero separators + 12 segments of 13 values each
-- Each segment contains one complete row in descending RPM order (RPM=8k→RPM=0)
-- After reversal each row is in ascending RPM order matching the axis
-- Load=255 has only 2 valid values (RPM=7k, RPM=8k) — remaining 11 cols padded as None
-- `web/templates/index.html`: map cell renderer now handles null (empty region) correctly
-### Validated
-- Fuel Front verified cell-by-cell against EcmSpy with unique-value test matrix (values 10-165)
-- All 156 values match EcmSpy exactly after fix- `ecu/eeprom.py`: map reading now correctly splits by zero-byte separators
-- Each segment between zeros contains exactly 13 values in descending RPM order
-- Removed incorrect row trimming — all 13 values per row are now valid
-- Load=255 row padded to 13 cols (only 2 values stored, rest None)
-- `web/templates/index.html`: map renderer now handles null cells correctly
-- All 156 values match EcmSpy exactly
-### Closed
-- BACKLOG-LOG2 final — map display now fully correct
-
----
-
-## [2.5.16] - 2026-03-22
-### Fixed
-- `ecu/eeprom.py`: map rows now reversed to match ascending RPM axis
-- `ecu/eeprom.py`: structural zero cells marked as None (diagonal triangular region)
-- `ecu/session.py`: checksum now covers full EEPROM blob (1206 bytes) instead of first 64
-- `web/server.py`: /maps endpoint falls back to most recent eeprom.bin on disk
-- `web/templates/index.html`: removed legacy RPM period-to-RPM conversion in showMap()
-### Root Cause
-- Map rows stored in descending RPM order in EEPROM — reversal was missing
-- Checksum based on first 64 bytes missed fuel/spark map modifications
-- Full EEPROM checksum now detects any parameter or map change
-### Validated
-- Fuel Front map confirmed against EcmSpy using unique-value test matrix
-- Load=10 row: [10,11,12..22] matches EcmSpy exactly after fix
-
----
-
-## [2.5.15] - 2026-03-22
-### Fixed
-- `ecu/eeprom.py`: RPM axis was read as big-endian — corrected to little-endian
-- `ecu/eeprom.py`: RPM axis stored in descending order in EEPROM — now reversed to ascending
-- Fuel map and spark map columns reversed to match corrected RPM axis
-- VE/FUEL/SPARK tabs now show correct RPM bins (0→8000 instead of mirrored)
-### Root Cause
-- Confirmed by comparing B2RIB.xml offsets against live eeprom.bin dump
-- XML offset 644: fuel RPM axis (13x uint16 LE) stored as [8000..0]
-- Hardcoded bins [0..8000] were correct — reading order was wrong
-### Closed
-- BACKLOG-LOG2
-
----
-
-## [2.5.14] - 2026-03-22
-### Fixed
-- `main.py`: reconnect path now applies same EEPROM fallback logic as startup path
-- If EEPROM fetch fails on reconnect: falls back to most recent cached blob on disk
-- If no blob on disk: uses version string as checksum seed (last resort)
-- Session now always opens on reconnect — ride start no longer silently skipped
-### Root Cause
-- Rides not recorded when Pi boots with engine already running above RPM_START threshold
-- EEPROM fetch failure on reconnect left `current_checksum=None`
-- `write_sample()` was never called despite full telemetry visible in dashboard
-
-## [2.5.13] - 2026-03-21
-### Fixed
-- `main.py`: EEPROM fallback to most recent cached blob on disk if live fetch fails
-- `main.py`: version string used as last-resort checksum if no blob available anywhere
-- Session now always opens regardless of EEPROM read success
-### Known Issue
-- `get_rt_data()` returns None consistently after multiple killswitch/reconnect cycles
-- ECU responds to `get_version()` but not to RT data requests in this state
-- Root cause under investigation — see BACKLOG-LOG6
-### Added
-- BACKLOG-LOG6: RT data failure after killswitch cycles — documented for next session
-
----
-
-## [2.5.12] - 2026-03-21
-### Fixed
-- `main.py`: EEPROM fetch blocked RT loop on reconnect — removed from reconnect path
-- `main.py`: 3s stabilization delay before EEPROM fetch on startup
-- `main.py`: session guard on ride start — no crash when session not yet open
-- `main.py`: ride start guard indentation — `error_log.start()` and log inside `else` block
-- `main.py`: tracker initialized before being passed to web server
-- `web/server.py`: `snapshot()` returns tuple — fixed index from `["cells"]` to `[0]`
-### Added
-- `web/server.py`: live VE cell tracker passed to dashboard via `cell_tracker` attribute
-- VE heatmap now shows live cell coverage in real time during ride
-
----
-
-## [2.5.11] - 2026-03-21
-### Changed
-- `ecu/session.py`: session checksum now derived from first 64 bytes of EEPROM blob instead of version string
-- `main.py`: EEPROM fetched before `open_session()` on both startup and reconnect
-- New session created automatically whenever ECU parameters change
-### Result
-- Session EF4995 (version-based) → Session 9ECD1E (EEPROM-based)
-- Each parameter change in ECU produces a new session folder
-- Rides before/after tuning changes are now correctly separated
-### Closed
-- BACKLOG-ECU4 (partial) — session isolation by EEPROM content implemented
-
----
-
-## [2.5.10] - 2026-03-21
-### Added
-- `index.html`: IP address in Network tab is now tappable — opens `http://IP:8080` directly in new browser tab
-- Works for both WiFi and Hotspot modes, IP always reflects current Pi assignment
-### Closed
-- BACKLOG-UX1
-
----
-
-## [2.5.9] - 2026-03-21
-### Added
-- `main.py`: reads bike Serial Number from EEPROM blob offset 12 (little-endian uint16)
-- `web/server.py`: `bike_serial` field added to `live.json` and `WebServer.__init__`
-- `index.html`: Serial cell in dashboard header row 1 — shows `#651` when ECU connected
-
----
-
-## [2.5.8] - 2026-03-21
-### Fixed
-- `main.py`: sysmon thread was not visible until service restart — confirmed working after `systemctl restart buell-logger`
-- CPU% and TEMP now display correctly in dashboard header at all times
-
-
----
-
-
-## [2.5.7] - 2026-03-21
-### Added
-- `main.py`: `_sysmon_loop` — independent thread, updates CPU% and TEMP every 2s
-- CPU% and TEMP visible in dashboard at all times, regardless of ECU connection
-### Changed
-- `main.py`: sysmon thread starts alongside ECU thread in `run()`
-- Code style: all new comments and docstrings written in English going forward
-
----
-
-## [2.5.6] - 2026-03-21
-### Added
-- `main.py`: CPU% (via `/proc/stat`, delta 1s) y CPU temp (via `/sys/class/thermal/thermal_zone0/temp`) en `serial_stats`
-- `index.html`: celdas CPU% y TEMP en header fila 2 con semáforo (verde/amarillo/rojo)
-- TEMP: amarillo >60°C, rojo >75°C
-- CPU%: amarillo >60%, rojo >80%
-
----
-
-## [2.5.5] - 2026-03-21
-### Added
-- `main.py`: auto-flush FIFO RX del FT232RL cuando `buf_in > 192b` (>50% de 384b)
-- Warning en log: `AUTO-FLUSH FIFO buf_in=Xb >50% — flushed`
-- El CSV registra el valor `buf_in` previo al flush — dato forense intacto
-
----
-
-## [2.5.4] - 2026-03-21
-
-### Fixed
-- `ecu/eeprom_params.py`: revertido fix EGO Min — parser correcto, era diferencia entre fetches distintos
-- Validado EGO Max=105% y EGO Min=95% contra EcmSpy post-burning ✅
-
-### Changed
-- `.gitignore`: agrega `*.save`, `*.save.*`, 
-`network_state.json` - `objectives.json`: versionado en el repo
-
----
-
-## [2.5.3] - 2026-03-21
-
-### Added
-- `web/templates/index.html`: sección "Parámetros EEPROM" en tab cfg — 173 params con valor actual
-- `web/templates/index.html`: función `loadEepromParams()` — agrupa por categoría, muestra nombre/valor/unidades
-- Tab cfg llama `loadEepromParams()` al abrirse
-
-### Fixed
-- `ecu/eeprom_params.py`: validado contra EcmSpy — valores correctos para Fan, RPM limits, Serial, Year
-
-### Backlog
-- ECM MODEL DETECTION: investigar cómo EcmSpy mapea version_string→model code (BUEIB310→B2RIB). Actualmente usamos BUEIB.xml pero la ECU es B2RIB. Diferencia crítica en offset 574 (Bank Angle Sensor scale 0.01 vs 10.0)
-- ECM MODEL SELECTOR: permitir al usuario seleccionar manualmente el XML correcto en cfg si la detección automática falla
-- EGO MIN NEGATIVO: EGO Correction Minimum Value muestra 950% pero EcmSpy dice 50% — investigar signed encoding o translate especial para este parámetro
-- EDITOR EEPROM: tabla con valor actual + campo editable por parámetro, aviso de cambio de checksum al guardar
-- HISTORIAL FETCHES EEPROM: guardar cada fetch con timestamp, poder revertir desde dashboard
-- VIN/ID MOTO: usar ECM Serial Number (offset 12, valor 651) para identificar moto — advertir si EEPROM cargada es de otra moto
-- AUTO-FLUSH FIFO: reset_input_buffer() cuando buf_pct > umbral para prevenir saturación en FT232 de baja calidad
-
----
-
-## [2.5.2] - 2026-03-21
-
-### Fixed
-- `ecu/eeprom_params.py`: HEADER_OFFSET corregido de 4 a 0 — offsets XML son directos al blob de la Pi
-- `ecu/eeprom_params.py`: encoding corregido a little-endian para parámetros size=2
-- Validado 7/7 contra EcmSpy: Serial=651, Year=2006, FanOn=220°C, FanOff=180°C, KO_On=170°C, KO_Off=150°C, AFV=100%
-
-### Backlog
-- EDITOR EEPROM: tabla agrupada por categoría, valor actual + campo editable, aviso cambio checksum
-- HISTORIAL FETCHES: poder revertir a versión anterior de EEPROM desde dashboard
-- VIN/ID MOTO: usar ECM Serial Number para identificar moto y advertir si EEPROM es de otra moto
-- AUTO-FLUSH FIFO: reset_input_buffer() cuando buf_pct > umbral
-
----
-
-## [2.5.1] - 2026-03-21
-
-### Added
-- `ecu/protocol.py`: columna `buf_in` al CSV — bytes acumulados en FIFO RX del FT232RL por sample
-- `main.py`: inyecta `ser.in_waiting` en cada sample antes de `write_sample()`
-- Diagnóstico forense: correlación temporal buffer↔errores en el CSV
-
-### Backlog
-- AUTO-FLUSH: limpiar FIFO RX automáticamente cuando `buf_pct > umbral` via `ser.reset_input_buffer()` para prevenir saturación en FT232 de baja calidad
-
----
-
-## [2.5.0] - 2026-03-21
-
-### Added
-- Dashboard header rediseñado en 2 filas
-- Fila 1: parámetros moto — EGO, MAT, Batt, Marcha, Ride
-- Fila 2: telemetría sistema — TTL%, BPS, BUF% (FIFO FT232RL), MEM%, ERR
-- TTL% con semáforo: verde 85-97% normal, amarillo <85%, rojo >97% o <50%
-- BUF% detecta acumulación en FIFO RX del FT232RL (384 bytes)
-- MEM% del sistema desde /proc/meminfo sin dependencias externas
-- serial_stats en live.json: bps, pct, buf_in, buf_pct, mem_pct
-
----
-
-## [2.4.2] - 2026-03-21
-
-### Added
-- `ecu/session.py`: `save_eeprom()` y `load_eeprom()` — EEPROM persistida en `sessions/CHECKSUM/eeprom.bin`
-- `ecu/session.py`: `open_session()` retorna `needs_fetch` — True si no existe eeprom.bin
-- `main.py`: fetch automático de EEPROM al detectar sesión nueva, carga desde archivo en sesiones existentes
-- `main.py`: `decode_params()` reemplaza `decode_eeprom_params()` — 173 parámetros vs 35
-
----
-
-## [2.4.1] - 2026-03-21
-
-### Added
-- `ecu/eeprom_params.py`: parser de parámetros EEPROM — decode_params() y decode_params_dict()
-- Mapeo automático version_string → ecu_defs/XXXX.xml
-- 173 parámetros Value decodificados para BUEIB, extensible a todas las variantes
-
----
-
-## [2.4.0] - 2026-03-21
-
-### Added
-- `ecu_defs/`: 14 XMLs de definición EEPROM para variantes ECU Buell (fuente: EcmSpy)
-- Cubre DDFI-1 y DDFI-2: BUEIB, B2RIB, BUEGB, BUECB, BUE1D-3D, BUEOD, BUEWD, BUEYD, BUEZD, BUEIA, BUEKA, BUEGC
-- `ecu_defs/README.md`: documentación de estructura y mapeo ECU→XML
-
----
-
-## [2.3.6] - 2026-03-21
-
-### Fixed
-- `main.py`: botón "Apagar Pi" ahora funciona — usa `sudo poweroff` desde el proceso systemd
-- `/etc/sudoers.d/buell-poweroff`: regla NOPASSWD para usuario `pi`
-
----
-
-## [2.3.5] - 2026-03-21
-
-### Added
-- `web/server.py`: endpoint GET `/errorlog/ride_NNN` — retorna errorlog JSON del ride o `{has_errorlog: false}` si fue limpio
-
----
-## [2.3.4] - 2026-03-21
-
-### Added
-- `main.py`: reconexión escalada en `_ecu_loop` — MAX_CONSEC=30, hard reconnect a 30s, USB reset FT232RL a 60s
-- `main.py`: `RideErrorLog` integrado — registra serial_exception, ecu_timeout, reconnect_attempt por ride
-
-### Fixed
-- Loop ya no se queda mandando RTX indefinidamente con ECU desconectada
-
----
-## [2.3.3] - 2026-03-21
-
-### Added
-- `ecu/session.py`: `RideErrorLog` extraído de `ddfi2_logger.py` — registro estructurado de errores por ride (serial_exception, dirty_bytes, bad_checksum, ecu_timeout, ecu_reset, reconnect_attempt)
-
----
-## [2.3.2] - 2026-03-21
-
-### Fixed
-- `ecu/session.py`: agregados `cell_key` y `CellTracker` (movidos de `ddfi2_logger.py`)
-- `main.py`: instancia `CellTracker`, carga `objectives.json`, llama `tracker.update()` en cada sample y pasa `tracker.snapshot()` a `close_current_ride()` — corrige bug donde el summary JSON nunca se generaba por `tracker_snapshot=None`
-
----
 ## [v2.3.1] — 2026-03-21
 **DASHBOARD COMPLETO — SESIONES, CSV Y GRÁFICAS**
 
@@ -451,6 +81,7 @@
 Dashboard 100% funcional en modo modular: datos live ECU, mapas EEPROM,
 sesiones grabadas, gráficas de rides visibles.
 
+
 ---
 
 ## [v2.3.0] — 2026-03-20
@@ -472,8 +103,8 @@ sesiones grabadas, gráficas de rides visibles.
 * **`eeprom_maps` y `eeprom_params`** en `WebServer` — atributos inicializados
   en `{}` y poblados desde `main.py` después de leer el EEPROM.
 
----
 
+---
 
 ## [v2.2.2] — 2026-03-20
 **FIX SHUTDOWN — ExecStop eliminado del unit file**
@@ -490,6 +121,7 @@ sesiones grabadas, gráficas de rides visibles.
   correctas desde el inicio de sesión.
 
 ---
+
 
 ## [v2.2.1] — 2026-03-20
 **FIXES DE ESTABILIDAD — SHUTDOWN + ECU LOOP**
@@ -545,6 +177,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+
 ## [v2.1.6] — 2026-03-19
 
 **INSTALL — IMAGEN LIMPIA COMPLETA**
@@ -558,6 +191,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+
 ## [v2.1.5] — 2026-03-19
 
 **VERSION DINÁMICA DESDE CHANGELOG**
@@ -569,6 +203,7 @@ sesiones grabadas, gráficas de rides visibles.
   hardcodeada. La pestaña Config siempre muestra la versión real del sistema.
 
 ---
+
 
 ## [v2.1.4] — 2026-03-19
 
@@ -593,6 +228,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 * **Regla sudoers** — agregado permiso `NOPASSWD` para
   `systemctl restart buell-logger` al usuario `pi`.
+
 
 ---
 
@@ -620,6 +256,7 @@ sesiones grabadas, gráficas de rides visibles.
   imagen limpia incluyen el permiso automáticamente.
 
 ---
+
 
 ## [v2.1.2] — 2026-03-19
 
@@ -660,6 +297,7 @@ sesiones grabadas, gráficas de rides visibles.
   `$SUDO_USER` / `logname` / `whoami`. Compatible con cualquier imagen de Raspberry Pi OS.
 
 ---
+
 
 ## [v2.1.0] — 2026-03-18
 
@@ -721,22 +359,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
-## How to read this file
-
-Each version has three possible sections:
-- **Added** — new functionality
-- **Fixed** — bug fix, with `Before / After` block for critical bugs
-- **Changed** — behavior change that is not a bug
-
-To inspect the exact diff of any version:
-```bash
-git diff v1.14.0 v1.16.1                              # all changes between versions
-git diff v1.14.0 v1.16.1 -- ddfi2_logger.py           # main file only
-git show v1.14.0:ddfi2_logger.py | grep -A 20 "def _sync_to_soh"  # function at a past version
-git checkout v1.14.0 -- ddfi2_logger.py               # restore a full past version
-```
-
----
 
 ## [v1.16.2] — 2026-03-14
 **README — PROJECT DOCUMENTATION**
@@ -746,6 +368,7 @@ git checkout v1.14.0 -- ddfi2_logger.py               # restore a full past vers
   installation instructions, generated file structure, protocol notes and license.
 
 ---
+
 
 ## [v1.16.1] — 2026-03-13
 **REAL-TIME DIAGNOSTICS · AUTO NOTES ON CLOSE · VERSION IN CSV**
@@ -807,6 +430,7 @@ git checkout v1.14.0 -- ddfi2_logger.py               # restore a full past vers
 
 ---
 
+
 ## [v1.16.0] — 2026-03-13
 **HTTP IMPROVEMENTS · CHARTS v1.15.1 MERGED**
 
@@ -835,6 +459,7 @@ git checkout v1.14.0 -- ddfi2_logger.py               # restore a full past vers
 
 - **Keepalive spam from multiple tabs**  
   Rate limiting: maximum 1 keepalive accepted every 10 seconds.
+
 
 ---
 
@@ -890,6 +515,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+
 ## [v1.14.0] — 2026-03-12
 **DATE IN CHARTS · VE HEATMAP SORTED · USB RESET · FIX SESSIONS→CHART**
 
@@ -926,6 +552,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   for correct date calculations in the frontend.
 
 ---
+
 
 ## [v1.13.1] — 2026-03-11
 **ERRORLOG CONTEXT · AUTOMATIC HARD RECONNECT**
@@ -971,7 +598,6 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   Replaces all scattered direct `session.close_current_ride()` calls.
 
 ---
-
 ## [v1.12.1] — 2026-03-10
 **MINOR VISUAL FIXES**
 
@@ -993,12 +619,14 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+
 ## [v1.11.2] — 2026-03-10
 
 ### Added
 - **Battery chart** — `chartBatt`, height 70px. Auto Y axis from ride min/max ±0.3V.
   12.5V reference line.
 - **WUE in AFV chart** — `WUE` added to the corrections chart as a dashed orange series.
+
 
 ---
 
@@ -1024,6 +652,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+
 ## [v1.11.0] — 2026-03-09
 **SESSIONS REDESIGN · RIDE NOTES · USAGE TRACKER**
 
@@ -1035,6 +664,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - **Usage Tracker** — usage counter per function (buttons, tabs). Visible in
   Config tab with count bars and download/reset option.
 
+
 ---
 
 ## [v1.10.3] — 2026-03-09
@@ -1045,6 +675,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - `LOGGER_VERSION` moved to a single constant (previously duplicated in multiple places).
 
 ---
+
 
 ## [v1.10.1] — 2026-03-08
 **WiFi NETWORK MANAGEMENT · FIX DURATION_S**
@@ -1059,71 +690,3 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   *After:* uses `last_elapsed_s` (actual accumulated time of data written to CSV).
 
 ---
-
-## [v1.9.x] — PROJECT BASE
-
-Base version from which active development started.
-
-- `CellTracker` — RPM×Load cell tracking for map coverage
-- `LiveDashboard` HTTP on port 8080
-- `SessionManager` — CSV + JSON summary per ride, grouped by session (ECU version checksum)
-- EEPROM BUEIB 1206-byte decode on startup (offsets verified against `ecmdroid.db`)
-- Real-time DTC detector
-- SOH sync, `reset_input_buffer`, `PDU_VERSION` recovery
-
----
-
-## Known issues / Backlog
-
-| ID | Description | Priority | Status |
-|----|-------------|----------|--------|
-| BUG-3 | VE heatmap RPM unsorted (regression in v1.15) | High | Open |
-| PENDING-R1 | Validate USB reset clean reconnection in real ride | High | Open |
-| PENDING-F7 | Verify latency timer sysfs path with FT232RL connected on Pi | High | ✅ Closed — sysfs path unavailable on this kernel (-32), handled silently |
-| PENDING-R3 | Calibrate `GEAR_KPH_PER_KRPM` with real ride data | Medium | Open |
-| PENDING-H2 | Lower `KTemp_Fan_On` offset=498 from 220→200°C in EEPROM | Medium | Open |
-| PENDING-H3 | Fix Warmup Corr 260°C→100% in EEPROM | Medium | Open |
-| PENDING-V1 | Select ride in Sessions → load in both tabs simultaneously | Low | Open |
-| PENDING-U1 | Botón "Descargar ddfi2_logger.py" → reemplazar por acción "Actualizar desde GitHub" que ejecute el installer | Medium | Open |
-| PENDING-W1 | Migrar a Flask — reemplazar servidor HTTP manual en server.py | Medium | Open |
-| LOAD-G3 | Add Load as 2nd series in G3 chart (right axis 0–255) | Low | Open |
-| GPS | Ride-end detection when ECU drops while bike is moving | Future | Open |
-| MODULAR-4 | SessionManager — grabar CSVs y summaries por ride | High | ✅ Closed — ride_001.csv grabado, RPM 976 confirmado |
-| OBJ-1 | Rediseño Objetivos del ride — generación automática basada en cobertura de celdas del mapa VE, sin entrada manual de JSON | Medium | Open |
-| DTC-1 | Cruzar zonas de falla (EGO bajo, DTC activos) con celdas vacías del mapa VE — ride_060 zona 2400/15 RPM mezcla pobre documentada | High | Open |
-| MODULAR-1 | Crear `ecu/connection.py` — módulo de conexión serial ECU | High | ✅ Closed — validado vs ECU real (BUEIB310 12-11-03) |
-| MODULAR-2 | Integrar `ecu/connection.py` en `main.py` | High | ✅ Closed — ECU conectada en arranque, fix poweroff en SIGTERM |
-| MODULAR-3 | Thread RT 8Hz — dashboard live con datos ECU reales | High | ✅ Closed — CHT, Batt, EGO, TPS visibles en HTML |
-| v2.0 | Code modularization into independent modules | Future | ✅ Closed — ecu/connection.py, ecu/protocol.py, thread RT integrados |
-| BACKLOG-LOG6 | `get_rt_data()` returns None after multiple killswitch/reconnect cycles — 13 failed reconnects in ride_003 session 917900 | High | Open |
-| BACKLOG-UX4 | Dashboard freeze indicator when TTL disconnects | Medium | Open |
-| BACKLOG-ECU1 | Hardcoded offsets for BUEIB — real ECU is B2RIB | Medium | Open |
-| BACKLOG-ECU3 | EEPROM editor — write to ECU with checksum recalculation | Low | Open |
-| BACKLOG-UX5 | Ride notes not saving — investigate /ride_note endpoint | High | Open |
-| BACKLOG-UX6 | Time table display broken — review layout | Medium | Open |
-| BACKLOG-UX7 | CONFIG system buttons too small — enlarge or rely on long press | Low | Open |
-| BACKLOG-ECU2 | EEPROM params not loading in CONFIG tab — need to load .bin from selected ride session | High | Open |
-^O
-
-
-
----
-## [v2.5.31] — 2026-04-01
-### Fixed
-- USB host mode not working on Pi Zero 2W after OS update.
-- `dtoverlay=dwc2,dr_mode=host` was scoped under `[cm5]` in `/boot/firmware/config.txt` instead of `[all]`, causing FT232RL to never be detected by the kernel.
-- Moved overlay to `[all]` section — FT232RL now enumerates correctly as `ttyUSB0` on boot.
-### Notes
-- Fix applied to `/boot/firmware/config.txt` (outside repo — system-level config).
-- Diagnosed via `dmesg` and `lsusb`: kernel was attempting USB enumeration but failing with `error -71`.
-- Co-diagnosed: Claude (Anthropic) — 2026-04-01
-
----
-## [v2.5.32] — 2026-04-01
-### Added
-- udev rule `/etc/udev/rules.d/99-ecu-serial.rules` — auto-detects FT232RL (0403:6001) and CH343P (1a86:55d3), both symlinked to `/dev/ttyECU`.
-- `ftdi_sio` driver added to `/etc/modules-load.d/ftdi.conf` for automatic load on boot.
-- Service and install.sh updated to use `/dev/ttyECU` — adapter-agnostic, no code changes needed when switching TTL adapters.
-### Notes
-- CH343P (isolated) validated as drop-in replacement for FT232RL.
-- Co-diagnosed: Claude (Anthropic) — 2026-04-01
