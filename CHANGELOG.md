@@ -3,6 +3,17 @@
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 
+## [v2.5.33] — 2026-04-02
+### Changed
+- EEPROM is now always read on ECU connect, regardless of whether a session is already active.
+- Enables automatic bike identity detection via checksum — switching logger between bikes (e.g. red #651 → blue #235) now creates correct session without restarting.
+### Notes
+- Previously EEPROM was only read when `current_checksum is None` — bike swap was invisible to the logger.
+- `open_session()` already handled checksum change detection — fix was removing the guard condition.
+- Co-authored: Claude (Anthropic) — 2026-04-02
+
+---
+
 ## [v2.5.32] — 2026-04-01
 ### Added
 - udev rule `/etc/udev/rules.d/99-ecu-serial.rules` — auto-detects FT232RL (0403:6001) and CH343P (1a86:55d3), both symlinked to `/dev/ttyECU`.
@@ -16,6 +27,8 @@
 
 ---
 
+---
+
 ## [v2.5.31] — 2026-04-01
 ### Fixed
 - USB host mode not working on Pi Zero 2W after OS update.
@@ -26,6 +39,8 @@
 - Diagnosed via `dmesg` and `lsusb`: kernel was attempting USB enumeration but failing with `error -71`.
 - Co-diagnosed: Claude (Anthropic) — 2026-04-01
 
+
+---
 
 ---
 
@@ -43,6 +58,7 @@
 
 ---
 
+---
 
 ## [v2.5.29] — 2026-03-28
 ### Added
@@ -57,6 +73,8 @@
 - BUEIB310 / B2RIB / BUEIC variants correctly resolve to `BUEIB.xml`.
 - Runtime confirmed: `Decoded 173 params from BUEIB.xml`.
 
+
+---
 
 ---
 
@@ -85,6 +103,8 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
+
 ## [v2.3.0] — 2026-03-20
 **EEPROM MODULAR — MAPAS VE Y SPARK EN DASHBOARD**
 
@@ -107,6 +127,8 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
+
 ## [v2.2.2] — 2026-03-20
 **FIX SHUTDOWN — ExecStop eliminado del unit file**
 
@@ -123,6 +145,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
 
 ## [v2.2.1] — 2026-03-20
 **FIXES DE ESTABILIDAD — SHUTDOWN + ECU LOOP**
@@ -143,6 +166,8 @@ sesiones grabadas, gráficas de rides visibles.
 
 * **`import subprocess` faltante** (`main.py`) — el módulo se usaba en
   `shutdown()` pero no estaba importado al inicio del archivo.
+
+---
 
 ---
 
@@ -178,6 +203,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
 
 ## [v2.1.6] — 2026-03-19
 
@@ -192,6 +218,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
 
 ## [v2.1.5] — 2026-03-19
 
@@ -205,6 +232,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
 
 ## [v2.1.4] — 2026-03-19
 
@@ -233,6 +261,8 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
+
 ## [v2.1.3] — 2026-03-19
 
 **SHUTDOWN FIX — APAGADO DESDE BROWSER OPERATIVO**
@@ -258,6 +288,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
 
 ## [v2.1.2] — 2026-03-19
 
@@ -275,6 +306,8 @@ sesiones grabadas, gráficas de rides visibles.
 
 * **Git hook `pre-commit`** — corre `make_index.py` y agrega `ARCHITECTURE.md`
   automáticamente antes de cada commit. Cero fricción, índice siempre actualizado.
+
+---
 
 ---
 
@@ -299,6 +332,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
 
 ## [v2.1.0] — 2026-03-18
 
@@ -360,6 +394,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
 
 ## [v1.16.2] — 2026-03-14
 **README — PROJECT DOCUMENTATION**
@@ -370,6 +405,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
 
 ## [v1.16.1] — 2026-03-13
 **REAL-TIME DIAGNOSTICS · AUTO NOTES ON CLOSE · VERSION IN CSV**
@@ -431,6 +467,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
 
 ## [v1.16.0] — 2026-03-13
 **HTTP IMPROVEMENTS · CHARTS v1.15.1 MERGED**
@@ -464,6 +501,8 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
+---
+
 ## [v1.15.1] — 2026-03-13
 **REDESIGNED CHARTS — 5 CHARTS WITH MERGED AXES**
 
@@ -493,6 +532,8 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+---
+
 ## [v1.15.0] — 2026-03-12
 **GEAR DETECTION · AUTO TPS CAPTURE · FT232RL LATENCY TIMER · VSS_RPM_RATIO**
 
@@ -516,6 +557,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+---
 
 ## [v1.14.0] — 2026-03-12
 **DATE IN CHARTS · VE HEATMAP SORTED · USB RESET · FIX SESSIONS→CHART**
@@ -554,6 +596,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+---
 
 ## [v1.13.1] — 2026-03-11
 **ERRORLOG CONTEXT · AUTOMATIC HARD RECONNECT**
@@ -571,6 +614,8 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - **Enriched context in errorlog** (`RideErrorLog.update_last_sample`)  
   Each event now includes a snapshot of `{vss, seconds, fl_learn}` in addition
   to existing fields. Makes it easier to correlate errors with bike state.
+
+---
 
 ---
 
@@ -599,12 +644,17 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   Replaces all scattered direct `session.close_current_ride()` calls.
 
 ---
+
+---
+
 ## [v1.12.1] — 2026-03-10
 **MINOR VISUAL FIXES**
 
 ### Fixed
 - `graphRideTitle` invisible when hidden under the chart scroll area → moved before `graphStatus`.
 - `replace('_',' ')` → `replace(/_/g,' ')` — replaces **all** underscores, not just the first one.
+
+---
 
 ---
 
@@ -620,6 +670,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+---
 
 ## [v1.11.2] — 2026-03-10
 
@@ -628,6 +679,8 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   12.5V reference line.
 - **WUE in AFV chart** — `WUE` added to the corrections chart as a dashed orange series.
 
+
+---
 
 ---
 
@@ -653,6 +706,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+---
 
 ## [v1.11.0] — 2026-03-09
 **SESSIONS REDESIGN · RIDE NOTES · USAGE TRACKER**
@@ -668,6 +722,8 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+---
+
 ## [v1.10.3] — 2026-03-09
 
 ### Fixed
@@ -677,6 +733,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
+---
 
 ## [v1.10.1] — 2026-03-08
 **WiFi NETWORK MANAGEMENT · FIX DURATION_S**
@@ -693,11 +750,5 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ---
 
 ---
-## [v2.5.33] — 2026-04-02
-### Changed
-- EEPROM is now always read on ECU connect, regardless of whether a session is already active.
-- Enables automatic bike identity detection via checksum — switching logger between bikes (e.g. red #651 → blue #235) now creates correct session without restarting.
-### Notes
-- Previously EEPROM was only read when `current_checksum is None` — bike swap was invisible to the logger.
-- `open_session()` already handled checksum change detection — fix was removing the guard condition.
-- Co-authored: Claude (Anthropic) — 2026-04-02
+
+---
