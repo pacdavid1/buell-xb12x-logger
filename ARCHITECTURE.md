@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-03-28 15:24 | versión: v1.16.3-186-g73bf772
+> Última actualización: 2026-04-01 22:36 | versión: v1.16.3-187-g6f779b6
 
 ---
 
@@ -48,6 +48,20 @@ buell-xb12x-logger/
 │   ├── __init__.py
 │   └── manager.py
 ├── sessions
+│   ├── 01B6AE
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── ride_002_errorlog.json
+│   │   ├── ride_003_errorlog.json
+│   │   ├── ride_004_errorlog.json
+│   │   ├── ride_01B6AE_001.csv
+│   │   ├── ride_01B6AE_002.csv
+│   │   ├── ride_01B6AE_002_summary.json
+│   │   ├── ride_01B6AE_003.csv
+│   │   ├── ride_01B6AE_003_summary.json
+│   │   ├── ride_01B6AE_004.csv
+│   │   ├── ride_01B6AE_004_summary.json
+│   │   └── session_metadata.json
 │   ├── 243FAC
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
@@ -95,6 +109,15 @@ buell-xb12x-logger/
 │   │   ├── eeprom.bin
 │   │   ├── ride_6207C9_001.csv
 │   │   └── session_metadata.json
+│   ├── 653DC0
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── eeprom.json
+│   │   ├── ride_653DC0_001.csv
+│   │   ├── ride_653DC0_002.csv
+│   │   ├── ride_653DC0_003.csv
+│   │   ├── ride_653DC0_004.csv
+│   │   └── session_metadata.json
 │   ├── 917900
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
@@ -124,6 +147,20 @@ buell-xb12x-logger/
 │   │   ├── ride_006_summary.json
 │   │   ├── ride_007.csv
 │   │   ├── ride_007_summary.json
+│   │   └── session_metadata.json
+│   ├── AC501E
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── eeprom_state_ride_001.json
+│   │   ├── eeprom_state_ride_002.json
+│   │   ├── eeprom_state_ride_003.json
+│   │   ├── ride_001_errorlog.json
+│   │   ├── ride_002_errorlog.json
+│   │   ├── ride_AC501E_001.csv
+│   │   ├── ride_AC501E_002.csv
+│   │   ├── ride_AC501E_002_summary.json
+│   │   ├── ride_AC501E_003.csv
+│   │   ├── ride_AC501E_004.csv
 │   │   └── session_metadata.json
 │   ├── D7B333
 │   │   ├── consolidated.csv
@@ -177,6 +214,7 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md
 ├── WORKING_METHOD.md.save
 ├── ddfi2_logger.py
+├── fix_remove_extra_div_before_script.py.save
 ├── fix_server_rides.py.save
 ├── fix_server_rides.py.save.1
 ├── install.sh

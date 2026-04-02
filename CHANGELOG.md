@@ -1106,3 +1106,14 @@ Base version from which active development started.
 ^O
 
 
+
+---
+## [v2.5.31] — 2026-04-01
+### Fixed
+- USB host mode not working on Pi Zero 2W after OS update.
+- `dtoverlay=dwc2,dr_mode=host` was scoped under `[cm5]` in `/boot/firmware/config.txt` instead of `[all]`, causing FT232RL to never be detected by the kernel.
+- Moved overlay to `[all]` section — FT232RL now enumerates correctly as `ttyUSB0` on boot.
+### Notes
+- Fix applied to `/boot/firmware/config.txt` (outside repo — system-level config).
+- Diagnosed via `dmesg` and `lsusb`: kernel was attempting USB enumeration but failing with `error -71`.
+- Co-diagnosed: Claude (Anthropic) — 2026-04-01
