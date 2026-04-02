@@ -141,29 +141,27 @@ class BuellLogger:
                     if ecu_version:
                         self.logger.info(f"ECU reconnected: {ecu_version}")
                         # If no session active (e.g. logger started before bike) —
-                        # fetch EEPROM now to open session. Otherwise skip to avoid
-                        # blocking the RT loop for 15-20s.
-                        if self.session.current_checksum is None:
-                            self.logger.info("No active session — fetching EEPROM to open session...")
-                            _blob = self.ecu.read_full_eeprom()
-                            if _blob is None:
-                                # Fallback 1: use most recent cached blob on disk
-                                _bins = sorted(self.sessions_dir.glob("*/eeprom.bin"),
-                                               key=lambda p: p.stat().st_mtime)
-                                if _bins:
-                                    _blob = open(_bins[-1], 'rb').read()
-                                    self.logger.warning("EEPROM fetch failed — using cached blob from disk")
-                                else:
-                                    # Fallback 2: version string as checksum seed
-                                    _blob = ecu_version.encode().ljust(64, b'\x00')
-                                    self.logger.warning("EEPROM fetch failed — using version string as checksum")
-                            self.session.open_session(ecu_version, _blob)
-                            if not (self.session.current_session_dir / 'eeprom.bin').exists():
-                                self.session.save_eeprom(_blob)
-                            self.web.eeprom_maps   = decode_eeprom_maps(_blob)
-                            self.web.eeprom_params = decode_params(_blob, ecu_version)
-                            self.web.bike_serial   = int.from_bytes(_blob[12:14], 'little')
-                            self.logger.info(f"Session opened from reconnect: {self.session.current_checksum}")
+                        # Always read EEPROM on connect — detect bike swap via checksum.
+                        self.logger.info("Reading EEPROM to detect bike identity...")
+                        _blob = self.ecu.read_full_eeprom()
+                        if _blob is None:
+                            # Fallback 1: use most recent cached blob on disk
+                            _bins = sorted(self.sessions_dir.glob("*/eeprom.bin"),
+                                           key=lambda p: p.stat().st_mtime)
+                            if _bins:
+                                _blob = open(_bins[-1], 'rb').read()
+                                self.logger.warning("EEPROM fetch failed — using cached blob from disk")
+                            else:
+                                # Fallback 2: version string as checksum seed
+                                _blob = ecu_version.encode().ljust(64, b'\x00')
+                                self.logger.warning("EEPROM fetch failed — using version string as checksum")
+                        self.session.open_session(ecu_version, _blob)
+                        if not (self.session.current_session_dir / 'eeprom.bin').exists():
+                            self.session.save_eeprom(_blob)
+                        self.web.eeprom_maps   = decode_eeprom_maps(_blob)
+                        self.web.eeprom_params = decode_params(_blob, ecu_version)
+                        self.web.bike_serial   = int.from_bytes(_blob[12:14], 'little')
+                        self.logger.info(f"Session opened from reconnect: {self.session.current_checksum}")
                         consecutive_errors = 0
                         ecu_lost_since = None
                     else:

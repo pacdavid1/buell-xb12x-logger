@@ -691,3 +691,13 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   *After:* uses `last_elapsed_s` (actual accumulated time of data written to CSV).
 
 ---
+
+---
+## [v2.5.33] — 2026-04-02
+### Changed
+- EEPROM is now always read on ECU connect, regardless of whether a session is already active.
+- Enables automatic bike identity detection via checksum — switching logger between bikes (e.g. red #651 → blue #235) now creates correct session without restarting.
+### Notes
+- Previously EEPROM was only read when `current_checksum is None` — bike swap was invisible to the logger.
+- `open_session()` already handled checksum change detection — fix was removing the guard condition.
+- Co-authored: Claude (Anthropic) — 2026-04-02
