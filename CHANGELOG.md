@@ -8,6 +8,7 @@
 - udev rule `/etc/udev/rules.d/99-ecu-serial.rules` — auto-detects FT232RL (0403:6001) and CH343P (1a86:55d3), both symlinked to `/dev/ttyECU`.
 - `ftdi_sio` driver added to `/etc/modules-load.d/ftdi.conf` for automatic load on boot.
 - Service and install.sh updated to use `/dev/ttyECU` — adapter-agnostic, no code changes needed when switching TTL adapters.
+- `@reboot dmesg -C` added to root crontab — clears kernel buffer on boot to prevent dwc2 USB controller IRQ crash after hot-swap.
 ### Notes
 - CH343P (isolated) validated as drop-in replacement for FT232RL.
 - Co-diagnosed: Claude (Anthropic) — 2026-04-01
