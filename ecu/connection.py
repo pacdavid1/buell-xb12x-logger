@@ -109,7 +109,6 @@ class DDFI2Connection:
         try:
             hub = '/sys/bus/usb/devices/usb1'
             open(f'{hub}/power/autosuspend_delay_ms', 'w').write('0')
-            open(f'{hub}/power/level', 'w').write('suspend')
             time.sleep(2.0)
             open(f'{hub}/power/level', 'w').write('on')
             time.sleep(3.0)
