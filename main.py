@@ -245,9 +245,12 @@ class BuellLogger:
                             attempt_n=consecutive_errors // 30,
                             success=False,
                             time_s=lost_total)
-                    # USB reset tras 60s
-                    if lost_total >= 60.0 and consecutive_errors % 60 == 0:
-                        self.logger.info(f"USB reset FT232RL — {lost_total:.0f}s")
+                    # USB power cycle tras 15s, USB reset tras 30s
+                    if lost_total >= 15.0 and consecutive_errors % 15 == 0:
+                        self.logger.info(f"USB power cycle — {lost_total:.0f}s sin ECU")
+                        self.ecu.usb_power_cycle()
+                    elif lost_total >= 30.0 and consecutive_errors % 30 == 0:
+                        self.logger.info(f"USB reset — {lost_total:.0f}s sin ECU")
                         self.ecu.usb_reset()
                         time.sleep(0.5)
                     try:

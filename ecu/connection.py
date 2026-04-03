@@ -103,6 +103,22 @@ class DDFI2Connection:
         except Exception:
             pass
 
+    def usb_power_cycle(self):
+        """Power cycle del hub USB via sysfs autosuspend.
+        Mas efectivo que authorized toggle cuando dwc2 queda hung."""
+        try:
+            hub = '/sys/bus/usb/devices/usb1'
+            open(f'{hub}/power/autosuspend_delay_ms', 'w').write('0')
+            open(f'{hub}/power/level', 'w').write('suspend')
+            time.sleep(2.0)
+            open(f'{hub}/power/level', 'w').write('on')
+            time.sleep(3.0)
+            self.logger.info("USB power cycle completado")
+            return True
+        except Exception as e:
+            self.logger.warning(f"USB power cycle falló: {e}")
+            return False
+
     def usb_reset(self):
         """Fuerza reset USB del FT232RL via sysfs (authorized toggle).
         Usar cuando DTR toggle no alcanza y el chip queda hung.

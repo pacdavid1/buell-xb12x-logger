@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-02 08:13 | versión: v1.16.3-193-gacbdbbe
+> Última actualización: 2026-04-02 20:34 | versión: v1.16.3-194-gdbf7887
 
 ---
 
@@ -156,11 +156,14 @@ buell-xb12x-logger/
 │   │   ├── eeprom_state_ride_003.json
 │   │   ├── ride_001_errorlog.json
 │   │   ├── ride_002_errorlog.json
+│   │   ├── ride_006_errorlog.json
 │   │   ├── ride_AC501E_001.csv
 │   │   ├── ride_AC501E_002.csv
 │   │   ├── ride_AC501E_002_summary.json
 │   │   ├── ride_AC501E_003.csv
 │   │   ├── ride_AC501E_004.csv
+│   │   ├── ride_AC501E_005.csv
+│   │   ├── ride_AC501E_006.csv
 │   │   └── session_metadata.json
 │   ├── D7B333
 │   │   ├── consolidated.csv
@@ -437,6 +440,8 @@ buell-xb12x-logger/
 | `__init__` | — |
 | `connect` | — |
 | `disconnect` | — |
+| `usb_power_cycle` | Power cycle del hub USB via sysfs autosuspend.
+Mas efectivo  |
 | `usb_reset` | Fuerza reset USB del FT232RL via sysfs (authorized toggle).
  |
 | `_send` | — |
