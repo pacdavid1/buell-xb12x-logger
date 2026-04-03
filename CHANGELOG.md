@@ -2,6 +2,19 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.34] — 2026-04-02
+### Added
+- `usb_power_cycle()` method in `ecu/connection.py` — recovers dwc2 IRQ crash via sysfs autosuspend without reboot.
+- Watchdog now triggers USB power cycle at 15s without ECU, USB reset at 30s.
+### Changed
+- Previous USB reset threshold was 60s — too slow for real-world reconnection.
+### Notes
+- Root cause: FT232RL + dwc2 (Pi Zero 2W) incompatibility causes `error -71` and `Disabling IRQ #51`.
+- Power cycle via `/sys/bus/usb/devices/usb1/power/level` suspend/on recovers the controller without reboot.
+- CH343P (isolated) confirmed as more stable alternative for permanent moto installation.
+- Co-authored: Claude (Anthropic) — 2026-04-02
+
+---
 
 ## [v2.5.33] — 2026-04-02
 ### Changed
@@ -27,8 +40,6 @@
 
 ---
 
----
-
 ## [v2.5.31] — 2026-04-01
 ### Fixed
 - USB host mode not working on Pi Zero 2W after OS update.
@@ -39,8 +50,6 @@
 - Diagnosed via `dmesg` and `lsusb`: kernel was attempting USB enumeration but failing with `error -71`.
 - Co-diagnosed: Claude (Anthropic) — 2026-04-01
 
-
----
 
 ---
 
@@ -58,8 +67,6 @@
 
 ---
 
----
-
 ## [v2.5.29] — 2026-03-28
 ### Added
 - Deterministic ECU variant resolution using `ecu_defs/files.xml`.
@@ -72,9 +79,6 @@
 ### Verified
 - BUEIB310 / B2RIB / BUEIC variants correctly resolve to `BUEIB.xml`.
 - Runtime confirmed: `Decoded 173 params from BUEIB.xml`.
-
-
----
 
 ---
 
@@ -100,9 +104,6 @@
 Dashboard 100% funcional en modo modular: datos live ECU, mapas EEPROM,
 sesiones grabadas, gráficas de rides visibles.
 
-
----
-
 ---
 
 ## [v2.3.0] — 2026-03-20
@@ -127,8 +128,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
----
-
 ## [v2.2.2] — 2026-03-20
 **FIX SHUTDOWN — ExecStop eliminado del unit file**
 
@@ -142,8 +141,6 @@ sesiones grabadas, gráficas de rides visibles.
 * **`WORKING_METHOD.md`** — agregadas secciones `AI ASSISTANT PROTOCOL` y
   `COMMIT DISCIPLINE` para que cualquier asistente siga las reglas de edición
   correctas desde el inicio de sesión.
-
----
 
 ---
 
@@ -166,8 +163,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 * **`import subprocess` faltante** (`main.py`) — el módulo se usaba en
   `shutdown()` pero no estaba importado al inicio del archivo.
-
----
 
 ---
 
@@ -203,8 +198,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
----
-
 ## [v2.1.6] — 2026-03-19
 
 **INSTALL — IMAGEN LIMPIA COMPLETA**
@@ -218,8 +211,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
----
-
 ## [v2.1.5] — 2026-03-19
 
 **VERSION DINÁMICA DESDE CHANGELOG**
@@ -229,8 +220,6 @@ sesiones grabadas, gráficas de rides visibles.
 * **`LOGGER_VERSION` en `main.py`** y **`logger_version` en `server.py`** —
   ambos leen la versión dinámicamente del `CHANGELOG.md` en lugar de tenerla
   hardcodeada. La pestaña Config siempre muestra la versión real del sistema.
-
----
 
 ---
 
@@ -261,8 +250,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
----
-
 ## [v2.1.3] — 2026-03-19
 
 **SHUTDOWN FIX — APAGADO DESDE BROWSER OPERATIVO**
@@ -288,8 +275,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
----
-
 ## [v2.1.2] — 2026-03-19
 
 **ARCHITECTURE INDEX — AUTO-GENERADO EN CADA COMMIT**
@@ -306,8 +291,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 * **Git hook `pre-commit`** — corre `make_index.py` y agrega `ARCHITECTURE.md`
   automáticamente antes de cada commit. Cero fricción, índice siempre actualizado.
-
----
 
 ---
 
@@ -329,8 +312,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 * **Usuario hardcodeado a `pi`** — reemplazado por detección dinámica via
   `$SUDO_USER` / `logname` / `whoami`. Compatible con cualquier imagen de Raspberry Pi OS.
-
----
 
 ---
 
@@ -394,16 +375,12 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
----
-
 ## [v1.16.2] — 2026-03-14
 **README — PROJECT DOCUMENTATION**
 
 ### Added
 - Full `README.md`: project description, captured parameters table, hardware diagram,
   installation instructions, generated file structure, protocol notes and license.
-
----
 
 ---
 
@@ -467,8 +444,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 ---
 
----
-
 ## [v1.16.0] — 2026-03-13
 **HTTP IMPROVEMENTS · CHARTS v1.15.1 MERGED**
 
@@ -497,9 +472,6 @@ sesiones grabadas, gráficas de rides visibles.
 
 - **Keepalive spam from multiple tabs**  
   Rate limiting: maximum 1 keepalive accepted every 10 seconds.
-
-
----
 
 ---
 
@@ -532,8 +504,6 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
----
-
 ## [v1.15.0] — 2026-03-12
 **GEAR DETECTION · AUTO TPS CAPTURE · FT232RL LATENCY TIMER · VSS_RPM_RATIO**
 
@@ -554,8 +524,6 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - **Automatic TPS capture** — "⏺ Auto Capture (10s)" button in Config tab.  
   Polls `live.json` every 500ms for 10s, records min/max of `TPS_10Bit` and
   auto-fills the calibration fields. Requires range >20 to be considered valid.
-
----
 
 ---
 
@@ -596,8 +564,6 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
----
-
 ## [v1.13.1] — 2026-03-11
 **ERRORLOG CONTEXT · AUTOMATIC HARD RECONNECT**
 
@@ -614,8 +580,6 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - **Enriched context in errorlog** (`RideErrorLog.update_last_sample`)  
   Each event now includes a snapshot of `{vss, seconds, fl_learn}` in addition
   to existing fields. Makes it easier to correlate errors with bike state.
-
----
 
 ---
 
@@ -645,16 +609,12 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
----
-
 ## [v1.12.1] — 2026-03-10
 **MINOR VISUAL FIXES**
 
 ### Fixed
 - `graphRideTitle` invisible when hidden under the chart scroll area → moved before `graphStatus`.
 - `replace('_',' ')` → `replace(/_/g,' ')` — replaces **all** underscores, not just the first one.
-
----
 
 ---
 
@@ -670,17 +630,12 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
----
-
 ## [v1.11.2] — 2026-03-10
 
 ### Added
 - **Battery chart** — `chartBatt`, height 70px. Auto Y axis from ride min/max ±0.3V.
   12.5V reference line.
 - **WUE in AFV chart** — `WUE` added to the corrections chart as a dashed orange series.
-
-
----
 
 ---
 
@@ -706,8 +661,6 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ---
 
----
-
 ## [v1.11.0] — 2026-03-09
 **SESSIONS REDESIGN · RIDE NOTES · USAGE TRACKER**
 
@@ -719,9 +672,6 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - **Usage Tracker** — usage counter per function (buttons, tabs). Visible in
   Config tab with count bars and download/reset option.
 
-
----
-
 ---
 
 ## [v1.10.3] — 2026-03-09
@@ -730,8 +680,6 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - `BUEIB_PARAMS`: `Fan_On/Off translate 200→50` (was showing 370°/330°C instead of 220°/180°C).
 - `Fan_KO_On/Off translate 200→0` — same fix.
 - `LOGGER_VERSION` moved to a single constant (previously duplicated in multiple places).
-
----
 
 ---
 
@@ -747,8 +695,5 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   reconnections, the time was wrong.  
   *After:* uses `last_elapsed_s` (actual accumulated time of data written to CSV).
 
----
-
----
 
 ---
