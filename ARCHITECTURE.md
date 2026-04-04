@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-03 15:14 | versión: v1.16.3-196-g285280f
+> Última actualización: 2026-04-04 00:27 | versión: v1.16.3-197-gcf40b11
 
 ---
 
@@ -96,6 +96,13 @@ buell-xb12x-logger/
 │   │   ├── ride_243FAC_012.csv
 │   │   ├── ride_243FAC_012_summary.json
 │   │   └── session_metadata.json
+│   ├── 248AE2
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── ride_248AE2_001.csv
+│   │   ├── ride_248AE2_001_notes.txt
+│   │   ├── ride_248AE2_002.csv
+│   │   └── session_metadata.json
 │   ├── 5F94A1
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
@@ -166,7 +173,17 @@ buell-xb12x-logger/
 │   │   ├── ride_AC501E_006.csv
 │   │   └── session_metadata.json
 │   ├── C49C2D
-│   │   └── eeprom.bin
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── ride_001_errorlog.json
+│   │   ├── ride_002_errorlog.json
+│   │   ├── ride_003_errorlog.json
+│   │   ├── ride_C49C2D_001.csv
+│   │   ├── ride_C49C2D_001_summary.json
+│   │   ├── ride_C49C2D_002.csv
+│   │   ├── ride_C49C2D_002_summary.json
+│   │   ├── ride_C49C2D_003.csv
+│   │   └── session_metadata.json
 │   ├── D7B333
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin

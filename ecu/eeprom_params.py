@@ -120,3 +120,18 @@ def decode_params_dict(blob, version_string):
     Igual que decode_params pero indexado por nombre.
     """
     return {p['name']: p for p in decode_params(blob, version_string)}
+
+def decode_params_compat(blob, version_string):
+    """
+    Igual que decode_params_dict pero con formato compatible al dashboard:
+    {varname: {val, raw, units, desc}}  ← mismo que decode_eeprom_params()
+    """
+    return {
+        p['name']: {
+            'val':   p['value'],
+            'raw':   p['raw'],
+            'units': p['units'],
+            'desc':  p['remark'],
+        }
+        for p in decode_params(blob, version_string)
+    }

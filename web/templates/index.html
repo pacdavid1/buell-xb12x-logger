@@ -492,36 +492,6 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 
   <div class="cfg-section">
-    <div class="cfg-title">Estado ECU</div>
-    <div class="status-row">
-      <span class="rdot"></span>
-      <span id="cfgRide">Sin datos -- esperando conexion</span>
-    </div>
-    <div class="status-row" id="cfgVeStatus" style="color:var(--dim)">Mapa VE: no cargado</div>
-  </div>
-
-  <div class="cfg-section">
-    <div class="cfg-title">Mapa VE (opcional)</div>
-    <div class="msq-drop" id="msqDrop"
-         onclick="document.getElementById('msqInput').click()"
-         ondragover="event.preventDefault()"
-         ondrop="handleMsqDrop(event)">
-      Subir .msq -- si no hay EEPROM disponible
-    </div>
-    <input type="file" id="msqInput" accept=".msq,.xml" style="display:none"
-           onchange="handleMsqFile(this.files[0])">
-  </div>
-
-  <div class="cfg-section">
-    <div class="cfg-title">Objetivos del ride</div>
-    <textarea class="cfg-textarea" id="objJson" placeholder="Cargando..."></textarea>
-    <div style="display:flex;gap:8px;margin-top:6px">
-      <button class="btn p" onclick="saveObj()">Guardar</button>
-      <button class="btn" onclick="loadObj()">Recargar</button>
-    </div>
-  </div>
-
-  <div class="cfg-section">
     <div class="cfg-title">Calibracion TPS</div>
     <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">Motor apagado, llave ON:<br>Acelerador cerrado = MIN &nbsp; WOT = MAX</div>
     <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
@@ -580,34 +550,6 @@ table.veg td:active{filter:brightness(1.6)}
       </button>
     </div>
     <button class="btn-danger" style="width:100%;margin-bottom:4px" onclick="confirmShutdown()">Apagar Pi</button>
-  </div>
-
-
-  <div class="cfg-section">
-    <div class="cfg-title" style="cursor:pointer" onclick="toggleEcu()">
-      Config ECU
-      <span id="ecuToggleIcon" style="font-size:10px;color:var(--dim)">&#9660;</span>
-    </div>
-    <div id="ecuPanel">
-      <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:8px">
-        Leido de EEPROM al arrancar · <span id="ecuVersion" style="color:#8af">--</span>
-      </div>
-      <!-- Proteccion termica -->
-      <div style="font-family:var(--mono);font-size:9px;color:var(--amber);margin:8px 0 4px">TEMPERATURA</div>
-      <div id="ecuTempRows"></div>
-      <!-- RPM limites -->
-      <div style="font-family:var(--mono);font-size:9px;color:var(--amber);margin:8px 0 4px">RPM LIMITES</div>
-      <div id="ecuRpmRows"></div>
-      <!-- O2/EGO -->
-      <div style="font-family:var(--mono);font-size:9px;color:var(--amber);margin:8px 0 4px">O2 / EGO</div>
-      <div id="ecuEgoRows"></div>
-      <div style="margin-top:8px">
-        <button class="btn" style="font-size:9px;padding:5px 10px" onclick="loadEcu()">Refrescar</button>
-      </div>
-    </div>
-  </div>
-  
-    <div id="eepromParamsTable" style="font-family:var(--mono);font-size:9px"></div>
   </div>
 </div>
 

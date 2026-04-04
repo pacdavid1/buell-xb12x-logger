@@ -330,6 +330,7 @@ import subprocess
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from ecu.eeprom_params import decode_params_compat
 from http.server import HTTPServer, ThreadingHTTPServer, BaseHTTPRequestHandler
 import zlib
 import socket
@@ -2394,7 +2395,7 @@ class BuellLogger:
                 self.logger.info("Leyendo EEPROM completa...")
                 eeprom_bytes = self.conn.read_full_eeprom()
                 if eeprom_bytes:
-                    params = decode_eeprom_params(eeprom_bytes)
+                    params = decode_params_compat(eeprom_bytes, version)
                     snap_path = Path(self.buell_dir) / "eeprom_snapshot.json"
                     with open(snap_path, 'w') as f:
                         json.dump(params, f, indent=2)
@@ -2445,7 +2446,7 @@ class BuellLogger:
                             self.logger.info(f"ECU confirmada en reconexión: {version}")
                             eeprom_bytes=self.conn.read_full_eeprom()
                             if eeprom_bytes:
-                                params=decode_eeprom_params(eeprom_bytes)
+                                params=decode_params_compat(eeprom_bytes, version)
                                 snap_path=Path(self.buell_dir)/"eeprom_snapshot.json"
                                 with open(snap_path,'w') as _f: json.dump(params,_f,indent=2)
                                 self.dashboard.eeprom_params=params
