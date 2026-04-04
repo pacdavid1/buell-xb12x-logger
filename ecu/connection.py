@@ -109,9 +109,9 @@ class DDFI2Connection:
         try:
             hub = '/sys/bus/usb/devices/usb1'
             open(f'{hub}/power/autosuspend_delay_ms', 'w').write('0')
-            time.sleep(2.0)
+            time.sleep(1.0)
             open(f'{hub}/power/level', 'w').write('on')
-            time.sleep(3.0)
+            time.sleep(2.0)
             self.logger.info("USB power cycle completado")
             return True
         except Exception as e:

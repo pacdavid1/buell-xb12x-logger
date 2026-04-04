@@ -2282,22 +2282,15 @@ class BuellLogger:
                 if self._ecu_lost_since is not None:
                     lost_total = time.monotonic() - self._ecu_lost_since
                     if lost_total >= 10.0 and consecutive_errors % 10 == 0:
-                        self.logger.info(f"Hard reconnect — {lost_total:.0f}s sin ECU, cerrando/abriendo puerto")
+                        self.logger.info(f"Power cycle directo — {lost_total:.0f}s sin ECU")
                         if self._ride_active:
                             self.error_log.reconnect_attempt(
                                 elapsed_s = elapsed_s,
-                                trigger   = "auto_30s",
-                                attempt_n = consecutive_errors // 30,
+                                trigger   = "auto_10s",
+                                attempt_n = consecutive_errors // 10,
                                 success   = False,
                                 time_s    = lost_total)
-                        # ── Escalación USB reset tras 60s: FT232RL puede estar hung ──
-                        if lost_total >= 20.0 and consecutive_errors % 20 == 0:
-                            self.logger.info(f"USB reset FT232RL — {lost_total:.0f}s sin recuperar por DTR")
-                            self.conn.usb_reset()
-                            time.sleep(0.5)
-                        if lost_total >= 30.0 and consecutive_errors % 30 == 0:
-                            self.logger.info(f"USB power cycle — {lost_total:.0f}s sin recuperar")
-                            self.conn.usb_power_cycle()
+                        self.conn.usb_power_cycle()
                         try:
                             self.conn.disconnect()
                             time.sleep(0.5)
@@ -2305,18 +2298,18 @@ class BuellLogger:
                             self.conn._send(PDU_VERSION)
                             h = self.conn._read_exact(6, 1.0)
                             if h and h[0] == SOH:
-                                self.logger.info("ECU responde tras hard reconnect — retomando")
+                                self.logger.info("ECU responde tras power cycle — retomando")
                                 consecutive_errors = 0
                                 self._ecu_lost_since = None
                                 if self._ride_active:
                                     self.error_log.reconnect_attempt(
                                         elapsed_s = elapsed_s,
-                                        trigger   = "auto_30s",
-                                        attempt_n = consecutive_errors // 30,
+                                        trigger   = "auto_10s",
+                                        attempt_n = consecutive_errors // 10,
                                         success   = True,
                                         time_s    = lost_total)
                         except Exception as e:
-                            self.logger.warning(f"Hard reconnect falló: {e}")
+                            self.logger.warning(f"Power cycle reconnect falló: {e}")
                 # Fallback: VERSION simple cada 30 fallos si no hay ride activo
                 elif consecutive_errors > 0 and consecutive_errors % 30 == 0:
                     self.logger.debug(f"Mandando VERSION tras {consecutive_errors} fallos")
