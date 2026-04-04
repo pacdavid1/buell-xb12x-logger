@@ -2,6 +2,17 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.35] — 2026-04-04
+### Changed
+- `decode_eeprom_params()` hardcode replaced by `decode_params_compat()` from `ecu/eeprom_params.py`.
+- Both startup and reconnect flows now pass `version` string to `resolve_ecu()` via `version_resolver.py`.
+- Correct XML selected automatically from `ecu_defs/files.xml` (exact match + alpha prefix fallback).
+### Notes
+- `BUEIB_PARAMS` dict remains in `ecu/eeprom.py` but is no longer used for parameter decoding.
+- Closes BACKLOG-ECU1. Both motos (red #651, blue #235) now resolve their own XML at connect time.
+- Co-diagnosed: Claude (Anthropic) — 2026-04-04
+
+---
 ## [v2.5.34] — 2026-04-02
 ### Added
 - `usb_power_cycle()` method in `ecu/connection.py` — recovers dwc2 IRQ crash via sysfs autosuspend without reboot.
