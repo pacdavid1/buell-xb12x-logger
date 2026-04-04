@@ -122,19 +122,24 @@ class DDFI2Connection:
         """Fuerza reset USB del FT232RL via sysfs (authorized toggle).
         Usar cuando DTR toggle no alcanza y el chip queda hung.
         Retorna True si el device fue reseteado, False si no se encontró."""
+        KNOWN_ADAPTERS = [
+            ('0403', '6001', 'FT232RL'),
+            ('1a86', '55d3', 'CH343P'),
+        ]
         try:
             for path in glob.glob('/sys/bus/usb/devices/*/idVendor'):
                 vendor  = open(path).read().strip()
                 product = open(path.replace('idVendor', 'idProduct')).read().strip()
-                if vendor == '0403' and product == '6001':
+                match = next((n for v,p,n in KNOWN_ADAPTERS if v==vendor and p==product), None)
+                if match:
                     auth = path.replace('idVendor', 'authorized')
                     open(auth, 'w').write('0')
                     time.sleep(0.8)
                     open(auth, 'w').write('1')
-                    time.sleep(2.0)  # esperar re-enumeración
-                    self.logger.info("USB reset FT232RL completado via sysfs")
+                    time.sleep(2.0)
+                    self.logger.info(f"USB reset {match} completado via sysfs")
                     return True
-            self.logger.warning("USB reset: FT232RL (0403:6001) no encontrado en sysfs")
+            self.logger.warning("USB reset: ningún adaptador conocido encontrado en sysfs")
             return False
         except Exception as e:
             self.logger.warning(f"USB reset falló: {e}")

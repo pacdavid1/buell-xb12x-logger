@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-04 00:49 | versión: v1.16.3-201-ga5dddf1
+> Última actualización: 2026-04-04 01:02 | versión: v1.16.3-202-gadba3e7
 
 ---
 
@@ -450,6 +450,7 @@ buell-xb12x-logger/
 | `CMD_GET` | `82` |
 | `RT_RESPONSE_SIZE` | `107` |
 | `BUEIB_PAGES` | `[(1, 0, 256), (2, 256, 256), (3, 512, 158), (4, 670, 256), (5, 926, 256), (6, 1182, 24)]` |
+| `KNOWN_ADAPTERS` | `[('0403', '6001', 'FT232RL'), ('1a86', '55d3', 'CH343P')]` |
 
 **Clase `DDFI2Connection`**
 

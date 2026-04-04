@@ -2281,7 +2281,7 @@ class BuellLogger:
                 # Hard reconnect tras 30s de pérdida — close+open+DTR aunque haya ride activo
                 if self._ecu_lost_since is not None:
                     lost_total = time.monotonic() - self._ecu_lost_since
-                    if lost_total >= 30.0 and consecutive_errors % 30 == 0:
+                    if lost_total >= 10.0 and consecutive_errors % 10 == 0:
                         self.logger.info(f"Hard reconnect — {lost_total:.0f}s sin ECU, cerrando/abriendo puerto")
                         if self._ride_active:
                             self.error_log.reconnect_attempt(
@@ -2291,10 +2291,13 @@ class BuellLogger:
                                 success   = False,
                                 time_s    = lost_total)
                         # ── Escalación USB reset tras 60s: FT232RL puede estar hung ──
-                        if lost_total >= 60.0 and consecutive_errors % 60 == 0:
+                        if lost_total >= 20.0 and consecutive_errors % 20 == 0:
                             self.logger.info(f"USB reset FT232RL — {lost_total:.0f}s sin recuperar por DTR")
                             self.conn.usb_reset()
-                            time.sleep(0.5)  # esperar re-enumeración extra
+                            time.sleep(0.5)
+                        if lost_total >= 30.0 and consecutive_errors % 30 == 0:
+                            self.logger.info(f"USB power cycle — {lost_total:.0f}s sin recuperar")
+                            self.conn.usb_power_cycle()
                         try:
                             self.conn.disconnect()
                             time.sleep(0.5)
