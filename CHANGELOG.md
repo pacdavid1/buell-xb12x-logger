@@ -2,6 +2,17 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.36] — 2026-04-04
+### Changed
+- `usb_reset()` in `ecu/connection.py` now detects both FT232RL (`0403:6001`) and CH343P (`1a86:55d3`).
+- reading_loop reconnect escalation synced with waiting_loop: 10s hard reconnect, 20s usb_reset, 30s power_cycle.
+- `usb_power_cycle()` added to reading_loop escalation — previously only ran in waiting_loop.
+### Notes
+- LOG6 partially addressed — escalation now aggressive enough to recover hung adapter without reboot.
+- Requires moto test to confirm full recovery after multiple killswitch cycles.
+- Co-diagnosed: Claude (Anthropic) — 2026-04-04
+
+---
 ## [v2.5.35] — 2026-04-04
 ### Changed
 - `decode_eeprom_params()` hardcode replaced by `decode_params_compat()` from `ecu/eeprom_params.py`.

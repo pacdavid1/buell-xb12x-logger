@@ -168,7 +168,7 @@ Buffer flushes logged as `AUTO-FLUSH FIFO buf_in=Xb >50% — flushed`.
 Pre-flush value visible in CSV for correlation analysis.
 
 
-**BACKLOG-LOG6** `OPEN` — CONFIRMED BUG
+**BACKLOG-LOG6** `PARTIAL` — v2.5.36 (2026-04-04) — requires moto test to confirm
 RT data failure after multiple killswitch/reconnect cycles
 
 ### Problem
