@@ -343,7 +343,15 @@ TEMPLATES_DIR = WEB_DIR / "templates"
 STATIC_DIR = WEB_DIR / "static"
 
 
-LOGGER_VERSION = "v1.17.0-FORENSIC"  # ← único lugar a cambiar en cada release
+def _read_version():
+    try:
+        import re
+        cl = open("/home/pi/buell/CHANGELOG.md").read()
+        m = re.search(r"## \[([^\]]+)\]", cl)
+        return m.group(1) if m else "unknown"
+    except Exception:
+        return "unknown"
+LOGGER_VERSION = _read_version()
 
 # NUEVO v1.17.0: Catálogo de bytes misteriosos de DDFI2
 MYSTERY_BYTES = {

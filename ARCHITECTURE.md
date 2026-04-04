@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-04 00:31 | versión: v1.16.3-198-g6e058e0
+> Última actualización: 2026-04-04 00:47 | versión: v1.16.3-199-gec1da7f
 
 ---
 
@@ -239,6 +239,7 @@ buell-xb12x-logger/
 ├── fix_remove_extra_div_before_script.py.save
 ├── fix_server_rides.py.save
 ├── fix_server_rides.py.save.1
+├── fix_version.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
@@ -268,7 +269,6 @@ buell-xb12x-logger/
 
 | Nombre | Valor |
 |--------|-------|
-| `LOGGER_VERSION` | `v1.17.0-FORENSIC` |
 | `MYSTERY_BYTES` | `{255: {'name': 'EOH_or_IDLE', 'desc': 'End of Header o línea idle', 'sospechoso': False}, 1: {'name': 'SOH', 'desc': 'Start of Header válido', 'sospechoso': False}, 64: {'name': 'BIT6_TPS_HIGH', 'desc': 'Bit 6 - posible DTC TPS alto', 'sospechoso': True}, 96: {'name': 'BITS_5_6_DUAL', 'desc': 'Bits 5+6 - error dual TPS', 'sospechoso': True}, 6: {'name': 'ACK', 'desc': 'Acknowledge válido', 'sospechoso': False}, 0: {'name': 'NULL_PAD', 'desc': 'Null padding', 'sospechoso': True}}` |
 | `SOH` | `1` |
 | `EOH` | `255` |
@@ -580,6 +580,10 @@ A new  |
 | Nombre | Valor |
 |--------|-------|
 | `_ECM_TABLE` | `None` |
+
+---
+
+### `fix_version.py`
 
 ---
 

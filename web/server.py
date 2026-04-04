@@ -372,7 +372,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def _load_html(self):
         template = Path(__file__).parent / 'templates' / 'index.html'
         if template.exists():
-            return template.read_text(encoding='utf-8')
+            return template.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version())
         return "<h1>Buell Logger</h1><p>templates/index.html no encontrado</p>"
 
     def _get_live(self):
