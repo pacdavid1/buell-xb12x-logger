@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-04 00:48 | versión: v1.16.3-200-gd693081
+> Última actualización: 2026-04-04 00:49 | versión: v1.16.3-201-ga5dddf1
 
 ---
 

@@ -7,7 +7,7 @@ Status: OPEN / IN-PROGRESS / CLOSED vX.X.X
 
 ## ECU / EEPROM
 
-**BACKLOG-ECU1** `OPEN`
+**BACKLOG-ECU1** `CLOSED` — v2.5.35 (2026-04-04)
 ECM model detection
 
 ### Problem
