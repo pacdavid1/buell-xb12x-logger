@@ -2,6 +2,24 @@
 > Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.38] — 2026-04-06
+### Added
+- `CellTracker`: filtros de validez por sample (WUE, CLT, RPM, AFV, decel, fuel_cut, TPS_delta)
+- `CellTracker`: acumuladores de calidad por celda (valid_seconds, valid_ego_avg, confidence, clt_avg, wue_avg, afv_avg, inv_reasons)
+- `CellTracker._is_valid()`: retorna (bool, reason) para clasificar cada sample
+- `SessionManager._update_tuning_report()`: genera/actualiza tuning_report_CHECKSUM.json al cerrar cada ride
+- `analyze_session.py`: script standalone para agregar todos los CSVs de una sesión con filtros de validez
+- `BACKLOG_ANL.md`: backlog dedicado al pipeline de análisis y tuning
+- `tempColor(c)`: función JS de interpolación azul→blanco→rojo por temperatura °C
+### Changed
+- Big CHT en dashboard: color dinámico via tempColor() en lugar de clases CSS fijas
+- Chart CLT: borderColor y eje Y3 usan tempColor(cltMax) del ride
+- Labels CLT°F → CLT°C en chart y eje
+- Límite de referencia en chart: 250°F → 235°C (umbral crítico XB)
+### Notes
+- tuning_report solo procesa rides con formato nuevo (valid_seconds en cells) — rides anteriores ignorados
+- Co-diagnosed: Claude (Anthropic)
+
 ## [v2.5.37] — 2026-04-04
 ### Changed
 - reading_loop reconnect simplificado: va directo a `usb_power_cycle()` a los 10s sin escalación.

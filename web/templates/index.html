@@ -748,7 +748,8 @@ function updateHeader(d) {
   const bcht = document.getElementById('bigCHT');
   if(lv.CLT != null){
     bcht.textContent = lv.CLT.toFixed(0);
-    bcht.className = 'big-num '+(lv.CLT>260?'ac':lv.CLT>220?'yw':'wh');
+    bcht.className = 'big-num';
+    bcht.style.color = tempColor(lv.CLT);
   } else { bcht.textContent='--'; bcht.className='big-num ac'; }
 
   // Big KPH
@@ -845,7 +846,7 @@ async function fetchLive() {
     }
   } catch(e){}
 }
-setInterval(fetchLive, 2000);
+setInterval(fetchLive, 500);
 setInterval(()=>{
   const frozen = (Date.now() - _lastLiveOk) > 5000;
   const tabs = document.querySelector('.tabs');
@@ -963,6 +964,28 @@ function showMap(which){
   if(container) container.innerHTML = html;
 }
 
+function tempColor(c){
+  // Interpolación lineal azul→blanco→rojo según °C
+  // Rango útil Buell XB: 90°C normal, >225°C alerta, >235°C crítico
+  const pts=[
+    [300,[255,0,0]],[272,[255,165,0]],[244,[255,255,0]],
+    [216,[255,255,150]],[188,[255,255,220]],[160,[255,255,255]],
+    [115,[150,255,150]],[70,[100,200,255]],[25,[0,0,255]],[-20,[0,0,128]]
+  ];
+  if(c>=300)return'rgb(255,0,0)';
+  if(c<=-20)return'rgb(0,0,128)';
+  for(let i=0;i<pts.length-1;i++){
+    const[t1,c1]=pts[i],[t2,c2]=pts[i+1];
+    if(c<=t1&&c>=t2){
+      const f=(c-t2)/(t1-t2);
+      const r=Math.round(c2[0]+(c1[0]-c2[0])*f);
+      const g=Math.round(c2[1]+(c1[1]-c2[1])*f);
+      const b=Math.round(c2[2]+(c1[2]-c2[2])*f);
+      return`rgb(${r},${g},${b})`;
+    }
+  }
+  return'rgb(255,255,255)';
+}
 function heatColor(t){
   // Azul oscuro → naranja → rojo
   const stops = [
@@ -1529,9 +1552,9 @@ function buildCharts(rows){
       pointRadius:0, fill:false, tension:0.1, yAxisID:'y' },
     { label:'KPH',   data:kphData, borderColor:C.kph, borderWidth:1.5,
       pointRadius:0, fill:false, tension:0.1, yAxisID:'y2' },
-    { label:'CLT°F', data:cltData, borderColor:C.clt, borderWidth:1.2,
+    { label:'CLT°C', data:cltData, borderColor:tempColor(cltMax), borderWidth:1.2,
       borderDash:[3,2], pointRadius:0, fill:false, tension:0.1, yAxisID:'y3' },
-    { label:'250°F (lim)', data:[{x:tFirst,y:250},{x:tLast,y:250}],
+    { label:'235°C (lim)', data:[{x:tFirst,y:235},{x:tLast,y:235}],
       borderColor:'#f804', borderWidth:1, borderDash:[4,4],
       pointRadius:0, fill:false, yAxisID:'y3' },
     markerSet('WOT',    wotEvts,  C.wot,  'triangle', 5),
@@ -1550,9 +1573,9 @@ function buildCharts(rows){
          title:{display:true,text:'KPH',font:{family:'monospace',size:7},color:C.kph}},
     y3:{ type:'linear', position:'right',
          min: Math.max(0, cltMin-15), max: Math.max(cltMax+20, 280),
-         ticks:{font:{family:'monospace',size:8},color:C.clt},
+         ticks:{font:{family:'monospace',size:8},color:tempColor(cltMax)},
          grid:{drawOnChartArea:false},
-         title:{display:true,text:'CLT°F',font:{family:'monospace',size:7},color:C.clt}}
+         title:{display:true,text:'CLT°C',font:{family:'monospace',size:7},color:tempColor(cltMax)}}
   }}});
 
   // ── 2. Correcciones combustible: EGO + AFV + WUE + Promedio ─

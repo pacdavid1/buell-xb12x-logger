@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-04 01:12 | versión: v1.16.3-205-g518758e
+> Última actualización: 2026-04-05 23:57 | versión: v1.16.3-206-gf88d606
 
 ---
 
@@ -99,10 +99,73 @@ buell-xb12x-logger/
 │   ├── 248AE2
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
+│   │   ├── ride_003_errorlog.json
+│   │   ├── ride_004_errorlog.json
+│   │   ├── ride_005_errorlog.json
+│   │   ├── ride_006_errorlog.json
+│   │   ├── ride_008_errorlog.json
+│   │   ├── ride_009_errorlog.json
+│   │   ├── ride_011_errorlog.json
+│   │   ├── ride_012_errorlog.json
+│   │   ├── ride_013_errorlog.json
+│   │   ├── ride_016_errorlog.json
+│   │   ├── ride_020_errorlog.json
+│   │   ├── ride_021_errorlog.json
+│   │   ├── ride_022_errorlog.json
+│   │   ├── ride_023_errorlog.json
+│   │   ├── ride_024_errorlog.json
+│   │   ├── ride_025_errorlog.json
+│   │   ├── ride_027_errorlog.json
 │   │   ├── ride_248AE2_001.csv
 │   │   ├── ride_248AE2_001_notes.txt
 │   │   ├── ride_248AE2_002.csv
-│   │   └── session_metadata.json
+│   │   ├── ride_248AE2_003.csv
+│   │   ├── ride_248AE2_004.csv
+│   │   ├── ride_248AE2_005.csv
+│   │   ├── ride_248AE2_006.csv
+│   │   ├── ride_248AE2_006_summary.json
+│   │   ├── ride_248AE2_007.csv
+│   │   ├── ride_248AE2_008.csv
+│   │   ├── ride_248AE2_008_summary.json
+│   │   ├── ride_248AE2_009.csv
+│   │   ├── ride_248AE2_009_summary.json
+│   │   ├── ride_248AE2_010.csv
+│   │   ├── ride_248AE2_010_summary.json
+│   │   ├── ride_248AE2_011.csv
+│   │   ├── ride_248AE2_011_summary.json
+│   │   ├── ride_248AE2_012.csv
+│   │   ├── ride_248AE2_012_summary.json
+│   │   ├── ride_248AE2_013.csv
+│   │   ├── ride_248AE2_013_summary.json
+│   │   ├── ride_248AE2_014.csv
+│   │   ├── ride_248AE2_014_summary.json
+│   │   ├── ride_248AE2_015.csv
+│   │   ├── ride_248AE2_015_summary.json
+│   │   ├── ride_248AE2_016.csv
+│   │   ├── ride_248AE2_016_summary.json
+│   │   ├── ride_248AE2_017.csv
+│   │   ├── ride_248AE2_017_summary.json
+│   │   ├── ride_248AE2_018.csv
+│   │   ├── ride_248AE2_018_summary.json
+│   │   ├── ride_248AE2_019.csv
+│   │   ├── ride_248AE2_019_summary.json
+│   │   ├── ride_248AE2_020.csv
+│   │   ├── ride_248AE2_020_summary.json
+│   │   ├── ride_248AE2_021.csv
+│   │   ├── ride_248AE2_021_summary.json
+│   │   ├── ride_248AE2_022.csv
+│   │   ├── ride_248AE2_022_summary.json
+│   │   ├── ride_248AE2_023.csv
+│   │   ├── ride_248AE2_023_summary.json
+│   │   ├── ride_248AE2_024.csv
+│   │   ├── ride_248AE2_024_summary.json
+│   │   ├── ride_248AE2_025.csv
+│   │   ├── ride_248AE2_025_summary.json
+│   │   ├── ride_248AE2_026.csv
+│   │   ├── ride_248AE2_027.csv
+│   │   ├── ride_248AE2_027_summary.json
+│   │   ├── session_metadata.json
+│   │   └── tuning_report_248AE2.json
 │   ├── 5F94A1
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
@@ -190,12 +253,14 @@ buell-xb12x-logger/
 │   │   ├── ride_001_errorlog.json
 │   │   ├── ride_002_errorlog.json
 │   │   ├── ride_003_errorlog.json
+│   │   ├── ride_004_errorlog.json
 │   │   ├── ride_D7B333_001.csv
 │   │   ├── ride_D7B333_001_summary.json
 │   │   ├── ride_D7B333_002.csv
 │   │   ├── ride_D7B333_002_summary.json
 │   │   ├── ride_D7B333_003.csv
 │   │   ├── ride_D7B333_003_summary.json
+│   │   ├── ride_D7B333_004.csv
 │   │   └── session_metadata.json
 │   ├── E8D511
 │   │   ├── consolidated.csv
@@ -230,11 +295,13 @@ buell-xb12x-logger/
 │   └── server.py
 ├── ARCHITECTURE.md
 ├── BACKLOG.md
+├── BACKLOG_ANL.md
 ├── CHANGELOG.md
 ├── DEV_TIPS.md
 ├── README.md
 ├── WORKING_METHOD.md
 ├── WORKING_METHOD.md.save
+├── analyze_session.py
 ├── ddfi2_logger.py
 ├── fix_remove_extra_div_before_script.py.save
 ├── fix_server_rides.py.save
@@ -261,6 +328,17 @@ buell-xb12x-logger/
 ---
 
 ## Módulos Python
+
+### `analyze_session.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `RPM_BINS` | `[0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000]` |
+| `LOAD_BINS` | `[10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]` |
+
+---
 
 ### `ddfi2_logger.py`
 
@@ -540,6 +618,7 @@ A new  |
 | `_open_csv_part` | Abre el archivo CSV de la parte actual del ride. |
 | `write_sample` | — |
 | `close_current_ride` | — |
+| `_update_tuning_report` | Actualiza tuning_report incremental con el summary del ride  |
 | `_save_metadata` | — |
 | `_generate_consolidated` | — |
 
@@ -549,8 +628,9 @@ A new  |
 |--------|-----------|
 | `__init__` | — |
 | `reset` | — |
+| `_is_valid` | Retorna (bool, str) — si el sample es válido para tuning y p |
 | `update` | — |
-| `snapshot` | Retorna copia thread-safe del estado. |
+| `snapshot` | Retorna copia thread-safe del estado con campos de calidad. |
 
 **Clase `RideErrorLog`**
 
@@ -756,6 +836,7 @@ Upd |
 - `fetchLive()`
 - `loadMaps()`
 - `showMap()`
+- `tempColor()`
 - `heatColor()`
 - `loadObj()`
 - `saveObj()`
