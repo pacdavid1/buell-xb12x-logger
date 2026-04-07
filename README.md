@@ -1,6 +1,6 @@
 # Buell XB12X — DDFI2 ECU Logger
 
-Raspberry Pi Zero 2W · FT232RL USB-Serial · Python 3 · 9600,8N1
+Raspberry Pi Zero 2W · CH343P USB-Serial · Python 3 · 9600,8N1
 
 > **Developers:** Before starting any work session, read [WORKING_METHOD.md](./WORKING_METHOD.md) first.
 
@@ -55,7 +55,7 @@ Minimum hardware required:
 
 • Buell XB12X motorcycle  
 • Raspberry Pi Zero 2 W  
-• FT232RL USB-Serial adapter  
+• CH343P isolated USB-Serial adapter  
 • microSD card (32GB+ recommended)  
 • USB OTG adapter  
 
@@ -63,7 +63,7 @@ Connection diagram:
 
 Buell XB12X  
 └── Diagnostic connector (under seat)  
-  └── FT232RL USB-Serial (9600,8N1)  
+  └── CH343P isolated USB-Serial (9600,8N1)  
     └── Raspberry Pi Zero 2 W  
       └── WiFi → Web dashboard  
 

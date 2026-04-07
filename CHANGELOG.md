@@ -1,5 +1,5 @@
 # CHANGELOG — Buell XB12X DDFI2 Logger
-> Raspberry Pi Zero 2W · FT232RL · Python 3 · 9600,8N1
+> Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 ## [v2.5.38] — 2026-04-06
