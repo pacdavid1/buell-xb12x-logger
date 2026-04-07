@@ -331,6 +331,16 @@ class SessionManager:
         elif afv_global < 95:
             afv_action = f"subir mapa VE ~{100-afv_global:.0f}%"
 
+        # Cargar eeprom_decoded si existe — viaja junto con el reporte
+        eeprom_snapshot = None
+        eeprom_path = self.current_session_dir / "eeprom_decoded.json"
+        if eeprom_path.exists():
+            try:
+                with open(eeprom_path) as f:
+                    eeprom_snapshot = json.load(f)
+            except Exception:
+                pass
+
         report = {
             "generated_utc":  summary.get("closed_utc", ""),
             "session":         self.current_checksum,
@@ -343,7 +353,8 @@ class SessionManager:
                 "cells_conf_ok":         sum(1 for v in cells_out.values() if v["confidence"] >= 0.3),
                 "cells_with_suggestion": sum(1 for v in cells_out.values() if v["suggestion"]),
             },
-            "cells": cells_out,
+            "cells":  cells_out,
+            "eeprom": eeprom_snapshot,
         }
 
         tmp = report_path.with_suffix(".tmp")

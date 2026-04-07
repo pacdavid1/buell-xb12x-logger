@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-05 23:57 | versión: v1.16.3-206-gf88d606
+> Última actualización: 2026-04-06 20:34 | versión: v1.16.3-207-g7f9dcb2
 
 ---
 
@@ -99,6 +99,7 @@ buell-xb12x-logger/
 │   ├── 248AE2
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
+│   │   ├── eeprom_decoded.json
 │   │   ├── ride_003_errorlog.json
 │   │   ├── ride_004_errorlog.json
 │   │   ├── ride_005_errorlog.json
@@ -116,6 +117,8 @@ buell-xb12x-logger/
 │   │   ├── ride_024_errorlog.json
 │   │   ├── ride_025_errorlog.json
 │   │   ├── ride_027_errorlog.json
+│   │   ├── ride_028_errorlog.json
+│   │   ├── ride_029_errorlog.json
 │   │   ├── ride_248AE2_001.csv
 │   │   ├── ride_248AE2_001_notes.txt
 │   │   ├── ride_248AE2_002.csv
@@ -164,6 +167,10 @@ buell-xb12x-logger/
 │   │   ├── ride_248AE2_026.csv
 │   │   ├── ride_248AE2_027.csv
 │   │   ├── ride_248AE2_027_summary.json
+│   │   ├── ride_248AE2_028.csv
+│   │   ├── ride_248AE2_028_summary.json
+│   │   ├── ride_248AE2_029.csv
+│   │   ├── ride_248AE2_029_summary.json
 │   │   ├── session_metadata.json
 │   │   └── tuning_report_248AE2.json
 │   ├── 5F94A1
