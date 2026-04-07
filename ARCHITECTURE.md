@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-06 20:34 | versión: v1.16.3-207-g7f9dcb2
+> Última actualización: 2026-04-06 20:46 | versión: v1.16.3-208-g18d9bb4
 
 ---
 
@@ -608,6 +608,7 @@ Mas efectivo  |
 |--------|-------|
 | `LOGGER_VERSION` | `v2.3.0-MODULAR` |
 | `MAX_CSV_ROWS` | `10000` |
+| `HARDNESS` | `0.3` |
 
 **Clase `SessionManager`**
 
@@ -636,6 +637,8 @@ A new  |
 | `__init__` | — |
 | `reset` | — |
 | `_is_valid` | Retorna (bool, str) — si el sample es válido para tuning y p |
+| `_empty_cell` | — |
+| `_bilinear_weights` | Distribuye un sample entre los 4 vecinos del mapa VE con pes |
 | `update` | — |
 | `snapshot` | Retorna copia thread-safe del estado con campos de calidad. |
 

@@ -11,6 +11,7 @@ Responsabilidades:
   - Generar consolidated.csv por sesión
 """
 
+import bisect
 import csv
 import hashlib
 import json
@@ -450,6 +451,33 @@ class CellTracker:
         if tps_delta > 5.0:     return False, "TPS_delta"
         return True, ""
 
+    HARDNESS = 0.3  # Velocidad de aprendizaje IIR (0.1=lento, 0.5=rapido)
+
+    def _empty_cell(self):
+        return {
+            "seconds": 0.0, "ego_sum": 0.0, "count": 0.0,
+            "valid_seconds": 0.0, "valid_ego_sum": 0.0, "valid_count": 0.0,
+            "ego_iir": None,
+            "clt_sum": 0.0, "wue_sum": 0.0, "afv_sum": 0.0,
+            "inv_reasons": {}
+        }
+
+    def _bilinear_weights(self, rpm, load):
+        """Distribuye un sample entre los 4 vecinos del mapa VE con pesos bilineales.
+        Consistente con la interpolacion que usa el ECU al aplicar el mapa."""
+        ri = max(0, min(bisect.bisect_right(RPM_BINS, rpm) - 1, len(RPM_BINS) - 2))
+        li = max(0, min(bisect.bisect_right(LOAD_BINS, load) - 1, len(LOAD_BINS) - 2))
+        r0, r1 = RPM_BINS[ri], RPM_BINS[ri + 1]
+        l0, l1 = LOAD_BINS[li], LOAD_BINS[li + 1]
+        tr = (rpm  - r0) / (r1 - r0) if r1 != r0 else 0.0
+        tl = (load - l0) / (l1 - l0) if l1 != l0 else 0.0
+        return [
+            (f"{r0}_{l0}", (1 - tr) * (1 - tl)),
+            (f"{r0}_{l1}", (1 - tr) *      tl ),
+            (f"{r1}_{l0}",      tr  * (1 - tl)),
+            (f"{r1}_{l1}",      tr  *      tl ),
+        ]
+
     def update(self, data):
         rpm  = data.get("RPM",    0) or 0
         load = data.get("Load",   0) or 0
@@ -463,28 +491,38 @@ class CellTracker:
                 self.active = None
             self._last_tps = None
             return
-        key = cell_key(rpm, load)
         valid, inv_reason = self._is_valid(data, tps)
+        primary_key = cell_key(rpm, load)
+        neighbors   = self._bilinear_weights(rpm, load)
         with self._lock:
-            self.active = key
-            c = self.cells.setdefault(key, {
-                "seconds": 0.0, "ego_sum": 0.0, "count": 0,
-                "valid_seconds": 0.0, "valid_ego_sum": 0.0, "valid_count": 0,
-                "clt_sum": 0.0, "wue_sum": 0.0, "afv_sum": 0.0,
-                "inv_reasons": {}
-            })
-            c["seconds"]  += self._dt
-            c["ego_sum"]  += ego
-            c["count"]    += 1
-            c["clt_sum"]  += clt
-            c["wue_sum"]  += wue
-            c["afv_sum"]  += afv
-            if valid:
-                c["valid_seconds"]  += self._dt
-                c["valid_ego_sum"]  += ego
-                c["valid_count"]    += 1
-            else:
-                c["inv_reasons"][inv_reason] = c["inv_reasons"].get(inv_reason, 0) + 1
+            self.active = primary_key
+            for key, weight in neighbors:
+                if weight < 0.01:
+                    continue
+                c = self.cells.setdefault(key, self._empty_cell())
+                c["seconds"]  += self._dt * weight
+                c["ego_sum"]  += ego * weight
+                c["count"]    += weight
+                c["clt_sum"]  += clt * weight
+                c["wue_sum"]  += wue * weight
+                c["afv_sum"]  += afv * weight
+                if valid:
+                    c["valid_seconds"] += self._dt * weight
+                    c["valid_ego_sum"] += ego * weight
+                    c["valid_count"]   += weight
+                    # IIR adaptivo: alfa depende del peso bilineal,
+                    # hardness y confianza acumulada
+                    conf  = min(1.0, c["valid_seconds"] / 10.0)
+                    alpha = weight * self.HARDNESS * (1.0 - 0.8 * conf)
+                    alpha = max(0.01, min(0.5, alpha))
+                    if c["ego_iir"] is None:
+                        c["ego_iir"] = ego
+                    else:
+                        c["ego_iir"] = (1 - alpha) * c["ego_iir"] + alpha * ego
+                else:
+                    c["inv_reasons"][inv_reason] = (
+                        c["inv_reasons"].get(inv_reason, 0) + weight
+                    )
         self._last_tps = tps
 
     def snapshot(self):
@@ -506,6 +544,7 @@ class CellTracker:
                     "ego_avg":        avg,
                     "valid_seconds":  round(v["valid_seconds"], 1),
                     "valid_ego_avg":  vavg,
+                    "ego_iir":        round(v["ego_iir"], 2) if v.get("ego_iir") is not None else None,
                     "confidence":     conf,
                     "clt_avg":        clt_a,
                     "wue_avg":        wue_a,
