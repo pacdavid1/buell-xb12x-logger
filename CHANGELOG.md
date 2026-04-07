@@ -2,6 +2,25 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.40] — 2026-04-06
+### Changed
+- `CellTracker.update()`: distribución bilineal entre 4 celdas vecinas (antes 100% a una celda)
+- `CellTracker._bilinear_weights()`: pesos bilineales consistentes con interpolación del ECU
+- `CellTracker._empty_cell()`: inicialización centralizada incluyendo `ego_iir`
+- `CellTracker.HARDNESS = 0.3`: parámetro configurable de velocidad de aprendizaje IIR
+- `snapshot()`: incluye `ego_iir` (estimado IIR adaptivo) por celda
+### Notes
+- count/valid_count ahora son sumas de pesos flotantes — consistente con distribución bilineal
+- Co-diagnosed: Claude (Anthropic)
+
+## [v2.5.39] — 2026-04-06
+### Added
+- `eeprom_decoded.json`: generado desde eeprom.bin (35 params, 4 mapas VE/spark)
+- `SessionManager._update_tuning_report()`: incluye eeprom_decoded en tuning_report
+### Notes
+- tuning_report ahora contiene mapa VE actual + sugerencias en un solo JSON
+- Co-diagnosed: Claude (Anthropic)
+
 ## [v2.5.38] — 2026-04-06
 ### Added
 - `CellTracker`: filtros de validez por sample (WUE, CLT, RPM, AFV, decel, fuel_cut, TPS_delta)
