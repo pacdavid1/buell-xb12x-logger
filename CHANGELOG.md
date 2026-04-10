@@ -2,6 +2,18 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.41] — 2026-04-09
+### Added
+- `SessionManager._generate_suggested_msq()`: genera MSQ con sugerencias aplicadas automáticamente al cerrar cada ride
+- MSQ toma EEPROM actual como base y aplica factor de corrección solo a celdas con suggestion
+- Safety limits: VE entre 10-250, máximo 5% de cambio por iteración
+- Endpoint `GET /suggested_msq`: descarga el MSQ sugerido de la sesión activa
+- MSQ guardado en `sessions/CHECKSUM/suggested_CHECKSUM.msq`
+### Notes
+- Solo modifica fuel_front por ahora — fuel_rear y spark se copian sin cambios
+- MSQ compatible con EcmSpy — misma estructura que Custom_DDFI2_Map.msq
+- Co-diagnosed: Claude (Anthropic)
+
 ## [v2.5.40] — 2026-04-06
 ### Changed
 - `CellTracker.update()`: distribución bilineal entre 4 celdas vecinas (antes 100% a una celda)

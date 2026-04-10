@@ -212,6 +212,21 @@ class DashboardHandler(BaseHTTPRequestHandler):
             rides = self.server_instance._get_rides()
             self._json({"rides": rides})
             return
+        if path == '/suggested_msq':
+            cs = self.server_instance.session.current_checksum
+            if not cs:
+                self._json({"error": "sin sesion activa"}); return
+            from pathlib import Path
+            msq_path = Path('/home/pi/buell/sessions') / cs / ('suggested_' + cs + '.msq')
+            if not msq_path.exists():
+                self._json({"error": "sin MSQ generado aun"}); return
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/xml')
+            self.send_header('Content-Disposition',
+                'attachment; filename="suggested_' + cs + '.msq"')
+            self.end_headers()
+            self.wfile.write(msq_path.read_bytes())
+            return
         if path == '/maps':
             maps = self.server_instance.eeprom_maps
             if not maps or not maps.get('fuel_front'):

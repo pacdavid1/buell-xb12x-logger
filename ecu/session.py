@@ -368,8 +368,137 @@ class SessionManager:
                 f"{len(cells_out)} celdas | "
                 f"{report['global']['cells_with_suggestion']} sugerencias"
             )
+            self._generate_suggested_msq(report)
         except Exception as e:
             self.logger.warning(f"Error guardando tuning report: {e}")
+
+    def _generate_suggested_msq(self, report):
+        """Genera MSQ con sugerencias aplicadas sobre el EEPROM actual."""
+        if not self.current_session_dir:
+            return
+        eeprom_path = self.current_session_dir / "eeprom_decoded.json"
+        if not eeprom_path.exists():
+            return
+        try:
+            with open(eeprom_path) as f:
+                eeprom = json.load(f)
+        except Exception as e:
+            self.logger.warning(f"MSQ gen: no se pudo leer eeprom_decoded: {e}")
+            return
+        import copy
+        maps       = eeprom.get("maps", {})
+        axes       = maps.get("axes", {})
+        cells      = report.get("cells", {})
+        fuel_front = copy.deepcopy(maps.get("fuel_front", []))
+        fuel_rear  = copy.deepcopy(maps.get("fuel_rear",  []))
+        spark_front= copy.deepcopy(maps.get("spark_front",[]))
+        spark_rear = copy.deepcopy(maps.get("spark_rear", []))
+        fuel_rpm   = axes.get("fuel_rpm",  [])
+        fuel_load  = axes.get("fuel_load", [])
+        applied = 0
+        for key, cell in cells.items():
+            sug = cell.get("suggestion")
+            if not sug:
+                continue
+            try:
+                rpm_v  = int(key.split("_")[0])
+                load_v = int(key.split("_")[1])
+                if rpm_v not in fuel_rpm or load_v not in fuel_load:
+                    continue
+                ri = fuel_rpm.index(rpm_v)
+                li = fuel_load.index(load_v)
+                if fuel_front and li < len(fuel_front) and ri < len(fuel_front[li]):
+                    ve_old = fuel_front[li][ri]
+                    if ve_old is not None:
+                        fuel_front[li][ri] = max(10, min(250, round(ve_old * sug["factor"])))
+                        applied += 1
+            except Exception:
+                continue
+        if applied == 0:
+            self.logger.debug("MSQ gen: sin sugerencias que aplicar")
+            return
+
+        def ax1b(vals):
+            return "\n".join("      " + str(v) for v in vals)
+        def ax2b(vals):
+            return "\n".join("    " + str(v) for v in vals)
+        def mapfuel(table):
+            return "\n".join("      " + " ".join(
+                str(int(v)) if v is not None else "0" for v in row
+            ) for row in table)
+        def mapspark(table):
+            return "\n".join("      " + " ".join(
+                "{:.2f}".format(v) if v is not None else "0.00" for v in row
+            ) for row in table)
+
+        from datetime import datetime, timezone
+        now   = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        rides = ",".join(str(r) for r in report.get("rides_included", []))
+        sl    = axes.get("spark_load", [])
+        sr    = axes.get("spark_rpm",  [])
+
+        lines = [
+            '<?xml version="1.0"?>',
+            '<msq xmlns="http://www.ecmspy.com/">',
+            '  <bibliography author="BuellLogger/' + now + ' rides=' + rides + '" writeDate="' + now + '" />',
+            '  <versionInfo fileFormat="4" nPages="1" signature="BUEIB" />',
+            '  <page number="0">',
+            '    <constant name="z_factor">4.00</constant>',
+            '    <constant name="tpsBins1" rows="12" units="TPS">',
+            ax1b(fuel_load),
+            '</constant>',
+            '    <constant name="rpmBins1" rows="13" units="RPM">',
+            ax2b(fuel_rpm),
+            '</constant>',
+            '    <constant name="veBins1" rows="12" cols="13" units="fuel">',
+            mapfuel(fuel_front),
+            '',
+            '</constant>',
+            '    <constant name="tpsBins2" rows="12" units="TPS">',
+            ax1b(fuel_load),
+            '</constant>',
+            '    <constant name="rpmBins2" rows="13" units="RPM">',
+            ax2b(fuel_rpm),
+            '</constant>',
+            '    <constant name="veBins2" rows="12" cols="13" units="fuel">',
+            mapfuel(fuel_rear),
+            '',
+            '</constant>',
+            '    <constant name="tpsBins3" rows="10" units="TPS">',
+            ax1b(sl),
+            '</constant>',
+            '    <constant name="rpmBins3" rows="10" units="RPM">',
+            ax2b(sr),
+            '</constant>',
+            '    <constant name="advTable1" rows="10" cols="10" units="deg BTDC">',
+            mapspark(spark_front),
+            '',
+            '</constant>',
+            '    <constant name="tpsBins4" rows="10" units="TPS">',
+            ax1b(sl),
+            '</constant>',
+            '    <constant name="rpmBins4" rows="10" units="RPM">',
+            ax2b(sr),
+            '</constant>',
+            '    <constant name="advTable2" rows="10" cols="10" units="deg BTDC">',
+            mapspark(spark_rear),
+            '',
+            '</constant>',
+            '  </page>',
+            '</msq>',
+        ]
+        msq_path = self.current_session_dir / ("suggested_" + self.current_checksum + ".msq")
+        tmp = msq_path.with_suffix(".tmp")
+        try:
+            with open(tmp, "w") as f:
+                f.write("\n".join(lines))
+            tmp.replace(msq_path)
+            self.logger.info(
+                "MSQ sugerido generado: " + msq_path.name +
+                " (" + str(applied) + " celdas modificadas)"
+            )
+        except Exception as e:
+            self.logger.warning("Error guardando MSQ: " + str(e))
 
     def _save_metadata(self):
         if not self.current_session_dir:

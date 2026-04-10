@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-06 20:53 | versión: v1.16.3-210-ga04a625
+> Última actualización: 2026-04-09 21:43 | versión: v1.16.3-211-gefa8cb4
 
 ---
 
@@ -119,6 +119,13 @@ buell-xb12x-logger/
 │   │   ├── ride_027_errorlog.json
 │   │   ├── ride_028_errorlog.json
 │   │   ├── ride_029_errorlog.json
+│   │   ├── ride_031_errorlog.json
+│   │   ├── ride_032_errorlog.json
+│   │   ├── ride_033_errorlog.json
+│   │   ├── ride_034_errorlog.json
+│   │   ├── ride_035_errorlog.json
+│   │   ├── ride_036_errorlog.json
+│   │   ├── ride_037_errorlog.json
 │   │   ├── ride_248AE2_001.csv
 │   │   ├── ride_248AE2_001_notes.txt
 │   │   ├── ride_248AE2_002.csv
@@ -171,7 +178,23 @@ buell-xb12x-logger/
 │   │   ├── ride_248AE2_028_summary.json
 │   │   ├── ride_248AE2_029.csv
 │   │   ├── ride_248AE2_029_summary.json
+│   │   ├── ride_248AE2_030.csv
+│   │   ├── ride_248AE2_031.csv
+│   │   ├── ride_248AE2_031_summary.json
+│   │   ├── ride_248AE2_032.csv
+│   │   ├── ride_248AE2_032_summary.json
+│   │   ├── ride_248AE2_033.csv
+│   │   ├── ride_248AE2_033_summary.json
+│   │   ├── ride_248AE2_034.csv
+│   │   ├── ride_248AE2_034_summary.json
+│   │   ├── ride_248AE2_035.csv
+│   │   ├── ride_248AE2_035_summary.json
+│   │   ├── ride_248AE2_036.csv
+│   │   ├── ride_248AE2_036_summary.json
+│   │   ├── ride_248AE2_037.csv
+│   │   ├── ride_248AE2_037_summary.json
 │   │   ├── session_metadata.json
+│   │   ├── suggested_248AE2.msq
 │   │   └── tuning_report_248AE2.json
 │   ├── 5F94A1
 │   │   ├── consolidated.csv
@@ -627,6 +650,7 @@ A new  |
 | `write_sample` | — |
 | `close_current_ride` | — |
 | `_update_tuning_report` | Actualiza tuning_report incremental con el summary del ride  |
+| `_generate_suggested_msq` | Genera MSQ con sugerencias aplicadas sobre el EEPROM actual. |
 | `_save_metadata` | — |
 | `_generate_consolidated` | — |
 
@@ -803,6 +827,7 @@ Upd |
 - `/ride/`
 - `/errorlog/`
 - `/rides`
+- `/suggested_msq`
 - `/maps`
 - `/eeprom`
 - `/wifi/saved`
