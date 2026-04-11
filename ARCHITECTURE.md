@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-11 09:23 | versión: v1.16.3-214-g721a611
+> Última actualización: 2026-04-11 16:05 | versión: v1.16.3-215-g1c3a6f2
 
 ---
 
@@ -205,6 +205,26 @@ buell-xb12x-logger/
 │   │   ├── session_metadata.json
 │   │   ├── suggested_248AE2.msq
 │   │   └── tuning_report_248AE2.json
+│   ├── 26C511
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── ride_001_errorlog.json
+│   │   ├── ride_26C511_001.csv
+│   │   └── session_metadata.json
+│   ├── 27F1A2
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── ride_001_errorlog.json
+│   │   ├── ride_002_errorlog.json
+│   │   ├── ride_003_errorlog.json
+│   │   ├── ride_27F1A2_001.csv
+│   │   ├── ride_27F1A2_001_summary.json
+│   │   ├── ride_27F1A2_002.csv
+│   │   ├── ride_27F1A2_002_summary.json
+│   │   ├── ride_27F1A2_003.csv
+│   │   ├── ride_27F1A2_003_summary.json
+│   │   ├── session_metadata.json
+│   │   └── tuning_report_27F1A2.json
 │   ├── 5F94A1
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
@@ -920,6 +940,7 @@ Upd |
 - `detectWOT()`
 - `detectDTC()`
 - `buildCharts()`
+- `openChartCfg()`
 - `initGraphPane()`
 - `_fillGraphSelect()`
 - `_rideDate()`

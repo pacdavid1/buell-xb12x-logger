@@ -169,11 +169,12 @@ table.veg td:active{filter:brightness(1.6)}
 .chart-wrap{background:var(--panel);border:1px solid var(--border);
             padding:8px;margin-bottom:8px;border-radius:2px}
 .chart-title{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.12em;
-             text-transform:uppercase;margin-bottom:6px}
+             text-transform:uppercase;margin-bottom:6px;position:relative;display:flex;align-items:center;justify-content:space-between}
+.chart-cfg-btn{font-size:8px!important;padding:1px 5px!important;opacity:0.5;flex-shrink:0;margin-left:6px}
 .charts-scroll-outer{overflow-x:auto;overflow-y:visible;width:100%;margin-bottom:2px}
 .charts-scroll-inner{display:flex;flex-direction:column;gap:0}
 .chart-wrap .chart-inner{position:relative;width:100%;display:block}
-.chart-wrap .chart-inner canvas{display:block;width:100%!important;height:100%!important}
+.chart-wrap .chart-inner canvas{display:block;width:100%;height:100%}
 #chartScrollbar{width:100%;height:14px;overflow-x:auto;overflow-y:hidden;margin-bottom:8px}
 #chartScrollbar div{height:1px;background:transparent}
 .gauge-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
@@ -388,6 +389,21 @@ table.veg td:active{filter:brightness(1.6)}
       <!-- Chart 1: RPM + KPH + CLT triple eje -->
       <div class="chart-wrap">
         <div class="chart-title">RPM · VELOCIDAD · TEMPERATURA</div>
+    <!-- Panel de valores para tuning -->
+    <div id="tunePanel" style="position:fixed; right:10px; top:120px; width:140px; 
+         background:rgba(10,10,10,0.95); border:1px solid #333; padding:12px; 
+         font-family:monospace; z-index:1000; border-radius:4px;">
+      <div style="color:#666; font-size:9px; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; border-bottom:1px solid #333; padding-bottom:4px;">
+        Datos Cursor
+      </div>
+      <div style="margin-bottom:8px;">
+        <div style="color:#666; font-size:8px;">TIEMPO</div>
+        <div id="panelTime" style="color:#fff; font-size:14px; font-weight:bold;">--</div>
+      </div>
+      <div id="panelItems" style="display:flex; flex-direction:column; gap:6px;">
+        <!-- Se llenará dinámicamente -->
+      </div>
+    </div>
         <div class="chart-inner" style="height:120px"><canvas id="chartRPM"></canvas></div>
       </div>
       <!-- Chart 2: EGO + AFV + WUE + promedio -->
@@ -1454,7 +1470,7 @@ function trackUsage(action){}
 
 const CHART_DEFAULTS = {
   animation: false,
-  responsive: true,
+  responsive: false,
   maintainAspectRatio: false,
   interaction: { mode:'index', intersect:false },
   plugins: { legend:{ display:false }, tooltip:{ enabled:true,
@@ -1556,6 +1572,7 @@ function detectDTC(rows){
 
 // ── CREAR GRÁFICAS ────────────────────────────────────────────
 function buildCharts(rows){
+  window._lastBuildRows = rows;
   destroyCharts();
   if(!rows || rows.length < 2) return;
 
@@ -1564,258 +1581,539 @@ function buildCharts(rows){
   const tLast  = t[t.length-1] ?? 1;
   const durS   = tLast - tFirst || 1;
 
-  // ── Ancho dinámico: 4px por segundo, máx 16000px ──
+  // Dynamic width — 4px/s, max 16000px, no Y-axis padding
   const PX_PER_SEC = 4;
   const outerW = document.getElementById('chartsOuter')?.clientWidth || 360;
-  const dataW  = Math.min(Math.max(outerW - 80, Math.ceil(durS * PX_PER_SEC)), 16000);
-  const PAD_L  = 52, PAD_R = 52;
-  const totalW = dataW + PAD_L + PAD_R;
+  const dataW  = Math.min(Math.max(outerW, Math.ceil(durS * PX_PER_SEC)), 16000);
+  const totalW = dataW;
 
-  // Ajustar ancho del contenedor y de cada chart-inner
   document.getElementById('chartsInner').style.width = totalW + 'px';
   document.querySelectorAll('#chartsInner .chart-inner').forEach(d => {
     d.style.width = totalW + 'px';
   });
 
   // Scrollbar proxy
-  const sb = document.getElementById('chartScrollbar');
+  const sb  = document.getElementById('chartScrollbar');
   const sbi = document.getElementById('chartScrollbarInner');
   if(sbi) sbi.style.width = totalW + 'px';
 
-  // ── Sync scroll ───────────────────────────────────────────
+  // Sync scroll — attach once per buildCharts call
   const outer = document.getElementById('chartsOuter');
   if(sb && outer){
-    let _scrolling = false;
-    sb.addEventListener('scroll', ()=>{
-      if(_scrolling) return; _scrolling=true;
-      outer.scrollLeft = sb.scrollLeft;
-      _scrolling=false;
-    });
-    outer.addEventListener('scroll', ()=>{
-      if(_scrolling) return; _scrolling=true;
-      sb.scrollLeft = outer.scrollLeft;
-      _scrolling=false;
-    });
+    const _sb  = sb._buellScrollHandler;
+    const _out = outer._buellScrollHandler;
+    if(_sb)  sb.removeEventListener('scroll', _sb);
+    if(_out) outer.removeEventListener('scroll', _out);
+    let _lock = false;
+    sb._buellScrollHandler = ()=>{ if(_lock)return; _lock=true; outer.scrollLeft=sb.scrollLeft; _lock=false; };
+    outer._buellScrollHandler = ()=>{ if(_lock)return; _lock=true; sb.scrollLeft=outer.scrollLeft; _lock=false; };
+    sb.addEventListener('scroll', sb._buellScrollHandler);
+    outer.addEventListener('scroll', outer._buellScrollHandler);
   }
 
-  // ── Opciones base con padding para ejes externos ──────────
+  // ── Full signal catalogue ─────────────────────────────────
+  // Each entry: { key, label, color, dash? }
+  const ALL_SIGNALS = [
+    // Engine
+    { key:'RPM',         label:'RPM',          color:'#e8420a' },
+    { key:'VS_KPH',      label:'KPH',           color:'#4af' },
+    { key:'CLT',         label:'CLT °C',        color:'#fa0' },
+    { key:'MAT',         label:'MAT °C',        color:'#f90' },
+    { key:'TPS_pct',     label:'TPS %',         color:'#38f' },
+    { key:'Load',        label:'Load',          color:'#7af' },
+    { key:'TPD',         label:'TPD',           color:'#68f' },
+    // Fuel
+    { key:'EGO_Corr',    label:'EGO Corr %',    color:'#0f8' },
+    { key:'AFV',         label:'AFV %',         color:'#ff0' },
+    { key:'WUE',         label:'WUE %',         color:'#f90', dash:[3,2] },
+    { key:'IAT_Corr',    label:'IAT Corr %',    color:'#4df' },
+    { key:'Accel_Corr',  label:'Accel Corr %',  color:'#8f8' },
+    { key:'Decel_Corr',  label:'Decel Corr %',  color:'#f88' },
+    { key:'WOT_Corr',    label:'WOT Corr %',    color:'#ff8' },
+    { key:'Idle_Corr',   label:'Idle Corr %',   color:'#aaf' },
+    { key:'OL_Corr',     label:'OL Corr %',     color:'#faf' },
+    { key:'pw1',         label:'PW1 ms',        color:'#f90' },
+    { key:'pw2',         label:'PW2 ms',        color:'#fa6', dash:[3,2] },
+    // Ignition
+    { key:'spark1',      label:'Spark1 °BTDC',  color:'#a8f' },
+    { key:'spark2',      label:'Spark2 °BTDC',  color:'#c8f', dash:[3,2] },
+    { key:'veCurr1_RAW', label:'VE Curr1 RAW',  color:'#8ff' },
+    { key:'veCurr2_RAW', label:'VE Curr2 RAW',  color:'#aff', dash:[3,2] },
+    // Electrical
+    { key:'Batt_V',      label:'Batt V',        color:'#7df' },
+    { key:'Fan_Duty_Pct',label:'Fan Duty %',    color:'#f80' },
+    // Sensors/ADC
+    { key:'O2_ADC',      label:'O2 ADC',        color:'#0ff' },
+    { key:'ETS_ADC',     label:'ETS ADC',       color:'#f4f' },
+    { key:'IAT_ADC',     label:'IAT ADC',       color:'#4ff' },
+    { key:'BAS_ADC',     label:'BAS ADC',       color:'#ff4' },
+    { key:'TPS_V',       label:'TPS V',         color:'#8af' },
+    // Speed/Gear
+    { key:'VSS_Count',   label:'VSS Count',     color:'#4a8' },
+    { key:'VSS_RPM_Ratio',label:'VSS/RPM',      color:'#6af' },
+    { key:'Gear',        label:'Gear',          color:'#a8f' },
+    // System
+    { key:'ttl_pct',     label:'TTL %',         color:'#0f4' },
+    { key:'cpu_pct',     label:'CPU %',         color:'#f44' },
+    { key:'cpu_temp',    label:'CPU Temp',      color:'#f84' },
+    { key:'mem_pct',     label:'MEM %',         color:'#48f' },
+    { key:'buf_in',      label:'Buf In',        color:'#888' },
+    // Flags
+    { key:'fl_engine_run',  label:'FL: Engine Run',   color:'#0f8' },
+    { key:'fl_wot',         label:'FL: WOT',           color:'#0f8' },
+    { key:'fl_accel',       label:'FL: Accel Enrich',  color:'#4af' },
+    { key:'fl_decel',       label:'FL: Decel Cut',     color:'#aaf' },
+    { key:'fl_closed_loop', label:'FL: Closed Loop',   color:'#ff0' },
+    { key:'fl_rich',        label:'FL: Rich',          color:'#f44' },
+    { key:'fl_learn',       label:'FL: Learn',         color:'#fa0' },
+    { key:'fl_hot',         label:'FL: Overtemp',      color:'#f80' },
+    { key:'fl_kill',        label:'FL: Kill',          color:'#f44' },
+    { key:'fl_fuel_cut',    label:'FL: Fuel Cut',      color:'#f44' },
+    { key:'fl_o2_active',   label:'FL: O2 Active',     color:'#0ff' },
+    { key:'fl_engine_stop', label:'FL: Engine Stop',   color:'#f88' },
+    { key:'fl_ignition',    label:'FL: Ignition',      color:'#ff8' },
+    { key:'fl_cam_active',  label:'FL: Cam Active',    color:'#8f8' },
+    { key:'fl_immob',       label:'FL: Immob',         color:'#f8f' },
+    { key:'do_coil1',       label:'DO: Coil1',         color:'#a8f' },
+    { key:'do_coil2',       label:'DO: Coil2',         color:'#c8f' },
+    { key:'do_inj1',        label:'DO: Inj1',          color:'#f90' },
+    { key:'do_inj2',        label:'DO: Inj2',          color:'#fa6' },
+    { key:'do_fuel_pump',   label:'DO: Fuel Pump',     color:'#4f8' },
+    { key:'do_tacho',       label:'DO: Tacho',         color:'#8af' },
+    { key:'do_cel',         label:'DO: CEL',           color:'#8af' },
+    { key:'do_fan',         label:'DO: Fan',           color:'#f80' },
+    { key:'di_cam',         label:'DI: Cam',           color:'#4af' },
+    { key:'di_tacho_fb',    label:'DI: Tacho FB',      color:'#7af' },
+    { key:'di_vss',         label:'DI: VSS',           color:'#4f8' },
+    { key:'di_clutch',      label:'DI: Clutch',        color:'#fa8' },
+    { key:'di_neutral',     label:'DI: Neutral',       color:'#af8' },
+    { key:'di_crank',       label:'DI: Crank',         color:'#8fa' },
+    // Raw/Unknown
+    { key:'Flags0',      label:'Flags0 RAW',    color:'#666' },
+    { key:'Flags1',      label:'Flags1 RAW',    color:'#666' },
+    { key:'Flags2',      label:'Flags2 RAW',    color:'#666' },
+    { key:'Flags3',      label:'Flags3 RAW',    color:'#666' },
+    { key:'Flags4',      label:'Flags4 RAW',    color:'#666' },
+    { key:'Flags5',      label:'Flags5 RAW',    color:'#666' },
+    { key:'Flags6',      label:'Flags6 RAW',    color:'#666' },
+    { key:'Unk63',       label:'Unk63',         color:'#555' },
+    { key:'Unk80',       label:'Unk80',         color:'#555' },
+    { key:'Unk81',       label:'Unk81',         color:'#555' },
+    { key:'Unk82',       label:'Unk82',         color:'#555' },
+    { key:'CDiag0',      label:'CDiag0',        color:'#f44' },
+    { key:'CDiag1',      label:'CDiag1',        color:'#f44' },
+    { key:'CDiag2',      label:'CDiag2',        color:'#f44' },
+    { key:'CDiag3',      label:'CDiag3',        color:'#f44' },
+    { key:'CDiag4',      label:'CDiag4',        color:'#f44' },
+    { key:'HDiag0',      label:'HDiag0',        color:'#f84' },
+    { key:'HDiag1',      label:'HDiag1',        color:'#f84' },
+    { key:'HDiag2',      label:'HDiag2',        color:'#f84' },
+    { key:'HDiag3',      label:'HDiag3',        color:'#f84' },
+    { key:'HDiag4',      label:'HDiag4',        color:'#f84' },
+    { key:'SysConfig',   label:'SysConfig',     color:'#888' },
+    { key:'DIn',         label:'DIn RAW',       color:'#666' },
+    { key:'DOut',        label:'DOut RAW',      color:'#666' },
+    { key:'Rides',       label:'Rides',         color:'#888' },
+  ];
+
+  // Signal lookup by key
+  const SIG_MAP = {};
+  ALL_SIGNALS.forEach(s => SIG_MAP[s.key] = s);
+
+  // ── Default configs per chart (6 charts) ─────────────────
+  const CHART_DEFAULTS = [
+    { id:'chartRPM',  title:'CHART 1', keys:['RPM','VS_KPH','CLT'] },
+    { id:'chartFuel', title:'CHART 2', keys:['EGO_Corr','AFV','WUE'] },
+    { id:'chartTPS',  title:'CHART 3', keys:['TPS_pct'] },
+    { id:'chartSPK',  title:'CHART 4', keys:['spark1','spark2','pw1','pw2'] },
+    { id:'chartBatt', title:'CHART 5', keys:['Batt_V'] },
+    { id:'chartFlags',title:'CHART 6', keys:['fl_engine_run','fl_wot','fl_accel','fl_decel','fl_closed_loop','fl_rich','fl_learn','fl_hot','fl_kill','fl_fuel_cut','do_cel'] },
+  ];
+
+  // Load saved config from localStorage
+  const LS_KEY = 'buell_chart_cfg_v1';
+  let chartCfgs;
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    chartCfgs = saved ? JSON.parse(saved) : CHART_DEFAULTS.map(d=>({id:d.id, keys:[...d.keys]}));
+  } catch(e) {
+    chartCfgs = CHART_DEFAULTS.map(d=>({id:d.id, keys:[...d.keys]}));
+  }
+  // Ensure all 6 charts exist in config
+  CHART_DEFAULTS.forEach((def,i) => {
+    if(!chartCfgs[i]) chartCfgs[i] = {id:def.id, keys:[...def.keys]};
+  });
+
+  function saveChartCfgs(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(chartCfgs)); }catch(e){} }
+
+  // Plugin de crosshair (línea vertical sincronizada)
+  const crosshairPlugin = {
+    id: 'crosshair',
+    afterDraw: (chart) => {
+      if (chart.tooltip?._active?.length) {
+        const ctx = chart.ctx;
+        const x = chart.tooltip._active[0].element.x;
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, chart.chartArea.top);
+        ctx.lineTo(x, chart.chartArea.bottom);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.setLineDash([3, 3]); // Línea punteada
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+  };
+
+
+  // ── Base chart options — NO Y axes ───────────────────────
   const CHART_BASE = {
     animation: false,
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode:'index', intersect:false },
-    layout: { padding: { left: PAD_L, right: PAD_R } },
-    plugins: { legend:{ display:false }, tooltip:{ enabled:true,
-      callbacks:{ label: ctx => `${ctx.dataset.label||''}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1):''}` }
-    }},
-    scales:{
-      x:{ type:'linear',
-          min: tFirst, max: tLast,
-          ticks:{ font:{family:'monospace',size:8}, color:'#555',
-                  callback: v => v%30===0 ? (v+'s') : '',
-                  maxTicksLimit: Math.ceil(durS/30)+1 },
-          grid:{ color:'rgba(255,255,255,.04)' }},
-      y:{ ticks:{ font:{family:'monospace',size:8}, color:'#777' },
-          grid:{ color:'rgba(255,255,255,.06)' }}
+    layout: { padding: 0 },
+    plugins: {
+      legend: { display:false },
+      tooltip: {
+        enabled: true,
+        mode: 'index',
+        intersect: false,
+        position: 'nearest',
+        backgroundColor: 'rgba(0, 0, 0, 0)',
+        borderColor: 'transparent',
+        borderWidth: 0,
+        titleColor: '#aaa',
+        titleFont: { family:'monospace', size:11 },
+        bodyFont:  { family:'monospace', size:10 },
+        padding: 0,
+        xAlign: 'left',
+        caretPadding: 15,
+        external: function(context) {
+          // Tooltip invisible, solo usamos los datos para el panel lateral
+          const tooltip = context.tooltip;
+          if (tooltip.dataPoints && tooltip.dataPoints.length > 0) {
+            const t = tooltip.dataPoints[0].parsed.x;
+            const panelTime = document.getElementById('panelTime');
+            const panelItems = document.getElementById('panelItems');
+            
+            if (panelTime) panelTime.textContent = t.toFixed(2) + 's';
+            
+            if (panelItems) {
+              panelItems.innerHTML = '';
+              tooltip.dataPoints.forEach(dp => {
+                const sig = SIG_MAP[dp.dataset._key];
+                if (!sig) return;
+                const v = dp.parsed.y;
+                const div = document.createElement('div');
+                div.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;';
+                div.innerHTML = '<div style="display:flex; align-items:center; gap:6px;">' +
+                  '<div style="width:8px; height:8px; background:' + sig.color + '; border-radius:1px;"></div>' +
+                  '<span style="color:#aaa; font-size:10px;">' + sig.label + '</span>' +
+                '</div>' +
+                '<span style="color:#fff; font-size:12px; font-weight:bold;">' + (v != null ? v.toFixed(1) : '--') + '</span>';
+                panelItems.appendChild(div);
+              });
+            }
+          }
+        },
+        callbacks: {
+          title: () => '',  // Vacío porque usamos el panel lateral
+          label: () => ''   // Vacío porque usamos el panel lateral
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'linear',
+        min: tFirst, max: tLast,
+        ticks: { font:{family:'monospace',size:8}, color:'#444',
+                 callback: v => v%60===0 ? (v+'s') : '',
+                 maxTicksLimit: Math.ceil(durS/60)+1 },
+        grid: { color:'rgba(255,255,255,.04)' }
+      },
+      y: { display:false }
     }
   };
 
-  const rpmData  = rows.map(r=>({x:r.time_elapsed_s, y:r.RPM}));
-  const kphData  = rows.map(r=>({x:r.time_elapsed_s, y:r.VS_KPH}));
-  const cltData  = rows.map(r=>({x:r.time_elapsed_s, y:r.CLT}));
-  const cltVals  = rows.map(r=>r.CLT||0).filter(v=>v>0);
-  const cltMin   = cltVals.length ? Math.min(...cltVals) : 100;
-  const cltMax   = cltVals.length ? Math.max(...cltVals) : 300;
-
-  // ── 1. RPM + KPH + CLT — sin markers de flags ─────────────
-  const ctxRPM = document.getElementById('chartRPM').getContext('2d');
-  _charts.rpm = new Chart(ctxRPM, { type:'line', data:{ datasets:[
-    { label:'RPM',   data:rpmData, borderColor:C.rpm, borderWidth:1.5,
-      pointRadius:0, fill:false, tension:0.1, yAxisID:'y' },
-    { label:'KPH',   data:kphData, borderColor:C.kph, borderWidth:1.5,
-      pointRadius:0, fill:false, tension:0.1, yAxisID:'y2' },
-    { label:'CLT°C', data:cltData, borderColor:tempColor(cltMax), borderWidth:1.2,
-      borderDash:[3,2], pointRadius:0, fill:false, tension:0.1, yAxisID:'y3' },
-    { label:'235°C', data:[{x:tFirst,y:235},{x:tLast,y:235}],
-      borderColor:'#f804', borderWidth:1, borderDash:[4,4],
-      pointRadius:0, fill:false, yAxisID:'y3' },
-  ]}, options:{...CHART_BASE, scales:{
-    ...CHART_BASE.scales,
-    y:{  ...CHART_BASE.scales.y, position:'left',
-         title:{display:true,text:'RPM',font:{family:'monospace',size:7},color:C.rpm}},
-    y2:{ type:'linear', position:'right',
-         ticks:{font:{family:'monospace',size:8},color:C.kph},
-         grid:{drawOnChartArea:false},
-         title:{display:true,text:'KPH',font:{family:'monospace',size:7},color:C.kph}},
-    y3:{ type:'linear', position:'right',
-         min: Math.max(0, cltMin-15), max: Math.max(cltMax+20, 280),
-         ticks:{font:{family:'monospace',size:8},color:tempColor(cltMax)},
-         grid:{drawOnChartArea:false},
-         title:{display:true,text:'CLT°C',font:{family:'monospace',size:7},color:tempColor(cltMax)}}
-  }}});
-
-  // ── 2. Correcciones combustible ───────────────────────────
-  const egoData  = rows.map(r=>({x:r.time_elapsed_s, y:r.EGO_Corr}));
-  const afvData  = rows.map(r=>({x:r.time_elapsed_s, y:r.AFV}));
-  const wueData  = rows.map(r=>({x:r.time_elapsed_s, y:r.WUE}));
-  const avgData  = rows.map(r=>{
-    const ego=r.EGO_Corr??100, afv=r.AFV??100, wue=r.WUE??100;
-    return {x:r.time_elapsed_s, y:parseFloat(((ego+afv+wue)/3).toFixed(2))};
-  });
-  const fuelVals = [...egoData,...afvData,...wueData].map(d=>d.y).filter(v=>v!=null);
-  const fuelMin  = fuelVals.length ? Math.min(...fuelVals) : 80;
-  const fuelMax  = fuelVals.length ? Math.max(...fuelVals) : 120;
-
-  const ctxFuel = document.getElementById('chartFuel').getContext('2d');
-  _charts.fuel = new Chart(ctxFuel, { type:'line', data:{ datasets:[
-    { label:'EGO Corr %', data:egoData, borderColor:C.ego, borderWidth:1.5,
-      pointRadius:0, fill:false, tension:0.1 },
-    { label:'AFV %',      data:afvData, borderColor:C.afv, borderWidth:1.5,
-      pointRadius:0, fill:false, tension:0.1 },
-    { label:'WUE %',      data:wueData, borderColor:C.wue, borderWidth:1.2,
-      borderDash:[3,2], pointRadius:0, fill:false, tension:0.1 },
-    { label:'Promedio',   data:avgData, borderColor:'#fff', borderWidth:2,
-      borderDash:[6,3], pointRadius:0, fill:false, tension:0.1 },
-    { label:'100%', data:[{x:tFirst,y:100},{x:tLast,y:100}],
-      borderColor:'#5556', borderWidth:1, borderDash:[4,4], pointRadius:0, fill:false },
-  ]}, options:{...CHART_BASE, scales:{
-    ...CHART_BASE.scales,
-    y:{...CHART_BASE.scales.y,
-       min:Math.floor(fuelMin-5), max:Math.ceil(fuelMax+5)}
-  }}});
-
-  // ── 3. TPS ───────────────────────────────────────────────
-  const tpsData = rows.map(r=>({x:r.time_elapsed_s, y:r.TPS_pct}));
-  const ctxTPS  = document.getElementById('chartTPS').getContext('2d');
-  _charts.tps   = new Chart(ctxTPS, { type:'line', data:{ datasets:[
-    { label:'TPS%', data:tpsData, borderColor:C.tps, borderWidth:1.5,
-      pointRadius:0, fill:false, tension:0.1 },
-  ]}, options:{...CHART_BASE, scales:{
-    ...CHART_BASE.scales,
-    y:{...CHART_BASE.scales.y, min:0, max:100,
-       title:{display:true,text:'TPS%',font:{family:'monospace',size:7},color:C.tps}}
-  }}});
-
-  // ── 4. Spark + PW ────────────────────────────────────────
-  const spk1Data = rows.map(r=>({x:r.time_elapsed_s, y:r.spark1}));
-  const spk2Data = rows.map(r=>({x:r.time_elapsed_s, y:r.spark2}));
-  const pw1Data  = rows.map(r=>({x:r.time_elapsed_s, y:r.pw1}));
-  const pw2Data  = rows.map(r=>({x:r.time_elapsed_s, y:r.pw2}));
-  const pwVals   = rows.map(r=>r.pw1||0).filter(v=>v>0);
-  const pwMax    = pwVals.length ? Math.max(...pwVals) : 14;
-
-  const ctxSPK = document.getElementById('chartSPK').getContext('2d');
-  _charts.spk  = new Chart(ctxSPK, { type:'line', data:{ datasets:[
-    { label:'Spark1 °BTDC', data:spk1Data, borderColor:C.spk1, borderWidth:1.5,
-      pointRadius:0, fill:false, tension:0.1, yAxisID:'y' },
-    { label:'Spark2 °BTDC', data:spk2Data, borderColor:C.spk2, borderWidth:1.2,
-      borderDash:[3,2], pointRadius:0, fill:false, tension:0.1, yAxisID:'y' },
-    { label:'PW1 ms', data:pw1Data, borderColor:'#f90', borderWidth:1.5,
-      pointRadius:0, fill:false, tension:0.1, yAxisID:'y2' },
-    { label:'PW2 ms', data:pw2Data, borderColor:'#fa6', borderWidth:1.2,
-      borderDash:[3,2], pointRadius:0, fill:false, tension:0.1, yAxisID:'y2' },
-  ]}, options:{...CHART_BASE, scales:{
-    ...CHART_BASE.scales,
-    y:{  ...CHART_BASE.scales.y, min:0, max:35, position:'left',
-         title:{display:true,text:'° BTDC',font:{family:'monospace',size:7},color:C.spk1}},
-    y2:{ type:'linear', position:'right', min:0, max:Math.ceil(pwMax+1),
-         ticks:{font:{family:'monospace',size:8},color:'#f90'},
-         grid:{drawOnChartArea:false},
-         title:{display:true,text:'PW ms',font:{family:'monospace',size:7},color:'#f90'}}
-  }}});
-
-  // ── 5. Batt V ────────────────────────────────────────────
-  const battData = rows.map(r=>({x:r.time_elapsed_s, y:r.Batt_V}));
-  const battVals = battData.map(d=>d.y).filter(v=>v!=null);
-  const battMin  = battVals.length ? Math.min(...battVals) : 11;
-  const battMax  = battVals.length ? Math.max(...battVals) : 15;
-
-  const ctxBatt = document.getElementById('chartBatt').getContext('2d');
-  _charts.batt  = new Chart(ctxBatt, { type:'line', data:{ datasets:[
-    { label:'Batt V', data:battData, borderColor:C.batt, borderWidth:1.2,
-      pointRadius:0, fill:false, tension:0.1 },
-    { label:'12.5V', data:[{x:tFirst,y:12.5},{x:tLast,y:12.5}],
-      borderColor:'rgba(255,255,255,0.25)', borderWidth:1,
-      borderDash:[4,4], pointRadius:0, fill:false },
-  ]}, options:{...CHART_BASE, scales:{
-    ...CHART_BASE.scales,
-    y:{...CHART_BASE.scales.y,
-       min:Math.min(battMin-0.3,11.5),
-       max:Math.max(battMax+0.3,14.5)}
-  }}});
-
-  // ── 6. FLAGS swimlane ────────────────────────────────────
-  // Cada flag ocupa un carril Y fijo: fl_engine_run=0, fl_wot=1, fl_accel=2,
-  // fl_decel=3, fl_closed_loop=4, fl_rich=5, fl_learn=6,
-  // fl_hot=7, fl_kill=8, fl_fuel_cut=9, do_cel=10
-  const FLAG_DEFS = [
-    { key:'fl_engine_run', label:'ENGINE RUN', color:'#0f8' },
-    { key:'fl_wot',        label:'WOT',        color:'#0f8' },
-    { key:'fl_accel',      label:'ACCEL ENRICH',color:'#4af' },
-    { key:'fl_decel',      label:'DECEL CUT',  color:'#aaf' },
-    { key:'fl_closed_loop',label:'CLOSED LOOP',color:'#ff0' },
-    { key:'fl_rich',       label:'RICH',       color:'#f44' },
-    { key:'fl_learn',      label:'LEARN',      color:'#fa0' },
-    { key:'fl_hot',        label:'OVERTEMP',   color:'#f80' },
-    { key:'fl_kill',       label:'KILL',       color:'#f44' },
-    { key:'fl_fuel_cut',   label:'FUEL CUT',   color:'#f44' },
-    { key:'do_cel',        label:'CEL',        color:'#8af' },
-  ];
-  const N = FLAG_DEFS.length;
-
-  // Construir un dataset por flag — valor 1 → y=lane+0.8, valor 0 → y=lane
-  // Usamos stepped line para representar on/off limpio
-  const flagDatasets = FLAG_DEFS.map((fd, lane) => {
-    const data = rows.map(r => ({
-      x: r.time_elapsed_s,
-      y: lane + ((r[fd.key] ?? 0) > 0 ? 0.75 : 0)
-    }));
-    return {
-      label: fd.label,
-      data,
-      borderColor: fd.color,
-      backgroundColor: fd.color + '44',
-      borderWidth: 1.2,
-      pointRadius: 0,
-      fill: { target: { value: lane }, above: fd.color + '55', below: 'transparent' },
-      tension: 0,
-      stepped: 'before',
-      yAxisID: 'y'
-    };
-  });
-
-  const ctxFlags = document.getElementById('chartFlags').getContext('2d');
-  _charts.flags  = new Chart(ctxFlags, { type:'line', data:{ datasets: flagDatasets },
-    options:{...CHART_BASE,
-      plugins:{...CHART_BASE.plugins,
-        legend:{ display:false },
-        tooltip:{ enabled:true, callbacks:{
-          label: ctx => {
-            const lane = Math.floor(ctx.parsed.y + 0.01);
-            const fd = FLAG_DEFS[lane];
-            const active = ctx.parsed.y > lane + 0.3;
-            return `${fd ? fd.label : lane}: ${active ? '■ ACTIVO' : '□ inactivo'}`;
-          }
-        }}
-      },
-      scales:{
-        ...CHART_BASE.scales,
-        y:{
-          min: -0.2, max: N,
-          ticks:{
-            font:{family:'monospace', size:7}, color:'#777',
-            stepSize: 1,
-            callback: v => {
-              const i = Math.round(v);
-              return (i >= 0 && i < N) ? FLAG_DEFS[i].label : '';
-            }
-          },
-          grid:{ color:'rgba(255,255,255,.04)' }
+  // Registrar plugin de crosshair globalmente (línea vertical)
+  if (typeof Chart !== 'undefined') {
+    Chart.register({
+      id: 'crosshair',
+      afterDraw: (chart) => {
+        if (chart.tooltip && chart.tooltip._active && chart.tooltip._active.length) {
+          const ctx = chart.ctx;
+          const activePoint = chart.tooltip._active[0];
+          const x = activePoint.element.x;
+          const top = chart.chartArea.top;
+          const bottom = chart.chartArea.bottom;
+          
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(x, top);
+          ctx.lineTo(x, bottom);
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+          ctx.setLineDash([4, 4]);
+          ctx.stroke();
+          ctx.restore();
         }
       }
-  }});
+    });
+  }
+
+  // ── Build dataset from key — each signal gets its own hidden Y axis ──
+  function makeDataset(key, rows, tFirst, tLast){
+    const sig = SIG_MAP[key];
+    if(!sig) return null;
+    const data = rows.map(r=>({ x:r.time_elapsed_s, y: r[key]??null }));
+    return {
+      _key: key,
+      label: sig.label,
+      data,
+      borderColor: sig.color,
+      borderWidth: 1.5,
+      borderDash: sig.dash || [],
+      pointRadius: 0,
+      fill: false,
+      tension: 0,  // Líneas rectas entre puntos (más preciso para tuning)
+      yAxisID: 'y_'+key,
+    };
+  }
+
+  // Build hidden Y scales — one per signal, auto-range from data
+  function buildYScales(keys, rows){
+    const scales = { x: CHART_BASE.scales.x };
+    keys.forEach(key => {
+      const vals = rows.map(r=>r[key]).filter(v=>v!=null&&!isNaN(v));
+      const mn = vals.length ? Math.min(...vals) : 0;
+      const mx = vals.length ? Math.max(...vals) : 1;
+      const pad = (mx-mn)*0.1 || 1;
+      scales['y_'+key] = {
+        type: 'linear',
+        display: false,
+        min: mn - pad,
+        max: mx + pad,
+      };
+    });
+    // fallback empty scale
+    if(!keys.length) scales['y__empty'] = { type:'linear', display:false };
+    return scales;
+  }
+
+  // ── Render one chart ──────────────────────────────────────
+  function renderChart(chartId, keys, chartKey){
+    const canvas = document.getElementById(chartId);
+    if(!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    const datasets = keys.map(k=>makeDataset(k,rows,tFirst,tLast)).filter(Boolean);
+    if(!datasets.length){
+      datasets.push({ _key:'_empty', label:'—', data:[{x:tFirst,y:0},{x:tLast,y:0}],
+                      borderColor:'#333', borderWidth:1, pointRadius:0, fill:false,
+                      yAxisID:'y__empty' });
+    }
+    const scales = buildYScales(keys, rows);
+    return new Chart(ctx, { type:'line', data:{ datasets },
+      options:{ ...CHART_BASE, scales }
+    });
+  }
+
+  // ── Build all 6 charts ────────────────────────────────────
+  _charts.rpm   = renderChart('chartRPM',   chartCfgs[0].keys, 0);
+  _charts.fuel  = renderChart('chartFuel',  chartCfgs[1].keys, 1);
+  _charts.tps   = renderChart('chartTPS',   chartCfgs[2].keys, 2);
+  _charts.spk   = renderChart('chartSPK',   chartCfgs[3].keys, 3);
+  _charts.batt  = renderChart('chartBatt',  chartCfgs[4].keys, 4);
+  _charts.flags = renderChart('chartFlags', chartCfgs[5].keys, 5);
+
+  // ── Signal selector UI ────────────────────────────────────
+  // Inject ⚙ button into each chart-wrap if not already present
+  CHART_DEFAULTS.forEach((def, ci) => {
+    const canvas = document.getElementById(def.id);
+    if(!canvas) return;
+    const wrap = canvas.closest('.chart-wrap');
+    if(!wrap || wrap.querySelector('.chart-title .chart-cfg-btn')) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'chart-cfg-btn btn';
+    btn.textContent = '⚙';
+    btn.onclick = (e) => { e.stopPropagation(); openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs); };
+    const titleEl = wrap.querySelector('.chart-title');
+    if(titleEl) titleEl.appendChild(btn);
+    else wrap.appendChild(btn);
+  });
 
   document.getElementById('graphLegend').style.display='flex';
+}
+
+// ── Chart signal selector panel ───────────────────────────────
+function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs){
+  // Remove existing panel
+  const existing = document.getElementById('chartCfgPanel');
+  if(existing){ existing.remove(); if(existing._forChart===ci) return; }
+
+  const ALL_SIGNALS_KEYS = [
+    'RPM','VS_KPH','CLT','MAT','TPS_pct','Load','TPD',
+    'EGO_Corr','AFV','WUE','IAT_Corr','Accel_Corr','Decel_Corr','WOT_Corr','Idle_Corr','OL_Corr','pw1','pw2',
+    'spark1','spark2','veCurr1_RAW','veCurr2_RAW',
+    'Batt_V','Fan_Duty_Pct',
+    'O2_ADC','ETS_ADC','IAT_ADC','BAS_ADC','TPS_V',
+    'VSS_Count','VSS_RPM_Ratio','Gear',
+    'ttl_pct','cpu_pct','cpu_temp','mem_pct','buf_in',
+    'fl_engine_run','fl_wot','fl_accel','fl_decel','fl_closed_loop','fl_rich','fl_learn',
+    'fl_hot','fl_kill','fl_fuel_cut','fl_o2_active','fl_engine_stop','fl_ignition',
+    'fl_cam_active','fl_immob',
+    'do_coil1','do_coil2','do_inj1','do_inj2','do_fuel_pump','do_tacho','do_cel','do_fan',
+    'di_cam','di_tacho_fb','di_vss','di_clutch','di_neutral','di_crank',
+    'Flags0','Flags1','Flags2','Flags3','Flags4','Flags5','Flags6',
+    'Unk63','Unk80','Unk81','Unk82',
+    'CDiag0','CDiag1','CDiag2','CDiag3','CDiag4',
+    'HDiag0','HDiag1','HDiag2','HDiag3','HDiag4',
+    'SysConfig','DIn','DOut','Rides',
+  ];
+
+  const panel = document.createElement('div');
+  panel.id = 'chartCfgPanel';
+  panel._forChart = ci;
+  panel.style.cssText = `
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:#111114; border:1px solid #e8420a; border-radius:4px;
+    padding:12px; z-index:1000; max-height:70vh; overflow-y:auto;
+    min-width:220px; max-width:280px; font-family:monospace; font-size:9px;
+  `;
+
+  const selected = new Set(chartCfgs[ci].keys);
+
+  panel.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="color:#e8420a;font-size:10px">CHART ${ci+1} — SELECT SIGNALS</span>
+      <span id="chartCfgClose" style="cursor:pointer;color:#666;padding:0 4px">✕</span>
+    </div>
+    <div style="margin-bottom:8px;display:flex;gap:4px">
+      <button class="btn" style="font-size:8px;padding:2px 6px" id="chartCfgClear">CLEAR</button>
+      <button class="btn" style="font-size:8px;padding:2px 6px" id="chartCfgApply">APPLY</button>
+    </div>
+    <div id="chartCfgList"></div>
+  `;
+
+  const list = panel.querySelector('#chartCfgList');
+  ALL_SIGNALS_KEYS.forEach(key => {
+    const row = document.createElement('label');
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:2px 0;cursor:pointer;';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = key;
+    cb.checked = selected.has(key);
+    cb.onchange = () => { if(cb.checked) selected.add(key); else selected.delete(key); };
+    // Get signal color
+    const sigColors = {
+      RPM:'#e8420a',VS_KPH:'#4af',CLT:'#fa0',MAT:'#f90',TPS_pct:'#38f',Load:'#7af',
+      EGO_Corr:'#0f8',AFV:'#ff0',WUE:'#f90',pw1:'#f90',pw2:'#fa6',
+      spark1:'#a8f',spark2:'#c8f',Batt_V:'#7df',O2_ADC:'#0ff',
+    };
+    const col = sigColors[key] || '#888';
+    const lbl = document.createElement('span');
+    lbl.style.color = col;
+    lbl.textContent = key;
+    row.appendChild(cb);
+    row.appendChild(lbl);
+    list.appendChild(row);
+  });
+
+  panel.querySelector('#chartCfgClose').onclick = () => panel.remove();
+  panel.querySelector('#chartCfgClear').onclick = () => {
+    selected.clear();
+    panel.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked=false);
+  };
+  panel.querySelector('#chartCfgApply').onclick = () => {
+    chartCfgs[ci].keys = [...selected];
+    saveChartCfgs();
+    panel.remove();
+    // Rebuild only this chart
+    const chartKeys = ['rpm','fuel','tps','spk','batt','flags'];
+    const chartIds  = ['chartRPM','chartFuel','chartTPS','chartSPK','chartBatt','chartFlags'];
+    const ck = chartKeys[ci];
+    if(_charts[ck]) try{ _charts[ck].destroy(); }catch(e){}
+    const canvas = document.getElementById(chartIds[ci]);
+    if(canvas){
+      const SIG_MAP2 = {};
+      const ALL_S = [
+        {key:'RPM',color:'#e8420a'},{key:'VS_KPH',color:'#4af'},{key:'CLT',color:'#fa0'},
+        {key:'MAT',color:'#f90'},{key:'TPS_pct',color:'#38f'},{key:'Load',color:'#7af'},
+        {key:'TPD',color:'#68f'},{key:'EGO_Corr',color:'#0f8'},{key:'AFV',color:'#ff0'},
+        {key:'WUE',color:'#f90',dash:[3,2]},{key:'IAT_Corr',color:'#4df'},
+        {key:'Accel_Corr',color:'#8f8'},{key:'Decel_Corr',color:'#f88'},
+        {key:'WOT_Corr',color:'#ff8'},{key:'Idle_Corr',color:'#aaf'},
+        {key:'OL_Corr',color:'#faf'},{key:'pw1',color:'#f90'},{key:'pw2',color:'#fa6',dash:[3,2]},
+        {key:'spark1',color:'#a8f'},{key:'spark2',color:'#c8f',dash:[3,2]},
+        {key:'veCurr1_RAW',color:'#8ff'},{key:'veCurr2_RAW',color:'#aff',dash:[3,2]},
+        {key:'Batt_V',color:'#7df'},{key:'Fan_Duty_Pct',color:'#f80'},
+        {key:'O2_ADC',color:'#0ff'},{key:'ETS_ADC',color:'#f4f'},
+        {key:'IAT_ADC',color:'#4ff'},{key:'BAS_ADC',color:'#ff4'},{key:'TPS_V',color:'#8af'},
+        {key:'VSS_Count',color:'#4a8'},{key:'VSS_RPM_Ratio',color:'#6af'},{key:'Gear',color:'#a8f'},
+        {key:'ttl_pct',color:'#0f4'},{key:'cpu_pct',color:'#f44'},{key:'cpu_temp',color:'#f84'},
+        {key:'mem_pct',color:'#48f'},{key:'buf_in',color:'#888'},
+      ];
+      // flags + di/do
+      ['fl_engine_run','fl_wot','fl_accel','fl_decel','fl_closed_loop','fl_rich','fl_learn',
+       'fl_hot','fl_kill','fl_fuel_cut','fl_o2_active','fl_engine_stop','fl_ignition',
+       'fl_cam_active','fl_immob','do_coil1','do_coil2','do_inj1','do_inj2','do_fuel_pump',
+       'do_tacho','do_cel','do_fan','di_cam','di_tacho_fb','di_vss','di_clutch','di_neutral','di_crank',
+       'Flags0','Flags1','Flags2','Flags3','Flags4','Flags5','Flags6',
+       'Unk63','Unk80','Unk81','Unk82','CDiag0','CDiag1','CDiag2','CDiag3','CDiag4',
+       'HDiag0','HDiag1','HDiag2','HDiag3','HDiag4','SysConfig','DIn','DOut','Rides'
+      ].forEach(k=>ALL_S.push({key:k,color:'#666'}));
+      ALL_S.forEach(s=>SIG_MAP2[s.key]=s);
+
+      const t0 = window._lastBuildRows ? window._lastBuildRows[0]?.time_elapsed_s??0 : 0;
+      const t1 = window._lastBuildRows ? window._lastBuildRows[window._lastBuildRows.length-1]?.time_elapsed_s??1 : 1;
+      const durS2 = t1-t0||1;
+
+      const datasets = chartCfgs[ci].keys.map(key=>{
+        const sig=SIG_MAP2[key]; if(!sig) return null;
+        return { _key:key, label:sig.label,
+          data:(window._lastBuildRows||[]).map(r=>({x:r.time_elapsed_s,y:r[key]??null})),
+          borderColor:sig.color, borderWidth:1.5, borderDash:sig.dash||[],
+          pointRadius:0, fill:false, tension:0.1 };
+      }).filter(Boolean);
+
+      if(!datasets.length) datasets.push({
+        _key:'_empty',label:'—',data:[{x:t0,y:0},{x:t1,y:0}],
+        borderColor:'#333',borderWidth:1,pointRadius:0,fill:false
+      });
+
+      _charts[ck] = new Chart(canvas.getContext('2d'), { type:'line', data:{datasets},
+        options:{
+          animation:false, responsive:false, maintainAspectRatio:false,
+          interaction:{mode:'index',intersect:false},
+          layout:{padding:0},
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              enabled:true, backgroundColor:'rgba(0,0,0,0.0)',
+              borderColor:'transparent', borderWidth:0,
+              titleColor:'#aaa', titleFont:{family:'monospace',size:9},
+              bodyFont:{family:'monospace',size:9},
+              callbacks:{
+                label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1):'--'}`,
+                labelColor:ctx=>{ const s=SIG_MAP2[ctx.dataset._key]; return {borderColor:s?.color||'#fff',backgroundColor:s?.color||'#fff'}; }
+              }
+            }
+          },
+          scales:{
+            x:{type:'linear',min:t0,max:t1,
+               ticks:{font:{family:'monospace',size:8},color:'#444',callback:v=>v%60===0?(v+'s'):'',maxTicksLimit:Math.ceil(durS2/60)+1},
+               grid:{color:'rgba(255,255,255,.04)'}},
+            y:{display:false}
+          }
+        }
+      });
+    }
+  };
+
+  document.body.appendChild(panel);
 }
 
 // ── CARGAR RIDES EN SELECTOR ──────────────────────────────────

@@ -2,6 +2,52 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+
+## [v2.5.44] — 2026-04-11
+### Fixed
+- Tooltip "aplastado": eliminado fondo transparente, ajustado padding y tamaños de fuente
+- Gráficas borrosas/distorsionadas: corregido aspect ratio eliminando `!important` en CSS canvas
+- Líneas de gráfica más nítidas: `borderWidth` 2.5, `tension` 0 (líneas rectas)
+
+### Added
+- Panel lateral de datos ("DATOS CURSOR"): visualización fija de RPM, KPH, CLT al mover cursor
+- Plugin crosshair Chart.js: línea vertical punteada que sigue el cursor en tiempo real
+- Tooltip external: sistema personalizado que alimenta el panel lateral sin interferir visualmente
+- Offset configurable: tooltip separado 15px del punto de datos para no estorbar
+
+### Changed
+- Alineación de tooltip: ahora aparece a la izquierda del cursor (`xAlign: left`)
+- Fondo de tooltip: completamente transparente para ver solo los números
+
+### Technical
+- Registro global de plugin Chart.js para crosshair sincronizado
+- Implementación de callback `external` en tooltip para desacoplar visualización de datos
+
+> Co-authored-by: Kimi (Moonshot AI) <kimi@moonshot.cn>
+
+---
+
+## [v2.5.44] — 2026-04-11
+### Fixed
+- Tooltip "aplastado": eliminado fondo transparente, ajustado padding y tamaños de fuente
+- Gráficas borrosas/distorsionadas: corregido aspect ratio eliminando `!important` en CSS canvas
+- Líneas de gráfica más nítidas: `borderWidth` 2.5, `tension` 0 (líneas rectas)
+
+### Added
+- Panel lateral de datos ("DATOS CURSOR"): visualización fija de RPM, KPH, CLT al mover cursor
+- Plugin crosshair Chart.js: línea vertical punteada que sigue el cursor en tiempo real
+- Tooltip external: sistema personalizado que alimenta el panel lateral sin interferir visualmente
+- Offset configurable: tooltip separado 15px del punto de datos para no estorbar
+
+### Changed
+- Alineación de tooltip: ahora aparece a la izquierda del cursor (`xAlign: left`)
+- Fondo de tooltip: completamente transparente para ver solo los números
+
+### Technical
+- Registro global de plugin Chart.js para crosshair sincronizado
+- Implementación de callback `external` en tooltip para desacoplar visualización de datos
+
+---
 ## [v2.5.43] — 2026-04-11
 ### Fixed
 - Live grid now updates in real-time even when viewing a historical ride
