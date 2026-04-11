@@ -2,6 +2,18 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.42] — 2026-04-11
+### Added
+- `WebServer.ecu_identity`: new field exposing resolved ECU metadata (name, dbfile, ddfi, remark)
+- `main.py`: populates `ecu_identity` via `resolve_ecu()` at all 3 EEPROM load sites (startup, reconnect, cached fallback)
+- `live.json`: includes `ecu_identity` alongside `bike_serial`
+- Startup log now shows ECU name and DDFI variant on EEPROM ready
+### Changed
+- `fix_charts_sync.py`: removed (changes already applied to index.html in prior session)
+- `.gitignore`: exclude `*.bak*` template backups
+### Notes
+- Co-diagnosed: Claude (Anthropic)
+
 ## [v2.5.41] — 2026-04-09
 ### Added
 - `SessionManager._generate_suggested_msq()`: genera MSQ con sugerencias aplicadas automáticamente al cerrar cada ride

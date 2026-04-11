@@ -25,3 +25,4 @@ network_state.json
 # Archivos de debug temporales
 fix_*.py.save
 *.save.*
+web/templates/*.bak*

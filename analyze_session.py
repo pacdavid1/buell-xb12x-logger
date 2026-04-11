@@ -92,7 +92,19 @@ def merge_cells(agg, new):
         for r, cnt in v["inv_reasons"].items():
             a["inv_reasons"][r] = a["inv_reasons"].get(r, 0) + cnt
 
-def build_report(agg_cells, ride_list, session, min_conf):
+def _load_eeprom_decoded(sdir):
+    """Carga eeprom_decoded.json si existe en el directorio de sesion."""
+    import json
+    path = Path(sdir) / "eeprom_decoded.json"
+    if not path.exists():
+        return None
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+def build_report(agg_cells, ride_list, session, min_conf, sdir=None):
     """Genera el reporte final de tuning."""
     cells_out = {}
     needs_more = []
@@ -175,6 +187,7 @@ def build_report(agg_cells, ride_list, session, min_conf):
             "cells_with_suggestion": sum(1 for v in cells_out.values() if v["suggestion"]),
         },
         "cells": cells_sorted,
+        "eeprom": _load_eeprom_decoded(sdir),
     }
 
 def main():
@@ -215,7 +228,7 @@ def main():
               f"WOT={stats['wot_rows']:3}  maxRPM={stats['max_rpm']:.0f}  "
               f"válidos={pct:.0f}%")
 
-    report = build_report(agg, ride_list, args.session, args.min_conf)
+    report = build_report(agg, ride_list, args.session, args.min_conf, sdir=sdir)
     out = sdir / f"tuning_report_{args.session}.json"
     with open(out, "w") as f:
         json.dump(report, f, indent=2)
