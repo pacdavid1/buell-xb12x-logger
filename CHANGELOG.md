@@ -2,6 +2,15 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.43] — 2026-04-11
+### Fixed
+- Live grid now updates in real-time even when viewing a historical ride
+- `fetchLive()`: if `_viewingHistory=true` but a ride is active, grid and header still refresh at 500ms
+- Previously the grid froze as soon as a saved ride was selected for viewing
+
+### Notes
+- Co-authored-by: Claude (Anthropic)
+
 ## [v2.5.42] — 2026-04-11
 ### Added
 - `WebServer.ecu_identity`: new field exposing resolved ECU metadata (name, dbfile, ddfi, remark)

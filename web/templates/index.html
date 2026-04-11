@@ -831,7 +831,19 @@ function renderIndicators(ind) {
 // ── FETCH LOOP ────────────────────────────────────────────────────
 let _lastLiveOk = Date.now();
 async function fetchLive() {
-  if(window._viewingHistory) return;
+  if(window._viewingHistory){
+    try {
+      const _r = await fetch('/live.json?t='+Date.now());
+      if(_r.ok){
+        const _d = await _r.json();
+        if(_d.ride_active){
+          updateGrid(_d.cells||{}, _d.active_cell);
+          updateHeader(_d);
+        }
+      }
+    } catch(e){}
+    return;
+  }
   try {
     const r = await fetch('/live.json?t='+Date.now());
     if(!r.ok) return;
