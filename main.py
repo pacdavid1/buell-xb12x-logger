@@ -22,6 +22,7 @@ from web.server import WebServer
 from ecu.connection import DDFI2Connection
 from ecu.eeprom import decode_eeprom_maps, decode_eeprom_params
 from ecu.eeprom_params import decode_params
+from ecu.version_resolver import resolve_ecu
 from ecu.session import SessionManager, CellTracker, cell_key, RideErrorLog
 
 
@@ -161,6 +162,7 @@ class BuellLogger:
                         self.web.eeprom_maps   = decode_eeprom_maps(_blob)
                         self.web.eeprom_params = decode_params(_blob, ecu_version)
                         self.web.bike_serial   = int.from_bytes(_blob[12:14], 'little')
+                        self.web.ecu_identity  = resolve_ecu(ecu_version) or {}
                         self.logger.info(f"Session opened from reconnect: {self.session.current_checksum}")
                         consecutive_errors = 0
                         ecu_lost_since = None
@@ -178,11 +180,18 @@ class BuellLogger:
                                 self.web.eeprom_maps   = decode_eeprom_maps(_blob)
                                 self.web.eeprom_params = decode_params(_blob, _ver)
                                 self.web.bike_serial   = int.from_bytes(_blob[12:14], 'little')
+                                self.web.ecu_identity  = resolve_ecu(_ver) or {}
                                 self.logger.warning(f"Session opened from cached EEPROM: {self.session.current_checksum}")
                         time.sleep(5)
                         continue
                 except Exception as e:
                     self.logger.debug(f"ECU no disponible: {e} — reintento en 5s")
+                    if ecu_lost_since is None:
+                        ecu_lost_since = time.monotonic()
+                    no_ecu_s = time.monotonic() - ecu_lost_since
+                    if no_ecu_s >= 10.0 and int(no_ecu_s) % 10 == 0:
+                        self.logger.info(f"USB power cycle — {no_ecu_s:.0f}s sin ECU")
+                        self.ecu.usb_power_cycle()
                     time.sleep(5)
                     continue
 
@@ -437,7 +446,8 @@ class BuellLogger:
                     self.web.eeprom_maps   = decode_eeprom_maps(blob)
                     self.web.eeprom_params = decode_params(blob, ver)
                     self.web.bike_serial   = int.from_bytes(blob[12:14], 'little')
-                    self.logger.info(f"EEPROM ready — {len(self.web.eeprom_params)} params | Serial={self.web.bike_serial}")
+                    self.web.ecu_identity  = resolve_ecu(ver) or {}
+                    self.logger.info(f"EEPROM ready — {len(self.web.eeprom_params)} params | Serial={self.web.bike_serial} | ECU={self.web.ecu_identity.get('name','?')} ({self.web.ecu_identity.get('ddfi','?')})")
                 else:
                     self.logger.warning("EEPROM could not be read — session not opened")
             else:

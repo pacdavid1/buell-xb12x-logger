@@ -409,6 +409,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "objectives":      [],
             "serial_stats":    self.server_instance.serial_stats,
             "bike_serial":     self.server_instance.bike_serial,
+            "ecu_identity":    self.server_instance.ecu_identity,
         }
 
 
@@ -432,6 +433,7 @@ class WebServer:
         self.eeprom_params    = {}
         self.serial_stats     = {'bps': 0, 'pct': 0.0, 'tx': 0, 'rx': 0}
         self.bike_serial      = None
+        self.ecu_identity     = {}   # {name, dbfile, ddfi, remark}
         self.cell_tracker     = None
 
     def _get_rides(self):
