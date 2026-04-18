@@ -506,6 +506,17 @@ class BuellLogger:
     def shutdown(self):
         """Limpieza al salir."""
         self.logger.info("Deteniendo servicios...")
+        # Cerrar ride activo limpiamente antes de salir
+        try:
+            if self.session and self.session.current_csv_fh:
+                self.logger.info("Cerrando ride activo por shutdown...")
+                snap = self.tracker.snapshot() if self.tracker else None
+                self.session.close_current_ride(
+                    "shutdown",
+                    tracker_snapshot=snap,
+                    objectives_cfg=self.objectives_cfg)
+        except Exception as e:
+            self.logger.warning(f"Error cerrando ride en shutdown: {e}")
         self.web.stop()
         self.network.stop_monitor()
         

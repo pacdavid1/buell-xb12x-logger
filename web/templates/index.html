@@ -1310,7 +1310,7 @@ async function loadMapPane() {
   if (!sel) return;
   try {
     const d = await (await fetch('/rides?t=' + Date.now())).json();
-    const rides = (d.rides || []).slice().sort((a,b) => (b.opened_utc||'').localeCompare(a.opened_utc||''));
+    const rides = (d.rides || []).slice().sort((a,b) => new Date(b.opened_utc||0) - new Date(a.opened_utc||0));
     sel.innerHTML = '<option value="">-- Selecciona un ride --</option>';
     for (const r of rides) {
       const label = `${r.session} · Ride ${r.ride_num} · ${r.opened_utc ? new Date(r.opened_utc).toLocaleString() : ''}`;

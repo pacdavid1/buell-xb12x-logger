@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-18 15:26 | versión: v1.16.3-220-g5395e51
+> Última actualización: 2026-04-18 15:36 | versión: v1.16.3-221-gd16307d
 
 ---
 
@@ -58,6 +58,7 @@ buell-xb12x-logger/
 │   │   ├── ride_003_errorlog.json
 │   │   ├── ride_004_errorlog.json
 │   │   ├── ride_01B6AE_001.csv
+│   │   ├── ride_01B6AE_001_summary.json
 │   │   ├── ride_01B6AE_002.csv
 │   │   ├── ride_01B6AE_002_summary.json
 │   │   ├── ride_01B6AE_003.csv
@@ -87,13 +88,19 @@ buell-xb12x-logger/
 │   │   ├── ride_012_errorlog.json
 │   │   ├── ride_243FAC_001.csv
 │   │   ├── ride_243FAC_001_notes.txt
+│   │   ├── ride_243FAC_001_summary.json
 │   │   ├── ride_243FAC_002.csv
+│   │   ├── ride_243FAC_002_summary.json
 │   │   ├── ride_243FAC_003.csv
+│   │   ├── ride_243FAC_003_summary.json
 │   │   ├── ride_243FAC_004.csv
 │   │   ├── ride_243FAC_004_notes.txt
+│   │   ├── ride_243FAC_004_summary.json
 │   │   ├── ride_243FAC_005.csv
 │   │   ├── ride_243FAC_005_notes.txt
+│   │   ├── ride_243FAC_005_summary.json
 │   │   ├── ride_243FAC_006.csv
+│   │   ├── ride_243FAC_006_summary.json
 │   │   ├── ride_243FAC_007.csv
 │   │   ├── ride_243FAC_007_summary.json
 │   │   ├── ride_243FAC_008.csv
@@ -142,13 +149,19 @@ buell-xb12x-logger/
 │   │   ├── ride_040_errorlog.json
 │   │   ├── ride_248AE2_001.csv
 │   │   ├── ride_248AE2_001_notes.txt
+│   │   ├── ride_248AE2_001_summary.json
 │   │   ├── ride_248AE2_002.csv
+│   │   ├── ride_248AE2_002_summary.json
 │   │   ├── ride_248AE2_003.csv
+│   │   ├── ride_248AE2_003_summary.json
 │   │   ├── ride_248AE2_004.csv
+│   │   ├── ride_248AE2_004_summary.json
 │   │   ├── ride_248AE2_005.csv
+│   │   ├── ride_248AE2_005_summary.json
 │   │   ├── ride_248AE2_006.csv
 │   │   ├── ride_248AE2_006_summary.json
 │   │   ├── ride_248AE2_007.csv
+│   │   ├── ride_248AE2_007_summary.json
 │   │   ├── ride_248AE2_008.csv
 │   │   ├── ride_248AE2_008_summary.json
 │   │   ├── ride_248AE2_009.csv
@@ -186,6 +199,7 @@ buell-xb12x-logger/
 │   │   ├── ride_248AE2_025.csv
 │   │   ├── ride_248AE2_025_summary.json
 │   │   ├── ride_248AE2_026.csv
+│   │   ├── ride_248AE2_026_summary.json
 │   │   ├── ride_248AE2_027.csv
 │   │   ├── ride_248AE2_027_summary.json
 │   │   ├── ride_248AE2_028.csv
@@ -193,6 +207,7 @@ buell-xb12x-logger/
 │   │   ├── ride_248AE2_029.csv
 │   │   ├── ride_248AE2_029_summary.json
 │   │   ├── ride_248AE2_030.csv
+│   │   ├── ride_248AE2_030_summary.json
 │   │   ├── ride_248AE2_031.csv
 │   │   ├── ride_248AE2_031_summary.json
 │   │   ├── ride_248AE2_032.csv
@@ -221,6 +236,7 @@ buell-xb12x-logger/
 │   │   ├── eeprom.bin
 │   │   ├── ride_001_errorlog.json
 │   │   ├── ride_26C511_001.csv
+│   │   ├── ride_26C511_001_summary.json
 │   │   └── session_metadata.json
 │   ├── 27F1A2
 │   │   ├── consolidated.csv
@@ -239,10 +255,13 @@ buell-xb12x-logger/
 │   │   ├── ride_27F1A2_004_p2.csv
 │   │   ├── ride_27F1A2_004_summary.json
 │   │   ├── ride_27F1A2_005.csv
+│   │   ├── ride_27F1A2_005_summary.json
 │   │   ├── ride_27F1A2_006.csv
 │   │   ├── ride_27F1A2_006_summary.json
 │   │   ├── ride_27F1A2_007.csv
+│   │   ├── ride_27F1A2_007_summary.json
 │   │   ├── ride_27F1A2_008.csv
+│   │   ├── ride_27F1A2_008_summary.json
 │   │   ├── ride_27F1A2_009.csv
 │   │   ├── ride_27F1A2_009_summary.json
 │   │   ├── session_metadata.json
@@ -263,15 +282,20 @@ buell-xb12x-logger/
 │   ├── 6207C9
 │   │   ├── eeprom.bin
 │   │   ├── ride_6207C9_001.csv
+│   │   ├── ride_6207C9_001_summary.json
 │   │   └── session_metadata.json
 │   ├── 653DC0
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
 │   │   ├── eeprom.json
 │   │   ├── ride_653DC0_001.csv
+│   │   ├── ride_653DC0_001_summary.json
 │   │   ├── ride_653DC0_002.csv
+│   │   ├── ride_653DC0_002_summary.json
 │   │   ├── ride_653DC0_003.csv
+│   │   ├── ride_653DC0_003_summary.json
 │   │   ├── ride_653DC0_004.csv
+│   │   ├── ride_653DC0_004_summary.json
 │   │   └── session_metadata.json
 │   ├── 917900
 │   │   ├── consolidated.csv
@@ -313,12 +337,17 @@ buell-xb12x-logger/
 │   │   ├── ride_002_errorlog.json
 │   │   ├── ride_006_errorlog.json
 │   │   ├── ride_AC501E_001.csv
+│   │   ├── ride_AC501E_001_summary.json
 │   │   ├── ride_AC501E_002.csv
 │   │   ├── ride_AC501E_002_summary.json
 │   │   ├── ride_AC501E_003.csv
+│   │   ├── ride_AC501E_003_summary.json
 │   │   ├── ride_AC501E_004.csv
+│   │   ├── ride_AC501E_004_summary.json
 │   │   ├── ride_AC501E_005.csv
+│   │   ├── ride_AC501E_005_summary.json
 │   │   ├── ride_AC501E_006.csv
+│   │   ├── ride_AC501E_006_summary.json
 │   │   └── session_metadata.json
 │   ├── C49C2D
 │   │   ├── consolidated.csv
@@ -331,6 +360,7 @@ buell-xb12x-logger/
 │   │   ├── ride_C49C2D_002.csv
 │   │   ├── ride_C49C2D_002_summary.json
 │   │   ├── ride_C49C2D_003.csv
+│   │   ├── ride_C49C2D_003_summary.json
 │   │   └── session_metadata.json
 │   ├── D7B333
 │   │   ├── consolidated.csv
@@ -346,6 +376,7 @@ buell-xb12x-logger/
 │   │   ├── ride_D7B333_003.csv
 │   │   ├── ride_D7B333_003_summary.json
 │   │   ├── ride_D7B333_004.csv
+│   │   ├── ride_D7B333_004_summary.json
 │   │   └── session_metadata.json
 │   ├── E8D511
 │   │   ├── consolidated.csv
@@ -371,6 +402,7 @@ buell-xb12x-logger/
 ├── tools
 │   ├── diagnose_pi.sh
 │   ├── make_index.py
+│   ├── recover_summaries.py
 │   ├── test_ecu.py
 │   └── test_ecu.py.save
 ├── web
@@ -856,6 +888,10 @@ Upd |
 | `start_monitor` | — |
 | `stop_monitor` | — |
 | `ssh_active` | — |
+
+---
+
+### `tools/recover_summaries.py`
 
 ---
 
