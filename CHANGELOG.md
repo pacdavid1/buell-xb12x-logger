@@ -845,3 +845,16 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 
 ---
+
+## [v2.5.45] — 2026-04-18
+### Added
+- GPS integration: NEO-M8N connected via UART (ttyS0, pins 8/10, 9600 baud)
+- `gps/reader.py`: GPSReader thread — parses $GNRMC and $GNGGA, thread-safe get_fix()
+- `gps/__init__.py`: module init
+- CSV columns: gps_lat, gps_lon, gps_alt_m, gps_speed_kmh, gps_heading, gps_satellites, gps_valid
+- GPS data injected per sample in main.py RT loop alongside ECU data
+### Changed
+- `ecu/protocol.py`: CSV_COLUMNS extended with 7 GPS fields
+- `main.py`: GPSReader instantiated, started with other threads, fix injected before write_sample
+- Disabled serial-getty@ttyS0 (was blocking UART port)
+- Added udev rule 99-ttyS0-gps.rules (MODE=0666)

@@ -24,6 +24,7 @@ from ecu.eeprom import decode_eeprom_maps, decode_eeprom_params
 from ecu.eeprom_params import decode_params
 from ecu.version_resolver import resolve_ecu
 from ecu.session import SessionManager, CellTracker, cell_key, RideErrorLog
+from gps.reader import GPSReader
 
 
 def _get_version():
@@ -57,6 +58,7 @@ class BuellLogger:
         self._shutting_down = False
         self._poweroff_requested = False
         self._ecu_thread = None
+        self.gps = GPSReader()
         
         # Componentes modulares
         self.network = NetworkManager()
@@ -327,6 +329,8 @@ class BuellLogger:
                 data['cpu_pct']  = ss.get('cpu_pct', 0)
                 data['cpu_temp'] = ss.get('cpu_temp', 0)
                 data['mem_pct']  = ss.get('mem_pct', 0)
+                fix = self.gps.get_fix()
+                data.update(fix.as_dict())
                 self.session.write_sample(data, time.time())
             self.tracker.update(data)
 
@@ -456,6 +460,7 @@ class BuellLogger:
             self.logger.warning(f"ECU no disponible: {e}")
 
         # 2. Start RT and sysmon threads
+        self.gps.start()
         self._ecu_thread = threading.Thread(
             target=self._ecu_loop, daemon=True, name="ecu-rt"
         )

@@ -329,7 +329,7 @@ Requires real ride CSV data with known gear changes for validation.
 
 ## GPS
 
-**BACKLOG-GPS1** `OPEN`
+**BACKLOG-GPS1** `CLOSED` v2.5.45
 GPS module hardware integration
 
 ### Problem
