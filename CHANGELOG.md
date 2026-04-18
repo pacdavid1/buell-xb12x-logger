@@ -2,6 +2,16 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.47] — 2026-04-18
+### Fixed
+- shutdown() ahora cierra el ride activo limpiamente antes de detener servicios
+- Rides huérfanos (sin summary JSON) ya no se pierden en apagados abruptos
+### Added
+- tools/recover_summaries.py — recupera summaries JSON de rides huérfanos leyendo CSV
+- 31 summaries recuperados de sesiones anteriores
+### Changed
+- Tab Mapa: selector de rides ordenado por fecha descendente (Date object sort)
+
 ## [v2.5.46] — 2026-04-18
 ### Added
 - Tab "Mapa" en dashboard con Leaflet.js (OpenStreetMap, sin API key)
