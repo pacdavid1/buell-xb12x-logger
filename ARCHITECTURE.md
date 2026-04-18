@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-18 15:02 | versión: v1.16.3-217-g8e8e919
+> Última actualización: 2026-04-18 15:16 | versión: v1.16.3-218-ga3d0f8a
 
 ---
 
@@ -924,6 +924,7 @@ Upd |
 - `/wifi/scan`
 - `/wifi/status`
 - `/wifi/redirect_url`
+- `/gps_track`
 - `/ride_note`
 - `/network`
 - `/wifi/connect`
@@ -948,6 +949,7 @@ Upd |
 - `ve`
 - `cfg`
 - `net`
+- `map`
 
 **Funciones JS**
 
@@ -980,6 +982,8 @@ Upd |
 - `doWifiScan()`
 - `prefillWifi()`
 - `doAddWifi()`
+- `loadMapPane()`
+- `loadMapTrack()`
 - `loadSessions()`
 - `toggleSession()`
 - `openNoteModal()`

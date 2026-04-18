@@ -270,6 +270,43 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({"url": url, "action": action})
             return
 
+        if path == '/gps_track':
+            try:
+                params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+                session_id = params.get('session', [''])[0]
+                ride_num   = int(params.get('ride', [0])[0])
+                from pathlib import Path
+                import csv as _csv
+                sessions_dir = Path('/home/pi/buell/sessions')
+                # Buscar el archivo CSV del ride
+                ride_files = sorted(sessions_dir.glob(f'{session_id}/ride_{session_id}_{ride_num:03d}*.csv'))
+                if not ride_files:
+                    self._json({'error': 'ride not found', 'points': []}); return
+                points = []
+                for rf in ride_files:
+                    with open(rf, newline='') as f:
+                        # Skip comment lines starting with #
+                        filtered = (row for row in f if not row.startswith('#'))
+                        reader = _csv.DictReader(filtered)
+                        for row in reader:
+                            try:
+                                lat  = float(row.get('gps_lat') or 0)
+                                lon  = float(row.get('gps_lon') or 0)
+                                valid = row.get('gps_valid', 'False') == 'True'
+                                if valid and lat != 0.0 and lon != 0.0:
+                                    points.append({
+                                        'lat': lat,
+                                        'lon': lon,
+                                        'spd': float(row.get('gps_speed_kmh') or 0),
+                                        'alt': float(row.get('gps_alt_m') or 0),
+                                        't':   float(row.get('time_elapsed_s') or 0),
+                                    })
+                            except (ValueError, TypeError):
+                                continue
+                self._json({'ok': True, 'points': points, 'count': len(points)})
+            except Exception as e:
+                self._json({'error': str(e), 'points': []}, 500)
+            return
         if path == '/ride_note':
             try:
                 params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)

@@ -266,6 +266,7 @@ table.veg td:active{filter:brightness(1.6)}
   <div class="tab" onclick="showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()">VE</div>
   <div class="tab" onclick="showTab('cfg');trackUsage('tab_config')">Config</div>
   <div class="tab" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</div>
+  <div class="tab" onclick="showTab('map');loadMapPane();trackUsage('tab_map')">Mapa</div>
 </div>
 
 <!-- PANE RIDE -->
@@ -633,6 +634,22 @@ table.veg td:active{filter:brightness(1.6)}
 
 
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<div class="pane content" id="pane-map" style="padding:0">
+  <div style="padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">
+    <select id="mapRideSelect" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:4px">
+      <option value="">-- Selecciona un ride --</option>
+    </select>
+    <button class="btn" style="padding:4px 10px;font-size:10px" onclick="loadMapTrack()">Ver</button>
+  </div>
+  <div id="mapInfo" style="padding:4px 8px;font-family:var(--mono);font-size:9px;color:var(--dim);background:var(--panel);border-bottom:1px solid var(--border)">
+    Sin datos GPS
+  </div>
+  <div id="mapLeaflet" style="height:calc(100dvh - 120px);width:100%"></div>
+</div>
+
 <script>
 const RPM_BINS  = [0,800,1000,1350,1900,2400,2900,3400,4000,5000,6000,7000,8000];
 const LOAD_BINS = [10,15,20,30,40,50,60,80,100,125,175,255];
@@ -640,7 +657,7 @@ let lastData = null;
 
 // ── TABS ──────────────────────────────────────────────────────────
 function showTab(id) {
-  const ids = ['ride','rides','graph','ve','cfg','net'];
+  const ids = ['ride','rides','graph','ve','cfg','net','map'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-'+id).classList.add('active');
@@ -1282,6 +1299,77 @@ async function doAddWifi(){
 let ridesCache=[];
 let selectedRides=new Set();
 let _noteCtx={session:'',ride_num:0};
+
+// ── GPS MAP ─────────────────────────────────────────────────────────
+let _mapInstance = null;
+let _mapPolyline = null;
+
+async function loadMapPane() {
+  // Poblar selector con rides disponibles
+  const sel = document.getElementById('mapRideSelect');
+  if (!sel) return;
+  try {
+    const d = await (await fetch('/rides?t=' + Date.now())).json();
+    const rides = (d.rides || []).slice().reverse();
+    sel.innerHTML = '<option value="">-- Selecciona un ride --</option>';
+    for (const r of rides) {
+      const label = `${r.session} · Ride ${r.ride_num} · ${r.opened_utc ? new Date(r.opened_utc).toLocaleString() : ''}`;
+      const opt = document.createElement('option');
+      opt.value = JSON.stringify({session: r.session, ride: r.ride_num});
+      opt.textContent = label;
+      sel.appendChild(opt);
+    }
+  } catch(e) {
+    console.error('loadMapPane error', e);
+  }
+  // Inicializar mapa si no existe
+  if (!_mapInstance) {
+    _mapInstance = L.map('mapLeaflet').setView([32.5, -116.9], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OSM'
+    }).addTo(_mapInstance);
+  }
+}
+
+async function loadMapTrack() {
+  const sel = document.getElementById('mapRideSelect');
+  const info = document.getElementById('mapInfo');
+  if (!sel || !sel.value) { if(info) info.textContent = 'Selecciona un ride'; return; }
+  const {session, ride} = JSON.parse(sel.value);
+  if(info) info.textContent = 'Cargando...';
+  try {
+    const d = await (await fetch(`/gps_track?session=${session}&ride=${ride}&t=${Date.now()}`)).json();
+    if (!d.ok || !d.points || d.points.length === 0) {
+      if(info) info.textContent = 'Sin datos GPS en este ride';
+      return;
+    }
+    // Quitar track anterior
+    if (_mapPolyline) { _mapInstance.removeLayer(_mapPolyline); _mapPolyline = null; }
+    const latlngs = d.points.map(p => [p.lat, p.lon]);
+    // Colorear por velocidad
+    const maxSpd = Math.max(...d.points.map(p => p.spd), 1);
+    const segments = [];
+    for (let i = 0; i < latlngs.length - 1; i++) {
+      const pct = d.points[i].spd / maxSpd;
+      const r = Math.round(255 * pct);
+      const g = Math.round(255 * (1 - pct));
+      L.polyline([latlngs[i], latlngs[i+1]], {
+        color: `rgb(${r},${g},0)`, weight: 4, opacity: 0.85
+      }).addTo(_mapInstance);
+    }
+    // Marcador inicio y fin
+    L.circleMarker(latlngs[0], {radius:7, color:'#00ff88', fillColor:'#00ff88', fillOpacity:1}).addTo(_mapInstance).bindPopup('Inicio');
+    L.circleMarker(latlngs[latlngs.length-1], {radius:7, color:'#ff4444', fillColor:'#ff4444', fillOpacity:1}).addTo(_mapInstance).bindPopup('Fin');
+    _mapInstance.fitBounds(latlngs);
+    const maxSpd2 = Math.max(...d.points.map(p=>p.spd)).toFixed(1);
+    const dist = d.points.reduce((acc,p,i)=> i===0 ? 0 : acc + Math.hypot(p.lat-d.points[i-1].lat, p.lon-d.points[i-1].lon)*111.32, 0).toFixed(2);
+    if(info) info.textContent = `${d.count} puntos · Vel max ${maxSpd2} km/h · ~${dist} km`;
+  } catch(e) {
+    if(info) info.textContent = 'Error: ' + e;
+  }
+}
+// ────────────────────────────────────────────────────────────────────
 
 async function loadSessions(){
   const el=document.getElementById('ridesList'); if(!el) return;
