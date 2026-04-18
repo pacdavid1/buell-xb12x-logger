@@ -2,6 +2,17 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.46] — 2026-04-18
+### Added
+- Tab "Mapa" en dashboard con Leaflet.js (OpenStreetMap, sin API key)
+- Endpoint `/gps_track?session=X&ride=N` — lee CSV y devuelve puntos GPS válidos
+- Mapa de ruta con polyline coloreada por velocidad (verde=lento, rojo=rápido)
+- Marcadores de inicio (verde) y fin (rojo) en la ruta
+- Selector de rides en el tab Mapa
+- Info bar: cantidad de puntos, velocidad máxima, distancia aproximada
+### Changed
+- `showTab()` extendido para incluir 'map'
+
 ## [v2.5.45] — 2026-04-18
 ### Added
 - GPS integration: NEO-M8N connected via UART (ttyS0, pins 8/10, 9600 baud)
