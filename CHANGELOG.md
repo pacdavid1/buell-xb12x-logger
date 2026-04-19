@@ -2,6 +2,17 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.48] — 2026-04-18
+### Fixed
+- session_metadata.json corruption caused JSONDecodeError on boot — manual fix applied to 3311B1
+- start_ride() RuntimeError no longer kills ECU thread — now caught and logged as warning
+- Race condition: start_ride() attempted before open_session() completed after motor voltage drop
+- GPS reader: keeps last known position when fix is lost (gps_valid=False but lat/lon retained)
+- /gps_track endpoint: includes all points with non-null lat/lon regardless of gps_valid flag
+- except Exception in run() now logs full traceback for easier debugging
+### Added
+- BACKLOG-INF1: session_metadata.json corruption guard (queued)
+
 ## [v2.5.47] — 2026-04-18
 ### Fixed
 - shutdown() ahora cierra el ride activo limpiamente antes de detener servicios

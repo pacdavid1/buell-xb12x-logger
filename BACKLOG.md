@@ -842,3 +842,21 @@ BACKLOG-ECU3 — recommended: complete lower-risk write path first
 | BACKLOG-LOG2 | v2.5.15 | FUEL/SPARK RPM axis wrong — big-endian + descending order |
 | BACKLOG-LOG2 | v2.5.15/v2.5.16 | FUEL/SPARK RPM axis wrong + map rows reversed |
 | BACKLOG-LOG2 | v2.5.15/v2.5.16/v2.5.17 | FUEL/SPARK map reading — axis, orientation, zero separators |
+
+---
+
+**BACKLOG-INF1** `OPEN`
+session_metadata.json corruption guard
+
+### Problem
+If Pi shuts down abruptly during session creation, session_metadata.json
+can be written as empty file. On next boot, json.load() throws JSONDecodeError
+which crashes open_session() and prevents any ride from starting.
+
+### Fix needed
+In SessionManager._load_or_create(), wrap json.load() in try/except,
+recreate metadata from scratch if corrupt. Log warning.
+
+### Context
+- Triggered in session 3311B1 — manual fix was to recreate the JSON
+- Root cause: no atomic write on session_metadata.json creation
