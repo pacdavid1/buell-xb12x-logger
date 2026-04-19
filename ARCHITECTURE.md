@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-19 00:21 | versión: v1.16.3-231-g4ae9616
+> Última actualización: 2026-04-19 00:23 | versión: v1.16.3-232-ge8bcc6e
 
 ---
 
@@ -440,11 +440,6 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md
 ├── analyze_session.py
 ├── ddfi2_logger.py
-├── fix_gps_5hz.py
-├── fix_gps_gradient.py
-├── fix_gps_gradient_colors.py
-├── fix_gps_gradient_simple.py
-├── fix_gps_gradient_stops.py
 ├── fix_server_rides.py.save.1
 ├── install.sh
 ├── main.py
@@ -804,46 +799,6 @@ A new  |
 | Nombre | Valor |
 |--------|-------|
 | `_ECM_TABLE` | `None` |
-
----
-
-### `fix_gps_5hz.py`
-
-**Constantes**
-
-| Nombre | Valor |
-|--------|-------|
-| `OLD` | `                with serial.Serial(self.port, self.baud, timeout=GPS_TIMEOUT,
-                                   xonxoff=False, rtscts=False, dsrdtr=False) as ser:
-                    logger.info("Puerto GPS abierto")` |
-| `NEW` | `                with serial.Serial(self.port, self.baud, timeout=GPS_TIMEOUT,
-                                   xonxoff=False, rtscts=False, dsrdtr=False) as ser:
-                    # Configure 5Hz update rate (UBX-CFG-RATE, measRate=200ms)
-                    ubx_5hz = bytes([
-                        0xB5, 0x62, 0x06, 0x08, 0x06, 0x00,
-                        0xC8, 0x00, 0x01, 0x00, 0x01, 0x00,
-                        0xDE, 0x6A
-                    ])
-                    ser.write(ubx_5hz)
-                    import time as _time; _time.sleep(0.3)
-                    ser.reset_input_buffer()
-                    logger.info("Puerto GPS abierto — 5Hz configurado")` |
-
----
-
-### `fix_gps_gradient.py`
-
----
-
-### `fix_gps_gradient_colors.py`
-
----
-
-### `fix_gps_gradient_simple.py`
-
----
-
-### `fix_gps_gradient_stops.py`
 
 ---
 
