@@ -1364,7 +1364,7 @@ async function loadMapPane() {
   // Inicializar mapa si no existe
   if (!_mapInstance) {
     _mapInstance = L.map('mapLeaflet').setView([32.5, -116.9], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
       maxZoom: 19,
       attribution: '© OSM'
     }).addTo(_mapInstance);
