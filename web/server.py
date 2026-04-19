@@ -293,7 +293,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                                 lat  = float(row.get('gps_lat') or 0)
                                 lon  = float(row.get('gps_lon') or 0)
                                 valid = row.get('gps_valid', 'False') == 'True'
-                                if valid and lat != 0.0 and lon != 0.0:
+                                if lat != 0.0 and lon != 0.0:
                                     points.append({
                                         'lat': lat,
                                         'lon': lon,

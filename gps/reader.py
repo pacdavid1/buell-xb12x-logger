@@ -98,13 +98,17 @@ class GPSReader:
             return
         with self._lock:
             if isinstance(msg, pynmea2.types.talker.RMC):
-                self._fix.valid = (msg.status == "A")
-                if self._fix.valid:
+                new_valid = (msg.status == "A")
+                if new_valid:
                     self._fix.lat        = msg.latitude
                     self._fix.lon        = msg.longitude
                     self._fix.speed_kmh  = msg.spd_over_grnd * 1.852 if msg.spd_over_grnd else 0.0
                     self._fix.heading    = float(msg.true_course) if msg.true_course else self._fix.heading
                     self._fix.timestamp_utc = str(msg.datetime)
+                    self._fix.valid      = True
+                else:
+                    # Keep last known position, just mark as not fresh
+                    self._fix.valid      = False
             elif isinstance(msg, pynmea2.types.talker.GGA):
                 self._fix.satellites = int(msg.num_sats) if msg.num_sats else 0
                 if msg.altitude is not None:

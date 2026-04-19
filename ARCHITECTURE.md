@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-18 19:45 | versión: v1.16.3-223-gcf13c24
+> Última actualización: 2026-04-18 21:09 | versión: v1.16.3-224-g70ca6e5
 
 ---
 
@@ -362,6 +362,7 @@ buell-xb12x-logger/
 │   │   ├── ride_C49C2D_003.csv
 │   │   ├── ride_C49C2D_003_summary.json
 │   │   └── session_metadata.json
+│   ├── D41D8C
 │   ├── D7B333
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
@@ -369,6 +370,8 @@ buell-xb12x-logger/
 │   │   ├── ride_002_errorlog.json
 │   │   ├── ride_003_errorlog.json
 │   │   ├── ride_004_errorlog.json
+│   │   ├── ride_005_errorlog.json
+│   │   ├── ride_006_errorlog.json
 │   │   ├── ride_D7B333_001.csv
 │   │   ├── ride_D7B333_001_summary.json
 │   │   ├── ride_D7B333_002.csv
@@ -377,7 +380,13 @@ buell-xb12x-logger/
 │   │   ├── ride_D7B333_003_summary.json
 │   │   ├── ride_D7B333_004.csv
 │   │   ├── ride_D7B333_004_summary.json
-│   │   └── session_metadata.json
+│   │   ├── ride_D7B333_005.csv
+│   │   ├── ride_D7B333_005_summary.json
+│   │   ├── ride_D7B333_006.csv
+│   │   ├── ride_D7B333_006_p2.csv
+│   │   ├── ride_D7B333_006_summary.json
+│   │   ├── session_metadata.json
+│   │   └── tuning_report_D7B333.json
 │   ├── E8D511
 │   │   ├── consolidated.csv
 │   │   ├── consolidated.tmp
@@ -421,9 +430,12 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md.save
 ├── analyze_session.py
 ├── ddfi2_logger.py
+├── fix_except_detail.py
 ├── fix_remove_extra_div_before_script.py.save
 ├── fix_server_rides.py.save
 ├── fix_server_rides.py.save.1
+├── fix_session_race.py
+├── fix_start_ride_guard.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
@@ -782,6 +794,70 @@ A new  |
 | Nombre | Valor |
 |--------|-------|
 | `_ECM_TABLE` | `None` |
+
+---
+
+### `fix_except_detail.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `OLD` | `        except Exception as e:
+            self.logger.warning(f"ECU no disponible: {e}")
+
+        # 2. Start RT and sysmon threads` |
+| `NEW` | `        except Exception as e:
+            import traceback
+            self.logger.warning(f"ECU no disponible: {e}\n{traceback.format_exc()}")
+
+        # 2. Start RT and sysmon threads` |
+
+---
+
+### `fix_session_race.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `OLD` | `                        self.session.open_session(ecu_version, _blob)
+                        if not (self.session.current_session_dir / 'eeprom.bin').exists():
+                            self.session.save_eeprom(_blob)` |
+| `NEW` | `                        self.session.open_session(ecu_version, _blob)
+                        time.sleep(0.5)  # Allow session to stabilize before RT loop
+                        if not (self.session.current_session_dir / 'eeprom.bin').exists():
+                            self.session.save_eeprom(_blob)` |
+
+---
+
+### `fix_start_ride_guard.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `OLD` | `                else:
+                    ride_active    = True
+                    rpm_zero_since = None
+                    self.session.start_ride()
+                    self.error_log.start(
+                        ride_num=self.session.current_ride_num,
+                        session_checksum=self.session.current_checksum,
+                        session_dir=str(self.session.current_session_dir))
+                    self.logger.info(f"Ride {self.session.current_ride_num:03d} iniciado")` |
+| `NEW` | `                else:
+                    try:
+                        self.session.start_ride()
+                        ride_active    = True
+                        rpm_zero_since = None
+                        self.error_log.start(
+                            ride_num=self.session.current_ride_num,
+                            session_checksum=self.session.current_checksum,
+                            session_dir=str(self.session.current_session_dir))
+                        self.logger.info(f"Ride {self.session.current_ride_num:03d} iniciado")
+                    except RuntimeError as e:
+                        self.logger.warning(f"start_ride falló: {e} — esperando sesión activa")` |
 
 ---
 
