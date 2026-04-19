@@ -2,6 +2,15 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.49] — 2026-04-19
+### Added
+- Altitude profile chart (Chart.js) below Leaflet map, colored by speed
+- GPS confirmed at 5Hz (UBX CFG-RATE 200ms persisted in module flash)
+### Fixed
+- GPS ttyS0 permission via sudoers + ExecStartPre in systemd service
+- Map dark mode (CARTO night tiles)
+- Speed gradient colors fixed scale on map polyline
+
 ## [v2.5.48] — 2026-04-18
 ### Fixed
 - session_metadata.json corruption caused JSONDecodeError on boot — manual fix applied to 3311B1
