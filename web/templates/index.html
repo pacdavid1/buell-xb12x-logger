@@ -654,7 +654,13 @@ table.veg td:active{filter:brightness(1.6)}
     <span style="color:#FF0000">■</span> 120-160
     <span style="color:#FF00FF">■</span> 160+ km/h
   </div>
-  <div id="mapLeaflet" style="height:calc(100dvh - 140px);width:100%"></div>
+  <div id="mapLeaflet" style="height:calc(60dvh);width:100%"></div>
+  <div style="background:var(--panel);border-top:1px solid var(--border);padding:4px 8px 2px;font-family:var(--mono);font-size:9px;color:var(--dim)">
+    Perfil de altitud · color = velocidad
+  </div>
+  <div style="background:var(--bg);height:calc(30dvh);padding:4px">
+    <canvas id="altitudeChart"></canvas>
+  </div>
 </div>
 
 <script>
@@ -1406,6 +1412,75 @@ async function loadMapTrack() {
     const maxSpd2 = Math.max(...d.points.map(p=>p.spd)).toFixed(1);
     const dist = d.points.reduce((acc,p,i)=> i===0 ? 0 : acc + Math.hypot(p.lat-d.points[i-1].lat, p.lon-d.points[i-1].lon)*111.32, 0).toFixed(2);
     if(info) info.textContent = `${d.count} puntos · Vel max ${maxSpd2} km/h · ~${dist} km`;
+    // ── Perfil de altitud ──────────────────────────────────────────
+    const altCanvas = document.getElementById('altitudeChart');
+    if (altCanvas) {
+      if (window._altChart) { window._altChart.destroy(); window._altChart = null; }
+      // Calcular distancia acumulada
+      let distAcc = 0;
+      const altLabels = [];
+      const altData = [];
+      const altColors = [];
+      for (let i = 0; i < d.points.length; i++) {
+        if (i > 0) {
+          distAcc += Math.hypot(
+            d.points[i].lat - d.points[i-1].lat,
+            d.points[i].lon - d.points[i-1].lon
+          ) * 111.32;
+        }
+        if (d.points[i].alt !== null && d.points[i].alt !== undefined) {
+          altLabels.push(distAcc.toFixed(2));
+          altData.push(d.points[i].alt);
+          altColors.push(getSpeedColor(d.points[i].spd));
+        }
+      }
+      window._altChart = new Chart(altCanvas, {
+        type: 'line',
+        data: {
+          labels: altLabels,
+          datasets: [{
+            label: 'Altitud (m)',
+            data: altData,
+            borderColor: altColors,
+            borderWidth: 1.5,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: {
+              target: 'origin',
+              above: 'rgba(0,100,255,0.08)'
+            },
+            segment: {
+              borderColor: ctx => altColors[ctx.p0DataIndex] || '#fff'
+            }
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `Alt: ${ctx.parsed.y.toFixed(1)}m · ${altColors[ctx.dataIndex]}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { color: '#666', font: { size: 8 }, maxTicksLimit: 8 },
+              grid: { color: '#1e1e24' },
+              title: { display: true, text: 'Distancia (km)', color: '#666', font: { size: 8 } }
+            },
+            y: {
+              ticks: { color: '#aaa', font: { size: 8 } },
+              grid: { color: '#1e1e24' },
+              title: { display: true, text: 'Altitud (m)', color: '#666', font: { size: 8 } }
+            }
+          }
+        }
+      });
+    }
   } catch(e) {
     if(info) info.textContent = 'Error: ' + e;
   }
