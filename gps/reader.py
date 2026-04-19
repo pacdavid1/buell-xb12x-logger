@@ -75,7 +75,10 @@ class GPSReader:
     def _run(self):
         while not self._stop.is_set():
             try:
-                with serial.Serial(self.port, self.baud, timeout=GPS_TIMEOUT) as ser:
+                import subprocess
+                subprocess.run(['stty', '-F', self.port, str(self.baud), 'raw'], check=False)
+                with serial.Serial(self.port, self.baud, timeout=GPS_TIMEOUT,
+                                   xonxoff=False, rtscts=False, dsrdtr=False) as ser:
                     logger.info("Puerto GPS abierto")
                     while not self._stop.is_set():
                         line = ser.readline().decode("ascii", errors="replace").strip()
