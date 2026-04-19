@@ -109,6 +109,15 @@ class BuellLogger:
             ss['cpu_pct'] = cpu_pct
             ss['cpu_temp'] = cpu_temp
             self.web.serial_stats = ss
+            # GPS watchdog — restart thread if dead
+            if not self.gps._thread.is_alive():
+                self.logger.warning("GPS thread muerto — reiniciando...")
+                try:
+                    from gps.reader import GPSReader
+                    self.gps = GPSReader()
+                    self.gps.start()
+                except Exception as e:
+                    self.logger.warning(f"GPS restart failed: {e}")
             time.sleep(2.0)
 
     def _ecu_loop(self):
