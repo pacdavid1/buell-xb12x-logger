@@ -658,6 +658,38 @@ table.veg td:active{filter:brightness(1.6)}
 </div>
 
 <script>
+
+
+function getGradientColor(speed) {
+  const min = 0, max = 200;
+  const ratio = Math.min(Math.max(speed, min), max) / max;
+
+  const stops = [
+    {pos: 0.0, r:0,   g:0,   b:255},   // Azul
+    {pos: 0.3, r:0,   g:255, b:0},     // Verde
+    {pos: 0.6, r:255, g:255, b:0},     // Amarillo
+    {pos: 0.8, r:255, g:0,   b:0},     // Rojo
+    {pos: 1.0, r:255, g:0,   b:255}    // Magenta
+  ];
+
+  let lower = stops[0], upper = stops[stops.length-1];
+  for (let i=0; i<stops.length-1; i++) {
+    if (ratio >= stops[i].pos && ratio <= stops[i+1].pos) {
+      lower = stops[i];
+      upper = stops[i+1];
+      break;
+    }
+  }
+
+  const t = (ratio - lower.pos) / (upper.pos - lower.pos);
+  const r = Math.round(lower.r + t*(upper.r - lower.r));
+  const g = Math.round(lower.g + t*(upper.g - lower.g));
+  const b = Math.round(lower.b + t*(upper.b - lower.b));
+
+  return `rgb(${r},${g},${b})`;
+}
+
+
 const RPM_BINS  = [0,800,1000,1350,1900,2400,2900,3400,4000,5000,6000,7000,8000];
 const LOAD_BINS = [10,15,20,30,40,50,60,80,100,125,175,255];
 let lastData = null;
@@ -1364,7 +1396,7 @@ async function loadMapTrack() {
     }
     for (let i = 0; i < latlngs.length - 1; i++) {
       L.polyline([latlngs[i], latlngs[i+1]], {
-        color: getSpeedColor(d.points[i].spd), weight: 4, opacity: 0.85
+        color: getGradientColor(d.points[i].spd), weight: 4, opacity: 0.85
       }).addTo(_mapInstance);
     }
     // Marcador inicio y fin
