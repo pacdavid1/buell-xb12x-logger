@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-18 21:14 | versión: v1.16.3-227-gcdaba8a
+> Última actualización: 2026-04-18 21:27 | versión: v1.16.3-228-gad8e26f
 
 ---
 
@@ -427,11 +427,8 @@ buell-xb12x-logger/
 ├── DEV_TIPS.md
 ├── README.md
 ├── WORKING_METHOD.md
-├── WORKING_METHOD.md.save
 ├── analyze_session.py
 ├── ddfi2_logger.py
-├── fix_remove_extra_div_before_script.py.save
-├── fix_server_rides.py.save
 ├── fix_server_rides.py.save.1
 ├── install.sh
 ├── main.py

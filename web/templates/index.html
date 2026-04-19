@@ -647,7 +647,14 @@ table.veg td:active{filter:brightness(1.6)}
   <div id="mapInfo" style="padding:4px 8px;font-family:var(--mono);font-size:9px;color:var(--dim);background:var(--panel);border-bottom:1px solid var(--border)">
     Sin datos GPS
   </div>
-  <div id="mapLeaflet" style="height:calc(100dvh - 120px);width:100%"></div>
+  <div style="padding:4px 8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;font-family:var(--mono);font-size:9px">
+    <span style="color:#0000FF">■</span> 0-20
+    <span style="color:#00FF00">■</span> 20-60
+    <span style="color:#FFFF00">■</span> 60-120
+    <span style="color:#FF0000">■</span> 120-160
+    <span style="color:#FF00FF">■</span> 160+ km/h
+  </div>
+  <div id="mapLeaflet" style="height:calc(100dvh - 140px);width:100%"></div>
 </div>
 
 <script>
@@ -1348,14 +1355,16 @@ async function loadMapTrack() {
     if (_mapPolyline) { _mapInstance.removeLayer(_mapPolyline); _mapPolyline = null; }
     const latlngs = d.points.map(p => [p.lat, p.lon]);
     // Colorear por velocidad
-    const maxSpd = Math.max(...d.points.map(p => p.spd), 1);
-    const segments = [];
+    function getSpeedColor(spd) {
+      if (spd <=  20) return '#0000FF'; // Azul
+      if (spd <=  60) return '#00FF00'; // Verde
+      if (spd <= 120) return '#FFFF00'; // Amarillo
+      if (spd <= 160) return '#FF0000'; // Rojo
+      return '#FF00FF';                 // Magenta 160+
+    }
     for (let i = 0; i < latlngs.length - 1; i++) {
-      const pct = d.points[i].spd / maxSpd;
-      const r = Math.round(255 * pct);
-      const g = Math.round(255 * (1 - pct));
       L.polyline([latlngs[i], latlngs[i+1]], {
-        color: `rgb(${r},${g},0)`, weight: 4, opacity: 0.85
+        color: getSpeedColor(d.points[i].spd), weight: 4, opacity: 0.85
       }).addTo(_mapInstance);
     }
     // Marcador inicio y fin
