@@ -104,15 +104,7 @@ class GPSReader:
                     ser.write(_ubx(0x06, 0x08, bytes([0xC8,0x00,0x01,0x00,0x01,0x00])))
                     ack = _wait_ack(ser, 0x06, 0x08, timeout=2.0)
                     if ack is True:
-                        # CFG-CFG: save to BBR+flash+EEPROM only (deviceMask=0x07)
-                        ser.write(_ubx(0x06, 0x09, bytes([
-                            0x00,0x00,0x00,0x00,  # clearMask
-                            0xFF,0xFF,0x00,0x00,  # saveMask (all sections)
-                            0x00,0x00,0x00,0x00,  # loadMask
-                            0x07                  # deviceMask: BBR+flash+EEPROM
-                        ])))
-                        _time.sleep(0.2)
-                        logger.info("GPS 5Hz configurado y guardado en flash")
+                        logger.info("GPS 5Hz configurado (solo RAM)")
                     elif ack is False:
                         logger.warning("GPS CFG-RATE: NAK recibido — comando rechazado")
                     else:

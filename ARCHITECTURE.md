@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-19 08:22 | versión: v1.16.3-235-gcce6df1
+> Última actualización: 2026-04-26 13:29 | versión: v1.16.3-236-gd76680c
 
 ---
 
@@ -285,6 +285,19 @@ buell-xb12x-logger/
 │   │   ├── ride_002_summary.json
 │   │   ├── ride_003.csv
 │   │   └── session_metadata.json
+│   ├── 60E0BB
+│   │   ├── consolidated.csv
+│   │   ├── eeprom.bin
+│   │   ├── ride_001_errorlog.json
+│   │   ├── ride_60E0BB_001.csv
+│   │   ├── ride_60E0BB_001_p2.csv
+│   │   ├── ride_60E0BB_001_p3.csv
+│   │   ├── ride_60E0BB_001_summary.json
+│   │   ├── ride_60E0BB_002.csv
+│   │   ├── ride_60E0BB_002_summary.json
+│   │   ├── ride_report_60E0BB_001.json
+│   │   ├── session_metadata.json
+│   │   └── tuning_report_60E0BB.json
 │   ├── 6207C9
 │   │   ├── eeprom.bin
 │   │   ├── ride_6207C9_001.csv
@@ -978,6 +991,7 @@ Upd |
 - `/wifi/scan`
 - `/wifi/status`
 - `/wifi/redirect_url`
+- `/gps_fix`
 - `/gps_track`
 - `/ride_note`
 - `/network`

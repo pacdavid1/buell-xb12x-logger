@@ -270,6 +270,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({"url": url, "action": action})
             return
 
+        if path == '/gps_fix':
+            try:
+                gps = self.server_instance.gps
+                fix = gps.get_fix() if gps else None
+                self._json(fix.as_dict() if fix else {"error": "no gps"})
+            except Exception as e:
+                self._json({"error": str(e)})
+            return
         if path == '/gps_track':
             try:
                 params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
