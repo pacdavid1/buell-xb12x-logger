@@ -75,8 +75,6 @@ class GPSReader:
     def _run(self):
         while not self._stop.is_set():
             try:
-                import subprocess
-                subprocess.run(['stty', '-F', self.port, str(self.baud), 'raw'], check=False)
                 with serial.Serial(self.port, self.baud, timeout=GPS_TIMEOUT,
                                    xonxoff=False, rtscts=False, dsrdtr=False) as ser:
                     import time as _time
@@ -99,11 +97,14 @@ class GPSReader:
                             if ack in buf: return True
                             if nak in buf: return False
                         return None  # timeout
+                    # CFG-PRT: habilita UBX in+out en UART1
+                    ser.reset_input_buffer()
+                    ser.write(_ubx(0x06, 0x00, bytes([0x01,0x00,0x00,0x00,0xC0,0x08,0x00,0x00,0x80,0x25,0x00,0x00,0x07,0x00,0x03,0x00,0x00,0x00,0x00,0x00])))
+                    _time.sleep(0.5)
                     # CFG-RATE: 200ms = 5Hz, navRate=1, timeRef=GPS
-                    _time.sleep(1.0)
                     ser.reset_input_buffer()
                     ser.write(_ubx(0x06, 0x08, bytes([0xC8,0x00,0x01,0x00,0x01,0x00])))
-                    ack = _wait_ack(ser, 0x06, 0x08, timeout=2.0)
+                    ack = _wait_ack(ser, 0x06, 0x08, timeout=4.0)
                     if ack is True:
                         logger.info("GPS 5Hz configurado (solo RAM)")
                     elif ack is False:
