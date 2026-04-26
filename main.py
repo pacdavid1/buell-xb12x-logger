@@ -119,6 +119,10 @@ class BuellLogger:
                     self.gps.start()
                 except Exception as e:
                     self.logger.warning(f"GPS restart failed: {e}")
+            fix = self.gps.get_fix()
+            live = self.web.ecu_live or {}
+            live.update(fix.as_dict())
+            self.web.ecu_live = live
             time.sleep(2.0)
 
     def _ecu_loop(self):

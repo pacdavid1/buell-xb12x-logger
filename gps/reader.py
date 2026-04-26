@@ -100,6 +100,7 @@ class GPSReader:
                             if nak in buf: return False
                         return None  # timeout
                     # CFG-RATE: 200ms = 5Hz, navRate=1, timeRef=GPS
+                    _time.sleep(1.0)
                     ser.reset_input_buffer()
                     ser.write(_ubx(0x06, 0x08, bytes([0xC8,0x00,0x01,0x00,0x01,0x00])))
                     ack = _wait_ack(ser, 0x06, 0x08, timeout=2.0)

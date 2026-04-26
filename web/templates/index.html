@@ -238,6 +238,7 @@ table.veg td:active{filter:brightness(1.6)}
   <div class="hdr-row">
     <div class="hdr-comms">
       <div class="hs-sm"><div class="hs-label">系統</div><div class="hs-val" id="freezeIndicator" style="color:#2ecc71">正常</div></div>
+      <div class="hs-sm"><div class="hs-label">SAT</div><div class="hs-val gn" id="hSat">--</div></div>
       <div class="hs-sm" id="btnCloseRideWrap" style="padding:1px 6px">
         <div class="hs-label">騎行</div>
         <button id="btnCloseRide" onclick="closeRide()"
@@ -789,6 +790,13 @@ function updateHeader(d) {
     const tp = ss.cpu_temp || 0;
     tempEl.textContent = tp.toFixed(1)+'°';
     tempEl.className = 'hs-val ' + (tp > 75 ? 'ac' : tp > 60 ? 'yw' : 'gn');
+  }
+  const satEl = document.getElementById('hSat');
+  if(satEl){
+    const sat = lv.gps_satellites != null ? lv.gps_satellites : 0;
+    const fix = lv.gps_valid === true || lv.gps_valid === 'True';
+    satEl.textContent = sat;
+    satEl.className = 'hs-val ' + (fix ? 'gn' : sat > 0 ? 'yw' : 'ac');
   }
   const serialEl = document.getElementById('hSerial');
   if(serialEl) serialEl.textContent = d.bike_serial ? '#'+d.bike_serial : '--';
