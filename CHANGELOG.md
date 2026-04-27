@@ -2,6 +2,21 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.5.50] — 2026-04-27
+### Added
+- GPS via gpsd — reemplaza pyserial directo, manejo profesional del M8N
+- Endpoint /gps_fix para monitorear GPS sin ECU conectada
+- GPS satellites visible en header del dash (SAT)
+- SBAS habilitado para mejor accuracy
+- gpsd como dependencia systemd de buell-logger
+### Fixed
+- GPS CFG-PRT antes de CFG-RATE — habilita protocolo UBX, ACK confirmado
+- GPS 5Hz guardado en flash del M8N — persiste entre reinicios
+- GPS parse no guarda speed/pos cuando gps_valid=False
+- GPS satellites no se resetea a 0 con SKY vacío de gpsd
+- GPS siempre presente en live.json via _get_live_data aunque no haya ECU
+- GPS inject removido de sysmon — lo maneja _get_live_data en server.py
+---
 ## [v2.5.49] — 2026-04-19
 ### Added
 - Altitude profile chart (Chart.js) below Leaflet map, colored by speed
