@@ -53,8 +53,10 @@ class GPSReader:
                                 if 'time' in msg: self._fix.timestamp_utc=msg['time']
                             else: self._fix.speed_kmh=0.0
                     elif cls=='SKY':
-                        sats=sum(1 for s in msg.get('satellites',[]) if s.get('used'))
-                        with self._lock: self._fix.satellites=sats
+                        sat_list=msg.get('satellites',[])
+                        if sat_list:
+                            sats=sum(1 for s in sat_list if s.get('used'))
+                            with self._lock: self._fix.satellites=sats
                 sock.close()
             except Exception as e:
                 logger.warning(f"GPS gpsd error: {e} — reintentando en 3s");time.sleep(3)

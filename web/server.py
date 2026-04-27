@@ -438,13 +438,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
     def _get_live_data(self):
         live = dict(self.server_instance.ecu_live or {})
-        if not any(k.startswith('gps_') for k in live):
-            try:
-                gps = getattr(self.server_instance, 'gps', None)
-                if gps:
-                    live.update(gps.get_fix().as_dict())
-            except Exception:
-                pass
+        try:
+            gps = getattr(self.server_instance, 'gps', None)
+            if gps:
+                fix = gps.get_fix().as_dict()
+                for k, v in fix.items():
+                    if v is not None or k not in live:
+                        live[k] = v
+        except Exception:
+            pass
         return live
 
     def _get_live(self):
