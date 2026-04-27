@@ -435,6 +435,18 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return template.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version())
         return "<h1>Buell Logger</h1><p>templates/index.html no encontrado</p>"
 
+
+    def _get_live_data(self):
+        live = dict(self.server_instance.ecu_live or {})
+        if not any(k.startswith('gps_') for k in live):
+            try:
+                gps = getattr(self.server_instance, 'gps', None)
+                if gps:
+                    live.update(gps.get_fix().as_dict())
+            except Exception:
+                pass
+        return live
+
     def _get_live(self):
         net = self.server_instance.network
         return {
@@ -449,7 +461,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "elapsed_s":       self.server_instance.elapsed_s,
             "ecu_connected":   self.server_instance.ecu_connected,
             "ecu_lost_s":      self.server_instance.ecu_lost_s,
-            "live":            self.server_instance.ecu_live,
+            "live":            self._get_live_data(),
             "cells":           self.server_instance.cell_tracker.snapshot()[0] if self.server_instance.cell_tracker else {},
             "objectives":      [],
             "serial_stats":    self.server_instance.serial_stats,
