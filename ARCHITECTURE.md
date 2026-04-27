@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-26 19:40 | versión: v1.16.3-242-gd9a1d35
+> Última actualización: 2026-04-26 19:51 | versión: v1.16.3-243-gc80d188
 
 ---
 
@@ -831,9 +831,8 @@ A new  |
 
 | Nombre | Valor |
 |--------|-------|
-| `GPS_BAUD` | `9600` |
-| `GPS_PORT` | `/dev/ttyS0` |
-| `GPS_TIMEOUT` | `2.0` |
+| `GPSD_HOST` | `127.0.0.1` |
+| `GPSD_PORT` | `2947` |
 
 **Clase `GPSFix`**
 
@@ -851,7 +850,6 @@ A new  |
 | `stop` | — |
 | `get_fix` | — |
 | `_run` | — |
-| `_parse` | — |
 
 ---
 
