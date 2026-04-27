@@ -111,6 +111,10 @@ class GPSReader:
                         logger.warning("GPS CFG-RATE: NAK recibido — comando rechazado")
                     else:
                         logger.warning("GPS CFG-RATE: sin ACK — módulo puede estar en baud diferente")
+                    # Desactivar NMEA innecesario, solo RMC(0x04) y GGA(0x00)
+                    for msg_id in [0x01,0x02,0x03,0x05,0x06,0x07,0x08,0x09,0x0A,0x0D,0x0E,0x0F]:
+                        ser.write(_ubx(0x06, 0x01, bytes([0xF0, msg_id, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])))
+                        _time.sleep(0.05)
                     ser.reset_input_buffer()
                     logger.info("Puerto GPS abierto")
                     while not self._stop.is_set():
