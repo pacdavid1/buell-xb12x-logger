@@ -111,6 +111,15 @@ class GPSReader:
                         logger.warning("GPS CFG-RATE: NAK recibido — comando rechazado")
                     else:
                         logger.warning("GPS CFG-RATE: sin ACK — módulo puede estar en baud diferente")
+                    # Habilitar SBAS (WAAS/EGNOS)
+                    ser.write(_ubx(0x06, 0x16, bytes([
+                        0x01,  # mode: enabled
+                        0x07,  # usage: range+diffCorr+integrity
+                        0x03,  # maxSBAS: 3
+                        0x00,  # scanmode2
+                        0x51,0x08,0x00,0x00  # scanmode1: todos
+                    ])))
+                    _time.sleep(0.2)
                     # Desactivar NMEA innecesario, solo RMC(0x04) y GGA(0x00)
                     for msg_id in [0x01,0x02,0x03,0x05,0x06,0x07,0x08,0x09,0x0A,0x0D,0x0E,0x0F]:
                         ser.write(_ubx(0x06, 0x01, bytes([0xF0, msg_id, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])))
@@ -144,9 +153,10 @@ class GPSReader:
                     self._fix.timestamp_utc = str(msg.datetime)
                     self._fix.valid      = True
                 else:
-                    # Keep last known position, just mark as not fresh
                     self._fix.valid      = False
+                    self._fix.speed_kmh  = 0.0
             elif isinstance(msg, pynmea2.types.talker.GGA):
-                self._fix.satellites = int(msg.num_sats) if msg.num_sats else 0
-                if msg.altitude is not None:
+                sats = int(msg.num_sats) if msg.num_sats else 0
+                self._fix.satellites = sats
+                if sats >= 3 and msg.altitude is not None:
                     self._fix.alt_m = float(msg.altitude)
