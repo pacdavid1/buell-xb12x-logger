@@ -13,6 +13,7 @@ from pathlib import Path
 import sys as _sys
 _sys.path.insert(0, '/home/pi/buell')
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
+from ecu.eeprom_params import decode_params as _decode_eeprom_params
 
 
 def _get_version():
@@ -216,7 +217,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             cs = self.server_instance.session.current_checksum
             if not cs:
                 self._json({"error": "sin sesion activa"}); return
-            from pathlib import Path
             msq_path = Path('/home/pi/buell/sessions') / cs / ('suggested_' + cs + '.msq')
             if not msq_path.exists():
                 self._json({"error": "sin MSQ generado aun"}); return
@@ -258,7 +258,29 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json(maps)
             return
         if path == '/eeprom':
-            self._json(self.server_instance.eeprom_params)
+            params = self.server_instance.eeprom_params
+            if not params:
+                try:
+                    sessions_dir = Path('/home/pi/buell/sessions')
+                    bins = sorted(sessions_dir.glob('*/eeprom.bin'), key=lambda p: p.stat().st_mtime)
+                    if bins:
+                        blob = bins[-1].read_bytes()
+                        meta_path = bins[-1].parent / 'session_metadata.json'
+                        ver_str = None
+                        if meta_path.exists():
+                            try:
+                                with open(meta_path) as mf:
+                                    ver_str = json.load(mf).get('version_string')
+                            except Exception:
+                                pass
+                        if not ver_str:
+                            ver_str = 'desconocida'
+                        params = _decode_eeprom_params(blob, ver_str)
+                        if not params:
+                            params = {'error': f'Fallo decode_params (version: {ver_str})'}
+                except Exception as e:
+                    params = {'error': str(e)}
+            self._json(params)
             return
         if path == '/wifi/saved':
             self._json({"saved": net.saved_wifi()})
@@ -298,7 +320,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
                 session_id = params.get('session', [''])[0]
                 ride_num   = int(params.get('ride', [0])[0])
-                from pathlib import Path
                 import csv as _csv
                 sessions_dir = Path('/home/pi/buell/sessions')
                 # Buscar el archivo CSV del ride

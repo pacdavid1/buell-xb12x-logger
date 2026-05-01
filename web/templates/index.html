@@ -487,6 +487,7 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
     <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
       173 parametros leidos desde la ECU - Solo lectura por ahora
+<div id="eepromParamsTable" style="margin-top:8px; max-height:50vh; overflow-y:auto; padding-right:4px;"></div>
     </div>
   </div>
 
@@ -2465,6 +2466,7 @@ async function loadEepromParams(){
   try {
     const resp = await fetch('/eeprom');
     const data = await resp.json();
+    if(!data || data.error){ container.textContent = data?.error || 'Sin datos - Conecta la ECU'; return; }
     const params = Object.values(data);
     if(!params.length){ container.textContent = 'Sin datos'; return; }
     // Agrupar por categoria usando remark como fallback

@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-30 20:23 | versión: v1.16.3-247-gc911bc5
+> Última actualización: 2026-04-30 21:37 | versión: v1.16.3-248-g1be4589
 
 ---
 
@@ -24,6 +24,7 @@ buell-xb12x-logger/
 │   ├── connection.py
 │   ├── eeprom.py
 │   ├── eeprom_params.py
+│   ├── fix_path_shadow.py
 │   ├── protocol.py
 │   ├── session.py
 │   └── version_resolver.py
@@ -723,6 +724,10 @@ Mas efectivo  |
 | Nombre | Valor |
 |--------|-------|
 | `HEADER_OFFSET` | `0` |
+
+---
+
+### `ecu/fix_path_shadow.py`
 
 ---
 
