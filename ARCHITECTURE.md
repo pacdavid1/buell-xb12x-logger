@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-01 16:55 | versión: v1.16.3-257-gc3e9172
+> Última actualización: 2026-05-01 16:58 | versión: v1.16.3-258-g1091c3e
 
 ---
 
@@ -462,30 +462,13 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md
 ├── analyze_session.py
 ├── ddfi2_logger.py
-├── fix_amp.py
-├── fix_amp2.py
-├── fix_amp3.py
-├── fix_amp4.py
-├── fix_amp5.py
-├── fix_center_tables.py
-├── fix_init_dup.py
-├── fix_presets.py
-├── fix_presets_hard.py
-├── fix_presets_safe.py
-├── fix_s1s2.py
-├── fix_scales.py
 ├── fix_server_rides.py.save.1
-├── fix_val_inv.py
-├── fix_z_dir.py
-├── fix_z_dir2.py
-├── fix_z_rev.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
 ├── objectives.json
 ├── tps_cal.json
-├── vss_cal.json
-└── write_tuner_html.py
+└── vss_cal.json
 ```
 
 ---
@@ -849,70 +832,6 @@ A new  |
 
 ---
 
-### `fix_amp.py`
-
----
-
-### `fix_amp2.py`
-
----
-
-### `fix_amp3.py`
-
----
-
-### `fix_amp4.py`
-
----
-
-### `fix_amp5.py`
-
----
-
-### `fix_center_tables.py`
-
----
-
-### `fix_init_dup.py`
-
----
-
-### `fix_presets.py`
-
----
-
-### `fix_presets_hard.py`
-
----
-
-### `fix_presets_safe.py`
-
----
-
-### `fix_s1s2.py`
-
----
-
-### `fix_scales.py`
-
----
-
-### `fix_val_inv.py`
-
----
-
-### `fix_z_dir.py`
-
----
-
-### `fix_z_dir2.py`
-
----
-
-### `fix_z_rev.py`
-
----
-
 ### `gps/__init__.py`
 
 ---
@@ -1070,10 +989,6 @@ A new  |
 | `_get_rides` | — |
 | `start` | — |
 | `stop` | — |
-
----
-
-### `write_tuner_html.py`
 
 ---
 
