@@ -59,6 +59,41 @@ class DashboardHandler(BaseHTTPRequestHandler):
         path = self.path.split('?')[0]
         net  = self.server_instance.network
 
+        if path == '/tuner/sessions':
+            import glob as _glob
+            sessions = []
+            for d in sorted(self.server_instance.buell_dir.glob('sessions/*/session_metadata.json')):
+                try:
+                    with open(d) as mf: meta = json.load(mf)
+                    sessions.append({'id': d.parent.name, 'version': meta.get('version_string', '?'), 'rides': meta.get('total_rides', 0), 'created': meta.get('created_utc', '')[:10]})
+                except Exception: pass
+            self._json({'sessions': sessions})
+            return
+
+        if path == '/tuner/maps':
+            import urllib.parse as _up
+            params = _up.parse_qs(_up.urlparse(self.path).query)
+            sess = params.get('session', [''])[0]
+            if not sess: self._json({'error': 'Falta session'}, 400); return
+            blob_path = self.server_instance.buell_dir / 'sessions' / sess / 'eeprom.bin'
+            if not blob_path.exists(): self._json({'error': 'No hay eeprom.bin'}, 404); return
+            try:
+                self._json(_decode_eeprom_maps(blob_path.read_bytes()))
+            except Exception as e:
+                self._json({'error': f'Error al leer mapa: {e}'})
+            return
+
+        if path == '/tuner' or path == '/tuner.html':
+            try:
+                tuner_file = Path(__file__).parent / 'templates' / 'tuner.html'
+                if tuner_file.exists():
+                    self._html(tuner_file.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
+                else:
+                    self._html("<h1>Buell Tuner - Página no encontrada</h1>")
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
+            return
+
         if path in ('/', '/index.html'):
             self._html(self._load_html())
             return
@@ -67,67 +102,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json(self._get_live())
             return
 
-        if path.startswith('/csv/'):
-            fname = path.split('/csv/')[-1].split('?')[0]
-            rides = self.server_instance._get_rides()
-            fname_summary = fname.replace('.csv', '_summary.json')
-            match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
-            if match:
-                try:
-                    sdir = self.server_instance.buell_dir / 'sessions' / match['session']
-                    ride_num = match.get('ride_num', 0)
-                    parts = match.get('parts', 1)
-                    chunks = []
-                    first = True
-                    for part in range(1, parts+1):
-                        suffix = f'_p{part}' if part > 1 else ''
-                        csv_stem = match['filename'].replace('_summary.json','').replace('.csv','')
-                        csv_path = sdir / f'{csv_stem}{suffix}.csv'
-                        if not csv_path.exists(): continue
-                        with open(csv_path, 'rb') as f:
-                            if not first: f.readline()
-                            chunks.append(f.read())
-                        first = False
-                    raw = b''.join(chunks)
-                    accept_enc = self.headers.get('Accept-Encoding', '')
-                    use_gzip = 'gzip' in accept_enc
-                    import zlib as _zlib
-                    body = _zlib.compress(raw, level=6, wbits=31) if use_gzip else raw
-                    self.send_response(200)
-                    self.send_header('Content-Type', 'text/csv; charset=utf-8')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.send_header('Cache-Control', 'no-store')
-                    self.send_header('Content-Length', str(len(body)))
-                    if use_gzip: self.send_header('Content-Encoding', 'gzip')
-                    self.end_headers()
-                    self.wfile.write(body)
-                except Exception as e:
-                    self._json({'error': str(e)}, 500)
-            else:
-                self._json({'error': 'not found'}, 404)
-            return
-        if path.startswith('/ride/'):
-            fname = path.split('/ride/')[-1].split('?')[0]
-            rides = self.server_instance._get_rides()
-            fname_summary = fname.replace('.csv', '_summary.json')
-            match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
-            if match:
-                sdir = self.server_instance.buell_dir / 'sessions' / match['session']
-                fpath = sdir / fname
-                if not fpath.exists():
-                    fpath = sdir / fname.replace('_summary.json', '.csv')
-                try:
-                    if fpath.suffix == '.json':
-                        with open(fpath) as f:
-                            s = json.load(f)
-                        self._json({'cells': s.get('cells', {}), 'objectives': s.get('objectives', [])})
-                    else:
-                        self._json({'cells': {}, 'objectives': []})
-                except Exception as e:
-                    self._json({'error': str(e)}, 500)
-            else:
-                self._json({'error': 'not found'}, 404)
-            return
         if path.startswith('/csv/'):
             fname = path.split('/csv/')[-1].split('?')[0]
             rides = self.server_instance._get_rides()

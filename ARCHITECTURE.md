@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-01 09:07 | versión: v1.16.3-251-gb703c0f
+> Última actualización: 2026-05-01 14:15 | versión: v1.16.3-252-g95df2fb
 
 ---
 
@@ -27,6 +27,7 @@ buell-xb12x-logger/
 │   ├── fix_path_shadow.py
 │   ├── protocol.py
 │   ├── session.py
+│   ├── tuning_engine.py
 │   └── version_resolver.py
 ├── ecu_defs
 │   ├── B2RIB.xml
@@ -448,7 +449,8 @@ buell-xb12x-logger/
 │   │   ├── index.html
 │   │   ├── index.html.bak_charts
 │   │   ├── index.html.bak_map
-│   │   └── index.html.bak_map2
+│   │   ├── index.html.bak_map2
+│   │   └── tuner.html
 │   ├── __init__.py
 │   └── server.py
 ├── ARCHITECTURE.md
@@ -458,15 +460,58 @@ buell-xb12x-logger/
 ├── DEV_TIPS.md
 ├── README.md
 ├── WORKING_METHOD.md
+├── add_tuner_api.py
 ├── analyze_session.py
+├── build_tuner_ui.py
 ├── ddfi2_logger.py
+├── fix_1_reconnect.py
+├── fix_2_sessions.py
+├── fix_3_maps.py
+├── fix_3dfit.py
+├── fix_3dfit2.py
+├── fix_3dup.py
+├── fix_4_csv.py
+├── fix_axes.py
+├── fix_axes2.py
+├── fix_axes3d.py
+├── fix_buil_dir.py
+├── fix_center.py
+├── fix_gap.py
+├── fix_gap2.py
+├── fix_gap3.py
+├── fix_html.py
+├── fix_init_regex.py
+├── fix_layout.py
+├── fix_layout2.py
+├── fix_oy.py
+├── fix_oy2.py
+├── fix_revert.py
+├── fix_robust_maps.py
+├── fix_server.py
 ├── fix_server_rides.py.save.1
+├── fix_space.py
+├── fix_sync_only.py
+├── fix_sync_rotate.py
+├── fix_top.py
+├── fix_tuner_clean.py
+├── fix_tuner_crash.py
+├── fix_tuner_ui_error.py
+├── fix_tuner_xml_resolver.py
+├── fix_validador.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
 ├── objectives.json
+├── setup_tuner_page.py
 ├── tps_cal.json
-└── vss_cal.json
+├── vss_cal.json
+├── write_tuner_html.py
+├── write_tuner_v2.py
+├── write_tuner_v3.py
+├── write_tuner_v4.py
+├── write_tuner_v5.py
+├── write_tuner_v6.py
+└── write_tuner_v7.py
 ```
 
 ---
@@ -484,6 +529,10 @@ buell-xb12x-logger/
 
 ## Módulos Python
 
+### `add_tuner_api.py`
+
+---
+
 ### `analyze_session.py`
 
 **Constantes**
@@ -492,6 +541,10 @@ buell-xb12x-logger/
 |--------|-------|
 | `RPM_BINS` | `[0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000]` |
 | `LOAD_BINS` | `[10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]` |
+
+---
+
+### `build_tuner_ui.py`
 
 ---
 
@@ -816,6 +869,10 @@ A new  |
 
 ---
 
+### `ecu/tuning_engine.py`
+
+---
+
 ### `ecu/version_resolver.py`
 
 **Constantes**
@@ -823,6 +880,138 @@ A new  |
 | Nombre | Valor |
 |--------|-------|
 | `_ECM_TABLE` | `None` |
+
+---
+
+### `fix_1_reconnect.py`
+
+---
+
+### `fix_2_sessions.py`
+
+---
+
+### `fix_3_maps.py`
+
+---
+
+### `fix_3dfit.py`
+
+---
+
+### `fix_3dfit2.py`
+
+---
+
+### `fix_3dup.py`
+
+---
+
+### `fix_4_csv.py`
+
+---
+
+### `fix_axes.py`
+
+---
+
+### `fix_axes2.py`
+
+---
+
+### `fix_axes3d.py`
+
+---
+
+### `fix_buil_dir.py`
+
+---
+
+### `fix_center.py`
+
+---
+
+### `fix_gap.py`
+
+---
+
+### `fix_gap2.py`
+
+---
+
+### `fix_gap3.py`
+
+---
+
+### `fix_html.py`
+
+---
+
+### `fix_init_regex.py`
+
+---
+
+### `fix_layout.py`
+
+---
+
+### `fix_layout2.py`
+
+---
+
+### `fix_oy.py`
+
+---
+
+### `fix_oy2.py`
+
+---
+
+### `fix_revert.py`
+
+---
+
+### `fix_robust_maps.py`
+
+---
+
+### `fix_server.py`
+
+---
+
+### `fix_space.py`
+
+---
+
+### `fix_sync_only.py`
+
+---
+
+### `fix_sync_rotate.py`
+
+---
+
+### `fix_top.py`
+
+---
+
+### `fix_tuner_clean.py`
+
+_Error al parsear: unterminated string literal (detected at line 9) (<unknown>, line 9)_
+
+### `fix_tuner_crash.py`
+
+---
+
+### `fix_tuner_ui_error.py`
+
+---
+
+### `fix_tuner_xml_resolver.py`
+
+---
+
+### `fix_validador.py`
 
 ---
 
@@ -935,6 +1124,10 @@ A new  |
 
 ---
 
+### `setup_tuner_page.py`
+
+---
+
 ### `tools/recover_summaries.py`
 
 ---
@@ -986,15 +1179,46 @@ A new  |
 
 ---
 
+### `write_tuner_html.py`
+
+---
+
+### `write_tuner_v2.py`
+
+---
+
+### `write_tuner_v3.py`
+
+---
+
+### `write_tuner_v4.py`
+
+---
+
+### `write_tuner_v5.py`
+
+---
+
+### `write_tuner_v6.py`
+
+---
+
+### `write_tuner_v7.py`
+
+---
+
 ## Endpoints HTTP (`web/server.py`)
 
 **GET**
 
+- `/tuner/sessions`
+- `/tuner/maps`
+- `/tuner`
 - `/live.json`
-- `/csv/`
 
 **POST**
 
+- `/csv/`
 - `/ride/`
 - `/errorlog/`
 - `/rides`
