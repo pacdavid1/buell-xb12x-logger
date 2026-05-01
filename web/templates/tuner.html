@@ -23,7 +23,7 @@ body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;
 .tab:last-child{border-right:none}
 .tab.on{background:var(--ac);color:#fff}
 .ps{overflow-x:auto;overflow-y:auto;flex:0 0 55%}
-.pi{display:inline-flex;min-width:100%}
+.pi{display:inline-flex;min-width:100%;justify-content:center}
 .tw{display:flex;flex-direction:column;flex-shrink:0;min-width:0}
 .tw.tb table{border-right:2px solid var(--a2)}
 .tw.tm table{border-left:2px solid var(--a2)}
@@ -69,6 +69,8 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <input type="text" inputmode="numeric" id="inRpm" value="50" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
 <span style="font-family:var(--mn);font-size:7px;color:#3399ff">VAL</span>
 <input type="text" inputmode="numeric" id="inVal" value="0" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
+<span style="font-family:var(--mn);font-size:7px;color:var(--rd)">AMP</span>
+<input type="text" inputmode="numeric" id="inAmp" value="1.0" onkeydown="fixArrowAmp(event)" style="width:48px;background:var(--bg);border:1px solid var(--bd);color:var(--rd);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center">
 </div>
 <div class="g3">
 <div class="g3c"><div class="g3t">BASE 3D</div><canvas id="c3b"></canvas><div class="leg" id="lb"></div></div>
@@ -79,6 +81,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <script>
 var mB=null,mM=null,cur='fuel_front';
 var AX={fuel_front:['fuel_rpm','fuel_load'],fuel_rear:['fuel_rpm','fuel_load'],spark_front:['spark_rpm','spark_load'],spark_rear:['spark_rpm','spark_load']};
+var SC={fuel_front:0.50,fuel_rear:0.50,spark_front:0.30,spark_rear:0.30,delta:0.08};
 var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0},delta:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0},mod:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0}};
 
 async function init(){
@@ -191,7 +194,7 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
   var zN=1e9,zX=-1e9;
   for(var i=0;i<R;i++)for(var j=0;j<Cl;j++){if(data[i][j]<zN)zN=data[i][j];if(data[i][j]>zX)zX=data[i][j]}
   if(zX===zN)zX=zN+1;
-  var pad=40,sX=Math.min((W-pad)/(Cl-1),30),sY=Math.min((H-pad)/(R-1),24),sZ=(H*0.35)/(zX-zN);
+  var pad=40,sX=Math.min((W-pad)/(Cl-1),30),sY=Math.min((H-pad)/(R-1),24);var zRange=zX-zN;if(zRange<1)zRange=1;var amp=parseFloat(document.getElementById("inAmp").value)||1;var sf=SC[cur]||0.4;if(mode==="delta"){sf=SC["delta"]||0.08;sf=sf*amp}var sZ=(H*sf)/zRange;
   var ox=W*0.5,oy=H*0.45,ca=Math.cos(c.ang),sa=Math.sin(c.ang),ct=Math.cos(c.tilt),st2=Math.sin(c.tilt);
   function pr(j,i,z){
     var x=(j-(Cl-1)/2)*sX,y=((R-1)-i-(R-1)/2)*sY,z2=(z-zN)*sZ;
@@ -262,6 +265,7 @@ document.getElementById('tabs').onclick=function(e){
   b.classList.add('on');cur=b.dataset.m;render();
 };
 function wrap(v,mx){return((v%mx)+mx)%mx}
+function fixArrowAmp(e){if(e.key==="ArrowUp"){e.preventDefault();var i=document.getElementById("inAmp");var v=parseInt(i.value)||1;v=v+1;i.value=v;applyAngles()}if(e.key==="ArrowDown"){e.preventDefault();var i=document.getElementById("inAmp");var v=parseInt(i.value)||1;v=v-1;if(v<1)v=1;i.value=v;applyAngles()}}
 function fixArrow(e,mx){
   if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;
   e.preventDefault();
