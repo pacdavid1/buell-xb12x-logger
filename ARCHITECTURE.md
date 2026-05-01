@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-01 15:49 | versión: v1.16.3-256-ga0bb367
+> Última actualización: 2026-05-01 16:55 | versión: v1.16.3-257-gc3e9172
 
 ---
 
@@ -466,9 +466,19 @@ buell-xb12x-logger/
 ├── fix_amp2.py
 ├── fix_amp3.py
 ├── fix_amp4.py
+├── fix_amp5.py
 ├── fix_center_tables.py
+├── fix_init_dup.py
+├── fix_presets.py
+├── fix_presets_hard.py
+├── fix_presets_safe.py
+├── fix_s1s2.py
 ├── fix_scales.py
 ├── fix_server_rides.py.save.1
+├── fix_val_inv.py
+├── fix_z_dir.py
+├── fix_z_dir2.py
+├── fix_z_rev.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
@@ -855,11 +865,51 @@ A new  |
 
 ---
 
+### `fix_amp5.py`
+
+---
+
 ### `fix_center_tables.py`
 
 ---
 
+### `fix_init_dup.py`
+
+---
+
+### `fix_presets.py`
+
+---
+
+### `fix_presets_hard.py`
+
+---
+
+### `fix_presets_safe.py`
+
+---
+
+### `fix_s1s2.py`
+
+---
+
 ### `fix_scales.py`
+
+---
+
+### `fix_val_inv.py`
+
+---
+
+### `fix_z_dir.py`
+
+---
+
+### `fix_z_dir2.py`
+
+---
+
+### `fix_z_rev.py`
 
 ---
 

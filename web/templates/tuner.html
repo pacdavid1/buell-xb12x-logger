@@ -64,12 +64,12 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <div class="c3bar" style="display:flex;gap:8px;align-items:center;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0">
 <span style="font-family:var(--mn);font-size:8px;color:var(--a2);letter-spacing:.08em;font-weight:700">3D</span>
 <span style="font-family:var(--mn);font-size:7px;color:#33ff33">TPS</span>
-<input type="text" inputmode="numeric" id="inTps" value="320" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px" oninput="applyAngles()">
+<input type="text" inputmode="numeric" id="inTps" value="105" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px" oninput="applyAngles()">
 <span style="font-family:var(--mn);font-size:7px;color:#ff3333">RPM</span>
-<input type="text" inputmode="numeric" id="inRpm" value="50" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
+<input type="text" inputmode="numeric" id="inRpm" value="10" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
 <span style="font-family:var(--mn);font-size:7px;color:#3399ff">VAL</span>
 <input type="text" inputmode="numeric" id="inVal" value="0" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
-<span style="font-family:var(--mn);font-size:7px;color:var(--rd)">AMP</span>
+<span class="vb" onclick="setView(150,20,0)">S1</span><span class="vb" onclick="setView(245,15,0)">S2</span><span class="vb" onclick="setView(245,0,0)">S3</span><span class="vb" onclick="setView(275,20,0)">S4</span><span style="font-family:var(--mn);font-size:7px;color:var(--rd)">AMP</span>
 <input type="text" inputmode="numeric" id="inAmp" value="1.0" onkeydown="fixArrowAmp(event)" style="width:48px;background:var(--bg);border:1px solid var(--bd);color:var(--rd);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center">
 </div>
 <div class="g3">
@@ -264,8 +264,9 @@ document.getElementById('tabs').onclick=function(e){
   var all=document.querySelectorAll('.tab');for(var i=0;i<all.length;i++)all[i].classList.remove('on');
   b.classList.add('on');cur=b.dataset.m;render();
 };
+function setView(t,r,v){document.getElementById("inTps").value=t;document.getElementById("inRpm").value=r;document.getElementById("inVal").value=v;applyAngles()}
 function wrap(v,mx){return((v%mx)+mx)%mx}
-function fixArrowAmp(e){if(e.key==="ArrowUp"){e.preventDefault();var i=document.getElementById("inAmp");var v=parseInt(i.value)||1;v=v+1;i.value=v;applyAngles()}if(e.key==="ArrowDown"){e.preventDefault();var i=document.getElementById("inAmp");var v=parseInt(i.value)||1;v=v-1;if(v<1)v=1;i.value=v;applyAngles()}}
+function fixArrowAmp(e){if(e.key==="ArrowUp"){e.preventDefault();var i=document.getElementById("inAmp");var v=parseFloat(i.value)||1;v=Math.round((v+0.1)*10)/10;i.value=v;applyAngles()}if(e.key==="ArrowDown"){e.preventDefault();var i=document.getElementById("inAmp");var v=parseFloat(i.value)||1;v=Math.round((v-0.1)*10)/10;if(v<0.1)v=0.1;i.value=v;applyAngles()}}
 function fixArrow(e,mx){
   if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;
   e.preventDefault();
@@ -283,7 +284,7 @@ function applyAngles(){
   document.getElementById('inVal').value=val;
   var tpsR=(tps-180)*Math.PI/180;
   var rpmR=rpm*Math.PI/180;
-  var valR=val*Math.PI/180;
+  var valR=-val*Math.PI/180;
   for(var k in C3){C3[k].ang=tpsR;C3[k].tilt=rpmR;C3[k].roll=valR}
   drawAll();
 }
