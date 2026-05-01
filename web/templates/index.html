@@ -297,7 +297,13 @@ table.veg td:active{filter:brightness(1.6)}
   <div class="ind-row" id="indicators"></div>
 
   <div class="grid-section">
-    <div class="grid-label">Cobertura de celdas VE</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
+      <div class="grid-label" style="margin:0;border:none;padding:0">Cobertura de celdas VE</div>
+      <div style="display:flex;gap:4px">
+        <button class="btn" id="gridBtnTime" onclick="setGridMode('time')" style="font-size:8px;padding:3px 6px;border-color:var(--accent2);color:var(--accent2)">Segundos</button>
+        <button class="btn" id="gridBtnEgo" onclick="setGridMode('ego')" style="font-size:8px;padding:3px 6px">EGO Promedio</button>
+      </div>
+    </div>
     <div class="grid-wrap">
       <table class="veg" id="veGrid"></table>
     </div>
@@ -734,18 +740,47 @@ function buildGrid() {
   t.innerHTML = html;
 }
 
+let _gridMode = 'time';
+function egoColor(ego) {
+  if (ego < 90) return 'rgba(255, 50, 50, 0.9)';
+  if (ego < 95) return 'rgba(255, 160, 50, 0.85)';
+  if (ego < 105) return 'rgba(50, 200, 50, 0.8)';
+  if (ego < 110) return 'rgba(50, 150, 255, 0.85)';
+  return 'rgba(80, 80, 255, 0.9)';
+}
+function setGridMode(mode) {
+  _gridMode = mode;
+  document.getElementById('gridBtnTime').style.borderColor = mode==='time' ? 'var(--accent2)' : '';
+  document.getElementById('gridBtnEgo').style.borderColor = mode==='ego' ? 'var(--accent2)' : '';
+  document.getElementById('gridBtnTime').style.color = mode==='time' ? 'var(--accent2)' : '';
+  document.getElementById('gridBtnEgo').style.color = mode==='ego' ? 'var(--accent2)' : '';
+  if(lastData) updateGrid(lastData.cells || {}, lastData.active_cell);
+}
 function updateGrid(cells, activeCell) {
   for(let li=0; li<LOAD_BINS.length; li++) {
     for(let ri=0; ri<RPM_BINS.length; ri++) {
       const key = `${RPM_BINS[ri]}_${LOAD_BINS[li]}`;
       const td  = document.getElementById(`c_${key}`);
       if(!td) continue;
-      const secs = cells[key]?.seconds || 0;
-      td.className = key===activeCell ? 'ca' :
-                     secs<=0 ? 'c0' : secs<2  ? 'c1' :
-                     secs<5  ? 'c2' : secs<10 ? 'c3' : 'c4';
+      const cell = cells[key] || {};
+      const secs = cell.seconds || 0;
+      const ego  = cell.valid_ego_avg != null ? cell.valid_ego_avg : cell.ego_avg;
+      let bg = '', txt = '';
+      if (_gridMode === 'time') {
+        bg = key===activeCell ? 'ca' : secs<=0 ? 'c0' : secs<2  ? 'c1' : secs<5  ? 'c2' : secs<10 ? 'c3' : 'c4';
+        txt = secs>0 ? (secs<10?secs.toFixed(1):Math.round(secs))+'s' : '';
+      } else if (_gridMode === 'ego') {
+        if (ego != null && secs > 2) {
+          bg = 'background:'+egoColor(ego);
+          txt = ego.toFixed(1);
+        } else {
+          bg = 'c0'; txt = '';
+        }
+      }
+      td.className = bg.startsWith('background') ? '' : bg;
+      td.style.cssText = bg.startsWith('background') ? bg : '';
       const sv = document.getElementById(`s_${key}`);
-      sv.textContent = secs>0 ? (secs<10?secs.toFixed(1):Math.round(secs))+'s' : '';
+      sv.textContent = txt;
     }
   }
 }

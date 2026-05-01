@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-30 21:40 | versión: v1.16.3-249-g80dda70
+> Última actualización: 2026-04-30 22:05 | versión: v1.16.3-250-g9a3a2d3
 
 ---
 
@@ -1038,6 +1038,8 @@ A new  |
 - `getGradientColor()`
 - `showTab()`
 - `buildGrid()`
+- `egoColor()`
+- `setGridMode()`
 - `updateGrid()`
 - `fmtTime()`
 - `updateHeader()`
