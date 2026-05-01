@@ -228,9 +228,24 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.wfile.write(msq_path.read_bytes())
             return
         if path == '/maps':
+            # Soporte para pedir mapa de una sesion especifica: /maps?session=XXXX
+            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            req_session = params.get('session', [''])[0]
+            if req_session:
+                ses_path = self.server_instance.buell_dir / 'sessions' / req_session / 'eeprom.bin'
+                if ses_path.exists():
+                    try:
+                        blob = ses_path.read_bytes()
+                        maps = _decode_eeprom_maps(blob)
+                        if maps and maps.get('fuel_front'):
+                            self._json(maps)
+                            return
+                    except Exception as e:
+                        self._json({'error': str(e)}, 500)
+                        return
+            # Fallback a logica original (Live o mas reciente)
             maps = self.server_instance.eeprom_maps
             if not maps or not maps.get('fuel_front'):
-                # No live maps — try most recent eeprom.bin from disk
                 try:
                     sessions_dir = Path('/home/pi/buell/sessions')
                     bins = sorted(sessions_dir.glob('*/eeprom.bin'),
