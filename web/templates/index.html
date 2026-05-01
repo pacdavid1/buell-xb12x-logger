@@ -518,7 +518,7 @@ table.veg td:active{filter:brightness(1.6)}
   <div class="cfg-section" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px">
     <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em">LOGGER VERSION</div>
     <div style="font-family:var(--mono);font-size:14px;color:#7df;margin-top:4px;font-weight:bold" id="cfgVersion">--LOGGER_VERSION--</div>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px">Buell XB12X DDFI2 · Pi Zero 2W · FT232RL</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px">Buell XB12X DDFI2 · Pi Zero 2W · CH343P</div>
   </div>
   
   <!-- BOTÓN DE ACTUALIZACIÓN -->
@@ -535,7 +535,7 @@ table.veg td:active{filter:brightness(1.6)}
 
   <div class="cfg-section">
     <div class="cfg-title">Calibracion TPS</div>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">Motor apagado, llave ON:<br>Acelerador cerrado = MIN &nbsp; WOT = MAX</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">NOTA: Esto guarda el rango RAW del sensor.<br>El cálculo en vivo aún usa valores por defecto.</div>
     <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
       <span style="font-family:var(--mono);font-size:9px;color:var(--dim);width:36px">MIN</span>
       <input type="number" id="tpsMin" value="" min="0" max="1023" placeholder="135" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:13px;padding:7px 8px">
@@ -562,7 +562,7 @@ table.veg td:active{filter:brightness(1.6)}
 
   <div class="cfg-section">
     <div class="cfg-title">Calibracion Velocidad</div>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">Factor VSS (pulsos/25km):<br>Cambia si cambias de llanta o rueda</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">Factor VSS (pulsos/25km):<br>Si cambias de llanta, el factor cambia proporcional al diámetro.</div>
     <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
       <span style="font-family:var(--mono);font-size:9px;color:var(--dim);width:46px">CPKM25</span>
       <input type="number" id="vssFactorInput" value="" min="100" max="9999" placeholder="1368" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:13px;padding:7px 8px">
@@ -576,15 +576,8 @@ table.veg td:active{filter:brightness(1.6)}
 
   <div class="cfg-section">
     <div class="cfg-title">Sistema</div>
-    <button class="btn g" style="width:100%;padding:10px;margin-bottom:8px" onclick="doKeepalive()">
-      Mantener encendido (5 min)
-    </button>
-    <button class="btn p" style="width:100%;padding:10px;margin-bottom:8px" onclick="doReconnect()">
-      &#x21BA; Forzar reconexión ECU
-    </button>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
-      Reconexión completa: cierra puerto, espera 1s, reconecta, verifica ECU y relee EEPROM
-    </div>
+
+
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
       <button class="btn" style="padding:10px;background:#e67e22"
         onclick="if(confirm('Restart logger? Active ride will be saved.')) doRestartLogger()">
@@ -2454,7 +2447,7 @@ async function doKeepalive(){
     if(btn){const o=btn.textContent;btn.textContent='5 min activos';setTimeout(()=>btn.textContent=o,2500);}
   }catch(e){}
 }
-setInterval(()=>{try{fetch('/keepalive',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(e){}},240000);
+
 
 // ── APAGADO ────────────────────────────────────────────────────────
 function confirmShutdown(){
@@ -2578,54 +2571,7 @@ async function doRestartLogger(){
   }catch(e){ /* normal — el proceso muere antes de responder */ }
 }
 
-// Long press 3s on RIDE pane → close ride + reboot Pi
-(function(){
-  const HOLD_MS = 3000;
-  let _timer = null, _overlay = null, _interval = null;
 
-  function _cancelHold(){
-    clearTimeout(_timer); clearInterval(_interval); _timer = null;
-    if(_overlay){ _overlay.remove(); _overlay = null; }
-  }
-
-  let _startX=0, _startY=0;
-  function _startHold(e){
-    if(e.target.closest('button,a,input,select')) return;
-    e.preventDefault();
-    if(_timer) return;
-    _startX=e.clientX; _startY=e.clientY;
-    let remaining = 3;
-    _overlay = document.createElement('div');
-    _overlay.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);'+
-      'background:rgba(0,0,0,0.85);border:2px solid #e74c3c;color:#fff;'+
-      'font-family:monospace;font-size:48px;padding:30px 50px;z-index:9999;border-radius:8px;text-align:center;pointer-events:none';
-    _overlay.innerHTML = remaining + '<div style="font-size:14px;margin-top:8px">Suelta para cancelar</div>';
-    document.body.appendChild(_overlay);
-    _interval = setInterval(()=>{
-      remaining--;
-      if(_overlay) _overlay.innerHTML = remaining + '<div style="font-size:14px;margin-top:8px">Suelta para cancelar</div>';
-    }, 1000);
-    _timer = setTimeout(async ()=>{
-      clearInterval(_interval);
-      if(_overlay){ _overlay.innerHTML = '<div style="font-size:16px">Guardando ride...<br>Reiniciando Pi</div>'; }
-      try{ await fetch('/close_ride',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); } catch(e){}
-      await new Promise(r=>setTimeout(r,800));
-      try{ await fetch('/reboot_pi',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}); } catch(e){}
-      if(_overlay){ _overlay.innerHTML = '<div style="font-size:16px">Reiniciando...<br>~30s</div>'; }
-    }, HOLD_MS);
-  }
-
-  document.addEventListener('DOMContentLoaded', ()=>{
-    const pane = document.getElementById('pane-ride');
-    if(!pane) return;
-    pane.addEventListener('pointerdown', _startHold);
-    pane.addEventListener('pointerup',   _cancelHold);
-    pane.addEventListener('pointerleave',_cancelHold);
-    pane.addEventListener('pointermove', (e)=>{
-      if(Math.abs(e.clientX-_startX)>30||Math.abs(e.clientY-_startY)>30) _cancelHold();
-    });
-  });
-})();
 
 async function loadVssCal(){
   try{
