@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-01 14:59 | versión: v1.16.3-254-gd8fcecc
+> Última actualización: 2026-05-01 15:00 | versión: v1.16.3-255-ge3ab9fb
 
 ---
 
@@ -460,25 +460,16 @@ buell-xb12x-logger/
 ├── DEV_TIPS.md
 ├── README.md
 ├── WORKING_METHOD.md
-├── add_tuner_api.py
 ├── analyze_session.py
-├── build_tuner_ui.py
 ├── ddfi2_logger.py
 ├── fix_server_rides.py.save.1
 ├── install.sh
 ├── main.py
 ├── network_state.json
 ├── objectives.json
-├── setup_tuner_page.py
 ├── tps_cal.json
 ├── vss_cal.json
-├── write_tuner_html.py
-├── write_tuner_v2.py
-├── write_tuner_v3.py
-├── write_tuner_v4.py
-├── write_tuner_v5.py
-├── write_tuner_v6.py
-└── write_tuner_v7.py
+└── write_tuner_html.py
 ```
 
 ---
@@ -496,10 +487,6 @@ buell-xb12x-logger/
 
 ## Módulos Python
 
-### `add_tuner_api.py`
-
----
-
 ### `analyze_session.py`
 
 **Constantes**
@@ -508,10 +495,6 @@ buell-xb12x-logger/
 |--------|-------|
 | `RPM_BINS` | `[0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000]` |
 | `LOAD_BINS` | `[10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]` |
-
----
-
-### `build_tuner_ui.py`
 
 ---
 
@@ -959,10 +942,6 @@ A new  |
 
 ---
 
-### `setup_tuner_page.py`
-
----
-
 ### `tools/recover_summaries.py`
 
 ---
@@ -1015,30 +994,6 @@ A new  |
 ---
 
 ### `write_tuner_html.py`
-
----
-
-### `write_tuner_v2.py`
-
----
-
-### `write_tuner_v3.py`
-
----
-
-### `write_tuner_v4.py`
-
----
-
-### `write_tuner_v5.py`
-
----
-
-### `write_tuner_v6.py`
-
----
-
-### `write_tuner_v7.py`
 
 ---
 
