@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-01 14:15 | versión: v1.16.3-252-g95df2fb
+> Última actualización: 2026-05-01 14:58 | versión: v1.16.3-253-g048ed24
 
 ---
 
@@ -467,15 +467,18 @@ buell-xb12x-logger/
 ├── fix_1_reconnect.py
 ├── fix_2_sessions.py
 ├── fix_3_maps.py
+├── fix_3axes.py
 ├── fix_3dfit.py
 ├── fix_3dfit2.py
 ├── fix_3dup.py
 ├── fix_4_csv.py
+├── fix_arrow_wrap.py
 ├── fix_axes.py
 ├── fix_axes2.py
 ├── fix_axes3d.py
 ├── fix_buil_dir.py
 ├── fix_center.py
+├── fix_degree_inputs.py
 ├── fix_gap.py
 ├── fix_gap2.py
 ├── fix_gap3.py
@@ -492,12 +495,15 @@ buell-xb12x-logger/
 ├── fix_space.py
 ├── fix_sync_only.py
 ├── fix_sync_rotate.py
+├── fix_tilt_btns.py
 ├── fix_top.py
 ├── fix_tuner_clean.py
 ├── fix_tuner_crash.py
 ├── fix_tuner_ui_error.py
 ├── fix_tuner_xml_resolver.py
+├── fix_val_input.py
 ├── fix_validador.py
+├── fix_wrap.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
@@ -895,6 +901,10 @@ A new  |
 
 ---
 
+### `fix_3axes.py`
+
+---
+
 ### `fix_3dfit.py`
 
 ---
@@ -908,6 +918,10 @@ A new  |
 ---
 
 ### `fix_4_csv.py`
+
+---
+
+### `fix_arrow_wrap.py`
 
 ---
 
@@ -928,6 +942,10 @@ A new  |
 ---
 
 ### `fix_center.py`
+
+---
+
+### `fix_degree_inputs.py`
 
 ---
 
@@ -991,6 +1009,10 @@ A new  |
 
 ---
 
+### `fix_tilt_btns.py`
+
+---
+
 ### `fix_top.py`
 
 ---
@@ -1011,7 +1033,15 @@ _Error al parsear: unterminated string literal (detected at line 9) (<unknown>, 
 
 ---
 
+### `fix_val_input.py`
+
+---
+
 ### `fix_validador.py`
+
+---
+
+### `fix_wrap.py`
 
 ---
 

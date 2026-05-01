@@ -61,6 +61,15 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <button class="tab" data-m="spark_rear">SPARK REAR</button>
 </div>
 <div class="ps"><div class="pi" id="pw"></div></div>
+<div class="c3bar" style="display:flex;gap:8px;align-items:center;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0">
+<span style="font-family:var(--mn);font-size:8px;color:var(--a2);letter-spacing:.08em;font-weight:700">3D</span>
+<span style="font-family:var(--mn);font-size:7px;color:#33ff33">TPS</span>
+<input type="text" inputmode="numeric" id="inTps" value="320" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px" oninput="applyAngles()">
+<span style="font-family:var(--mn);font-size:7px;color:#ff3333">RPM</span>
+<input type="text" inputmode="numeric" id="inRpm" value="50" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
+<span style="font-family:var(--mn);font-size:7px;color:#3399ff">VAL</span>
+<input type="text" inputmode="numeric" id="inVal" value="0" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
+</div>
 <div class="g3">
 <div class="g3c"><div class="g3t">BASE 3D</div><canvas id="c3b"></canvas><div class="leg" id="lb"></div></div>
 <div class="g3c"><div class="g3t">DELTA 3D</div><canvas id="c3d"></canvas><div class="leg" id="ld"></div></div>
@@ -70,7 +79,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <script>
 var mB=null,mM=null,cur='fuel_front';
 var AX={fuel_front:['fuel_rpm','fuel_load'],fuel_rear:['fuel_rpm','fuel_load'],spark_front:['spark_rpm','spark_load'],spark_rear:['spark_rpm','spark_load']};
-var C3={base:{ang:-0.65,tilt:0.88,drag:false,lx:0},delta:{ang:-0.65,tilt:0.88,drag:false,lx:0},mod:{ang:-0.65,tilt:0.88,drag:false,lx:0}};
+var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0},delta:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0},mod:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0}};
 
 async function init(){
   try{
@@ -187,7 +196,9 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
   function pr(j,i,z){
     var x=(j-(Cl-1)/2)*sX,y=((R-1)-i-(R-1)/2)*sY,z2=(z-zN)*sZ;
     var rx=x*ca-z2*sa,rz=x*sa+z2*ca,ry=y*ct-rz*st2;
-    return[ox+rx,oy+ry];
+    var cr=Math.cos(c.roll),sr=Math.sin(c.roll);
+    var fx=rx*cr-ry*sr,fy=rx*sr+ry*cr;
+    return[ox+fx,oy+fy,ry];
   }
   function heat(t){
     var r,g,b;
@@ -209,7 +220,7 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
     var p0=pr(j,i,data[i][j]),p1=pr(j+1,i,data[i][j+1]),p2=pr(j+1,i+1,data[i+1][j+1]),p3=pr(j,i+1,data[i+1][j]);
     var av=(data[i][j]+data[i][j+1]+data[i+1][j+1]+data[i+1][j])/4;
     var dp0=pr(j,i,zN),dp1=pr(j+1,i,zN),dp2=pr(j+1,i+1,zN),dp3=pr(j,i+1,zN);
-    var dz=(dp0[1]+dp1[1]+dp2[1]+dp3[1])/4;
+    var dz=(dp0[2]+dp1[2]+dp2[2]+dp3[2])/4;
     faces.push({p:[p0,p1,p2,p3],z:dz,v:av});
   }
   faces.sort(function(a,b){return a.z-b.z});
@@ -250,5 +261,27 @@ document.getElementById('tabs').onclick=function(e){
   var all=document.querySelectorAll('.tab');for(var i=0;i<all.length;i++)all[i].classList.remove('on');
   b.classList.add('on');cur=b.dataset.m;render();
 };
+function wrap(v,mx){return((v%mx)+mx)%mx}
+function fixArrow(e,mx){
+  if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;
+  e.preventDefault();
+  var inp=e.target,v=parseInt(inp.value)||0;
+  v=e.key==='ArrowUp'?v+1:v-1;
+  inp.value=wrap(v,mx);
+  applyAngles();
+}
+function applyAngles(){
+  var tps=wrap(parseInt(document.getElementById('inTps').value)||0,360);
+  var rpm=wrap(parseInt(document.getElementById('inRpm').value)||0,360);
+  var val=wrap(parseInt(document.getElementById('inVal').value)||0,360);
+  document.getElementById('inTps').value=tps;
+  document.getElementById('inRpm').value=rpm;
+  document.getElementById('inVal').value=val;
+  var tpsR=(tps-180)*Math.PI/180;
+  var rpmR=rpm*Math.PI/180;
+  var valR=val*Math.PI/180;
+  for(var k in C3){C3[k].ang=tpsR;C3[k].tilt=rpmR;C3[k].roll=valR}
+  drawAll();
+}
 init();init3D();
 </script></body></html>
