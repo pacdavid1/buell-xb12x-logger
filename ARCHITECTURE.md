@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-04-26 20:21 | versión: v1.16.3-245-g2381200
+> Última actualización: 2026-04-30 19:49 | versión: v1.16.3-246-g0f48b7e
 
 ---
 
@@ -459,6 +459,7 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md
 ├── analyze_session.py
 ├── ddfi2_logger.py
+├── fix_server.py
 ├── fix_server_rides.py.save.1
 ├── install.sh
 ├── main.py
@@ -821,6 +822,10 @@ A new  |
 
 ---
 
+### `fix_server.py`
+
+---
+
 ### `gps/__init__.py`
 
 ---
@@ -863,7 +868,11 @@ A new  |
 | `RPM_START` | `300` |
 | `RPM_STOP` | `100` |
 | `STOP_CONFIRM_S` | `5.0` |
-| `MAX_CONSEC` | `30` |
+| `MAX_CONSEC_ERRORS` | `30` |
+| `SERIAL_TX_BYTES` | `9` |
+| `SERIAL_RX_BYTES` | `107` |
+| `MAX_FIFO_PCT` | `50` |
+| `MAX_SERIAL_BPS` | `960.0` |
 
 **Clase `BuellLogger`**
 
@@ -871,9 +880,10 @@ A new  |
 |--------|-----------|
 | `__init__` | — |
 | `_handle_signal` | — |
-| `_sysmon_loop` | System monitor thread — runs always, independent of ECU.
-Upd |
-| `_ecu_loop` | Thread de lectura RT — 8Hz, actualiza web.ecu_live y graba r |
+| `_load_eeprom_blob` | Intenta leer la EEPROM del ECU, con fallback a disco o versi |
+| `_update_web_ecu_state` | Actualiza el estado de la web con los datos de la EEPROM y E |
+| `_sysmon_loop` | System monitor thread — Único lugar donde se leen stats del  |
+| `_ecu_loop` | Thread de lectura RT — Limpio, solo se centra en el protocol |
 | `run` | Loop principal. |
 | `shutdown` | Limpieza al salir. |
 
