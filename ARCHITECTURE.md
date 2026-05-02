@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-01 16:58 | versión: v1.16.3-258-g1091c3e
+> Última actualización: 2026-05-01 18:18 | versión: v1.16.3-259-g297255f
 
 ---
 
@@ -462,11 +462,17 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md
 ├── analyze_session.py
 ├── ddfi2_logger.py
+├── fix_overflow.py
+├── fix_scale2.py
 ├── fix_server_rides.py.save.1
 ├── install.sh
 ├── main.py
+├── merge_canvas.py
 ├── network_state.json
 ├── objectives.json
+├── step1_html.py
+├── step2_init.py
+├── step3_draw.py
 ├── tps_cal.json
 └── vss_cal.json
 ```
@@ -832,6 +838,14 @@ A new  |
 
 ---
 
+### `fix_overflow.py`
+
+---
+
+### `fix_scale2.py`
+
+---
+
 ### `gps/__init__.py`
 
 ---
@@ -895,6 +909,10 @@ A new  |
 
 ---
 
+### `merge_canvas.py`
+
+---
+
 ### `network/__init__.py`
 
 ---
@@ -938,6 +956,18 @@ A new  |
 | `start_monitor` | — |
 | `stop_monitor` | — |
 | `ssh_active` | — |
+
+---
+
+### `step1_html.py`
+
+---
+
+### `step2_init.py`
+
+---
+
+### `step3_draw.py`
 
 ---
 

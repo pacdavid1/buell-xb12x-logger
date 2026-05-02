@@ -69,7 +69,9 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <input type="text" inputmode="numeric" id="inRpm" value="10" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
 <span style="font-family:var(--mn);font-size:7px;color:#3399ff">VAL</span>
 <input type="text" inputmode="numeric" id="inVal" value="0" onkeydown="fixArrow(event,359)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
-<span class="vb" onclick="setView(150,20,0)">S1</span><span class="vb" onclick="setView(245,15,0)">S2</span><span class="vb" onclick="setView(245,0,0)">S3</span><span class="vb" onclick="setView(275,20,0)">S4</span><span style="font-family:var(--mn);font-size:7px;color:var(--rd)">AMP</span>
+<span class="vb" onclick="setView(150,20,0)">S1</span><span class="vb" onclick="setView(245,15,0)">S2</span><span class="vb" onclick="setView(245,0,0)">S3</span><span class="vb" onclick="setView(275,20,0)">S4</span><span style="font-family:var(--mn);font-size:7px;color:var(--bl)">ZOOM</span>
+<input type="text" inputmode="numeric" id="inZoom" value="0.7" onkeydown="fixArrowZoom(event)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:var(--bl);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
+<span style="font-family:var(--mn);font-size:7px;color:var(--rd)">AMP</span>
 <input type="text" inputmode="numeric" id="inAmp" value="1.0" onkeydown="fixArrowAmp(event)" style="width:48px;background:var(--bg);border:1px solid var(--bd);color:var(--rd);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center">
 </div>
 <div class="g3">
@@ -194,7 +196,7 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
   var zN=1e9,zX=-1e9;
   for(var i=0;i<R;i++)for(var j=0;j<Cl;j++){if(data[i][j]<zN)zN=data[i][j];if(data[i][j]>zX)zX=data[i][j]}
   if(zX===zN)zX=zN+1;
-  var pad=40,sX=Math.min((W-pad)/(Cl-1),30),sY=Math.min((H-pad)/(R-1),24);var zRange=zX-zN;if(zRange<1)zRange=1;var amp=parseFloat(document.getElementById("inAmp").value)||1;var sf=SC[cur]||0.4;if(mode==="delta"){sf=SC["delta"]||0.08;sf=sf*amp}var sZ=(H*sf)/zRange;
+  var pad=40,sX=Math.min((W-pad)/(Cl-1),30),sY=Math.min((H-pad)/(R-1),24);var zRange=zX-zN;if(zRange<1)zRange=1;var amp=parseFloat(document.getElementById("inAmp").value)||1;var sf=SC[cur]||0.4;if(mode==="delta"){sf=SC["delta"]||0.08;sf=sf*amp}var zoom=parseFloat(document.getElementById("inZoom").value)||0.7;var sZ=(H*sf*zoom)/zRange;
   var ox=W*0.5,oy=H*0.45,ca=Math.cos(c.ang),sa=Math.sin(c.ang),ct=Math.cos(c.tilt),st2=Math.sin(c.tilt);
   function pr(j,i,z){
     var x=(j-(Cl-1)/2)*sX,y=((R-1)-i-(R-1)/2)*sY,z2=(z-zN)*sZ;
@@ -266,6 +268,7 @@ document.getElementById('tabs').onclick=function(e){
 };
 function setView(t,r,v){document.getElementById("inTps").value=t;document.getElementById("inRpm").value=r;document.getElementById("inVal").value=v;applyAngles()}
 function wrap(v,mx){return((v%mx)+mx)%mx}
+function fixArrowZoom(e){if(e.key==="ArrowUp"){e.preventDefault();var i=document.getElementById("inZoom");var v=parseFloat(i.value)||0.7;v=Math.round((v+0.05)*100)/100;i.value=v;applyAngles()}if(e.key==="ArrowDown"){e.preventDefault();var i=document.getElementById("inZoom");var v=parseFloat(i.value)||0.7;v=Math.round((v-0.05)*100)/100;if(v<0.1)v=0.1;i.value=v;applyAngles()}}
 function fixArrowAmp(e){if(e.key==="ArrowUp"){e.preventDefault();var i=document.getElementById("inAmp");var v=parseFloat(i.value)||1;v=Math.round((v+0.1)*10)/10;i.value=v;applyAngles()}if(e.key==="ArrowDown"){e.preventDefault();var i=document.getElementById("inAmp");var v=parseFloat(i.value)||1;v=Math.round((v-0.1)*10)/10;if(v<0.1)v=0.1;i.value=v;applyAngles()}}
 function fixArrow(e,mx){
   if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;
