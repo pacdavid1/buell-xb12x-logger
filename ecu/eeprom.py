@@ -82,31 +82,15 @@ def decode_eeprom_maps(eeprom_bytes):
         return list(reversed(axis))
 
     def read_map(off, rows, cols, scale):
-        # Map is stored as rows separated by zero bytes.
-        # Each segment between zeros has cols bytes total, but only
-        # the first (cols - r) bytes are valid for row r (ascending from r=0).
-        # The remaining r bytes are overflow from the previous row and are discarded.
-        # Valid bytes are in descending RPM order — reverse to get ascending.
-        # Prepend None for each empty cell (structural zeros at high RPM end).
-        raw = eeprom_bytes[off : off + rows * (cols + 1)]
-        segments = []
-        current = []
-        for byte in raw:
-            if byte == 0:
-                if current:
-                    segments.append(current)
-                    current = []
-            else:
-                current.append(byte)
-        if current:
-            segments.append(current)
+        # Map is stored as fixed-stride rows: cols data bytes + 1 zero separator.
+        # Stride is always (cols + 1) bytes regardless of cell values.
+        # Reading by offset is robust against any data byte being 0x00.
+        # Values are stored in descending RPM order — reverse to get ascending.
         table = []
-        for r, seg in enumerate(segments):
-            # Each segment contains exactly cols valid values in descending RPM order
-            row = list(reversed([round(v * scale, 2) for v in seg]))
-            # Pad to cols length if last segment is short (Load=255 has only 2 values)
-            while len(row) < cols:
-                row.append(None)
+        for r in range(rows):
+            row_off = off + r * (cols + 1)
+            row_raw = eeprom_bytes[row_off : row_off + cols]
+            row = list(reversed([round(v * scale, 2) for v in row_raw]))
             table.append(row)
         return table
 
