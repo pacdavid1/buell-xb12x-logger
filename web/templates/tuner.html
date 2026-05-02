@@ -53,6 +53,9 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <h2>Comparador de Sesiones</h2>
 <div class="ct">
 <div class="cg"><label>Base</label><select id="sB"><option value="">--</option></select></div>
+<div style="display:flex;align-items:flex-end;padding-bottom:4px">
+<span class="vb" onclick="swapSessions()" style="font-size:14px;padding:4px 8px" title="Intercambiar Base &#x2194; Mod">&#x21C4;</span>
+</div>
 <div class="cg"><label>Modificada</label><select id="sM"><option value="">--</option></select></div>
 </div>
 <div id="st">Cargando sesiones...</div>
@@ -456,6 +459,12 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
   } else {
     leg.innerHTML='<span>'+mN.toFixed(0)+'</span><div class="bar" style="background:linear-gradient(to right,rgba(15,10,80,.9),rgba(15,70,220,.9),rgba(35,200,255,.9),rgba(155,255,100,.9),rgba(255,195,30,.9),rgba(255,50,20,.9))"></div><span>'+mXX.toFixed(0)+'</span>';
   }
+}
+function swapSessions(){
+  var tmp=mB;mB=mM;mM=tmp;
+  var bv=document.getElementById('sB').value,mv=document.getElementById('sM').value;
+  document.getElementById('sB').value=mv;document.getElementById('sM').value=bv;
+  if(mB&&mM)render();
 }
 document.getElementById('sB').onchange=function(){load('base')};
 document.getElementById('sM').onchange=function(){load('mod')};
