@@ -376,16 +376,16 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
       ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;ctx.stroke();
     }
   } else if(DM==='overlay'){
-    // BASE azul translucida + MOD heatmap
+    // BASE sólida heatmap + MOD translúcida
     var bf=sortedFaces(bD);
     for(var f=0;f<bf.length;f++){
       var fc=bf[f];
       ctx.beginPath();ctx.moveTo(fc.p[0][0],fc.p[0][1]);
       for(var k=1;k<4;k++)ctx.lineTo(fc.p[k][0],fc.p[k][1]);
       ctx.closePath();
-      var opa=parseFloat(document.getElementById('inOpa').value)/100;
-      ctx.fillStyle='rgba(40,80,220,'+opa+')';ctx.fill();
-      ctx.strokeStyle='rgba(60,120,255,'+(opa+0.2)+')';ctx.lineWidth=1.5;ctx.stroke();
+      var nm=(fc.v-bN)/(bX-bN);
+      ctx.fillStyle=heat(nm);ctx.fill();
+      ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;ctx.stroke();
     }
     var mf=sortedFaces(mD);
     for(var f=0;f<mf.length;f++){
@@ -394,8 +394,9 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
       for(var k=1;k<4;k++)ctx.lineTo(fc.p[k][0],fc.p[k][1]);
       ctx.closePath();
       var nm=(fc.v-mN)/(mXX-mN);
-      ctx.fillStyle=heat(nm);ctx.fill();
-      ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;ctx.stroke();
+      var opa=parseFloat(document.getElementById('inOpa').value)/100;
+      ctx.fillStyle='rgba(40,80,220,'+opa+')';ctx.fill();
+      ctx.strokeStyle='rgba(60,120,255,'+(opa+0.2)+')';ctx.lineWidth=1.5;ctx.stroke();
     }
   } else if(DM==='spikes'){
     // BASE heatmap + spikes de delta por vertice
@@ -420,22 +421,22 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
       ctx.fillStyle=d>0?'rgba(255,80,80,0.9)':'rgba(80,150,255,0.9)';ctx.fill();
     }
   } else if(DM==='wire'){
-    // BASE wireframe + MOD heatmap solido
-    for(var i=0;i<R-1;i++)for(var j=0;j<Cl-1;j++){
-      var p0=pr(j,i,bD[i][j]),p1=pr(j+1,i,bD[i][j+1]),p2=pr(j+1,i+1,bD[i+1][j+1]),p3=pr(j,i+1,bD[i+1][j]);
-      ctx.beginPath();ctx.moveTo(p0[0],p0[1]);ctx.lineTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);ctx.lineTo(p3[0],p3[1]);ctx.closePath();
-      var opa=parseFloat(document.getElementById('inOpa').value)/100;
-      ctx.strokeStyle='rgba(100,100,255,'+(opa+0.2)+')';ctx.lineWidth=1.5;ctx.stroke();
-    }
-    var mf=sortedFaces(mD);
-    for(var f=0;f<mf.length;f++){
-      var fc=mf[f];
+    // BASE sólida heatmap + MOD wireframe
+    var bf=sortedFaces(bD);
+    for(var f=0;f<bf.length;f++){
+      var fc=bf[f];
       ctx.beginPath();ctx.moveTo(fc.p[0][0],fc.p[0][1]);
       for(var k=1;k<4;k++)ctx.lineTo(fc.p[k][0],fc.p[k][1]);
       ctx.closePath();
-      var nm=(fc.v-mN)/(mXX-mN);
+      var nm=(fc.v-bN)/(bX-bN);
       ctx.fillStyle=heat(nm);ctx.fill();
       ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;ctx.stroke();
+    }
+    for(var i=0;i<R-1;i++)for(var j=0;j<Cl-1;j++){
+      var p0=pr(j,i,mD[i][j]),p1=pr(j+1,i,mD[i][j+1]),p2=pr(j+1,i+1,mD[i+1][j+1]),p3=pr(j,i+1,mD[i+1][j]);
+      ctx.beginPath();ctx.moveTo(p0[0],p0[1]);ctx.lineTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);ctx.lineTo(p3[0],p3[1]);ctx.closePath();
+      var opa=parseFloat(document.getElementById('inOpa').value)/100;
+      ctx.strokeStyle='rgba(100,100,255,'+(opa+0.2)+')';ctx.lineWidth=1.5;ctx.stroke();
     }
   }
   // ejes de referencia
