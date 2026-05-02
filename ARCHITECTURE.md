@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-01 18:18 | versión: v1.16.3-259-g297255f
+> Última actualización: 2026-05-01 18:20 | versión: v1.16.3-260-g9a284cc
 
 ---
 
@@ -460,19 +460,12 @@ buell-xb12x-logger/
 ├── DEV_TIPS.md
 ├── README.md
 ├── WORKING_METHOD.md
-├── analyze_session.py
 ├── ddfi2_logger.py
-├── fix_overflow.py
-├── fix_scale2.py
 ├── fix_server_rides.py.save.1
 ├── install.sh
 ├── main.py
-├── merge_canvas.py
 ├── network_state.json
 ├── objectives.json
-├── step1_html.py
-├── step2_init.py
-├── step3_draw.py
 ├── tps_cal.json
 └── vss_cal.json
 ```
@@ -491,17 +484,6 @@ buell-xb12x-logger/
 ---
 
 ## Módulos Python
-
-### `analyze_session.py`
-
-**Constantes**
-
-| Nombre | Valor |
-|--------|-------|
-| `RPM_BINS` | `[0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000]` |
-| `LOAD_BINS` | `[10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]` |
-
----
 
 ### `ddfi2_logger.py`
 
@@ -838,14 +820,6 @@ A new  |
 
 ---
 
-### `fix_overflow.py`
-
----
-
-### `fix_scale2.py`
-
----
-
 ### `gps/__init__.py`
 
 ---
@@ -909,10 +883,6 @@ A new  |
 
 ---
 
-### `merge_canvas.py`
-
----
-
 ### `network/__init__.py`
 
 ---
@@ -956,18 +926,6 @@ A new  |
 | `start_monitor` | — |
 | `stop_monitor` | — |
 | `ssh_active` | — |
-
----
-
-### `step1_html.py`
-
----
-
-### `step2_init.py`
-
----
-
-### `step3_draw.py`
 
 ---
 
