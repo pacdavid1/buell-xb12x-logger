@@ -71,6 +71,8 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <span class="vb dm" id="dmO" onclick="setDM('overlay')">OVR</span>
 <span class="vb dm" id="dmS" onclick="setDM('spikes')">SPK</span>
 <span class="vb dm" id="dmW" onclick="setDM('wire')">WIR</span>
+<span style="font-family:var(--mn);font-size:7px;color:var(--dm);margin-left:4px">OPA</span>
+<input type="range" id="inOpa" min="0" max="100" value="20" oninput="drawAll()" style="width:60px;accent-color:var(--ac);vertical-align:middle">
 <span style="font-family:var(--mn);font-size:7px;color:#33ff33">YAW</span>
 <input type="text" inputmode="numeric" id="inTps" value="105" onkeydown="fixArrow(event,360)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px" oninput="applyAngles()">
 <span style="font-family:var(--mn);font-size:7px;color:#ff3333">PIT</span>
@@ -381,8 +383,9 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
       ctx.beginPath();ctx.moveTo(fc.p[0][0],fc.p[0][1]);
       for(var k=1;k<4;k++)ctx.lineTo(fc.p[k][0],fc.p[k][1]);
       ctx.closePath();
-      ctx.fillStyle='rgba(40,80,220,0.25)';ctx.fill();
-      ctx.strokeStyle='rgba(60,120,255,0.5)';ctx.lineWidth=0.5;ctx.stroke();
+      var opa=parseFloat(document.getElementById('inOpa').value)/100;
+      ctx.fillStyle='rgba(40,80,220,'+opa+')';ctx.fill();
+      ctx.strokeStyle='rgba(60,120,255,'+(opa+0.2)+')';ctx.lineWidth=1.5;ctx.stroke();
     }
     var mf=sortedFaces(mD);
     for(var f=0;f<mf.length;f++){
@@ -421,7 +424,8 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
     for(var i=0;i<R-1;i++)for(var j=0;j<Cl-1;j++){
       var p0=pr(j,i,bD[i][j]),p1=pr(j+1,i,bD[i][j+1]),p2=pr(j+1,i+1,bD[i+1][j+1]),p3=pr(j,i+1,bD[i+1][j]);
       ctx.beginPath();ctx.moveTo(p0[0],p0[1]);ctx.lineTo(p1[0],p1[1]);ctx.lineTo(p2[0],p2[1]);ctx.lineTo(p3[0],p3[1]);ctx.closePath();
-      ctx.strokeStyle='rgba(100,100,255,0.5)';ctx.lineWidth=0.7;ctx.stroke();
+      var opa=parseFloat(document.getElementById('inOpa').value)/100;
+      ctx.strokeStyle='rgba(100,100,255,'+(opa+0.2)+')';ctx.lineWidth=1.5;ctx.stroke();
     }
     var mf=sortedFaces(mD);
     for(var f=0;f<mf.length;f++){
