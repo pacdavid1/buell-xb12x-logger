@@ -72,7 +72,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <span class="vb" onclick="setView(150,20,0)">S1</span><span class="vb" onclick="setView(245,15,0)">S2</span><span class="vb" onclick="setView(245,0,0)">S3</span><span class="vb" onclick="setView(275,20,0)">S4</span><span style="font-family:var(--mn);font-size:7px;color:var(--bl)">ZOOM</span>
 <input type="text" inputmode="numeric" id="inZoom" value="0.7" onkeydown="fixArrowZoom(event)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:var(--bl);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
 <span style="font-family:var(--mn);font-size:7px;color:var(--rd)">AMP</span>
-<input type="text" inputmode="numeric" id="inAmp" value="1.0" onkeydown="fixArrowAmp(event)" style="width:48px;background:var(--bg);border:1px solid var(--bd);color:var(--rd);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center">
+<input type="text" inputmode="numeric" id="inAmp" value="1.0" onkeydown="fixArrowAmp(event)" oninput="applyAngles()" style="width:48px;background:var(--bg);border:1px solid var(--bd);color:var(--rd);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center">
 </div>
 <div class="g3">
 <div class="g3c"><div class="g3t">BASE 3D</div><canvas id="c3b"></canvas><div class="leg" id="lb"></div></div>
