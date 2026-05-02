@@ -65,11 +65,11 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <div class="ps"><div class="pi" id="pw"></div></div>
 <div class="c3bar" style="display:flex;gap:8px;align-items:center;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0">
 <span style="font-family:var(--mn);font-size:8px;color:var(--a2);letter-spacing:.08em;font-weight:700">3D</span>
-<span style="font-family:var(--mn);font-size:7px;color:#33ff33">TPS</span>
+<span style="font-family:var(--mn);font-size:7px;color:#33ff33">YAW</span>
 <input type="text" inputmode="numeric" id="inTps" value="105" onkeydown="fixArrow(event,360)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px" oninput="applyAngles()">
-<span style="font-family:var(--mn);font-size:7px;color:#ff3333">RPM</span>
+<span style="font-family:var(--mn);font-size:7px;color:#ff3333">PIT</span>
 <input type="text" inputmode="numeric" id="inRpm" value="10" onkeydown="fixArrow(event,360)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
-<span style="font-family:var(--mn);font-size:7px;color:#3399ff">VAL</span>
+<span style="font-family:var(--mn);font-size:7px;color:#3399ff">ROL</span>
 <input type="text" inputmode="numeric" id="inVal" value="0" onkeydown="fixArrow(event,360)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
 <span class="vb" onclick="setView(150,20,0)">S1</span><span class="vb" onclick="setView(245,15,0)">S2</span><span class="vb" onclick="setView(245,0,0)">S3</span><span class="vb" onclick="setView(275,20,0)">S4</span><span style="font-family:var(--mn);font-size:7px;color:var(--bl)">ZOOM</span>
 <input type="text" inputmode="numeric" id="inZoom" value="1.0" onkeydown="fixArrowZoom(event)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:var(--bl);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
@@ -202,13 +202,22 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
   for(var i=0;i<R;i++)for(var j=0;j<Cl;j++){if(data[i][j]<zN)zN=data[i][j];if(data[i][j]>zX)zX=data[i][j]}
   if(zX===zN)zX=zN+1;
   var pad=40,sX=Math.min((W-pad)/(Cl-1),30),sY=Math.min((H-pad)/(R-1),24);var zRange=zX-zN;if(zRange<1)zRange=1;var amp=parseFloat(document.getElementById("inAmp").value)||1;var sf=SC[cur]||0.4;if(mode==="delta"){sf=SC["delta"]||0.08;sf=sf*amp}var zoom=parseFloat(document.getElementById("inZoom").value)||0.7;var sZ=(H*sf*zoom)/zRange;
-  var ox=W*0.5,oy=H*0.45,ca=Math.cos(c.ang),sa=Math.sin(c.ang),ct=Math.cos(c.tilt),st2=Math.sin(c.tilt);
+  var ox=W*0.5,oy=H*0.45;
+  var cy=Math.cos(c.ang),sy=Math.sin(c.ang);
+  var cp=Math.cos(c.tilt),sp=Math.sin(c.tilt);
+  var cr=Math.cos(c.roll),sr=Math.sin(c.roll);
   function pr(j,i,z){
-    var x=(INV.X?-1:1)*(j-(Cl-1)/2)*sX,y=(INV.Y?-1:1)*(z-zN)*sZ,z2=(INV.Z?-1:1)*((R-1)-i-(R-1)/2)*sY;
-    var rx=x*ca-z2*sa,rz=x*sa+z2*ca,ry=y*ct-rz*st2;
-    var cr=Math.cos(c.roll),sr=Math.sin(c.roll);
-    var fx=rx*cr-ry*sr,fy=rx*sr+ry*cr;
-    return[ox+fx,oy+fy,ry];
+    // mesh coords: X=RPM, Y=VAL(altura), Z=TPS(profundidad)
+    var mx=(INV.X?-1:1)*(j-(Cl-1)/2)*sX;
+    var my=(INV.Y?-1:1)*(z-zN)*sZ;
+    var mz=(INV.Z?-1:1)*((R-1)-i-(R-1)/2)*sY;
+    // yaw (rotar en plano XZ — girar horizontalmente)
+    var x1=mx*cy+mz*sy,y1=my,z1=-mx*sy+mz*cy;
+    // pitch (rotar en plano YZ — inclinar arriba/abajo)
+    var x2=x1,y2=y1*cp-z1*sp,z2=y1*sp+z1*cp;
+    // roll (rotar en plano XY)
+    var fx=x2*cr-y2*sr,fy=x2*sr+y2*cr;
+    return[ox+fx,oy-fy,z2];
   }
   function heat(t){
     var r,g,b;
@@ -251,8 +260,8 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
   ctx.strokeStyle='#3399ff';ctx.beginPath();ctx.moveTo(o3[0],o3[1]);ctx.lineTo(z3[0],z3[1]);ctx.stroke();
   ctx.font='8px monospace';
   ctx.fillStyle='#ff3333';ctx.fillText('RPM',x3[0]+3,x3[1]+3);
-  ctx.fillStyle='#3399ff';ctx.fillText('TPS',z3[0]+3,z3[1]+3);
-  ctx.fillStyle='#33ff33';ctx.fillText('VAL',y3[0]+3,y3[1]-5);
+  ctx.fillStyle='#33ff33';ctx.fillText('TPS',y3[0]+3,y3[1]+3);
+  ctx.fillStyle='#3399ff';ctx.fillText('VAL',z3[0]+3,z3[1]-5);
 ctx.font='7px monospace';ctx.fillStyle='#666';
   for(var j=0;j<Cl;j+=2){var p=pr(j,R-1,zN);ctx.fillText(rpm[j],p[0]-8,p[1]+10)}
   for(var i=0;i<R;i+=2){var p=pr(0,i,zN);ctx.fillText(lod[i],p[0]-26,p[1]+3)}
