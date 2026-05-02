@@ -62,11 +62,21 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if path == '/tuner/sessions':
             import glob as _glob
             sessions = []
-            for d in sorted(self.server_instance.buell_dir.glob('sessions/*/session_metadata.json')):
+            for d in self.server_instance.buell_dir.glob('sessions/*/session_metadata.json'):
                 try:
                     with open(d) as mf: meta = json.load(mf)
-                    sessions.append({'id': d.parent.name, 'version': meta.get('version_string', '?'), 'rides': meta.get('total_rides', 0), 'created': meta.get('created_utc', '')[:10]})
+                    ep = d.parent / 'eeprom.bin'
+                    serial = None
+                    if ep.exists() and ep.stat().st_size >= 1206:
+                        try:
+                            b = ep.read_bytes()
+                            if len(b) >= 14: serial = int.from_bytes(b[12:14], 'little')
+                        except: pass
+                    else:
+                        continue
+                    sessions.append({'id': d.parent.name, 'version': meta.get('version_string', '?'), 'rides': meta.get('total_rides', 0), 'created': meta.get('created_utc', '')[:10], 'serial': serial})
                 except Exception: pass
+            sessions.sort(key=lambda s: s['created'], reverse=True)
             self._json({'sessions': sessions})
             return
 

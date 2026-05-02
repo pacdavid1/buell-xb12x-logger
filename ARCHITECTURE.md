@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-01 20:17 | versión: v1.16.3-261-g6e068dc
+> Última actualización: 2026-05-01 21:41 | versión: v1.16.3-262-gcef7a5d
 
 ---
 
@@ -469,9 +469,6 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md
 ├── ddfi2_logger.py
 ├── fix_server_rides.py.save.1
-├── fix_sort2.py
-├── fix_sort3.py
-├── fix_sort_utc.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
@@ -830,18 +827,6 @@ A new  |
 
 ---
 
-### `fix_sort2.py`
-
----
-
-### `fix_sort3.py`
-
-_Error al parsear: invalid syntax (<unknown>, line 2)_
-
-### `fix_sort_utc.py`
-
----
-
 ### `gps/__init__.py`
 
 ---
@@ -1009,10 +994,10 @@ _Error al parsear: invalid syntax (<unknown>, line 2)_
 - `/tuner/sessions`
 - `/tuner/maps`
 - `/tuner`
-- `/live.json`
 
 **POST**
 
+- `/live.json`
 - `/csv/`
 - `/ride/`
 - `/errorlog/`

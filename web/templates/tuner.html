@@ -89,15 +89,11 @@ var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0},delta:{ang:-0.65,tilt:
 async function init(){
   try{
     var r=await fetch('/tuner/sessions');var d=await r.json();
-    if(!d.sessions||!d.sessions.length){st('No hay sesiones');return}
-    var ok=[];
-    for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];try{var mr=await fetch('/tuner/maps?session='+s.id);var md=await mr.json();if(md&&md.fuel_front)ok.push(s)}catch(e){}}
-    if(!ok.length){st('Sin mapas legibles');return}
-    ok.sort(function(a,b){return(b.created||'').localeCompare(a.created||'')});
+    if(!d.sessions||!d.sessions.length){st('No hay sesiones con mapas');return}
   var o='<option value="">--</option>';
-    for(var i=0;i<ok.length;i++){var s=ok[i];o+='<option value="'+s.id+'">'+s.id+' ('+s.version+') '+s.rides+'r</option>'}
+    for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];o+='<option value="'+s.id+'">'+s.id+' (S'+(s.serial||'?')+') '+s.created+' '+s.rides+'r</option>'}
     document.getElementById('sB').innerHTML=o;document.getElementById('sM').innerHTML=o;
-    st(ok.length+' sesiones validas');
+    st(d.sessions.length+' sesiones validas');
   }catch(e){st('Error: '+e.message)}
 }
 function st(t){document.getElementById('st').textContent=t}
