@@ -93,6 +93,25 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._json({'error': f'Error al leer mapa: {e}'})
             return
 
+        if path == '/sessions_vs':
+            try:
+                f = Path(__file__).parent / 'templates' / 'sessions_vs.html'
+                self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
+            return
+        if path == '/sessions_vs/compare':
+            import urllib.parse as _up
+            params = _up.parse_qs(_up.urlparse(self.path).query)
+            sa = params.get('a', [''])[0]
+            sb = params.get('b', [''])[0]
+            if not sa or not sb:
+                self._json({'error': 'Faltan sesiones'}, 400); return
+            try:
+                self._json(_compare_sessions(self.server_instance.buell_dir, sa, sb))
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
+            return
         if path == '/tuner' or path == '/tuner.html':
             try:
                 tuner_file = Path(__file__).parent / 'templates' / 'tuner.html'
@@ -607,3 +626,178 @@ class WebServer:
     def stop(self):
         if self._server:
             self._server.shutdown()
+
+# ── Sessions VS comparison engine ─────────────────────────────────────────
+def _compare_sessions(buell_dir, sa, sb):
+    import csv as _csv
+    from collections import defaultdict
+
+    RPM_BINS = [800,1200,1600,2000,2400,2800,3200,3600,4000,4400,4800,5200,5600,6000,6400,6800]
+    TPS_BINS = [0,5,10,15,20,25,30,35,40,50,60,70,80,90,100,101]
+
+    def bucket(val, bins):
+        for i in range(len(bins)-1):
+            if bins[i] <= val < bins[i+1]: return i
+        return len(bins)-2
+
+    def sf(v, d=0.0):
+        try: return float(v) if v and str(v).strip() else d
+        except: return d
+
+    def load_meta(sid):
+        import json as _json
+        mp = buell_dir / 'sessions' / sid / 'session_metadata.json'
+        if mp.exists():
+            with open(mp) as f: return _json.load(f)
+        return {}
+
+    def load_csv(sid):
+        rows = []
+        sdir = buell_dir / 'sessions' / sid
+        csv_files = sorted(sdir.glob('ride_*.csv'))
+        for cp in csv_files:
+            with open(cp) as f:
+                lines = [l for l in f if not l.startswith('#')]
+            if not lines: continue
+            for r in _csv.DictReader(lines):
+                try:
+                    rpm = sf(r['RPM'])
+                    if rpm < 100: continue
+                    rows.append({
+                        't':    sf(r['time_elapsed_s']),
+                        'rpm':  rpm,
+                        'tps':  sf(r.get('TPS_pct') or r.get('TPD', 0)),
+                        'clt':  sf(r['CLT']),
+                        'pw1':  sf(r['pw1']),
+                        'spark':sf(r['spark1']),
+                        'afv':  sf(r.get('AFV', 100)),
+                        'wue':  sf(r.get('WUE', 100)),
+                        'ae':   sf(r.get('Accel_Corr', 100)),
+                        'gear': sf(r.get('Gear', 0)),
+                        'spd':  sf(r.get('VS_KPH', 0)),
+                        'alt':  sf(r.get('gps_alt_m'), None) if r.get('gps_valid','').strip()=='TRUE' else None,
+                        'fl_wot':  r.get('fl_wot','0').strip() in ('1','True','true'),
+                        'fl_decel':r.get('fl_decel','0').strip() in ('1','True','true'),
+                        'fl_fc':   r.get('fl_fuel_cut','0').strip() in ('1','True','true'),
+                        'fl_eng':  r.get('fl_engine_run','1').strip() in ('1','True','true'),
+                    })
+                except: continue
+        return rows
+
+    def derivatives(rows):
+        for i in range(1, len(rows)):
+            dt = rows[i]['t'] - rows[i-1]['t']
+            if 0 < dt < 2.0:
+                rows[i]['drpm'] = (rows[i]['rpm'] - rows[i-1]['rpm']) / dt
+                rows[i]['dtps'] = (rows[i]['tps'] - rows[i-1]['tps']) / dt
+                a0, a1 = rows[i-1]['alt'], rows[i]['alt']
+                rows[i]['dalt'] = (a1-a0)/dt if a0 is not None and a1 is not None else None
+            else:
+                rows[i]['drpm'] = rows[i]['dtps'] = 0.0
+                rows[i]['dalt'] = None
+        if rows: rows[0]['drpm'] = rows[0]['dtps'] = 0.0; rows[0]['dalt'] = None
+
+    def classify(r):
+        if not r['fl_eng'] or r['fl_fc']: return 'BITTER'
+        if r['clt'] < 170: return 'BITTER'
+        if r['wue'] > 102: return 'BITTER'
+        if r['ae'] > 105:  return 'BITTER'
+        drpm = abs(r.get('drpm', 0))
+        dtps = r.get('dtps', 0)
+        dalt = r.get('dalt')
+        if r['fl_wot'] or r['tps'] >= 80:
+            if dtps > 15:  return 'SPICY_TIPIN'
+            if dtps < -15: return 'SPICY_TIPOUT'
+            return 'SPICY_WOT'
+        if dtps > 15:  return 'SPICY_TIPIN'
+        if dtps < -15: return 'SPICY_TIPOUT'
+        if drpm > 150 or abs(dtps) > 3: return 'BITTER'
+        if dalt is None: return 'SWEET'
+        if dalt > 0.8:   return 'SALTY_UP'
+        if dalt < -0.8:  return 'SALTY_DOWN'
+        return 'SWEET'
+
+    def build_index(rows):
+        idx = defaultdict(lambda: {'n':0,'pw':0,'spark':0,'clt':0,'afv':0,'drpm':0,'spd':0})
+        fc  = defaultdict(int)
+        for r in rows:
+            fl = classify(r)
+            fc[fl] += 1
+            if fl == 'BITTER': continue
+            rb = bucket(r['rpm'], RPM_BINS)
+            tb = bucket(r['tps'], TPS_BINS)
+            k  = (fl, rb, tb)
+            c  = idx[k]
+            c['n']    += 1
+            c['pw']   += r['pw1']
+            c['spark']+= r['spark']
+            c['clt']  += r['clt']
+            c['afv']  += r['afv']
+            c['drpm'] += abs(r.get('drpm',0))
+            c['spd']  += r['spd']
+        result = {}
+        for k,c in idx.items():
+            n = c['n']
+            result[k] = {
+                'flavor': k[0],
+                'rpm_lo': RPM_BINS[k[1]], 'rpm_hi': RPM_BINS[k[1]+1],
+                'tps_lo': TPS_BINS[k[2]], 'tps_hi': TPS_BINS[k[2]+1],
+                'n': n,
+                'pw':    round(c['pw']/n, 3),
+                'spark': round(c['spark']/n, 2),
+                'clt':   round(c['clt']/n, 1),
+                'afv':   round(c['afv']/n, 1),
+                'drpm':  round(c['drpm']/n, 1),
+                'spd':   round(c['spd']/n, 1),
+            }
+        return result, dict(fc)
+
+    # Cargar ambas sesiones
+    ma, mb = load_meta(sa), load_meta(sb)
+    ra, rb = load_csv(sa), load_csv(sb)
+    derivatives(ra); derivatives(rb)
+    ia, fca = build_index(ra)
+    ib, fcb = build_index(rb)
+
+    # Comparar celdas comunes por flavor
+    MIN_N = 5
+    delta = []
+    keys_a = {k for k,v in ia.items() if v['n'] >= MIN_N}
+    keys_b = {k for k,v in ib.items() if v['n'] >= MIN_N}
+    common = keys_a & keys_b
+    for k in common:
+        a, b = ia[k], ib[k]
+        delta.append({
+            'flavor':   a['flavor'],
+            'rpm':      f"{a['rpm_lo']}-{a['rpm_hi']}",
+            'tps':      f"{a['tps_lo']}-{a['tps_hi']}",
+            'rpm_lo':   a['rpm_lo'],
+            'tps_lo':   a['tps_lo'],
+            'na':       a['n'],
+            'nb':       b['n'],
+            'pw_a':     a['pw'],
+            'pw_b':     b['pw'],
+            'dpw':      round(b['pw'] - a['pw'], 3),
+            'spark_a':  a['spark'],
+            'spark_b':  b['spark'],
+            'dspk':     round(b['spark'] - a['spark'], 2),
+            'clt_a':    a['clt'],
+            'clt_b':    b['clt'],
+            'dclt':     round(b['clt'] - a['clt'], 1),
+            'afv_a':    a['afv'],
+            'afv_b':    b['afv'],
+        })
+    delta.sort(key=lambda x: (x['flavor'], -(x['na']+x['nb'])))
+
+    return {
+        'sa': {'id': sa, 'checksum': ma.get('checksum','?'), 'version': ma.get('version_string','?'),
+               'created': ma.get('created_utc','')[:10], 'rides': ma.get('total_rides',0),
+               'samples': len(ra), 'flavors': fca},
+        'sb': {'id': sb, 'checksum': mb.get('checksum','?'), 'version': mb.get('version_string','?'),
+               'created': mb.get('created_utc','')[:10], 'rides': mb.get('total_rides',0),
+               'samples': len(rb), 'flavors': fcb},
+        'same_bike': ma.get('checksum') == mb.get('checksum'),
+        'common': len(common),
+        'delta': delta,
+    }
+

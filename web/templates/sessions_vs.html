@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Sessions VS — Buell Logger</title>
+<style>
+:root{--bg:#0a0a0b;--p:#111114;--bd:#1e1e24;--ac:#e8420a;--a2:#f5a623;--bl:#3d9eff;--gn:#33ff99;--dm:#555;--tx:#c8c8cc;--rd:#ff4444;--mn:monospace}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;min-height:100dvh;display:flex;flex-direction:column}
+.hd{background:var(--p);border-bottom:2px solid var(--ac);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.hd h1{font-size:16px;font-weight:900;color:#fff;font-family:var(--mn)}
+.hd-links{display:flex;gap:6px}
+.hd a{font-family:var(--mn);font-size:9px;color:var(--dm);text-decoration:none;border:1px solid var(--bd);padding:3px 6px;border-radius:2px}
+.hd a:hover{color:var(--bl);border-color:var(--bl)}
+.w{flex:1;padding:6px;display:flex;flex-direction:column;gap:6px;overflow:hidden;min-height:0}
+.sel{background:var(--p);border:1px solid var(--bd);padding:8px;border-radius:4px;flex-shrink:0}
+.sel-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.sg{display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px}
+.sg label{font-family:var(--mn);font-size:8px;color:var(--a2);text-transform:uppercase;letter-spacing:.08em}
+.sg select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:11px;padding:5px;border-radius:2px;width:100%}
+.bike-tag{font-family:var(--mn);font-size:8px;padding:2px 6px;border-radius:2px;border:1px solid var(--bd);color:var(--dm)}
+.bike-same{border-color:var(--gn);color:var(--gn)}
+.bike-diff{border-color:var(--rd);color:var(--rd)}
+.btn{font-family:var(--mn);font-size:9px;font-weight:700;background:var(--ac);color:#fff;border:none;padding:6px 14px;border-radius:2px;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;flex-shrink:0}
+.btn:hover{filter:brightness(1.2)}
+.btn:disabled{opacity:0.4;cursor:default}
+#st{font-family:var(--mn);font-size:9px;color:var(--dm);margin-top:4px}
+.fsum{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0}
+.fc{background:var(--p);border:1px solid var(--bd);border-radius:3px;padding:5px 8px;font-family:var(--mn);font-size:8px;flex:1;min-width:100px}
+.fc .fl{color:var(--a2);font-weight:700;margin-bottom:3px;letter-spacing:.06em}
+.fc .fv{display:flex;justify-content:space-between;color:var(--tx)}
+.fc .fv span:last-child{color:var(--dm)}
+.ftabs{display:flex;gap:0;background:var(--p);border:1px solid var(--bd);border-radius:4px;overflow:hidden;flex-shrink:0}
+.ftab{flex:1;padding:5px 2px;font-family:var(--mn);font-size:8px;font-weight:700;color:var(--dm);background:transparent;border:none;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;border-right:1px solid var(--bd)}
+.ftab:last-child{border-right:none}
+.ftab.on{background:var(--ac);color:#fff}
+.dt-wrap{flex:1;overflow:auto;min-height:0}
+table.dt{border-collapse:collapse;font-family:var(--mn);font-size:9px;width:100%;white-space:nowrap}
+table.dt thead tr{background:var(--p);position:sticky;top:0;z-index:1}
+table.dt th{padding:4px 6px;text-align:right;font-size:7px;color:var(--dm);font-weight:700;letter-spacing:.06em;border-bottom:1px solid var(--bd)}
+table.dt th:first-child{text-align:left}
+table.dt td{padding:3px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03)}
+table.dt td:first-child{text-align:left;color:var(--a2)}
+table.dt td:nth-child(2){color:var(--tx)}
+table.dt tr:hover td{background:rgba(255,255,255,.03)}
+.pos{color:#ff6060}.neg{color:#60b0ff}.neu{color:var(--dm)}
+.bar-cell{width:80px;padding:3px 4px}
+.bar-wrap{height:8px;background:rgba(255,255,255,.05);border-radius:1px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:1px;position:absolute}
+.bar-pos{background:rgba(255,80,80,.7);right:50%}
+.bar-neg{background:rgba(80,150,255,.7);left:50%}
+.n-badge{font-size:7px;color:var(--dm);font-family:var(--mn)}
+.no-data{padding:24px;text-align:center;color:var(--dm);font-family:var(--mn);font-size:10px}
+</style></head><body>
+<div class="hd">
+  <h1>SESSIONS VS</h1>
+  <div class="hd-links">
+    <a href="/tuner">Tuner Studio</a>
+    <a href="/">Dashboard</a>
+  </div>
+</div>
+<div class="w">
+  <div class="sel">
+    <div class="sel-row">
+      <div class="sg">
+        <label>Sesión A (base)</label>
+        <select id="sA"><option value="">-- seleccionar --</option></select>
+      </div>
+      <div class="sg">
+        <label>Sesión B (mod)</label>
+        <select id="sB"><option value="">-- seleccionar --</option></select>
+      </div>
+      <span class="bike-tag" id="bikeTag">—</span>
+      <button class="btn" id="btnCmp" onclick="compare()" disabled>COMPARAR</button>
+    </div>
+    <div id="st">Cargando sesiones...</div>
+  </div>
+  <div class="fsum" id="fsum" style="display:none">
+    <div class="fc" id="fcA"></div>
+    <div class="fc" id="fcB"></div>
+  </div>
+  <div class="ftabs" id="ftabs" style="display:none">
+    <button class="ftab on" data-f="SWEET" onclick="showFlavor(this)">SWEET</button>
+    <button class="ftab" data-f="SALTY_UP" onclick="showFlavor(this)">SALTY UP</button>
+    <button class="ftab" data-f="SALTY_DOWN" onclick="showFlavor(this)">SALTY DWN</button>
+    <button class="ftab" data-f="SPICY_WOT" onclick="showFlavor(this)">WOT</button>
+    <button class="ftab" data-f="SPICY_TIPIN" onclick="showFlavor(this)">TIP-IN</button>
+  </div>
+  <div class="dt-wrap" id="dtWrap" style="display:none">
+    <div class="no-data" id="noData" style="display:none">Sin celdas comunes para este flavor</div>
+    <table class="dt" id="dtTable">
+      <thead>
+        <tr>
+          <th>RPM</th><th>TPS%</th>
+          <th>N_A</th><th>N_B</th>
+          <th>PW_A</th><th>PW_B</th><th>dPW</th><th></th>
+          <th>SPK_A</th><th>SPK_B</th><th>dSPK</th>
+          <th>CLT_A</th><th>CLT_B</th>
+          <th>AFV_A</th><th>AFV_B</th>
+        </tr>
+      </thead>
+      <tbody id="dtBody"></tbody>
+    </table>
+  </div>
+</div>
+<script>
+var _data=null,_curFlavor='SWEET';
+
+async function init(){
+  try{
+    var r=await fetch('/tuner/sessions');
+    var d=await r.json();
+    if(!d.sessions||!d.sessions.length){st('No hay sesiones');return}
+    var o='<option value="">-- seleccionar --</option>';
+    for(var i=0;i<d.sessions.length;i++){
+      var s=d.sessions[i];
+      var bike=s.serial?' #'+s.serial:'';
+      o+='<option value="'+s.id+'">'+s.id+bike+' — '+s.created+' ('+s.rides+'r)</option>';
+    }
+    document.getElementById('sA').innerHTML=o;
+    document.getElementById('sB').innerHTML=o;
+    st(d.sessions.length+' sesiones disponibles');
+  }catch(e){st('Error: '+e.message)}
+}
+
+function st(t){document.getElementById('st').textContent=t}
+
+function onSelect(){
+  var a=document.getElementById('sA').value;
+  var b=document.getElementById('sB').value;
+  document.getElementById('btnCmp').disabled=!(a&&b&&a!==b);
+  document.getElementById('bikeTag').className='bike-tag';
+  document.getElementById('bikeTag').textContent='—';
+}
+
+async function compare(){
+  var a=document.getElementById('sA').value;
+  var b=document.getElementById('sB').value;
+  if(!a||!b)return;
+  st('Comparando...');
+  document.getElementById('btnCmp').disabled=true;
+  document.getElementById('fsum').style.display='none';
+  document.getElementById('ftabs').style.display='none';
+  document.getElementById('dtWrap').style.display='none';
+  try{
+    var r=await fetch('/sessions_vs/compare?a='+a+'&b='+b);
+    _data=await r.json();
+    if(_data.error){st('Error: '+_data.error);document.getElementById('btnCmp').disabled=false;return}
+    render();
+  }catch(e){st('Error: '+e.message)}
+  document.getElementById('btnCmp').disabled=false;
+}
+
+function flavorColor(f){
+  return{SWEET:'#33ff99',SALTY_UP:'#f5a623',SALTY_DOWN:'#3d9eff',
+    SPICY_WOT:'#ff4444',SPICY_TIPIN:'#ff9944',SPICY_TIPOUT:'#ff6699',BITTER:'#444'}[f]||'#888';
+}
+
+function renderFlavors(id,meta){
+  var el=document.getElementById(id);
+  var f=meta.flavors||{};
+  var total=Object.values(f).reduce(function(a,b){return a+b},0)||1;
+  var order=['SWEET','SALTY_UP','SALTY_DOWN','SPICY_WOT','SPICY_TIPIN','SPICY_TIPOUT','BITTER'];
+  var html='<div class="fl">'+meta.id+' — '+meta.version+'</div>';
+  html+='<div style="font-family:var(--mn);font-size:7px;color:var(--dm);margin-bottom:4px">'
+    +meta.created+' · '+meta.rides+' rides · '+meta.samples.toLocaleString()+' muestras</div>';
+  for(var i=0;i<order.length;i++){
+    var k=order[i],v=f[k]||0;
+    if(!v)continue;
+    var pct=Math.round(v/total*100);
+    html+='<div class="fv"><span style="color:'+flavorColor(k)+'">'+k
+      +'</span><span>'+v.toLocaleString()+' ('+pct+'%)</span></div>';
+  }
+  el.innerHTML=html;
+}
+
+function render(){
+  if(!_data)return;
+  var tag=document.getElementById('bikeTag');
+  if(_data.same_bike){
+    tag.className='bike-tag bike-same';
+    tag.textContent='MISMA MOTO ✓';
+  }else{
+    tag.className='bike-tag bike-diff';
+    tag.textContent='MOTOS DISTINTAS ⚠';
+  }
+  renderFlavors('fcA',_data.sa);
+  renderFlavors('fcB',_data.sb);
+  document.getElementById('fsum').style.display='flex';
+  document.getElementById('ftabs').style.display='flex';
+  document.getElementById('dtWrap').style.display='block';
+  var msg=_data.common+' celdas comunes';
+  if(_data._ms) msg+=' ('+_data._ms+'ms)';
+  st(msg);
+  showFlavor(document.querySelector('.ftab.on'));
+}
+
+function showFlavor(btn){
+  document.querySelectorAll('.ftab').forEach(function(b){b.classList.remove('on')});
+  btn.classList.add('on');
+  _curFlavor=btn.dataset.f;
+  renderTable(_curFlavor);
+}
+
+function renderTable(flavor){
+  if(!_data)return;
+  var rows=_data.delta.filter(function(r){return r.flavor===flavor});
+  var tbody=document.getElementById('dtBody');
+  var noData=document.getElementById('noData');
+  var table=document.getElementById('dtTable');
+  if(!rows.length){noData.style.display='block';table.style.display='none';return}
+  noData.style.display='none';
+  table.style.display='table';
+  var maxDpw=Math.max.apply(null,rows.map(function(r){return Math.abs(r.dpw)}))||1;
+  var html='';
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i];
+    var dpwCls=r.dpw>0.1?'pos':r.dpw<-0.1?'neg':'neu';
+    var dspkCls=r.dspk>0.5?'pos':r.dspk<-0.5?'neg':'neu';
+    var barPct=Math.min(Math.abs(r.dpw)/maxDpw*50,50);
+    var barHtml=r.dpw>=0
+      ?'<div class="bar-fill bar-pos" style="width:'+barPct+'%"></div>'
+      :'<div class="bar-fill bar-neg" style="width:'+barPct+'%"></div>';
+    html+='<tr>'
+      +'<td>'+r.rpm+'</td>'
+      +'<td>'+r.tps+'%</td>'
+      +'<td class="n-badge">'+r.na+'</td>'
+      +'<td class="n-badge">'+r.nb+'</td>'
+      +'<td>'+r.pw_a.toFixed(2)+'</td>'
+      +'<td>'+r.pw_b.toFixed(2)+'</td>'
+      +'<td class="'+dpwCls+'">'+(r.dpw>=0?'+':'')+r.dpw.toFixed(3)+'</td>'
+      +'<td class="bar-cell"><div class="bar-wrap">'+barHtml+'</div></td>'
+      +'<td>'+r.spark_a.toFixed(1)+'</td>'
+      +'<td>'+r.spark_b.toFixed(1)+'</td>'
+      +'<td class="'+dspkCls+'">'+(r.dspk>=0?'+':'')+r.dspk.toFixed(2)+'</td>'
+      +'<td>'+r.clt_a.toFixed(0)+'</td>'
+      +'<td>'+r.clt_b.toFixed(0)+'</td>'
+      +'<td>'+r.afv_a.toFixed(1)+'</td>'
+      +'<td>'+r.afv_b.toFixed(1)+'</td>'
+      +'</tr>';
+  }
+  tbody.innerHTML=html;
+}
+
+document.getElementById('sA').onchange=onSelect;
+document.getElementById('sB').onchange=onSelect;
+init();
+</script>
+</body></html>
