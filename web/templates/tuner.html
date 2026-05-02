@@ -43,6 +43,8 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 .g3c canvas{display:block;flex:1;touch-action:none}
 .leg{display:flex;align-items:center;gap:3px;font-family:var(--mn);font-size:6px;color:var(--dm);padding:2px 6px;border-top:1px solid var(--bd);flex-shrink:0}
 .leg .bar{flex:1;height:5px;border-radius:2px}
+.vb{font-family:var(--mn);font-size:7px;color:var(--dm);border:1px solid var(--bd);padding:2px 5px;border-radius:2px;cursor:pointer;user-select:none}
+.vb:hover{color:var(--bl);border-color:var(--bl)}
 </style></head><body>
 <div class="hd"><h1>TUNER STUDIO</h1><a href="/">Dashboard</a></div>
 <div class="w">
@@ -70,7 +72,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <span style="font-family:var(--mn);font-size:7px;color:#3399ff">VAL</span>
 <input type="text" inputmode="numeric" id="inVal" value="0" onkeydown="fixArrow(event,360)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
 <span class="vb" onclick="setView(150,20,0)">S1</span><span class="vb" onclick="setView(245,15,0)">S2</span><span class="vb" onclick="setView(245,0,0)">S3</span><span class="vb" onclick="setView(275,20,0)">S4</span><span style="font-family:var(--mn);font-size:7px;color:var(--bl)">ZOOM</span>
-<input type="text" inputmode="numeric" id="inZoom" value="0.7" onkeydown="fixArrowZoom(event)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:var(--bl);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
+<input type="text" inputmode="numeric" id="inZoom" value="1.0" onkeydown="fixArrowZoom(event)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:var(--bl);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
 <span style="font-family:var(--mn);font-size:7px;color:var(--rd)">AMP</span>
 <input type="text" inputmode="numeric" id="inAmp" value="1.0" onkeydown="fixArrowAmp(event)" oninput="applyAngles()" style="width:48px;background:var(--bg);border:1px solid var(--bd);color:var(--rd);font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center">
 </div>
@@ -84,7 +86,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 var mB=null,mM=null,cur='fuel_front';
 var AX={fuel_front:['fuel_rpm','fuel_load'],fuel_rear:['fuel_rpm','fuel_load'],spark_front:['spark_rpm','spark_load'],spark_rear:['spark_rpm','spark_load']};
 var SC={fuel_front:0.50,fuel_rear:0.50,spark_front:0.30,spark_rear:0.30,delta:0.08};
-var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0},delta:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0},mod:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0}};
+var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},delta:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},mod:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0}};
 
 async function init(){
   try{
@@ -153,8 +155,8 @@ function init3D(){
     var el=document.getElementById(cid);if(!el)return;
     var key=cid==='c3b'?'base':cid==='c3d'?'delta':'mod';
     function rs(){var r=el.getBoundingClientRect();el.width=r.width||300;el.height=r.height||250;drawAll()}
-    el.addEventListener('mousedown',function(e){C3[key].drag=true;C3[key].lx=e.clientX});
-    el.addEventListener('touchstart',function(e){C3[key].drag=true;C3[key].lx=e.touches[0].clientX},{passive:true});
+    el.addEventListener('mousedown',function(e){C3[key].drag=true;C3[key].lx=e.clientX;C3[key].ly=e.clientY});
+    el.addEventListener('touchstart',function(e){C3[key].drag=true;C3[key].lx=e.touches[0].clientX;C3[key].ly=e.touches[0].clientY},{passive:true});
     rs();
   });
   window.addEventListener('resize',function(){
@@ -166,10 +168,10 @@ function init3D(){
     drawAll();
   });
 }
-document.addEventListener('mousemove',function(e){for(var k in C3){var c=C3[k];if(c.drag){var da=(e.clientX-c.lx)*0.005;for(var kk in C3){C3[kk].ang+=da}c.lx=e.clientX;drawAll();break}}});
+document.addEventListener('mousemove',function(e){for(var k in C3){var c=C3[k];if(c.drag){var da=(e.clientX-c.lx)*0.005;var dt=(e.clientY-c.ly)*0.005;for(var kk in C3){C3[kk].ang+=da;C3[kk].tilt+=dt}c.lx=e.clientX;c.ly=e.clientY;drawAll();break}}});
 document.addEventListener('mouseup',function(){for(var k in C3)C3[k].drag=false});
 document.addEventListener('touchmove',function(e){
-  for(var k in C3){var c=C3[k];if(c.drag){var da=(e.touches[0].clientX-c.lx)*0.005;for(var kk in C3){C3[kk].ang+=da}c.lx=e.touches[0].clientX;drawAll();e.preventDefault();break}}
+  for(var k in C3){var c=C3[k];if(c.drag){var da=(e.touches[0].clientX-c.lx)*0.005;var dt=(e.touches[0].clientY-c.ly)*0.005;for(var kk in C3){C3[kk].ang+=da;C3[kk].tilt+=dt}c.lx=e.touches[0].clientX;c.ly=e.touches[0].clientY;drawAll();e.preventDefault();break}}
 },{passive:false});
 document.addEventListener('touchend',function(){for(var k in C3)C3[k].drag=false});
 
