@@ -93,7 +93,8 @@ async function init(){
     var ok=[];
     for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];try{var mr=await fetch('/tuner/maps?session='+s.id);var md=await mr.json();if(md&&md.fuel_front)ok.push(s)}catch(e){}}
     if(!ok.length){st('Sin mapas legibles');return}
-    var o='<option value="">--</option>';
+    ok.sort(function(a,b){return(b.created||'').localeCompare(a.created||'')});
+  var o='<option value="">--</option>';
     for(var i=0;i<ok.length;i++){var s=ok[i];o+='<option value="'+s.id+'">'+s.id+' ('+s.version+') '+s.rides+'r</option>'}
     document.getElementById('sB').innerHTML=o;document.getElementById('sM').innerHTML=o;
     st(ok.length+' sesiones validas');

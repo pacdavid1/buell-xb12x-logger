@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-01 18:20 | versión: v1.16.3-260-g9a284cc
+> Última actualización: 2026-05-01 20:17 | versión: v1.16.3-261-g6e068dc
 
 ---
 
@@ -310,6 +310,8 @@ buell-xb12x-logger/
 │   │   ├── eeprom.bin
 │   │   ├── eeprom.json
 │   │   ├── ride_005_errorlog.json
+│   │   ├── ride_006_errorlog.json
+│   │   ├── ride_007_errorlog.json
 │   │   ├── ride_653DC0_001.csv
 │   │   ├── ride_653DC0_001_summary.json
 │   │   ├── ride_653DC0_002.csv
@@ -321,6 +323,11 @@ buell-xb12x-logger/
 │   │   ├── ride_653DC0_005.csv
 │   │   ├── ride_653DC0_005_p2.csv
 │   │   ├── ride_653DC0_005_summary.json
+│   │   ├── ride_653DC0_006.csv
+│   │   ├── ride_653DC0_006_summary.json
+│   │   ├── ride_653DC0_007.csv
+│   │   ├── ride_653DC0_007_p2.csv
+│   │   ├── ride_653DC0_007_summary.json
 │   │   ├── session_metadata.json
 │   │   └── tuning_report_653DC0.json
 │   ├── 917900
@@ -462,6 +469,9 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md
 ├── ddfi2_logger.py
 ├── fix_server_rides.py.save.1
+├── fix_sort2.py
+├── fix_sort3.py
+├── fix_sort_utc.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
@@ -817,6 +827,18 @@ A new  |
 | Nombre | Valor |
 |--------|-------|
 | `_ECM_TABLE` | `None` |
+
+---
+
+### `fix_sort2.py`
+
+---
+
+### `fix_sort3.py`
+
+_Error al parsear: invalid syntax (<unknown>, line 2)_
+
+### `fix_sort_utc.py`
 
 ---
 
