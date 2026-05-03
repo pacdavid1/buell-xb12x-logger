@@ -43,7 +43,6 @@ table.dt td:first-child{text-align:left;color:var(--a2)}
 table.dt td:nth-child(2){color:var(--tx)}
 table.dt tr:hover td{background:rgba(255,255,255,.03)}
 .pos{color:#ff6060}.neg{color:#60b0ff}.neu{color:var(--dm)}
-.bar-cell{width:80px;padding:3px 4px}
 .bar-wrap{height:8px;background:rgba(255,255,255,.05);border-radius:1px;overflow:hidden;position:relative}
 .bar-fill{height:100%;border-radius:1px;position:absolute}
 .bar-pos{background:rgba(255,80,80,.7);right:50%}
@@ -96,12 +95,26 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
     <table class="dt" id="dtTable">
       <thead>
         <tr>
+          <th colspan="2" style="color:#888;text-align:center">CONTEXTO</th>
+          <th colspan="2" style="color:#888;text-align:center;border-right:1px solid var(--bd)">SAMPLES</th>
+          <th colspan="3" style="color:#f5a623;text-align:center;border-right:1px solid var(--bd)">FUEL FR</th>
+          <th colspan="3" style="color:#e8720a;text-align:center;border-right:1px solid var(--bd)">FUEL RR</th>
+          <th colspan="3" style="color:#3d9eff;text-align:center;border-right:1px solid var(--bd)">SPARK FR</th>
+          <th colspan="3" style="color:#60c0ff;text-align:center;border-right:1px solid var(--bd)">SPARK RR</th>
+          <th colspan="3" style="color:#33ff99;text-align:center;border-right:1px solid var(--bd)">ACCEL</th>
+          <th colspan="3" style="color:#ff9944;text-align:center;border-right:1px solid var(--bd)">VSS</th>
+          <th colspan="3" style="color:#ff4444;text-align:center">TEMP</th>
+        </tr>
+        <tr>
           <th>RPM</th><th>TPS%</th>
-          <th>N_A</th><th>N_B</th>
-          <th>ACC_A</th><th>ACC_B</th><th>dACC</th><th>PW_EFF_A</th><th>PW_EFF_B</th><th>dPW_EFF</th><th></th>
-          <th>SPK_A</th><th>SPK_B</th><th>dSPK</th>
-          <th>CLT_A</th><th>CLT_B</th>
-          <th>AFV_A</th><th>AFV_B</th>
+          <th>#A</th><th style="border-right:1px solid var(--bd)">#B</th>
+          <th>A</th><th>B</th><th style="border-right:1px solid var(--bd)">dPW1</th>
+          <th>A</th><th>B</th><th style="border-right:1px solid var(--bd)">dPW2</th>
+          <th>A</th><th>B</th><th style="border-right:1px solid var(--bd)">dSPK1</th>
+          <th>A</th><th>B</th><th style="border-right:1px solid var(--bd)">dSPK2</th>
+          <th>A</th><th>B</th><th style="border-right:1px solid var(--bd)">dACC</th>
+          <th>A</th><th>B</th><th style="border-right:1px solid var(--bd)">dVSS</th>
+          <th>CLT_A</th><th>CLT_B</th><th>dCLT</th>
         </tr>
       </thead>
       <tbody id="dtBody"></tbody>
@@ -252,13 +265,14 @@ function renderMode(){
       +'Mapa B gana <span style="color:#ff6060">'+bW+'/'+rows.length+'</span> | '
       +'dACC prom: <span style="color:var(--bl)">'+(avg>=0?'+':'')+avg.toFixed(3)+' km/h/s</span>';
   }else{
-    var aW=rows.filter(function(r){return r.dpw_eff<0}).length;
-    var bW=rows.filter(function(r){return r.dpw_eff>0}).length;
-    var avg=rows.length?rows.reduce(function(s,r){return s+r.dpw_eff},0)/rows.length:0;
+    var pwAvg=function(r){return(r.dpw1+r.dpw2)/2};
+    var aW=rows.filter(function(r){return pwAvg(r)<0}).length;
+    var bW=rows.filter(function(r){return pwAvg(r)>0}).length;
+    var avg=rows.length?rows.reduce(function(s,r){return s+pwAvg(r)},0)/rows.length:0;
     sumEl.innerHTML='<span style="color:var(--a2)">ECO</span> — '
       +'Mapa A gana <span style="color:#33ff99">'+aW+'/'+rows.length+'</span> | '
       +'Mapa B gana <span style="color:#ff6060">'+bW+'/'+rows.length+'</span> | '
-      +'dPW_EFF prom: <span style="color:var(--bl)">'+(avg>=0?'+':'')+avg.toFixed(3)+' ms</span>';
+      +'dPW prom: <span style="color:var(--bl)">'+(avg>=0?'+':'')+avg.toFixed(3)+' ms</span>';
   }
   renderTableRows(rows);
 }
@@ -275,35 +289,37 @@ function renderTableRows(rows){
   if(!rows.length){noData.style.display='block';table.style.display='none';return}
   noData.style.display='none';
   table.style.display='table';
-  var maxDpw=Math.max.apply(null,rows.map(function(r){return Math.abs(r.dpw_eff)}))||1;
   var html='';
   for(var i=0;i<rows.length;i++){
     var r=rows[i];
-    var dpwCls=r.dpw_eff>0.1?'pos':r.dpw_eff<-0.1?'neg':'neu';
-    var dspkCls=r.dspk>0.5?'pos':r.dspk<-0.5?'neg':'neu';
-    var barPct=Math.min(Math.abs(r.dpw_eff)/maxDpw*50,50);
-    var barHtml=r.dpw_eff>=0
-      ?'<div class="bar-fill bar-pos" style="width:'+barPct+'%"></div>'
-      :'<div class="bar-fill bar-neg" style="width:'+barPct+'%"></div>';
+
+
     var cltBias=Math.abs(r.dclt||0)>5;
     html+='<tr'+(cltBias?' style="background:rgba(245,166,35,0.07)"':'')+'>'      +'<td>'+(cltBias?'<span title="dCLT='+r.dclt+'°" style="color:var(--a2)">⚠ </span>':'')+r.rpm+'</td>'
       +'<td>'+r.tps+'%</td>'
       +'<td class="n-badge">'+r.na+'</td>'
-      +'<td class="n-badge">'+r.nb+'</td>'
-      +'<td style="color:var(--dm)">'+r.dvss_a.toFixed(3)+'</td>'
-      +'<td style="color:var(--tx)">'+r.dvss_b.toFixed(3)+'</td>'
-      +'<td class="'+(r.ddvss>0.05?'neg':r.ddvss<-0.05?'pos':'neu')+'">'+(r.ddvss>=0?'+':'')+r.ddvss.toFixed(3)+'</td>'
-      +'<td>'+r.pw_eff_a.toFixed(2)+'</td>'
-      +'<td>'+r.pw_eff_b.toFixed(2)+'</td>'
-      +'<td class="'+dpwCls+'">'+(r.dpw_eff>=0?'+':'')+r.dpw_eff.toFixed(3)+'</td>'
-      +'<td class="bar-cell"><div class="bar-wrap">'+barHtml+'</div></td>'
-      +'<td>'+r.spark_a.toFixed(1)+'</td>'
-      +'<td>'+r.spark_b.toFixed(1)+'</td>'
-      +'<td class="'+dspkCls+'">'+(r.dspk>=0?'+':'')+r.dspk.toFixed(2)+'</td>'
-      +'<td>'+r.clt_a.toFixed(0)+'</td>'
-      +'<td>'+r.clt_b.toFixed(0)+'</td>'
-      +'<td>'+r.afv_a.toFixed(1)+'</td>'
-      +'<td>'+r.afv_b.toFixed(1)+'</td>'
+      +'<td class="n-badge" style="border-right:1px solid var(--bd)">'+r.nb+'</td>'
+      +'<td style="color:#f5a623">'+r.pw1_a.toFixed(2)+'</td>'
+      +'<td style="color:#f5a623">'+r.pw1_b.toFixed(2)+'</td>'
+      +'<td class="'+(r.dpw1>0.1?'pos':r.dpw1<-0.1?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dpw1>=0?'+':'')+r.dpw1.toFixed(3)+'</td>'
+      +'<td style="color:#e8720a">'+r.pw2_a.toFixed(2)+'</td>'
+      +'<td style="color:#e8720a">'+r.pw2_b.toFixed(2)+'</td>'
+      +'<td class="'+(r.dpw2>0.1?'pos':r.dpw2<-0.1?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dpw2>=0?'+':'')+r.dpw2.toFixed(3)+'</td>'
+      +'<td style="color:#3d9eff">'+r.spk1_a.toFixed(1)+'</td>'
+      +'<td style="color:#3d9eff">'+r.spk1_b.toFixed(1)+'</td>'
+      +'<td class="'+(r.dspk1>0.5?'pos':r.dspk1<-0.5?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dspk1>=0?'+':'')+r.dspk1.toFixed(2)+'</td>'
+      +'<td style="color:#60c0ff">'+r.spk2_a.toFixed(1)+'</td>'
+      +'<td style="color:#60c0ff">'+r.spk2_b.toFixed(1)+'</td>'
+      +'<td class="'+(r.dspk2>0.5?'pos':r.dspk2<-0.5?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dspk2>=0?'+':'')+r.dspk2.toFixed(2)+'</td>'
+      +'<td style="color:#33ff99">'+r.dvss_a.toFixed(3)+'</td>'
+      +'<td style="color:#33ff99">'+r.dvss_b.toFixed(3)+'</td>'
+      +'<td class="'+(r.ddvss>0.05?'pos':r.ddvss<-0.05?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.ddvss>=0?'+':'')+r.ddvss.toFixed(3)+'</td>'
+      +'<td style="color:#ff9944">'+(r.spd_a!=null?r.spd_a.toFixed(1):'—')+'</td>'
+      +'<td style="color:#ff9944">'+(r.spd_b!=null?r.spd_b.toFixed(1):'—')+'</td>'
+      +'<td class="'+(r.dspd!=null&&r.dspd>0.5?'pos':r.dspd!=null&&r.dspd<-0.5?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dspd!=null?(r.dspd>=0?'+':'')+r.dspd.toFixed(1):'—')+'</td>'
+      +'<td style="color:#ff4444">'+r.clt_a.toFixed(0)+'</td>'
+      +'<td style="color:#ff4444">'+r.clt_b.toFixed(0)+'</td>'
+      +'<td class="'+(cltBias?'pos':'neu')+'">'+(r.dclt>=0?'+':'')+r.dclt.toFixed(1)+'</td>'
       +'</tr>';
   }
   tbody.innerHTML=html;
