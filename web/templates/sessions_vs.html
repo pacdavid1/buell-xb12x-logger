@@ -93,7 +93,7 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
         <tr>
           <th>RPM</th><th>TPS%</th>
           <th>N_A</th><th>N_B</th>
-          <th>PW_A</th><th>PW_B</th><th>dPW</th><th></th>
+          <th>ACC_A</th><th>ACC_B</th><th>dACC</th><th>PW_EFF_A</th><th>PW_EFF_B</th><th>dPW_EFF</th><th></th>
           <th>SPK_A</th><th>SPK_B</th><th>dSPK</th>
           <th>CLT_A</th><th>CLT_B</th>
           <th>AFV_A</th><th>AFV_B</th>
@@ -161,16 +161,30 @@ function renderFlavors(id,meta){
   var f=meta.flavors||{};
   var total=Object.values(f).reduce(function(a,b){return a+b},0)||1;
   var order=['SWEET','SALTY_UP','SALTY_DOWN','SPICY_WOT','SPICY_TIPIN','SPICY_TIPOUT','BITTER'];
-  var html='<div class="fl">'+meta.id+' — '+meta.version+'</div>';
-  html+='<div style="font-family:var(--mn);font-size:7px;color:var(--dm);margin-bottom:4px">'
-    +meta.created+' · '+meta.rides+' rides · '+meta.samples.toLocaleString()+' muestras</div>';
+  var html='<div style="font-family:var(--mn);font-size:8px;color:var(--a2);font-weight:700;margin-bottom:3px">'
+    +meta.id+' <span style="color:var(--dm);font-weight:400">'+meta.version
+    +' · '+meta.created+' · '+meta.rides+'r · '+meta.samples.toLocaleString()+'</span></div>';
+  // barra apilada
+  html+='<div style="display:flex;height:6px;border-radius:2px;overflow:hidden;margin-bottom:4px">';
+  for(var i=0;i<order.length;i++){
+    var k=order[i],v=f[k]||0;
+    if(!v)continue;
+    var pct=v/total*100;
+    html+='<div title="'+k+': '+v.toLocaleString()+' ('+Math.round(pct)+'%)" style="width:'+pct+'%;background:'+flavorColor(k)+';"></div>';
+  }
+  html+='</div>';
+  // leyenda inline
+  html+='<div style="display:flex;flex-wrap:wrap;gap:4px 8px;">';
   for(var i=0;i<order.length;i++){
     var k=order[i],v=f[k]||0;
     if(!v)continue;
     var pct=Math.round(v/total*100);
-    html+='<div class="fv"><span style="color:'+flavorColor(k)+'">'+k
-      +'</span><span>'+v.toLocaleString()+' ('+pct+'%)</span></div>';
+    html+='<span style="font-family:var(--mn);font-size:7px;white-space:nowrap">'
+      +'<span style="color:'+flavorColor(k)+'">&#9632;</span> '
+      +'<span style="color:var(--tx)">'+k+'</span> '
+      +'<span style="color:var(--dm)">'+v.toLocaleString()+' ('+pct+'%)</span></span>';
   }
+  html+='</div>';
   el.innerHTML=html;
 }
 
@@ -214,14 +228,14 @@ function renderTable(flavor){
   if(!rows.length){noData.style.display='block';table.style.display='none';return}
   noData.style.display='none';
   table.style.display='table';
-  var maxDpw=Math.max.apply(null,rows.map(function(r){return Math.abs(r.dpw)}))||1;
+  var maxDpw=Math.max.apply(null,rows.map(function(r){return Math.abs(r.dpw_eff)}))||1;
   var html='';
   for(var i=0;i<rows.length;i++){
     var r=rows[i];
-    var dpwCls=r.dpw>0.1?'pos':r.dpw<-0.1?'neg':'neu';
+    var dpwCls=r.dpw_eff>0.1?'pos':r.dpw_eff<-0.1?'neg':'neu';
     var dspkCls=r.dspk>0.5?'pos':r.dspk<-0.5?'neg':'neu';
-    var barPct=Math.min(Math.abs(r.dpw)/maxDpw*50,50);
-    var barHtml=r.dpw>=0
+    var barPct=Math.min(Math.abs(r.dpw_eff)/maxDpw*50,50);
+    var barHtml=r.dpw_eff>=0
       ?'<div class="bar-fill bar-pos" style="width:'+barPct+'%"></div>'
       :'<div class="bar-fill bar-neg" style="width:'+barPct+'%"></div>';
     html+='<tr>'
@@ -229,9 +243,12 @@ function renderTable(flavor){
       +'<td>'+r.tps+'%</td>'
       +'<td class="n-badge">'+r.na+'</td>'
       +'<td class="n-badge">'+r.nb+'</td>'
-      +'<td>'+r.pw_a.toFixed(2)+'</td>'
-      +'<td>'+r.pw_b.toFixed(2)+'</td>'
-      +'<td class="'+dpwCls+'">'+(r.dpw>=0?'+':'')+r.dpw.toFixed(3)+'</td>'
+      +'<td style="color:var(--dm)">'+r.dvss_a.toFixed(3)+'</td>'
+      +'<td style="color:var(--tx)">'+r.dvss_b.toFixed(3)+'</td>'
+      +'<td class="'+(r.ddvss>0.05?'neg':r.ddvss<-0.05?'pos':'neu')+'">'+(r.ddvss>=0?'+':'')+r.ddvss.toFixed(3)+'</td>'
+      +'<td>'+r.pw_eff_a.toFixed(2)+'</td>'
+      +'<td>'+r.pw_eff_b.toFixed(2)+'</td>'
+      +'<td class="'+dpwCls+'">'+(r.dpw_eff>=0?'+':'')+r.dpw_eff.toFixed(3)+'</td>'
       +'<td class="bar-cell"><div class="bar-wrap">'+barHtml+'</div></td>'
       +'<td>'+r.spark_a.toFixed(1)+'</td>'
       +'<td>'+r.spark_b.toFixed(1)+'</td>'
