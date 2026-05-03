@@ -80,12 +80,17 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
     <div class="fc" id="fcB"></div>
   </div>
   <div class="ftabs" id="ftabs" style="display:none">
-    <button class="ftab on" data-f="SWEET" onclick="showFlavor(this)">SWEET</button>
-    <button class="ftab" data-f="SALTY_UP" onclick="showFlavor(this)">SALTY UP</button>
-    <button class="ftab" data-f="SALTY_DOWN" onclick="showFlavor(this)">SALTY DWN</button>
-    <button class="ftab" data-f="SPICY_WOT" onclick="showFlavor(this)">WOT</button>
-    <button class="ftab" data-f="SPICY_TIPIN" onclick="showFlavor(this)">TIP-IN</button>
+    <button class="ftab on" data-mode="SPORT" onclick="setMode(this)">&#9889; SPORT</button>
+    <button class="ftab" data-mode="ECO" onclick="setMode(this)">&#9680; ECO</button>
+    <button class="ftab" data-mode="ALL" onclick="setMode(this)">ALL</button>
+    <span style="flex:1"></span>
+    <button class="ftab" data-f="SWEET" id="fSWEET" onclick="showFlavor(this)" style="display:none">SWEET</button>
+    <button class="ftab" data-f="SALTY_UP" id="fSALTY_UP" onclick="showFlavor(this)" style="display:none">SALTY UP</button>
+    <button class="ftab" data-f="SALTY_DOWN" id="fSALTY_DOWN" onclick="showFlavor(this)" style="display:none">SALTY DWN</button>
+    <button class="ftab" data-f="SPICY_WOT" id="fSPICY_WOT" onclick="showFlavor(this)" style="display:none">WOT</button>
+    <button class="ftab" data-f="SPICY_TIPIN" id="fSPICY_TIPIN" onclick="showFlavor(this)" style="display:none">TIP-IN</button>
   </div>
+  <div id="modeSum" style="display:none;font-family:var(--mn);font-size:9px;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0"></div>
   <div class="dt-wrap" id="dtWrap" style="display:none">
     <div class="no-data" id="noData" style="display:none">Sin celdas comunes para este flavor</div>
     <table class="dt" id="dtTable">
@@ -104,7 +109,7 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
   </div>
 </div>
 <script>
-var _data=null,_curFlavor='SWEET';
+var _data=null,_curFlavor='SWEET',_curMode='SPORT',MIN_N=10;
 
 async function init(){
   try{
@@ -209,19 +214,61 @@ function render(){
   var msg=_data.common+' celdas comunes';
   if(_data._ms) msg+=' ('+_data._ms+'ms)';
   st(msg);
-  showFlavor(document.querySelector('.ftab.on'));
+  renderMode();
 }
 
+function setMode(btn){
+  document.querySelectorAll('.ftab[data-mode]').forEach(function(b){b.classList.remove('on')});
+  btn.classList.add('on');
+  _curMode=btn.dataset.mode;
+  var allF=document.querySelectorAll('.ftab[data-f]');
+  allF.forEach(function(b){b.style.display=_curMode==='ALL'?'':'none'});
+  document.getElementById('modeSum').style.display=_curMode==='ALL'?'none':'block';
+  if(_curMode==='ALL'){renderTable(_curFlavor);}else{renderMode();}
+}
 function showFlavor(btn){
-  document.querySelectorAll('.ftab').forEach(function(b){b.classList.remove('on')});
+  document.querySelectorAll('.ftab[data-f]').forEach(function(b){b.classList.remove('on')});
   btn.classList.add('on');
   _curFlavor=btn.dataset.f;
   renderTable(_curFlavor);
 }
+function renderMode(){
+  if(!_data)return;
+  var rows;
+  if(_curMode==='SPORT'){
+    rows=_data.delta.filter(function(r){return(r.flavor==='SPICY_WOT'||r.flavor==='SPICY_TIPIN')&&r.na>=MIN_N&&r.nb>=MIN_N});
+    rows.sort(function(a,b){return Math.abs(b.ddvss)-Math.abs(a.ddvss)});
+  }else{
+    rows=_data.delta.filter(function(r){return(r.flavor==='SWEET'||r.flavor==='SALTY_UP'||r.flavor==='SALTY_DOWN')&&r.na>=MIN_N&&r.nb>=MIN_N&&Math.abs(r.ddvss)<0.5});
+    rows.sort(function(a,b){return a.dpw_eff-b.dpw_eff});
+  }
+  var sumEl=document.getElementById('modeSum');
+  if(_curMode==='SPORT'){
+    var aW=rows.filter(function(r){return r.ddvss<0}).length;
+    var bW=rows.filter(function(r){return r.ddvss>0}).length;
+    var avg=rows.length?rows.reduce(function(s,r){return s+r.ddvss},0)/rows.length:0;
+    sumEl.innerHTML='<span style="color:var(--a2)">SPORT</span> — '
+      +'Mapa A gana <span style="color:#33ff99">'+aW+'/'+rows.length+'</span> | '
+      +'Mapa B gana <span style="color:#ff6060">'+bW+'/'+rows.length+'</span> | '
+      +'dACC prom: <span style="color:var(--bl)">'+(avg>=0?'+':'')+avg.toFixed(3)+' km/h/s</span>';
+  }else{
+    var aW=rows.filter(function(r){return r.dpw_eff<0}).length;
+    var bW=rows.filter(function(r){return r.dpw_eff>0}).length;
+    var avg=rows.length?rows.reduce(function(s,r){return s+r.dpw_eff},0)/rows.length:0;
+    sumEl.innerHTML='<span style="color:var(--a2)">ECO</span> — '
+      +'Mapa A gana <span style="color:#33ff99">'+aW+'/'+rows.length+'</span> | '
+      +'Mapa B gana <span style="color:#ff6060">'+bW+'/'+rows.length+'</span> | '
+      +'dPW_EFF prom: <span style="color:var(--bl)">'+(avg>=0?'+':'')+avg.toFixed(3)+' ms</span>';
+  }
+  renderTableRows(rows);
+}
 
 function renderTable(flavor){
   if(!_data)return;
-  var rows=_data.delta.filter(function(r){return r.flavor===flavor});
+  var rows=_data.delta.filter(function(r){return r.flavor===flavor&&r.flavor!=='SPICY_TIPOUT'});
+  renderTableRows(rows);
+}
+function renderTableRows(rows){
   var tbody=document.getElementById('dtBody');
   var noData=document.getElementById('noData');
   var table=document.getElementById('dtTable');
@@ -238,8 +285,8 @@ function renderTable(flavor){
     var barHtml=r.dpw_eff>=0
       ?'<div class="bar-fill bar-pos" style="width:'+barPct+'%"></div>'
       :'<div class="bar-fill bar-neg" style="width:'+barPct+'%"></div>';
-    html+='<tr>'
-      +'<td>'+r.rpm+'</td>'
+    var cltBias=Math.abs(r.dclt||0)>5;
+    html+='<tr'+(cltBias?' style="background:rgba(245,166,35,0.07)"':'')+'>'      +'<td>'+(cltBias?'<span title="dCLT='+r.dclt+'°" style="color:var(--a2)">⚠ </span>':'')+r.rpm+'</td>'
       +'<td>'+r.tps+'%</td>'
       +'<td class="n-badge">'+r.na+'</td>'
       +'<td class="n-badge">'+r.nb+'</td>'
