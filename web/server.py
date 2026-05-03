@@ -678,7 +678,9 @@ def _compare_sessions(buell_dir, sa, sb):
                         'tps':  sf(r.get('TPS_pct') or r.get('TPD', 0)),
                         'clt':  sf(r['CLT']),
                         'pw1':  sf(r['pw1']),
-                        'spark':sf(r['spark1']),
+                        'pw2':  sf(r.get('pw2', 0)),
+                        'spark1':sf(r['spark1']),
+                        'spark2':sf(r.get('spark2', sf(r['spark1']))),
                         'afv':  sf(r.get('AFV', 100)),
                         'wue':  sf(r.get('WUE', 100)),
                         'ae':   sf(r.get('Accel_Corr', 100)),
@@ -728,7 +730,7 @@ def _compare_sessions(buell_dir, sa, sb):
         return 'SWEET'
 
     def build_index(rows):
-        idx = defaultdict(lambda: {'n':0,'pw':0,'spark':0,'clt':0,'afv':0,'drpm':0,'spd':0,'dvss':0,'pw_eff':0})
+        idx = defaultdict(lambda: {'n':0,'pw1':0,'pw2':0,'spark1':0,'spark2':0,'clt':0,'afv':0,'drpm':0,'spd':0,'dvss':0,'pw_eff':0})
         fc  = defaultdict(int)
         for r in rows:
             fl = classify(r)
@@ -739,14 +741,16 @@ def _compare_sessions(buell_dir, sa, sb):
             k  = (fl, rb, tb)
             c  = idx[k]
             c['n']    += 1
-            c['pw']   += r['pw1']
-            c['spark']+= r['spark']
+            c['pw1']  += r['pw1']
+            c['pw2']  += r['pw2']
+            c['spark1']+= r['spark1']
+            c['spark2']+= r['spark2']
             c['clt']  += r['clt']
             c['afv']  += r['afv']
             c['drpm'] += abs(r.get('drpm',0))
             c['spd']  += r['spd']
             c['dvss'] += r.get('dvss', 0)
-            c['pw_eff'] += r['pw1'] * r['afv'] / 100.0
+            c['pw_eff'] += ((r['pw1']+r['pw2'])/2) * r['afv'] / 100.0
         result = {}
         for k,c in idx.items():
             n = c['n']
@@ -755,8 +759,10 @@ def _compare_sessions(buell_dir, sa, sb):
                 'rpm_lo': RPM_BINS[k[1]], 'rpm_hi': RPM_BINS[k[1]+1],
                 'tps_lo': TPS_BINS[k[2]], 'tps_hi': TPS_BINS[k[2]+1],
                 'n': n,
-                'pw':    round(c['pw']/n, 3),
-                'spark': round(c['spark']/n, 2),
+                'pw1':   round(c['pw1']/n, 3),
+                'pw2':   round(c['pw2']/n, 3),
+                'spark1':round(c['spark1']/n, 2),
+                'spark2':round(c['spark2']/n, 2),
                 'clt':   round(c['clt']/n, 1),
                 'afv':   round(c['afv']/n, 1),
                 'drpm':  round(c['drpm']/n, 1),
@@ -789,12 +795,10 @@ def _compare_sessions(buell_dir, sa, sb):
             'tps_lo':   a['tps_lo'],
             'na':       a['n'],
             'nb':       b['n'],
-            'pw_a':     a['pw'],
-            'pw_b':     b['pw'],
-            'dpw':      round(b['pw'] - a['pw'], 3),
-            'spark_a':  a['spark'],
-            'spark_b':  b['spark'],
-            'dspk':     round(b['spark'] - a['spark'], 2),
+            'pw1_a':    a['pw1'],   'pw1_b':    b['pw1'],   'dpw1':   round(b['pw1']-a['pw1'],3),
+            'pw2_a':    a['pw2'],   'pw2_b':    b['pw2'],   'dpw2':   round(b['pw2']-a['pw2'],3),
+            'spk1_a':   a['spark1'],'spk1_b':   b['spark1'],'dspk1':  round(b['spark1']-a['spark1'],2),
+            'spk2_a':   a['spark2'],'spk2_b':   b['spark2'],'dspk2':  round(b['spark2']-a['spark2'],2),
             'clt_a':    a['clt'],
             'clt_b':    b['clt'],
             'dclt':     round(b['clt'] - a['clt'], 1),
