@@ -699,12 +699,13 @@ def _compare_sessions(buell_dir, sa, sb):
             if 0 < dt < 2.0:
                 rows[i]['drpm'] = (rows[i]['rpm'] - rows[i-1]['rpm']) / dt
                 rows[i]['dtps'] = (rows[i]['tps'] - rows[i-1]['tps']) / dt
+                rows[i]['dvss'] = (rows[i]['spd'] - rows[i-1]['spd']) / dt
                 a0, a1 = rows[i-1]['alt'], rows[i]['alt']
                 rows[i]['dalt'] = (a1-a0)/dt if a0 is not None and a1 is not None else None
             else:
-                rows[i]['drpm'] = rows[i]['dtps'] = 0.0
+                rows[i]['drpm'] = rows[i]['dtps'] = rows[i]['dvss'] = 0.0
                 rows[i]['dalt'] = None
-        if rows: rows[0]['drpm'] = rows[0]['dtps'] = 0.0; rows[0]['dalt'] = None
+        if rows: rows[0]['drpm'] = rows[0]['dtps'] = rows[0]['dvss'] = 0.0; rows[0]['dalt'] = None
 
     def classify(r):
         if not r['fl_eng'] or r['fl_fc']: return 'BITTER'
@@ -727,7 +728,7 @@ def _compare_sessions(buell_dir, sa, sb):
         return 'SWEET'
 
     def build_index(rows):
-        idx = defaultdict(lambda: {'n':0,'pw':0,'spark':0,'clt':0,'afv':0,'drpm':0,'spd':0})
+        idx = defaultdict(lambda: {'n':0,'pw':0,'spark':0,'clt':0,'afv':0,'drpm':0,'spd':0,'dvss':0,'pw_eff':0})
         fc  = defaultdict(int)
         for r in rows:
             fl = classify(r)
@@ -744,6 +745,8 @@ def _compare_sessions(buell_dir, sa, sb):
             c['afv']  += r['afv']
             c['drpm'] += abs(r.get('drpm',0))
             c['spd']  += r['spd']
+            c['dvss'] += r.get('dvss', 0)
+            c['pw_eff'] += r['pw1'] * r['afv'] / 100.0
         result = {}
         for k,c in idx.items():
             n = c['n']
@@ -758,6 +761,8 @@ def _compare_sessions(buell_dir, sa, sb):
                 'afv':   round(c['afv']/n, 1),
                 'drpm':  round(c['drpm']/n, 1),
                 'spd':   round(c['spd']/n, 1),
+                'dvss':  round(c['dvss']/n, 3),
+                'pw_eff':round(c['pw_eff']/n, 3),
             }
         return result, dict(fc)
 
@@ -795,6 +800,12 @@ def _compare_sessions(buell_dir, sa, sb):
             'dclt':     round(b['clt'] - a['clt'], 1),
             'afv_a':    a['afv'],
             'afv_b':    b['afv'],
+            'dvss_a':   a['dvss'],
+            'dvss_b':   b['dvss'],
+            'ddvss':    round(b['dvss'] - a['dvss'], 3),
+            'pw_eff_a': a['pw_eff'],
+            'pw_eff_b': b['pw_eff'],
+            'dpw_eff':  round(b['pw_eff'] - a['pw_eff'], 3),
         })
     delta.sort(key=lambda x: (x['flavor'], -(x['na']+x['nb'])))
 
