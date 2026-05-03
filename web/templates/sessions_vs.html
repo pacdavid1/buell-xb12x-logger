@@ -177,12 +177,14 @@ function renderFlavors(id,meta){
 function render(){
   if(!_data)return;
   var tag=document.getElementById('bikeTag');
+  var sa=_data.bike_serial_a?'#'+_data.bike_serial_a:'?';
+  var sb=_data.bike_serial_b?'#'+_data.bike_serial_b:'?';
   if(_data.same_bike){
     tag.className='bike-tag bike-same';
-    tag.textContent='MISMA MOTO ✓';
+    tag.textContent='MISMA MOTO '+sa+' ✓';
   }else{
     tag.className='bike-tag bike-diff';
-    tag.textContent='MOTOS DISTINTAS ⚠';
+    tag.textContent='MOTOS DISTINTAS '+sa+' vs '+sb+' ⚠';
   }
   renderFlavors('fcA',_data.sa);
   renderFlavors('fcB',_data.sb);

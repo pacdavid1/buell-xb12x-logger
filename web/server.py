@@ -647,9 +647,18 @@ def _compare_sessions(buell_dir, sa, sb):
     def load_meta(sid):
         import json as _json
         mp = buell_dir / 'sessions' / sid / 'session_metadata.json'
+        meta = {}
         if mp.exists():
-            with open(mp) as f: return _json.load(f)
-        return {}
+            with open(mp) as f: meta = _json.load(f)
+        # leer serial del eeprom.bin para identificar moto
+        ep = buell_dir / 'sessions' / sid / 'eeprom.bin'
+        if ep.exists():
+            try:
+                b = ep.read_bytes()
+                if len(b) >= 14:
+                    meta['bike_serial'] = int.from_bytes(b[12:14], 'little')
+            except: pass
+        return meta
 
     def load_csv(sid):
         rows = []
@@ -796,7 +805,9 @@ def _compare_sessions(buell_dir, sa, sb):
         'sb': {'id': sb, 'checksum': mb.get('checksum','?'), 'version': mb.get('version_string','?'),
                'created': mb.get('created_utc','')[:10], 'rides': mb.get('total_rides',0),
                'samples': len(rb), 'flavors': fcb},
-        'same_bike': ma.get('checksum') == mb.get('checksum'),
+        'same_bike': ma.get('bike_serial') is not None and ma.get('bike_serial') == mb.get('bike_serial'),
+        'bike_serial_a': ma.get('bike_serial'),
+        'bike_serial_b': mb.get('bike_serial'),
         'common': len(common),
         'delta': delta,
     }
