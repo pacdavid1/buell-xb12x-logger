@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-02 12:34 | versión: v1.16.3-277-g56f2392
+> Última actualización: 2026-05-03 00:05 | versión: v1.16.3-278-g5474d51
 
 ---
 
@@ -449,14 +449,7 @@ buell-xb12x-logger/
 │   └── test_ecu.py.save
 ├── web
 │   ├── templates
-│   │   ├── index.bak2
-│   │   ├── index.bak3
-│   │   ├── index.bak_grad
-│   │   ├── index.bak_stops
 │   │   ├── index.html
-│   │   ├── index.html.bak_charts
-│   │   ├── index.html.bak_map
-│   │   ├── index.html.bak_map2
 │   │   ├── sessions_vs.html
 │   │   └── tuner.html
 │   ├── __init__.py
@@ -468,16 +461,10 @@ buell-xb12x-logger/
 ├── DEV_TIPS.md
 ├── README.md
 ├── WORKING_METHOD.md
-├── bin_events.py
-├── classify_samples.py
 ├── ddfi2_logger.py
-├── fix_server_rides.py.save.1
 ├── install.sh
 ├── main.py
-├── network_state.json
-├── objectives.json
-├── tps_cal.json
-└── vss_cal.json
+└── objectives.json
 ```
 
 ---
@@ -494,28 +481,6 @@ buell-xb12x-logger/
 ---
 
 ## Módulos Python
-
-### `bin_events.py`
-
-**Constantes**
-
-| Nombre | Valor |
-|--------|-------|
-| `RPM_BINS` | `[800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000, 6400, 6800]` |
-| `TPS_BINS` | `[0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 101]` |
-
----
-
-### `classify_samples.py`
-
-**Constantes**
-
-| Nombre | Valor |
-|--------|-------|
-| `RPM_BINS` | `[800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000, 6400, 6800]` |
-| `TPS_BINS` | `[0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 101]` |
-
----
 
 ### `ddfi2_logger.py`
 

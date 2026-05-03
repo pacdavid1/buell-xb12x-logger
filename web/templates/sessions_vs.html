@@ -71,6 +71,7 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
       </div>
       <span class="bike-tag" id="bikeTag">—</span>
       <button class="btn" id="btnCmp" onclick="compare()" disabled>COMPARAR</button>
+      <button class="btn" id="btnDl" onclick="download()" disabled style="background:var(--bl)">JSON</button>
     </div>
     <div id="st">Cargando sesiones...</div>
   </div>
@@ -188,6 +189,7 @@ function render(){
   document.getElementById('fsum').style.display='flex';
   document.getElementById('ftabs').style.display='flex';
   document.getElementById('dtWrap').style.display='block';
+  document.getElementById('btnDl').disabled=false;
   var msg=_data.common+' celdas comunes';
   if(_data._ms) msg+=' ('+_data._ms+'ms)';
   st(msg);
@@ -241,6 +243,14 @@ function renderTable(flavor){
   tbody.innerHTML=html;
 }
 
+function download(){
+  if(!_data)return;
+  var blob=new Blob([JSON.stringify(_data,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='sessions_vs_'+_data.sa.id+'_'+_data.sb.id+'.json';
+  a.click();
+}
 document.getElementById('sA').onchange=onSelect;
 document.getElementById('sB').onchange=onSelect;
 init();
