@@ -119,7 +119,7 @@ async function init(){
     var r=await fetch('/tuner/sessions');var d=await r.json();
     if(!d.sessions||!d.sessions.length){st('No hay sesiones con mapas');return}
   var o='<option value="">--</option>';
-    for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];o+='<option value="'+s.id+'">'+s.id+' (S'+(s.serial||'?')+') '+s.created+' '+s.rides+'r</option>'}
+    for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];var sm=s.samples>=1000?(s.samples/1000).toFixed(1)+'k':s.samples;o+='<option value="'+s.id+'">'+s.id+' (S'+(s.serial||'?')+') '+s.created+' '+s.rides+'r·'+sm+'</option>'}
     document.getElementById('sB').innerHTML=o;document.getElementById('sM').innerHTML=o;
     st(d.sessions.length+' sesiones validas');
   }catch(e){st('Error: '+e.message)}
