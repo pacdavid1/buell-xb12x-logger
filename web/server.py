@@ -703,11 +703,23 @@ def _compare_sessions(buell_dir, sa, sb):
                 rows[i]['dtps'] = (rows[i]['tps'] - rows[i-1]['tps']) / dt
                 rows[i]['dvss'] = (rows[i]['spd'] - rows[i-1]['spd']) / dt
                 a0, a1 = rows[i-1]['alt'], rows[i]['alt']
-                rows[i]['dalt'] = (a1-a0)/dt if a0 is not None and a1 is not None else None
+                if a0 is not None and a1 is not None:
+                    dalt = a1 - a0
+                    # slope = dAlt/dDist — pendiente real sin dimension
+                    spd_ms = (rows[i]['spd'] + rows[i-1]['spd']) / 2 / 3.6
+                    ddist = spd_ms * dt
+                    rows[i]['dalt'] = dalt / dt  # m/s para clasificacion
+                    rows[i]['slope'] = dalt / ddist if ddist > 0.1 else 0.0
+                else:
+                    rows[i]['dalt'] = None
+                    rows[i]['slope'] = None
             else:
                 rows[i]['drpm'] = rows[i]['dtps'] = rows[i]['dvss'] = 0.0
                 rows[i]['dalt'] = None
-        if rows: rows[0]['drpm'] = rows[0]['dtps'] = rows[0]['dvss'] = 0.0; rows[0]['dalt'] = None
+                rows[i]['slope'] = None
+        if rows:
+            rows[0]['drpm'] = rows[0]['dtps'] = rows[0]['dvss'] = 0.0
+            rows[0]['dalt'] = rows[0]['slope'] = None
 
     def classify(r):
         if not r['fl_eng'] or r['fl_fc']: return 'BITTER'
@@ -730,7 +742,13 @@ def _compare_sessions(buell_dir, sa, sb):
         return 'SWEET'
 
     def build_index(rows):
-        idx = defaultdict(lambda: {'n':0,'pw1':0,'pw2':0,'spark1':0,'spark2':0,'clt':0,'afv':0,'drpm':0,'spd':0,'dvss':0,'pw_eff':0})
+        idx = defaultdict(lambda: {
+            'n':0,'pw1':0,'pw2':0,'spark1':0,'spark2':0,'clt':0,'afv':0,
+            'drpm':0,'spd':0,'dvss':0,'pw_eff':0,'gear':0,
+            'dalt':0,'dalt_n':0,'slope':0,'slope_n':0,
+            # Welford online para std_rpm y std_tps
+            'rpm_m':0.0,'rpm_m2':0.0,'tps_m':0.0,'tps_m2':0.0,
+        })
         fc  = defaultdict(int)
         for r in rows:
             fl = classify(r)
@@ -751,6 +769,21 @@ def _compare_sessions(buell_dir, sa, sb):
             c['spd']  += r['spd']
             c['dvss'] += r.get('dvss', 0)
             c['pw_eff'] += ((r['pw1']+r['pw2'])/2) * r['afv'] / 100.0
+            c['gear']  += r.get('gear', 0)
+            if r.get('dalt') is not None:
+                c['dalt']   += r['dalt']
+                c['dalt_n'] += 1
+            if r.get('slope') is not None:
+                c['slope']   += r['slope']
+                c['slope_n'] += 1
+            # Welford online std_rpm
+            n2 = c['n']
+            delta_rpm = r['rpm'] - c['rpm_m']
+            c['rpm_m']  += delta_rpm / n2
+            c['rpm_m2'] += delta_rpm * (r['rpm'] - c['rpm_m'])
+            delta_tps = r['tps'] - c['tps_m']
+            c['tps_m']  += delta_tps / n2
+            c['tps_m2'] += delta_tps * (r['tps'] - c['tps_m'])
         result = {}
         for k,c in idx.items():
             n = c['n']
@@ -769,6 +802,11 @@ def _compare_sessions(buell_dir, sa, sb):
                 'spd':   round(c['spd']/n, 1),
                 'dvss':  round(c['dvss']/n, 3),
                 'pw_eff':round(c['pw_eff']/n, 3),
+                'gear':  round(c['gear']/n, 1),
+                'dalt':  round(c['dalt']/c['dalt_n'], 2) if c['dalt_n']>0 else None,
+                'slope': round(c['slope']/c['slope_n'], 4) if c['slope_n']>0 else None,
+                'std_rpm': round((c['rpm_m2']/n)**0.5, 1) if n>1 else 0.0,
+                'std_tps': round((c['tps_m2']/n)**0.5, 2) if n>1 else 0.0,
             }
         return result, dict(fc)
 
@@ -810,6 +848,16 @@ def _compare_sessions(buell_dir, sa, sb):
             'spd_a':    a['spd'],
             'spd_b':    b['spd'],
             'dspd':     round(b['spd'] - a['spd'], 1),
+            'gear_a':   a['gear'],
+            'gear_b':   b['gear'],
+            'dalt_a':   a['dalt'],
+            'dalt_b':   b['dalt'],
+            'slope_a':  a['slope'],
+            'slope_b':  b['slope'],
+            'std_rpm_a':a['std_rpm'],
+            'std_rpm_b':b['std_rpm'],
+            'std_tps_a':a['std_tps'],
+            'std_tps_b':b['std_tps'],
             'pw_eff_a': a['pw_eff'],
             'pw_eff_b': b['pw_eff'],
             'dpw_eff':  round(b['pw_eff'] - a['pw_eff'], 3),
