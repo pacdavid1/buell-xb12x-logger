@@ -108,7 +108,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             if not sa or not sb:
                 self._json({'error': 'Faltan sesiones'}, 400); return
             try:
-                self._json(_compare_sessions(self.server_instance.buell_dir, sa, sb))
+                self._json(_compare_sessions_cached(self.server_instance.buell_dir, sa, sb))
             except Exception as e:
                 self._json({'error': str(e)}, 500)
             return
@@ -628,6 +628,31 @@ class WebServer:
             self._server.shutdown()
 
 # ── Sessions VS comparison engine ─────────────────────────────────────────
+def _fmtk(n):
+    if n >= 1000: return f"{n/1000:.1f}k"
+    return str(n)
+def _compare_sessions_cached(buell_dir, sa, sb):
+    import json as _json
+    def _meta(sid):
+        mp = buell_dir / 'sessions' / sid / 'session_metadata.json'
+        if mp.exists():
+            with open(mp) as f: return _json.load(f)
+        return {}
+    ma, mb = _meta(sa), _meta(sb)
+    fname = f"sessions_vs_{sa}-{_fmtk(ma.get('total_samples',0))}_{sb}-{_fmtk(mb.get('total_samples',0))}.json"
+    cache_dir = buell_dir / 'sessions' / '_cache'
+    cache_file = cache_dir / fname
+    if cache_file.exists():
+        try:
+            return _json.load(open(cache_file))
+        except Exception:
+            pass
+    result = _compare_sessions(buell_dir, sa, sb)
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    with open(cache_file, 'w') as f:
+        _json.dump(result, f)
+    return result
+
 def _compare_sessions(buell_dir, sa, sb):
     import csv as _csv
     from collections import defaultdict
