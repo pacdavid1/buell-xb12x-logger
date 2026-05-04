@@ -74,7 +74,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         except: pass
                     else:
                         continue
-                    sessions.append({'id': d.parent.name, 'version': meta.get('version_string', '?'), 'rides': meta.get('total_rides', 0), 'created': meta.get('created_utc', '')[:10], 'serial': serial})
+                    sessions.append({'id': d.parent.name, 'version': meta.get('version_string', '?'), 'rides': meta.get('total_rides', 0), 'samples': meta.get('total_samples', 0), 'created': meta.get('created_utc', '')[:10], 'serial': serial})
                 except Exception: pass
             sessions.sort(key=lambda s: s['created'], reverse=True)
             self._json({'sessions': sessions})

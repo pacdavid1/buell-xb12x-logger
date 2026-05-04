@@ -134,7 +134,7 @@ async function init(){
     for(var i=0;i<d.sessions.length;i++){
       var s=d.sessions[i];
       var bike=s.serial?' #'+s.serial:'';
-      o+='<option value="'+s.id+'">'+s.id+bike+' — '+s.created+' ('+s.rides+'r)</option>';
+      o+='<option value="'+s.id+'">'+s.id+bike+' — '+s.created+' ('+s.samples.toLocaleString()+' muestras)</option>';
     }
     document.getElementById('sA').innerHTML=o;
     document.getElementById('sB').innerHTML=o;
@@ -182,7 +182,7 @@ function renderFlavors(id,meta){
   var order=['SWEET','SALTY_UP','SALTY_DOWN','SPICY_WOT','SPICY_TIPIN','SPICY_TIPOUT','BITTER'];
   var html='<div style="font-family:var(--mn);font-size:8px;color:var(--a2);font-weight:700;margin-bottom:3px">'
     +meta.id+' <span style="color:var(--dm);font-weight:400">'+meta.version
-    +' · '+meta.created+' · '+meta.rides+'r · '+meta.samples.toLocaleString()+'</span></div>';
+    +' · '+meta.created+' · '+meta.samples.toLocaleString()+' muestras</span></div>';
   // barra apilada
   html+='<div style="display:flex;height:6px;border-radius:2px;overflow:hidden;margin-bottom:4px">';
   for(var i=0;i<order.length;i++){
