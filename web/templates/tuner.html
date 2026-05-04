@@ -10,6 +10,7 @@ body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;
 .hd h1{font-size:16px;font-weight:900;color:#fff}
 .hd a{font-family:var(--mn);font-size:9px;color:var(--dm);text-decoration:none;border:1px solid var(--bd);padding:3px 6px;border-radius:2px}
 .hd a:hover{color:var(--bl);border-color:var(--bl)}
+.hd-links{display:flex;gap:6px}
 .w{flex:1;padding:0 6px;display:flex;flex-direction:column;gap:0;overflow:hidden}
 .cd{background:var(--p);border:1px solid var(--bd);padding:8px;border-radius:4px;flex-shrink:0}
 .cd h2{font-family:var(--mn);font-size:9px;color:var(--ac);letter-spacing:.1em;margin-bottom:5px;text-transform:uppercase}
@@ -47,7 +48,13 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 .vb:hover{color:var(--bl);border-color:var(--bl)}
 .vb.dm.on{color:var(--ac);border-color:var(--ac)}
 </style></head><body>
-<div class="hd"><h1>TUNER STUDIO</h1><a href="/">Dashboard</a></div>
+<div class="hd"><h1>BUELL LOGGER</h1>
+  <div class="hd-links">
+    <a href="/">Dashboard</a>
+    <a href="/sessions_vs">Sessions VS</a>
+    <a href="/tuner" style="color:var(--ac);border-color:var(--ac)">Tuner Studio</a>
+  </div>
+</div>
 <div class="w">
 <div class="cd">
 <h2>Comparador de Sesiones</h2>

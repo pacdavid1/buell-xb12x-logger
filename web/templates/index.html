@@ -21,6 +21,11 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 .hdr{background:var(--panel);border-bottom:2px solid var(--accent);
      padding:4px 10px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
 .hdr-row{display:flex;align-items:center;gap:8px;width:100%}
+.nav-links{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.nav-links a{font-family:var(--mono);font-size:8px;color:var(--dim);text-decoration:none;
+  border:1px solid var(--border);padding:2px 7px;border-radius:2px;letter-spacing:.06em;text-transform:uppercase}
+.nav-links a:hover{color:var(--blue);border-color:var(--blue)}
+.nav-links a.on{color:var(--accent);border-color:var(--accent)}
 .hdr-stats{display:flex;gap:0;flex:1;overflow:hidden}
 .hdr-comms{display:flex;gap:0;flex:1;overflow:hidden}
 .hs-sm{display:flex;flex-direction:column;align-items:center;padding:1px 8px;
@@ -210,6 +215,14 @@ table.veg td:active{filter:brightness(1.6)}
 
 <!-- HEADER -->
 <div class="hdr">
+  <div class="hdr-row" style="justify-content:space-between">
+    <div style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em">BUELL LOGGER</div>
+    <div class="nav-links">
+      <a href="/" class="on">Dashboard</a>
+      <a href="/sessions_vs">Sessions VS</a>
+      <a href="/tuner">Tuner Studio</a>
+    </div>
+  </div>
   <!-- Fila 1: parámetros de moto -->
   <div class="hdr-row">
     <div class="hdr-stats">
