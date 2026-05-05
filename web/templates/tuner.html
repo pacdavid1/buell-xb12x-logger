@@ -509,7 +509,9 @@ async function loadMerge(){
     var r=await fetch('/tuner/merge?a='+a+'&b='+b+'&mode='+mergeMode);
     var d=await r.json();
     if(d.error){st('Merge: '+d.error);mMerge=null;render();return}
-    mMerge=d;st('Merge OK: '+d.changed.join(', ')+' | '+d.cells_with_data+' celdas');
+    mMerge=d;
+    var warn=d.attributable?'':'⚠ NO ATRIBUIBLE: cambiaron fuel Y spark';
+    st('Merge OK: '+d.changed.join(', ')+' | '+d.cells_with_data+' celdas'+(warn?' '+warn:''));
     render();
   }catch(e){st('Error: '+e.message)}
 }

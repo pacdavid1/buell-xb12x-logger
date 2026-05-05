@@ -671,7 +671,9 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
     if not ac:
         return {'error':'Sin cambios entre sesiones','changed':[],'attributable':False}
     if fc and sc:
-        return {'error':'Cambiaron fuel Y spark, no atribuible','changed':ac,'attributable':False}
+        attr=False
+    else:
+        attr=True
     try:
         vd=_compare_sessions_cached(buell_dir,sa,sb)
         delta=vd.get('delta',[])
@@ -722,7 +724,7 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
             merged.append(row)
         result[ck]={'merged':merged,'axes':{'rpm':ra,'load':la},'stats':st,'base':mA[ck],'mod':mB[ck]}
     return {
-        'attributable':True,'changed':ac,
+        'attributable':attr,'changed':ac,
         'unchanged':[k for k in FK+SK if k not in ac],
         'mode':mode,'cells_with_data':len(ci),'maps':result
     }
