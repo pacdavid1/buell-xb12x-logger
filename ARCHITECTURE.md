@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-04 22:57 | versión: v1.16.3-293-gdfa7f1b
+> Última actualización: 2026-05-04 23:25 | versión: v1.16.3-294-gbf259a3
 
 ---
 
@@ -971,6 +971,11 @@ A new  |
 
 | Nombre | Valor |
 |--------|-------|
+| `RB` | `[800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000, 6400, 6800]` |
+| `TB` | `[0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 101]` |
+| `MN` | `10` |
+| `FK` | `['fuel_front', 'fuel_rear']` |
+| `SK` | `['spark_front', 'spark_rear']` |
 | `RPM_BINS` | `[800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000, 6400, 6800]` |
 | `TPS_BINS` | `[0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 101]` |
 | `MIN_N` | `5` |
@@ -1006,10 +1011,11 @@ A new  |
 
 - `/tuner/sessions`
 - `/tuner/maps`
-- `/sessions_vs`
+- `/tuner/merge`
 
 **POST**
 
+- `/sessions_vs`
 - `/sessions_vs/compare`
 - `/tuner`
 - `/live.json`

@@ -93,6 +93,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._json({'error': f'Error al leer mapa: {e}'})
             return
 
+        if path == '/tuner/merge':
+            import urllib.parse as _up
+            params = _up.parse_qs(_up.urlparse(self.path).query)
+            sa = params.get('a', [''])[0]
+            sb = params.get('b', [''])[0]
+            mode = params.get('mode', ['BALANCE'])[0]
+            if not sa or not sb:
+                self._json({'error': 'Faltan sesiones'}, 400); return
+            try:
+                self._json(_merge_maps(self.server_instance.buell_dir, sa, sb, mode))
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
+            return
+
         if path == '/sessions_vs':
             try:
                 f = Path(__file__).parent / 'templates' / 'sessions_vs.html'
@@ -628,6 +642,91 @@ class WebServer:
             self._server.shutdown()
 
 # ── Sessions VS comparison engine ─────────────────────────────────────────
+def _maps_differ(a,b):
+    if len(a)!=len(b) or (a and len(a[0])!=len(b[0])): return True
+    for i in range(len(a)):
+        for j in range(len(a[0])):
+            if abs(a[i][j]-b[i][j])>0.5: return True
+    return False
+
+def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
+    RB=[800,1200,1600,2000,2400,2800,3200,3600,4000,4400,4800,5200,5600,6000,6400,6800]
+    TB=[0,5,10,15,20,25,30,35,40,50,60,70,80,90,100,101]
+    MN=10
+    def bk(v,bs):
+        for i in range(len(bs)-1):
+            if bs[i]<=v<bs[i+1]: return i
+        return len(bs)-2
+    ep_a=buell_dir/'sessions'/sa/'eeprom.bin'
+    ep_b=buell_dir/'sessions'/sb/'eeprom.bin'
+    if not ep_a.exists() or not ep_b.exists():
+        return {'error':'eeprom no encontrada','attributable':False}
+    mA=_decode_eeprom_maps(ep_a.read_bytes())
+    mB=_decode_eeprom_maps(ep_b.read_bytes())
+    FK=['fuel_front','fuel_rear']
+    SK=['spark_front','spark_rear']
+    fc=[k for k in FK if k in mA and k in mB and _maps_differ(mA[k],mB[k])]
+    sc=[k for k in SK if k in mA and k in mB and _maps_differ(mA[k],mB[k])]
+    ac=fc+sc
+    if not ac:
+        return {'error':'Sin cambios entre sesiones','changed':[],'attributable':False}
+    if fc and sc:
+        return {'error':'Cambiaron fuel Y spark, no atribuible','changed':ac,'attributable':False}
+    try:
+        vd=_compare_sessions_cached(buell_dir,sa,sb)
+        delta=vd.get('delta',[])
+    except Exception:
+        delta=[]
+    ci={}
+    for r in delta:
+        if r['na']<MN or r['nb']<MN: continue
+        fl=r['flavor']
+        if fl not in ('SWEET','SPICY_WOT'): continue
+        key=(bk(r['rpm_lo'],RB),bk(r['tps_lo'],TB))
+        if key not in ci: ci[key]={'eco':None,'sport':None}
+        if fl=='SWEET': ci[key]['eco']='A' if r.get('dpw_eff',0)<0 else 'B'
+        elif fl=='SPICY_WOT': ci[key]['sport']='A' if r['ddvss']<0 else 'B'
+    def winner(key):
+        info=ci.get(key)
+        if not info: return None
+        ew,sw=info['eco'],info['sport']
+        if mode=='ECO': return ew
+        if mode=='SPORT': return sw
+        if ew and sw and ew!=sw: return 'AVG'
+        return ew or sw
+    def m2ck(i,j,ra,la):
+        rv=ra[j];lv=la[i]
+        if rv==0: return None
+        rc=(rv+ra[j+1])/2 if j<len(ra)-1 else (rv+(rv-ra[j-1])/2 if j>0 else rv)
+        lc=(lv+la[i+1])/2 if i<len(la)-1 else (lv+(lv-la[i-1])/2 if i>0 else lv)
+        if rc<RB[0] or lc<TB[0]: return None
+        return (bk(rc,RB),bk(lc,TB))
+    result={}
+    for ck in ac:
+        if ck.startswith('fuel'): ra=mA['axes']['fuel_rpm'];la=mA['axes']['fuel_load']
+        else: ra=mA['axes']['spark_rpm'];la=mA['axes']['spark_load']
+        rows=len(la);cols=len(ra)
+        merged=[];st={'A':0,'B':0,'AVG':0,'ORIG':0}
+        for i in range(rows):
+            row=[]
+            for j in range(cols):
+                ck_key=m2ck(i,j,ra,la)
+                if ck_key is None:
+                    row.append({'v':mA[ck][i][j],'s':'ORIG'});st['ORIG']+=1;continue
+                w=winner(ck_key)
+                if w is None or w=='AVG':
+                    avg=round((mA[ck][i][j]+mB[ck][i][j])/2,1)
+                    row.append({'v':avg,'s':'AVG'});st['AVG']+=1
+                else:
+                    row.append({'v':mA[ck][i][j] if w=='A' else mB[ck][i][j],'s':w});st[w]+=1
+            merged.append(row)
+        result[ck]={'merged':merged,'axes':{'rpm':ra,'load':la},'stats':st,'base':mA[ck],'mod':mB[ck]}
+    return {
+        'attributable':True,'changed':ac,
+        'unchanged':[k for k in FK+SK if k not in ac],
+        'mode':mode,'cells_with_data':len(ci),'maps':result
+    }
+
 def _fmtk(n):
     if n >= 1000: return f"{n/1000:.1f}k"
     return str(n)
