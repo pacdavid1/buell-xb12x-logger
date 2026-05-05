@@ -47,6 +47,11 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 .vb{font-family:var(--mn);font-size:7px;color:var(--dm);border:1px solid var(--bd);padding:2px 5px;border-radius:2px;cursor:pointer;user-select:none}
 .vb:hover{color:var(--bl);border-color:var(--bl)}
 .vb.dm.on{color:var(--ac);border-color:var(--ac)}
+.cd-mc{display:flex;gap:4px;align-items:center;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0}
+.cd-mc .vb{font-size:7px}
+.mc-go{padding:3px 10px;font-family:var(--mn);font-size:8px;font-weight:700;color:#fff;background:var(--ac);border:none;border-radius:2px;cursor:pointer;letter-spacing:.06em}
+.mc-go:hover{background:#ff5520}
+.mc-go:disabled{background:#333;color:#666;cursor:not-allowed}
 </style></head><body>
 <div class="hd"><h1>BUELL LOGGER</h1>
   <div class="hd-links">
@@ -66,6 +71,13 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <div class="cg"><label>Modificada</label><select id="sM"><option value="">--</option></select></div>
 </div>
 <div id="st">Cargando sesiones...</div>
+</div>
+<div class="cd-mc">
+  <span style="font-family:var(--mn);font-size:7px;color:var(--a2);letter-spacing:.08em;font-weight:700">MERGE</span>
+  <span class="vb mc-m on" id="mcB" onclick="setMergeMode('BALANCE')">BAL</span>
+  <span class="vb mc-m" id="mcE" onclick="setMergeMode('ECO')">ECO</span>
+  <span class="vb mc-m" id="mcS" onclick="setMergeMode('SPORT')">SPT</span>
+  <button class="mc-go" id="mcGo" onclick="loadMerge()" disabled>CALCULAR</button>
 </div>
 <div class="tabs" id="tabs">
 <button class="tab on" data-m="fuel_front">FUEL FRONT</button>
@@ -104,7 +116,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 </div>
 </div>
 <script>
-var mB=null,mM=null,cur='fuel_front';
+var mB=null,mM=null,mMerge=null,mergeMode='BALANCE',cur='fuel_front';
 var AX={fuel_front:['fuel_rpm','fuel_load'],fuel_rear:['fuel_rpm','fuel_load'],spark_front:['spark_rpm','spark_load'],spark_rear:['spark_rpm','spark_load']};
 var SC={fuel_front:0.50,fuel_rear:0.50,spark_front:0.30,spark_rear:0.30,delta:0.08};
 var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},delta:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},mod:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0}};
@@ -113,6 +125,7 @@ function toggleInv(ax){INV[ax]=!INV[ax];var el=document.getElementById('inv'+ax)
 var DM='delta';
 var DM_IDS={delta:'dmD',overlay:'dmO',spikes:'dmS',wire:'dmW'};
 function setDM(m){DM=m;var all=document.querySelectorAll('.vb.dm');for(var i=0;i<all.length;i++)all[i].classList.remove('on');document.getElementById(DM_IDS[m]).classList.add('on');drawAll();}
+function setMergeMode(m){mergeMode=m;var all=document.querySelectorAll('.mc-m');for(var i=0;i<all.length;i++)all[i].classList.remove('on');document.getElementById(m==='BALANCE'?'mcB':m==='ECO'?'mcE':'mcS').classList.add('on');}
 
 async function init(){
   try{
@@ -131,7 +144,9 @@ async function load(t){
   try{
     var r=await fetch('/tuner/maps?session='+id);var d=await r.json();
     if(!d||!d.fuel_front){st('Error: '+(d&&d.error||'sin mapa'));return}
-    if(t==='base')mB=d;else mM=d;render();
+    if(t==='base')mB=d;else mM=d;mMerge=null;
+    document.getElementById('mcGo').disabled=!(mB&&mM);
+    render();
   }catch(e){st('Error al cargar')}
 }
 
@@ -168,10 +183,28 @@ function render(){
     for(var i=rows-1;i>=0;i--){h+='<tr><th class="r">'+lod[i]+'</th>';for(var j=0;j<cols;j++){var d=mD[i][j]-bD[i][j],ad=Math.abs(d),cls='dzz',txt='\u00B7';if(ad>0.3){txt=(d>0?'+':'')+d.toFixed(1);var ratio=mx>0?ad/mx:0;cls=ratio>0.5?(d>0?'dpp':'dnn'):(d>0?'dp':'dn')}h+='<td class="'+cls+'" data-rpm="'+rpm[j]+'" data-tps="'+lod[i]+'" data-val="'+d.toFixed(2)+'">'+txt+'</td>'}h+='</tr>'}
     return h+'</table>';
   }
+  var mhtml='';
+  if(mMerge&&mMerge.maps&&mMerge.maps[mk]){
+    var md=mMerge.maps[mk],mr=md.merged;
+    var mv=mr.map(function(rw){return rw.map(function(c){return c.v})});
+    var mr2=range(mv),mn=mr2[0],mx=mr2[1];
+    var mc='<table class="v"><caption>MERGED ('+mergeMode+')</caption>'+hdr();
+    for(var i=rows-1;i>=0;i--){
+      mc+='<tr><th class="r">'+lod[i]+'</th>';
+      for(var j=0;j<cols;j++){
+        var c=mr[i][j],ct=(c.v-mn)/(mx-mn);
+        var bg=c.s==='A'?'rgba(50,180,80,0.4)':c.s==='B'?'rgba(60,120,220,0.4)':c.s==='AVG'?'rgba(80,80,80,0.25)':heatRGB(ct);
+        mc+='<td style="background:'+bg+'" title="'+c.s+'">'+c.v.toFixed(0)+'</td>';
+      }
+      mc+='</tr>';
+    }
+    mhtml='<div class="tw tm" style="border-left:2px solid var(--a2)">'+mc+'</div>';
+  }
   document.getElementById('pw').innerHTML=
     '<div class="tw tb">'+tbl(bD,'BASE')+'</div>'+
     '<div class="tw">'+dtbl()+'</div>'+
-    '<div class="tw tm">'+tbl(mD,'MOD')+'</div>';
+    '<div class="tw tm">'+tbl(mD,'MOD')+'</div>'+
+    mhtml;
   st(mk.toUpperCase().replace('_',' ')+' \u2014 Delta max: '+mx.toFixed(1));
   drawAll();
 }
@@ -465,6 +498,20 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
   } else {
     leg.innerHTML='<span>'+mN.toFixed(0)+'</span><div class="bar" style="background:linear-gradient(to right,rgba(15,10,80,.9),rgba(15,70,220,.9),rgba(35,200,255,.9),rgba(155,255,100,.9),rgba(255,195,30,.9),rgba(255,50,20,.9))"></div><span>'+mXX.toFixed(0)+'</span>';
   }
+}
+async function loadMerge(){
+  if(!mB||!mM)return;
+  var a=document.getElementById('sB').value,b=document.getElementById('sM').value;
+  if(!a||!b)return;
+  st('Calculando merge '+mergeMode+'...');
+  document.getElementById('mcGo').disabled=true;
+  try{
+    var r=await fetch('/tuner/merge?a='+a+'&b='+b+'&mode='+mergeMode);
+    var d=await r.json();
+    if(d.error){st('Merge: '+d.error);mMerge=null;render();return}
+    mMerge=d;st('Merge OK: '+d.changed.join(', ')+' | '+d.cells_with_data+' celdas');
+    render();
+  }catch(e){st('Error: '+e.message)}
 }
 function swapSessions(){
   var tmp=mB;mB=mM;mM=tmp;
