@@ -176,8 +176,10 @@ class BuellLogger:
 
             if self._bmp280:
                 try:
-                    stats['baro_hPa']   = round(self._bmp280.get_pressure(),    2)
-                    stats['baro_temp_c']= round(self._bmp280.get_temperature(), 2)
+                    _p = round(self._bmp280.get_pressure(),    2)
+                    _t = round(self._bmp280.get_temperature(), 2)
+                    stats['baro_hPa']   = _p if 650 <= _p <= 1100 else None
+                    stats['baro_temp_c']= _t if -10 <= _t <= 60  else None
                 except Exception:
                     stats['baro_hPa']   = None
                     stats['baro_temp_c']= None
