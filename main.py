@@ -174,6 +174,13 @@ class BuellLogger:
                 stats['mem_pct'] = round((_mt - _mf) / _mt * 100, 1)
             except Exception: pass
 
+            if self._bmp280:
+                try:
+                    stats['baro_hPa']   = round(self._bmp280.get_pressure(),    2)
+                    stats['baro_temp_c']= round(self._bmp280.get_temperature(), 2)
+                except Exception:
+                    stats['baro_hPa']   = None
+                    stats['baro_temp_c']= None
             self.web.serial_stats = stats
 
             # GPS watchdog
@@ -331,7 +338,9 @@ class BuellLogger:
                 data['ttl_pct'] = ss.get('pct', 0)
                 data['cpu_pct'] = ss.get('cpu_pct', 0)
                 data['cpu_temp'] = ss.get('cpu_temp', 0)
-                data['mem_pct'] = ss.get('mem_pct', 0)
+                data['mem_pct']     = ss.get('mem_pct', 0)
+                data['baro_hPa']    = ss.get('baro_hPa')
+                data['baro_temp_c'] = ss.get('baro_temp_c')
                 
                 data.update(self.gps.get_fix().as_dict())
                 self.session.write_sample(data, time.time())
