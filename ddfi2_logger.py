@@ -974,7 +974,25 @@ class LiveDashboard:
         self.vss_cal         = self._load_json("vss_cal.json", {"cpkm25":1368})
         self.eeprom_params   = self._load_json("eeprom_snapshot.json", {})
         self.eeprom_maps     = {}   # poblado cuando se lee EEPROM completo
+        self.map_changes     = None
         self.usage_stats     = self._load_json("usage_stats.json", {})
+
+    def _find_prev_eeprom_dump(self):
+        try:
+            sessions_dir = Path(self.buell_dir) / "rides"
+            if not sessions_dir.exists():
+                return None
+            current = self.session.session_dir
+            sessions = sorted([d for d in sessions_dir.iterdir() if d.is_dir() and d != current])
+            if not sessions:
+                return None
+            dump = sessions[-1] / "eeprom_raw.bin"
+            if dump.exists():
+                self.logger.info(f"EEPROM prev: {sessions[-1].name}")
+                return dump.read_bytes()
+        except Exception:
+            pass
+        return None
 
     def _load_json(self, name, default):
         p = self.buell_dir / name
@@ -1736,6 +1754,22 @@ def decode_eeprom_maps(eeprom_bytes):
     except Exception as e:
         return {"error": str(e)}
 
+MAP_REGIONS = {
+    "spark_front": (670, 100),
+    "spark_rear":  (770, 100),
+    "fuel_front":  (870, 156),
+    "fuel_rear":   (1038, 156),
+}
+
+def diff_eeprom_maps(prev_bytes, curr_bytes):
+    if not prev_bytes or not curr_bytes:
+        return None
+    changed = []
+    for name, (off, size) in MAP_REGIONS.items():
+        if prev_bytes[off:off+size] != curr_bytes[off:off+size]:
+            changed.append(name)
+    return changed if changed else []
+
 
 # ─────────────────────────────────────────────────────────────────
 # RIDE ERROR LOG
@@ -2405,6 +2439,19 @@ class BuellLogger:
                         json.dump(params, f, indent=2)
                     self.dashboard.eeprom_params = params
                     self.dashboard.eeprom_maps   = decode_eeprom_maps(eeprom_bytes)
+                    dump_path = Path(self.session.session_dir) / "eeprom_raw.bin"
+                    with open(dump_path, 'wb') as _f: _f.write(eeprom_bytes)
+                    prev_dump = self._find_prev_eeprom_dump()
+                    if prev_dump:
+                        changed = diff_eeprom_maps(prev_dump, eeprom_bytes)
+                        self.dashboard.map_changes = changed
+                        if changed is not None:
+                            if len(changed) == 0:
+                                self.logger.info("EEPROM: sin cambios vs sesión anterior")
+                            elif len(changed) == 1:
+                                self.logger.info(f"EEPROM: cambió solo {changed[0]}")
+                            else:
+                                self.logger.warning(f"EEPROM: cambiaron {changed} — NO atribuible")
                     # Log límites críticos de temperatura
                     t_soft = params.get("KTemp_Soft_Hi",{}).get("val","?")
                     t_hard = params.get("KTemp_Hard_Hi",{}).get("val","?")

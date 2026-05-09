@@ -213,4 +213,5 @@ CSV_COLUMNS = [
     "buf_in",
     "ttl_pct", "cpu_pct", "cpu_temp", "mem_pct",
     "gps_lat", "gps_lon", "gps_alt_m", "gps_speed_kmh", "gps_heading", "gps_satellites", "gps_valid",
+    "baro_hPa", "baro_temp_c",
 ]

@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-05 00:12 | versión: v1.16.3-296-gf2f8f1b
+> Última actualización: 2026-05-09 09:10 | versión: v1.16.3-297-gd6ab4e9
 
 ---
 
@@ -449,8 +449,13 @@ buell-xb12x-logger/
 │       ├── sessions_vs_243FAC-15.2k_D7B333-15.7k.json
 │       ├── sessions_vs_248AE2-103.2k_27F1A2-29.2k.json
 │       ├── sessions_vs_248AE2-103.2k_60E0BB-24.6k.json
+│       ├── sessions_vs_248AE2-103.2k_653DC0-59.6k.json
 │       ├── sessions_vs_27F1A2-29.2k_60E0BB-24.6k.json
-│       └── sessions_vs_60E0BB-24.6k_27F1A2-29.2k.json
+│       ├── sessions_vs_27F1A2-29.2k_653DC0-59.6k.json
+│       ├── sessions_vs_60E0BB-24.6k_27F1A2-29.2k.json
+│       ├── sessions_vs_60E0BB-24.6k_653DC0-59.6k.json
+│       ├── sessions_vs_653DC0-59.6k_27F1A2-29.2k.json
+│       └── sessions_vs_653DC0-59.6k_60E0BB-24.6k.json
 ├── tools
 │   ├── diagnose_pi.sh
 │   ├── make_index.py
@@ -471,8 +476,13 @@ buell-xb12x-logger/
 ├── DEV_TIPS.md
 ├── README.md
 ├── WORKING_METHOD.md
+├── add_map_diff.py
 ├── ddfi2_logger.py
+├── fix_bmp280.py
+├── fix_heatmap_valid.py
 ├── fix_svs_modes.py
+├── fix_valid_clean.py
+├── fix_valid_simple.py
 ├── install.sh
 ├── main.py
 ├── network_state.json
@@ -493,6 +503,10 @@ buell-xb12x-logger/
 ---
 
 ## Módulos Python
+
+### `add_map_diff.py`
+
+---
 
 ### `ddfi2_logger.py`
 
@@ -519,6 +533,7 @@ buell-xb12x-logger/
 | `RPM_BINS` | `[0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000]` |
 | `LOAD_BINS` | `[10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]` |
 | `BUEIB_PARAMS` | `{'KTemp_Fan_On': (498, 1.0, 50.0, '°C', 'Fan ON temperatura (key-on)'), 'KTemp_Fan_Off': (499, 1.0, 50.0, '°C', 'Fan OFF temperatura (key-on)'), 'KTemp_Soft_Hi': (488, 1.0, 200.0, '°C', 'Soft limit trigger (EGO baja)'), 'KTemp_Soft_Lo': (489, 1.0, 200.0, '°C', 'Soft limit release'), 'KTemp_Hard_Hi': (490, 1.0, 200.0, '°C', 'Hard limit trigger (corta chispa)'), 'KTemp_Hard_Lo': (491, 1.0, 200.0, '°C', 'Hard limit release'), 'KTemp_Kill_Hi': (494, 1.0, 200.0, '°C', 'Kill limit trigger (apaga motor)'), 'KTemp_Kill_Lo': (495, 1.0, 200.0, '°C', 'Kill limit release'), 'KTemp_CEL_Flash_Hi': (496, 1.0, 200.0, '°C', 'CEL encendido temperatura'), 'KTemp_Fan_KO_On': (521, 1.0, 0.0, '°C', 'Fan key-off ON temp'), 'KTemp_Fan_KO_Off': (522, 1.0, 0.0, '°C', 'Fan key-off OFF temp'), 'KTemp_RPM_Soft': (485, 50.0, 0.0, 'RPM', 'RPM min para soft limit temp'), 'KTemp_RPM_Hard': (487, 50.0, 0.0, 'RPM', 'RPM min para hard limit temp'), 'KTemp_TP_Soft': (484, 1.0, 0.0, 'TPS', 'TPS min para soft limit temp'), 'KTemp_TP_Hard': (486, 1.0, 0.0, 'TPS', 'TPS min para hard limit temp'), 'KRPM_Soft_Hi': (458, 50.0, 0.0, 'RPM', 'RPM soft limit trigger'), 'KRPM_Soft_Lo': (459, 50.0, 0.0, 'RPM', 'RPM soft limit release'), 'KRPM_Hard_Hi': (460, 50.0, 0.0, 'RPM', 'RPM hard limit trigger'), 'KRPM_Hard_Lo': (461, 50.0, 0.0, 'RPM', 'RPM hard limit release'), 'KRPM_Kill_Hi': (464, 50.0, 0.0, 'RPM', 'RPM kill limit trigger'), 'KRPM_Kill_Lo': (465, 50.0, 0.0, 'RPM', 'RPM kill limit release'), 'KO2_Midpoint': (186, 0.00196, 0.0, 'V', 'O2 target voltage'), 'KO2_Rich': (187, 0.00196, 0.0, 'V', 'O2 rich threshold'), 'KO2_Lean': (188, 0.00196, 0.0, 'V', 'O2 lean threshold'), 'KO2_Min_RPM': (190, 50.0, 0.0, 'RPM', 'Closed loop min RPM'), 'KFBFuel_Max': (379, 0.4, 0.0, '%', 'EGO correction max'), 'KFBFuel_Min': (380, 0.4, -102.0, '%', 'EGO correction min'), 'KLFuel_Max': (395, 0.4, 0.0, '%', 'AFV max'), 'KLFuel_Min': (396, 0.4, -102.0, '%', 'AFV min'), 'KTPS0': (200, 0.00244, 0.0, 'V', 'TPS cerrado voltage'), 'KTPSV_Range': (201, 0.00244, 0.0, 'V', 'TPS voltage range'), 'KMFG_Year': (3, 1.0, 0.0, '', 'Anio fabricacion ECM'), 'KMFG_Day': (4, 1.0, 0.0, '', 'Dia fabricacion ECM'), 'KEngineRun': (6, 50.0, 0.0, 'RPM', 'RPM minimo motor encendido'), 'Ride_Counter': (1, 1.0, 0.0, '', 'Contador de rides')}` |
+| `MAP_REGIONS` | `{'spark_front': (670, 100), 'spark_rear': (770, 100), 'fuel_front': (870, 156), 'fuel_rear': (1038, 156)}` |
 | `PORT` | `8080` |
 | `HOTSPOT_CON` | `buell-hotspot` |
 | `WIFI_TIMEOUT_S` | `60` |
@@ -558,6 +573,7 @@ buell-xb12x-logger/
 | Método | Docstring |
 |--------|-----------|
 | `__init__` | — |
+| `_find_prev_eeprom_dump` | — |
 | `_load_json` | — |
 | `_save_json` | — |
 | `_default_objectives` | — |
@@ -747,7 +763,7 @@ Mas efectivo  |
 | `GEAR_KPH_PER_KRPM` | `[0.0, 7.0, 11.8, 15.4, 19.1, 23.0]` |
 | `RPM_BINS` | `[0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000]` |
 | `LOAD_BINS` | `[10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]` |
-| `CSV_COLUMNS` | `['ride_num', 'timestamp_iso', 'time_elapsed_s', 'RPM', 'Load', 'TPD', 'TPS_10Bit', 'CLT', 'MAT', 'Batt_V', 'spark1', 'spark2', 'veCurr1_RAW', 'veCurr2_RAW', 'pw1', 'pw2', 'EGO_Corr', 'WUE', 'AFV', 'IAT_Corr', 'Accel_Corr', 'Decel_Corr', 'WOT_Corr', 'Idle_Corr', 'OL_Corr', 'O2_ADC', 'Flags0', 'Flags1', 'Flags2', 'Flags3', 'Flags4', 'Flags5', 'Flags6', 'Unk63', 'CDiag0', 'CDiag1', 'CDiag2', 'CDiag3', 'CDiag4', 'HDiag0', 'HDiag1', 'HDiag2', 'HDiag3', 'HDiag4', 'Unk80', 'Unk81', 'Unk82', 'Rides', 'DIn', 'DOut', 'ETS_ADC', 'IAT_ADC', 'BAS_ADC', 'SysConfig', 'TPS_V', 'TPS_pct', 'VSS_Count', 'VS_KPH', 'Fan_Duty_Pct', 'VSS_RPM_Ratio', 'Gear', 'dirty_byte_hex', 'dirty_byte_name', 'forensic_event', 'fl_engine_run', 'fl_o2_active', 'fl_accel', 'fl_decel', 'fl_engine_stop', 'fl_wot', 'fl_ignition', 'fl_closed_loop', 'fl_rich', 'fl_learn', 'fl_cam_active', 'fl_kill', 'fl_immob', 'fl_fuel_cut', 'fl_hot', 'do_coil1', 'do_coil2', 'do_inj1', 'do_inj2', 'do_fuel_pump', 'do_tacho', 'do_cel', 'do_fan', 'di_cam', 'di_tacho_fb', 'di_vss', 'di_clutch', 'di_neutral', 'di_crank', 'buf_in', 'ttl_pct', 'cpu_pct', 'cpu_temp', 'mem_pct', 'gps_lat', 'gps_lon', 'gps_alt_m', 'gps_speed_kmh', 'gps_heading', 'gps_satellites', 'gps_valid']` |
+| `CSV_COLUMNS` | `['ride_num', 'timestamp_iso', 'time_elapsed_s', 'RPM', 'Load', 'TPD', 'TPS_10Bit', 'CLT', 'MAT', 'Batt_V', 'spark1', 'spark2', 'veCurr1_RAW', 'veCurr2_RAW', 'pw1', 'pw2', 'EGO_Corr', 'WUE', 'AFV', 'IAT_Corr', 'Accel_Corr', 'Decel_Corr', 'WOT_Corr', 'Idle_Corr', 'OL_Corr', 'O2_ADC', 'Flags0', 'Flags1', 'Flags2', 'Flags3', 'Flags4', 'Flags5', 'Flags6', 'Unk63', 'CDiag0', 'CDiag1', 'CDiag2', 'CDiag3', 'CDiag4', 'HDiag0', 'HDiag1', 'HDiag2', 'HDiag3', 'HDiag4', 'Unk80', 'Unk81', 'Unk82', 'Rides', 'DIn', 'DOut', 'ETS_ADC', 'IAT_ADC', 'BAS_ADC', 'SysConfig', 'TPS_V', 'TPS_pct', 'VSS_Count', 'VS_KPH', 'Fan_Duty_Pct', 'VSS_RPM_Ratio', 'Gear', 'dirty_byte_hex', 'dirty_byte_name', 'forensic_event', 'fl_engine_run', 'fl_o2_active', 'fl_accel', 'fl_decel', 'fl_engine_stop', 'fl_wot', 'fl_ignition', 'fl_closed_loop', 'fl_rich', 'fl_learn', 'fl_cam_active', 'fl_kill', 'fl_immob', 'fl_fuel_cut', 'fl_hot', 'do_coil1', 'do_coil2', 'do_inj1', 'do_inj2', 'do_fuel_pump', 'do_tacho', 'do_cel', 'do_fan', 'di_cam', 'di_tacho_fb', 'di_vss', 'di_clutch', 'di_neutral', 'di_crank', 'buf_in', 'ttl_pct', 'cpu_pct', 'cpu_temp', 'mem_pct', 'gps_lat', 'gps_lon', 'gps_alt_m', 'gps_speed_kmh', 'gps_heading', 'gps_satellites', 'gps_valid', 'baro_hPa', 'baro_temp_c']` |
 
 ---
 
@@ -829,7 +845,23 @@ A new  |
 
 ---
 
+### `fix_bmp280.py`
+
+---
+
+### `fix_heatmap_valid.py`
+
+---
+
 ### `fix_svs_modes.py`
+
+---
+
+### `fix_valid_clean.py`
+
+---
+
+### `fix_valid_simple.py`
 
 ---
 
@@ -880,6 +912,8 @@ A new  |
 | `SERIAL_RX_BYTES` | `107` |
 | `MAX_FIFO_PCT` | `50` |
 | `MAX_SERIAL_BPS` | `960.0` |
+| `_BMP280_OK` | `True` |
+| `_BMP280_OK` | `False` |
 
 **Clase `BuellLogger`**
 

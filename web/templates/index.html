@@ -1677,15 +1677,17 @@ async function viewSelectedRides(){
   for(const s of summaries){
     if(!s) continue;
     for(const [key,val] of Object.entries(s.cells||{})){
-      if(!merged[key]) merged[key]={seconds:0,ego_sum:0,count:0};
-      merged[key].seconds+=val.seconds;
-      merged[key].ego_sum+=val.ego_avg*(val.seconds||1);
-      merged[key].count+=(val.seconds||1);
+      if(!merged[key]) merged[key]={seconds:0,ego_sum:0,count:0,valid_seconds:0,valid_ego_sum:0,valid_count:0};
+      merged[key].valid_seconds+=val.valid_seconds||0;
+      merged[key].ego_sum+=val.ego_avg*(val.valid_seconds||0);
+      merged[key].count+=(val.valid_seconds||0);
+      merged[key].valid_ego_sum+=(val.valid_ego_avg||0)*(val.valid_seconds||0);
+      merged[key].valid_count+=(val.valid_seconds||0);
     }
   }
   const cells={};
   for(const [k,v] of Object.entries(merged))
-    cells[k]={seconds:parseFloat(v.seconds.toFixed(1)),ego_avg:parseFloat((v.ego_sum/v.count).toFixed(1))};
+    cells[k]={seconds:parseFloat((v.valid_seconds||0).toFixed(1)),ego_avg:parseFloat(((v.valid_ego_sum||0)/(v.valid_count||1)).toFixed(1)),valid_ego_avg:parseFloat(((v.valid_ego_sum||0)/(v.valid_count||1)).toFixed(1))};
   const objCfg=lastData?.raw_objectives||{};
   const objectives=(objCfg.cell_targets||[]).map(ct=>{
     const matching=RPM_BINS.flatMap(r=>LOAD_BINS.filter(l=>r>=ct.rpm_min&&r<=ct.rpm_max&&l>=ct.load_min&&l<=ct.load_max).map(l=>`${r}_${l}`));
@@ -2723,5 +2725,3 @@ document.addEventListener("DOMContentLoaded", ()=>{ loadTpsCal(); loadVssCal(); 
 </script>
 </body>
 </html>
-
-"""

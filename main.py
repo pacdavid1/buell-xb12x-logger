@@ -24,6 +24,12 @@ from ecu.eeprom_params import decode_params
 from ecu.version_resolver import resolve_ecu
 from ecu.session import SessionManager, CellTracker, cell_key, RideErrorLog
 from gps.reader import GPSReader
+try:
+    import smbus2 as _smbus2
+    from bmp280 import BMP280 as _BMP280
+    _BMP280_OK = True
+except ImportError:
+    _BMP280_OK = False
 
 # ── Constantes de configuración (Adiós a los "números mágicos") ───────────
 TARGET_HZ = 8.0
@@ -78,6 +84,14 @@ class BuellLogger:
         self.session = SessionManager(self.sessions_dir)
         self.tracker = CellTracker()
         self.gps = GPSReader()
+        self._bmp280 = None
+        if _BMP280_OK:
+            try:
+                _bus = _smbus2.SMBus(1)
+                self._bmp280 = _BMP280(i2c_dev=_bus, i2c_addr=0x77)
+                self.logger.info("BMP280 inicializado OK (0x77)")
+            except Exception as e:
+                self.logger.warning(f"BMP280 no disponible: {e}")
         self.error_log = RideErrorLog()
 
         # Inyección de dependencias para el servidor web
