@@ -79,7 +79,7 @@ def scan_install(path):
 
 def file_tree(repo):
     lines = []
-    skip = {".git", "__pycache__", ".gitignore", "node_modules"}
+    skip = {".git", "__pycache__", ".gitignore", "node_modules", "sessions"}
     def walk(p, prefix=""):
         entries = sorted(p.iterdir(), key=lambda x: (x.is_file(), x.name))
         for i, entry in enumerate(entries):
