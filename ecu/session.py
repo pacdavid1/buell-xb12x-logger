@@ -536,6 +536,113 @@ class SessionManager:
         except Exception as e:
             self.logger.warning(f"Error consolidated: {e}")
 
+    def recover_orphan_rides(self):
+        """Busca rides con CSV pero sin summary.json y los reconstruye."""
+        import bisect
+        recovered = 0
+        if not self.sessions_dir.exists():
+            return 0
+        for sdir in sorted(self.sessions_dir.iterdir()):
+            if not sdir.is_dir(): continue
+            csvs = sorted(sdir.glob("ride_*.csv"))
+            if not csvs: continue
+            rides = {}
+            for cf in csvs:
+                name = cf.stem.replace("ride_", "")
+                base = name.split("_p")[0]
+                rides.setdefault(base, []).append(cf)
+            for base, ride_files in rides.items():
+                sfile = sdir / f"ride_{base}_summary.json"
+                if sfile.exists(): continue
+                try:
+                    parts = base.split("_")
+                    if len(parts) == 2:
+                        checksum = sdir.name
+                        ride_num = int(parts[1])
+                    else:
+                        checksum = parts[0]
+                        ride_num = int(parts[-1])
+                except (ValueError, IndexError): continue
+                try:
+                    self._rebuild_summary(sdir, checksum, ride_num, ride_files)
+                    recovered += 1
+                    self.logger.info(f"Recuperado ride {ride_num:03d} sesion {checksum}")
+                except Exception as e:
+                    self.logger.warning(f"Error ride {ride_num:03d}: {e}")
+        if recovered:
+            self.logger.info(f"Perro guardian: {recovered} rides recuperados")
+        return recovered
+
+    def _rebuild_summary(self, sdir, checksum, ride_num, csv_files):
+        """Reconstruye summary.json desde CSVs."""
+        import bisect
+        cells = {}
+        total_samples = 0
+        first_ts = None
+        last_elapsed = 0.0
+        last_ts = None
+        dt = 1.0 / 8.0
+        for csv_file in csv_files:
+            with open(csv_file, newline="") as f:
+                filtered = (line for line in f if not line.startswith("#"))
+                reader = csv.DictReader(filtered)
+                for row in reader:
+                    total_samples += 1
+                    ts = row.get("timestamp_iso", "")
+                    if not first_ts: first_ts = ts
+                    last_ts = ts
+                    last_elapsed = float(row.get("time_elapsed_s", 0))
+                    try:
+                        rpm = float(row.get("RPM", 0) or 0)
+                        load = float(row.get("Load", 0) or 0)
+                        ego = float(row.get("EGO_Corr", 100) or 100)
+                        clt = float(row.get("CLT", 0) or 0)
+                        wue = float(row.get("WUE", 100) or 100)
+                        afv = float(row.get("AFV", 100) or 100)
+                        fl_decel = int(row.get("fl_decel", 0) or 0)
+                        fl_cut = int(row.get("fl_fuel_cut", 0) or 0)
+                        if rpm < 300: continue
+                        valid = wue<=102 and clt>=70 and rpm>=1200 and 80<=afv<=120 and not fl_decel and not fl_cut
+                        inv = ""
+                        if not valid:
+                            if wue>102: inv="WUE"
+                            elif clt<70: inv="CLT_fria"
+                            elif rpm<1200: inv="RPM_bajo"
+                            elif afv<80 or afv>120: inv="AFV"
+                            elif fl_decel: inv="decel"
+                            elif fl_cut: inv="fuel_cut"
+                        ri = max(0, min(bisect.bisect_right(RPM_BINS, rpm)-1, len(RPM_BINS)-2))
+                        li = max(0, min(bisect.bisect_right(LOAD_BINS, load)-1, len(LOAD_BINS)-2))
+                        r0,r1 = RPM_BINS[ri],RPM_BINS[ri+1]
+                        l0,l1 = LOAD_BINS[li],LOAD_BINS[li+1]
+                        tr = (rpm-r0)/(r1-r0) if r1!=r0 else 0.0
+                        tl = (load-l0)/(l1-l0) if l1!=l0 else 0.0
+                        for key,weight in [(f"{r0}_{l0}",(1-tr)*(1-tl)),(f"{r0}_{l1}",(1-tr)*tl),(f"{r1}_{l0}",tr*(1-tl)),(f"{r1}_{l1}",tr*tl)]:
+                            if weight<0.01: continue
+                            c = cells.setdefault(key, {"seconds":0.0,"ego_sum":0.0,"count":0.0,"valid_seconds":0.0,"valid_ego_sum":0.0,"valid_count":0.0,"clt_sum":0.0,"wue_sum":0.0,"afv_sum":0.0,"inv_reasons":{}})
+                            c["seconds"]+=dt*weight; c["ego_sum"]+=ego*weight; c["count"]+=weight
+                            c["clt_sum"]+=clt*weight; c["wue_sum"]+=wue*weight; c["afv_sum"]+=afv*weight
+                            if valid: c["valid_seconds"]+=dt*weight; c["valid_ego_sum"]+=ego*weight; c["valid_count"]+=weight
+                            if inv: c["inv_reasons"][inv]=c["inv_reasons"].get(inv,0)+weight
+                    except Exception: pass
+        cells_out = {}
+        for k,v in cells.items():
+            n=v["count"]; vn=v["valid_count"]
+            cells_out[k]={"seconds":round(v["seconds"],1),"ego_avg":round(v["ego_sum"]/n,1) if n else 100.0,"valid_seconds":round(v["valid_seconds"],1),"valid_ego_avg":round(v["valid_ego_sum"]/vn,1) if vn else None,"confidence":round(min(1.0,v["valid_seconds"]/10.0),2),"clt_avg":round(v["clt_sum"]/n,1) if n else None,"wue_avg":round(v["wue_sum"]/n,1) if n else None,"afv_avg":round(v["afv_sum"]/n,1) if n else None,"inv_reasons":dict(v["inv_reasons"])}
+        summary={"ride_num":ride_num,"session":checksum,"samples":total_samples,"parts":len(csv_files),"duration_s":round(last_elapsed,1),"opened_utc":first_ts or "","closed_utc":last_ts or "","reason":"power_loss_recovered","cells":cells_out,"objectives":[],"dtc_events":[]}
+        sfile=sdir/f"ride_{checksum}_{ride_num:03d}_summary.json"
+        tmp=sfile.with_suffix(".tmp")
+        with open(tmp,"w") as f: json.dump(summary,f)
+        tmp.replace(sfile)
+        meta_file=sdir/"session_metadata.json"
+        if meta_file.exists():
+            with open(meta_file) as f: meta=json.load(f)
+            meta["total_samples"]=meta.get("total_samples",0)+total_samples
+            meta["total_runtime_seconds"]=meta.get("total_runtime_seconds",0)+last_elapsed
+            if ride_num>meta.get("total_rides",0): meta["total_rides"]=ride_num
+            with open(meta_file,"w") as f: json.dump(meta,f,indent=2)
+        self._generate_consolidated()
+
 def cell_key(rpm, load):
     import bisect
     ri = bisect.bisect_right(RPM_BINS, rpm) - 1

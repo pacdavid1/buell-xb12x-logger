@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-09 12:46 | versión: v1.16.3-302-gf051f59
+> Última actualización: 2026-05-09 16:31 | versión: v1.16.3-303-gc84ab69
 
 ---
 
@@ -274,6 +274,7 @@ buell-xb12x-logger/
 │   │   ├── eeprom.bin
 │   │   ├── ride_002_errorlog.json
 │   │   ├── ride_3311B1_001.csv
+│   │   ├── ride_3311B1_001_summary.json
 │   │   ├── ride_3311B1_002.csv
 │   │   ├── ride_3311B1_002_summary.json
 │   │   ├── session_metadata.json
@@ -282,10 +283,12 @@ buell-xb12x-logger/
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
 │   │   ├── ride_001.csv
+│   │   ├── ride_001_001_summary.json
 │   │   ├── ride_002.csv
 │   │   ├── ride_002_errorlog.json
 │   │   ├── ride_002_summary.json
 │   │   ├── ride_003.csv
+│   │   ├── ride_003_003_summary.json
 │   │   └── session_metadata.json
 │   ├── 60E0BB
 │   │   ├── consolidated.csv
@@ -313,6 +316,9 @@ buell-xb12x-logger/
 │   │   ├── ride_006_errorlog.json
 │   │   ├── ride_007_errorlog.json
 │   │   ├── ride_008_errorlog.json
+│   │   ├── ride_009_errorlog.json
+│   │   ├── ride_010_errorlog.json
+│   │   ├── ride_011_errorlog.json
 │   │   ├── ride_653DC0_001.csv
 │   │   ├── ride_653DC0_001_summary.json
 │   │   ├── ride_653DC0_002.csv
@@ -332,6 +338,14 @@ buell-xb12x-logger/
 │   │   ├── ride_653DC0_008.csv
 │   │   ├── ride_653DC0_008_p2.csv
 │   │   ├── ride_653DC0_008_summary.json
+│   │   ├── ride_653DC0_009.csv
+│   │   ├── ride_653DC0_009_summary.json
+│   │   ├── ride_653DC0_010.csv
+│   │   ├── ride_653DC0_010_summary.json
+│   │   ├── ride_653DC0_011.csv
+│   │   ├── ride_653DC0_011_summary.json
+│   │   ├── ride_653DC0_012.csv
+│   │   ├── ride_653DC0_012_summary.json
 │   │   ├── session_metadata.json
 │   │   └── tuning_report_653DC0.json
 │   ├── 917900
@@ -354,11 +368,14 @@ buell-xb12x-logger/
 │   │   ├── ride_001_errorlog.json
 │   │   ├── ride_001_summary.json
 │   │   ├── ride_002.csv
+│   │   ├── ride_002_002_summary.json
 │   │   ├── ride_003.csv
+│   │   ├── ride_003_003_summary.json
 │   │   ├── ride_004.csv
 │   │   ├── ride_004_errorlog.json
 │   │   ├── ride_004_summary.json
 │   │   ├── ride_005.csv
+│   │   ├── ride_005_005_summary.json
 │   │   ├── ride_006.csv
 │   │   ├── ride_006_summary.json
 │   │   ├── ride_007.csv
@@ -444,6 +461,7 @@ buell-xb12x-logger/
 │   │   ├── consolidated.csv
 │   │   ├── eeprom.bin
 │   │   ├── ride_001.csv
+│   │   ├── ride_001_001_summary.json
 │   │   └── session_metadata.json
 │   └── _cache
 │       ├── sessions_vs_243FAC-15.2k_D7B333-15.7k.json
@@ -480,6 +498,7 @@ buell-xb12x-logger/
 ├── ddfi2_logger.py
 ├── fix_bmp280.py
 ├── fix_heatmap_valid.py
+├── fix_recover.py
 ├── fix_svs_modes.py
 ├── fix_valid_clean.py
 ├── fix_valid_simple.py
@@ -797,6 +816,8 @@ A new  |
 | `_generate_suggested_msq` | Genera MSQ con sugerencias aplicadas sobre el EEPROM actual. |
 | `_save_metadata` | — |
 | `_generate_consolidated` | — |
+| `recover_orphan_rides` | Busca rides con CSV pero sin summary.json y los reconstruye. |
+| `_rebuild_summary` | Reconstruye summary.json desde CSVs. |
 
 **Clase `CellTracker`**
 
@@ -850,6 +871,10 @@ A new  |
 ---
 
 ### `fix_heatmap_valid.py`
+
+---
+
+### `fix_recover.py`
 
 ---
 

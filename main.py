@@ -208,6 +208,8 @@ class BuellLogger:
         _serial_bytes = 0
         _serial_window = time.monotonic()
 
+        self.session.recover_orphan_rides()
+        self.session.recover_orphan_rides()
         self.logger.info("ECU loop iniciado")
 
         while self._running:

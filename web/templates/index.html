@@ -322,6 +322,7 @@ table.veg td:active{filter:brightness(1.6)}
     <div class="grid-wrap">
       <table class="veg" id="veGrid"></table>
     </div>
+    <div id="gridDebug" style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px"></div>
     <div class="legend">
       <div class="leg"><div class="leg-dot c0"></div>Sin datos</div>
       <div class="leg"><div class="leg-dot c1"></div>&lt;2s</div>
@@ -765,6 +766,7 @@ function setGridMode(mode) {
   if(lastData) updateGrid(lastData.cells || {}, lastData.active_cell);
 }
 function updateGrid(cells, activeCell) {
+  let painted = 0;
   for(let li=0; li<LOAD_BINS.length; li++) {
     for(let ri=0; ri<RPM_BINS.length; ri++) {
       const key = `${RPM_BINS[ri]}_${LOAD_BINS[li]}`;
@@ -789,8 +791,11 @@ function updateGrid(cells, activeCell) {
       td.style.cssText = bg.startsWith('background') ? bg : '';
       const sv = document.getElementById(`s_${key}`);
       sv.textContent = txt;
+      if(secs > 0) painted++;
     }
   }
+  const dbg = document.getElementById('gridDebug');
+  if(dbg) dbg.textContent = painted + ' celdas / ' + Object.keys(cells).length + ' keys';
 }
 
 // ── BOTTOM SHEET ──────────────────────────────────────────────────
@@ -852,13 +857,14 @@ function updateHeader(d) {
     const sat = lv.gps_satellites != null ? lv.gps_satellites : 0;
     const fix = lv.gps_valid === true || lv.gps_valid === 'True';
     satEl.textContent = sat;
-    satEl.className = 'hs-val ' + (fix ? 'gn' : sat > 0 ? 'yw' : 'ac');
+    const _sc = 'hs-val ' + (fix ? 'gn' : sat > 0 ? 'yw' : 'ac');
+    if(satEl.className !== _sc) satEl.className = _sc;
   }
   const serialEl = document.getElementById('hSerial');
   if(serialEl) serialEl.textContent = d.bike_serial ? '#'+d.bike_serial : '--';
-  document.getElementById('hEGO').textContent  = lv.EGO_Corr != null ? lv.EGO_Corr.toFixed(0)+'%' : '--';
-  document.getElementById('hMAT').textContent  = lv.MAT      != null ? lv.MAT.toFixed(0)+'`'        : '--';
-  document.getElementById('hBatt').textContent = lv.Batt_V   != null ? lv.Batt_V.toFixed(1)+'V'     : '--';
+  { const _e=document.getElementById('hEGO'); const _v=lv.EGO_Corr!=null?lv.EGO_Corr.toFixed(0)+'%':'--'; if(_e.textContent!==_v)_e.textContent=_v; }
+  { const _m=document.getElementById('hMAT'); const _v=lv.MAT!=null?lv.MAT.toFixed(0)+'`':'--'; if(_m.textContent!==_v)_m.textContent=_v; }
+  { const _b=document.getElementById('hBatt'); const _v=lv.Batt_V!=null?lv.Batt_V.toFixed(1)+'V':'--'; if(_b.textContent!==_v)_b.textContent=_v; }
   const errEl = document.getElementById('hErr');
   if(errEl){
     const re = d.ride_errors || {};
