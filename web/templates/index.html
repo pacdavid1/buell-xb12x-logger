@@ -252,7 +252,8 @@ table.veg td:active{filter:brightness(1.6)}
     <div class="hdr-comms">
       <div class="hs-sm"><div class="hs-label">系統</div><div class="hs-val" id="freezeIndicator" style="color:#2ecc71">正常</div></div>
       <div class="hs-sm"><div class="hs-label">SAT</div><div class="hs-val gn" id="hSat">--</div></div>
-      <div class="hs-sm"><div class="hs-label">BARO</div><div class="hs-val gn" id="hBaro">--</div></div>
+      <div class="hs-sm"><div class="hs-label">BARO hPa</div><div class="hs-val gn" id="hBaro">--</div></div>
+      <div class="hs-sm"><div class="hs-label">AMB°C</div><div class="hs-val gn" id="hBaroTemp">--</div></div>
       <div class="hs-sm" id="btnCloseRideWrap" style="padding:1px 6px">
         <div class="hs-label">騎行</div>
         <button id="btnCloseRide" onclick="closeRide()"
@@ -837,8 +838,14 @@ function updateHeader(d) {
   const baroEl = document.getElementById('hBaro');
   if(baroEl){
     const bp = ss.baro_hPa || 0;
-    baroEl.textContent = bp ? bp.toFixed(0)+'hPa' : '--';
+    baroEl.textContent = bp ? bp.toFixed(0) : '--';
     baroEl.className = 'hs-val gn';
+  }
+  const baroTempEl = document.getElementById('hBaroTemp');
+  if(baroTempEl){
+    const bt = ss.baro_temp_c || 0;
+    baroTempEl.textContent = bt ? bt.toFixed(1) : '--';
+    baroTempEl.className = 'hs-val gn';
   }
   const satEl = document.getElementById('hSat');
   if(satEl){
