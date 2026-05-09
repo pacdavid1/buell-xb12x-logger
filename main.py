@@ -87,7 +87,7 @@ class BuellLogger:
         self._bmp280 = None
         if _BMP280_OK:
             try:
-                _bus = _smbus2.SMBus(1)
+                _bus = _smbus2.SMBus(2)
                 self._bmp280 = _BMP280(i2c_dev=_bus, i2c_addr=0x77)
                 self.logger.info("BMP280 inicializado OK (0x77)")
             except Exception as e:
