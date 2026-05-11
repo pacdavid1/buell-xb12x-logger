@@ -1301,7 +1301,7 @@ class NetworkManager:
 
     @classmethod
     def _wifi_connected(cls):
-        ok,out = cls._run(["nmcli","-t","-f","DEVICE,TYPE,STATE,CONNECTION","dev","status"])
+        ok,out = cls._run(["nmcli","-t","-f","DEVICE,TYPE,STATE,CONNECTION","dev","status"], timeout=3)
         if not ok: return False
         for line in out.splitlines():
             p = line.split(":")
@@ -1311,7 +1311,7 @@ class NetworkManager:
 
     @classmethod
     def _hotspot_active(cls):
-        ok,out = cls._run(["nmcli","-t","-f","NAME,STATE","con","show","--active"])
+        ok,out = cls._run(["nmcli","-t","-f","NAME,STATE","con","show","--active"], timeout=3)
         return ok and cls.HOTSPOT_CON in out
 
     @classmethod
@@ -1343,12 +1343,36 @@ class NetworkManager:
         if not ok: return False
         return any(l.strip() and not l.startswith("Recv") for l in out.splitlines())
 
+    _mode_cache      = "none"
+    _mode_cache_ts   = 0.0
+    _MODE_TTL        = 15.0
+    _mode_refreshing = False
+
+    @classmethod
+    def _refresh_mode(cls):
+        if cls._mode_refreshing:
+            return
+        cls._mode_refreshing = True
+        def _do():
+            try:
+                if cls._wifi_connected():   cls._mode_cache = "wifi"
+                elif cls._hotspot_active(): cls._mode_cache = "hotspot"
+                else:                       cls._mode_cache = "none"
+            except Exception: pass
+            finally:
+                import time as _t
+                cls._mode_cache_ts = _t.monotonic()
+                cls._mode_refreshing = False
+        import threading as _th
+        _th.Thread(target=_do, daemon=True, name="net-mode-refresh").start()
+
     @classmethod
     def current_mode(cls):
-        """Retorna 'wifi', 'hotspot' o 'none'."""
-        if cls._wifi_connected():  return "wifi"
-        if cls._hotspot_active():  return "hotspot"
-        return "none"
+        """Retorna 'wifi', 'hotspot' o 'none' — cacheado TTL=15s."""
+        import time as _t
+        if _t.monotonic() - cls._mode_cache_ts > cls._MODE_TTL:
+            cls._refresh_mode()
+        return cls._mode_cache
 
     @classmethod
     def switch_to_wifi(cls):
@@ -1469,7 +1493,7 @@ class NetworkManager:
                 try:
                     if not cls._wifi_connected() and not cls._hotspot_active():
                         cls.logger.warning("Sin red — activando hotspot automático")
-                        cls._run(["sudo","nmcli","con","up",cls.HOTSPOT_CON])
+                        cls._run(["sudo","nmcli","con","up",cls.HOTSPOT_CON], timeout=10)
                 except Exception as e:
                     cls.logger.debug(f"monitor: {e}")
                 time.sleep(30)

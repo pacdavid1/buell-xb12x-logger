@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-09 20:17 | versión: v1.16.3-306-g37c0424
+> Última actualización: 2026-05-11 00:10 | versión: v1.16.3-307-g7436597
 
 ---
 
@@ -77,6 +77,7 @@ buell-xb12x-logger/
 ├── ddfi2_logger.py
 ├── fix_bmp280.py
 ├── fix_heatmap_valid.py
+├── fix_network_mode_cache.py
 ├── fix_recover.py
 ├── fix_svs_modes.py
 ├── fix_valid_clean.py
@@ -135,6 +136,7 @@ buell-xb12x-logger/
 | `PORT` | `8080` |
 | `HOTSPOT_CON` | `buell-hotspot` |
 | `WIFI_TIMEOUT_S` | `60` |
+| `_MODE_TTL` | `15.0` |
 | `TARGET_LOOP_HZ` | `8.0` |
 | `MAX_CONSECUTIVE_ERRORS` | `30` |
 | `RPM_START_THRESHOLD` | `300` |
@@ -198,7 +200,8 @@ buell-xb12x-logger/
 | `_hotspot_active` | — |
 | `setup` | Configura red al arrancar: crea hotspot si no hay WiFi, o de |
 | `ssh_active` | — |
-| `current_mode` | Retorna 'wifi', 'hotspot' o 'none'. |
+| `_refresh_mode` | — |
+| `current_mode` | Retorna 'wifi', 'hotspot' o 'none' — cacheado TTL=15s. |
 | `switch_to_wifi` | Baja hotspot y conecta al perfil WiFi guardado explícitament |
 | `switch_to_hotspot` | Baja WiFi y activa hotspot. |
 | `connect_to_profile` | Conecta a un perfil NM guardado por nombre. |
@@ -450,6 +453,65 @@ A new  |
 ---
 
 ### `fix_heatmap_valid.py`
+
+---
+
+### `fix_network_mode_cache.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `TARGET` | `ddfi2_logger.py` |
+| `OLD_WIFI_CONNECTED` | `    def _wifi_connected(cls):
+        ok,out = cls._run(["nmcli","-t","-f","DEVICE,TYPE,STATE,CONNECTION","dev","status"])
+` |
+| `NEW_WIFI_CONNECTED` | `    def _wifi_connected(cls):
+        ok,out = cls._run(["nmcli","-t","-f","DEVICE,TYPE,STATE,CONNECTION","dev","status"], timeout=3)
+` |
+| `OLD_HOTSPOT_ACTIVE` | `    def _hotspot_active(cls):
+        ok,out = cls._run(["nmcli","-t","-f","NAME,STATE","con","show","--active"])
+` |
+| `NEW_HOTSPOT_ACTIVE` | `    def _hotspot_active(cls):
+        ok,out = cls._run(["nmcli","-t","-f","NAME,STATE","con","show","--active"], timeout=3)
+` |
+| `OLD_CURRENT_MODE` | `    def current_mode(cls):
+        if cls._wifi_connected():  return "wifi"
+        if cls._hotspot_active():  return "hotspot"
+        return "none"` |
+| `NEW_CURRENT_MODE` | `    _mode_cache      = "none"
+    _mode_cache_ts   = 0.0
+    _MODE_TTL        = 15.0
+    _mode_refreshing = False
+
+    @classmethod
+    def _refresh_mode(cls):
+        if cls._mode_refreshing:
+            return
+        cls._mode_refreshing = True
+        def _do():
+            try:
+                if cls._wifi_connected():   cls._mode_cache = "wifi"
+                elif cls._hotspot_active(): cls._mode_cache = "hotspot"
+                else:                       cls._mode_cache = "none"
+            except Exception: pass
+            finally:
+                import time as _t
+                cls._mode_cache_ts = _t.monotonic()
+                cls._mode_refreshing = False
+        import threading as _th
+        _th.Thread(target=_do, daemon=True, name="net-mode-refresh").start()
+
+    @classmethod
+    def current_mode(cls):
+        import time as _t
+        if _t.monotonic() - cls._mode_cache_ts > cls._MODE_TTL:
+            cls._refresh_mode()
+        return cls._mode_cache` |
+| `OLD_MONITOR` | `                        cls._run(["sudo","nmcli","con","up",cls.HOTSPOT_CON])
+` |
+| `NEW_MONITOR` | `                        cls._run(["sudo","nmcli","con","up",cls.HOTSPOT_CON], timeout=10)
+` |
 
 ---
 
