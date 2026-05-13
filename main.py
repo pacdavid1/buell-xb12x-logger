@@ -289,18 +289,16 @@ class BuellLogger:
                     consecutive_errors = 0
                     ecu_lost_since = None
 
-                if ecu_lost_since is not None and lost_total >= 30.0 and consecutive_errors % 30 == 0:
+                if ecu_lost_since is not None and lost_total >= 30.0 and (time.monotonic() - getattr(self, '_last_reconnect_t', 0.0)) >= 30.0:
                     self.logger.info(f"Hard reconnect — {lost_total:.0f}s sin ECU")
                     if ride_active: self.error_log.reconnect_attempt(elapsed_s=elapsed_s, trigger="auto_30s", attempt_n=consecutive_errors // 30, success=False, time_s=lost_total)
-                    
-                    if lost_total >= 15.0 and consecutive_errors % 15 == 0: self.ecu.usb_power_cycle()
-                    elif lost_total >= 30.0 and consecutive_errors % 30 == 0: self.ecu.usb_reset(); time.sleep(0.5)
                     
                     try:
                         self.ecu.disconnect(); time.sleep(0.5); self.ecu.connect()
                         if self.ecu.get_version():
                             self.logger.info("ECU responde tras hard reconnect")
                             consecutive_errors = 0; ecu_lost_since = None; last_lost_interval = -1
+                            self._last_reconnect_t = 0.0
                             if ride_active: self.error_log.reconnect_attempt(elapsed_s=elapsed_s, trigger="auto_30s", attempt_n=consecutive_errors // 30, success=True, time_s=lost_total)
                     except Exception as e: self.logger.warning(f"Hard reconnect falló: {e}")
 
