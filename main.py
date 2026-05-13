@@ -289,7 +289,7 @@ class BuellLogger:
                     consecutive_errors = 0
                     ecu_lost_since = None
 
-                if ecu_lost_since is not None and lost_total >= 30.0 and (time.monotonic() - getattr(self, '_last_reconnect_t', 0.0)) >= 30.0:
+                if ecu_lost_since is not None and lost_total >= 10.0 and (time.monotonic() - getattr(self, '_last_reconnect_t', 0.0)) >= 10.0:
                     self.logger.info(f"Hard reconnect — {lost_total:.0f}s sin ECU")
                     if ride_active: self.error_log.reconnect_attempt(elapsed_s=elapsed_s, trigger="auto_30s", attempt_n=consecutive_errors // 30, success=False, time_s=lost_total)
                     
