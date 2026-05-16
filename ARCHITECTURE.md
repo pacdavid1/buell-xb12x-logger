@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-16 13:20 | versión: v1.16.3-311-g51e25e9
+> Última actualización: 2026-05-16 13:35 | versión: v1.16.3-312-gdae47fa
 
 ---
 
@@ -410,6 +410,7 @@ A new  |
 | `_is_valid` | Retorna (bool, str) — si el sample es válido para tuning y p |
 | `_empty_cell` | — |
 | `_bilinear_weights` | Distribuye un sample entre los 4 vecinos del mapa VE con pes |
+| `_classify_flavor` | Clasifica el sample actual en un flavor para coverage tracki |
 | `update` | — |
 | `snapshot` | Retorna copia thread-safe del estado con campos de calidad. |
 
@@ -672,6 +673,7 @@ A new  |
 
 | Nombre | Valor |
 |--------|-------|
+| `COVERAGE_TARGETS_DEFAULT` | `{'SWEET': 30.0, 'TIPIN': 15.0, 'TIPOUT': 15.0, 'WOT': 10.0, 'BITTER': 0.0}` |
 | `RB` | `[800, 1200, 1600, 2000, 2400, 2800, 3200, 3600, 4000, 4400, 4800, 5200, 5600, 6000, 6400, 6800]` |
 | `TB` | `[0, 5, 10, 15, 20, 25, 30, 35, 40, 50, 60, 70, 80, 90, 100, 101]` |
 | `MN` | `10` |
@@ -699,6 +701,8 @@ A new  |
 
 | Método | Docstring |
 |--------|-----------|
+| `_set_coverage_targets` | — |
+| `_get_coverage` | Calcula cobertura en tiempo real por flavor x celda. |
 | `__init__` | — |
 | `_get_rides` | — |
 | `start` | — |
@@ -720,6 +724,8 @@ A new  |
 - `/sessions_vs/compare`
 - `/tuner`
 - `/live.json`
+- `/coverage.json`
+- `/coverage/targets`
 - `/csv/`
 - `/ride/`
 - `/errorlog/`
@@ -758,6 +764,7 @@ A new  |
 - `cfg`
 - `net`
 - `map`
+- `cobert`
 
 **Funciones JS**
 
@@ -811,6 +818,11 @@ A new  |
 - `markerSet()`
 - `parseCSVtoRows()`
 - `extractTransitions()`
+- `setCobertFlavor()`
+- `updateCoverageTarget()`
+- `loadCoverage()`
+- `renderCobertSummary()`
+- `renderCobertGrid()`
 - `detectGearChanges()`
 - `detectWOT()`
 - `detectDTC()`

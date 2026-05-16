@@ -145,6 +145,19 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json(self._get_live())
             return
 
+        if path == '/coverage.json':
+            self._json(self.server_instance._get_coverage())
+            return
+
+        if path == '/coverage/targets' and method == 'POST':
+            try:
+                body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                self.server_instance._set_coverage_targets(body)
+                self._json({'ok': True})
+            except Exception as e:
+                self._json({'error': str(e)}, 400)
+            return
+
         if path.startswith('/csv/'):
             fname = path.split('/csv/')[-1].split('?')[0]
             rides = self.server_instance._get_rides()
@@ -527,6 +540,64 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
 class WebServer:
 
+    # Targets de coverage por flavor (segundos validos requeridos)
+    COVERAGE_TARGETS_DEFAULT = {
+        "SWEET":  30.0,
+        "TIPIN":  15.0,
+        "TIPOUT": 15.0,
+        "WOT":    10.0,
+        "BITTER":  0.0,
+    }
+
+    def _set_coverage_targets(self, body):
+        flavors = {"SWEET", "TIPIN", "TIPOUT", "WOT", "BITTER"}
+        for k, v in body.items():
+            if k in flavors:
+                self._coverage_targets[k] = float(v)
+
+    def _get_coverage(self):
+        """Calcula cobertura en tiempo real por flavor x celda."""
+        if not self.cell_tracker:
+            return {"error": "tracker no disponible", "cells": {}, "summary": {}}
+        snap, _ = self.cell_tracker.snapshot()
+        targets  = self._coverage_targets
+        flavors  = [f for f in ("SWEET", "TIPIN", "TIPOUT", "WOT") if targets.get(f, 0) > 0]
+        cells_out = {}
+        # Contadores globales por flavor
+        summary = {f: {"done": 0, "total": 0, "pct": 0.0} for f in flavors}
+        for key, c in snap.items():
+            fc      = c.get("flavor_counts", {})
+            conf    = c.get("confidence", 0.0)
+            cell_entry = {}
+            for f in flavors:
+                target_s  = targets[f]
+                actual_s  = fc.get(f, 0.0)
+                converged = conf >= 0.8
+                done      = actual_s >= target_s and converged
+                pct       = round(min(100.0, actual_s / target_s * 100), 1) if target_s > 0 else 0.0
+                cell_entry[f] = {
+                    "seconds":   round(actual_s, 1),
+                    "target_s":  target_s,
+                    "pct":       pct,
+                    "converged": converged,
+                    "done":      done,
+                }
+                summary[f]["total"] += 1
+                if done:
+                    summary[f]["done"] += 1
+            cells_out[key] = cell_entry
+        # Calcular pct global por flavor
+        for f in flavors:
+            t = summary[f]["total"]
+            d = summary[f]["done"]
+            summary[f]["pct"] = round(d / t * 100, 1) if t > 0 else 0.0
+        return {
+            "targets":  targets,
+            "cells":    cells_out,
+            "summary":  summary,
+            "n_cells":  len(cells_out),
+        }
+
     def __init__(self, host='0.0.0.0', port=8080, buell_dir=None):
         self.host             = host
         self.port             = port
@@ -547,6 +618,7 @@ class WebServer:
         self.bike_serial      = None
         self.ecu_identity     = {}   # {name, dbfile, ddfi, remark}
         self.cell_tracker     = None
+        self._coverage_targets = dict(self.COVERAGE_TARGETS_DEFAULT)
 
     def _get_rides(self):
         rides = []

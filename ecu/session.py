@@ -695,7 +695,8 @@ class CellTracker:
             "valid_seconds": 0.0, "valid_ego_sum": 0.0, "valid_count": 0.0,
             "ego_iir": None,
             "clt_sum": 0.0, "wue_sum": 0.0, "afv_sum": 0.0,
-            "inv_reasons": {}
+            "inv_reasons": {},
+            "flavor_counts": {"SWEET": 0.0, "TIPIN": 0.0, "TIPOUT": 0.0, "WOT": 0.0, "BITTER": 0.0},
         }
 
     def _bilinear_weights(self, rpm, load):
@@ -714,6 +715,20 @@ class CellTracker:
             (f"{r1}_{l1}",      tr  *      tl ),
         ]
 
+    def _classify_flavor(self, data, tps, tps_delta):
+        """Clasifica el sample actual en un flavor para coverage tracking."""
+        fl_wot   = data.get("fl_wot",   0) or 0
+        fl_decel = data.get("fl_decel", 0) or 0
+        if fl_wot:
+            return "WOT"
+        if fl_decel or tps < 2.0:
+            return "TIPOUT"
+        if tps_delta > 3.0:
+            return "TIPIN"
+        if tps < 20.0:
+            return "SWEET"
+        return "BITTER"
+
     def update(self, data):
         rpm  = data.get("RPM",    0) or 0
         load = data.get("Load",   0) or 0
@@ -727,6 +742,8 @@ class CellTracker:
                 self.active = None
             self._last_tps = None
             return
+        tps_delta = abs(tps - self._last_tps) if self._last_tps is not None else 0
+        flavor    = self._classify_flavor(data, tps, tps_delta)
         valid, inv_reason = self._is_valid(data, tps)
         primary_key = cell_key(rpm, load)
         neighbors   = self._bilinear_weights(rpm, load)
@@ -742,6 +759,7 @@ class CellTracker:
                 c["clt_sum"]  += clt * weight
                 c["wue_sum"]  += wue * weight
                 c["afv_sum"]  += afv * weight
+                c["flavor_counts"][flavor] = c["flavor_counts"].get(flavor, 0.0) + self._dt * weight
                 if valid:
                     c["valid_seconds"] += self._dt * weight
                     c["valid_ego_sum"] += ego * weight
@@ -786,6 +804,7 @@ class CellTracker:
                     "wue_avg":        wue_a,
                     "afv_avg":        afv_a,
                     "inv_reasons":    dict(v["inv_reasons"]),
+                "flavor_counts":  {f: round(s, 1) for f, s in v.get("flavor_counts", {}).items()},
                 }
             return snap, self.active
 
