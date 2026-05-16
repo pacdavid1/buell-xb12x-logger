@@ -1960,15 +1960,18 @@ function renderCobertGrid(d) {
       let bg = 'transparent', txt = '—', col = '#333';
       if (c) {
         const pct = c.pct || 0;
-        const s   = c.seconds || 0;
-        txt = s.toFixed(0) + 's';
-        if (c.done) {
-          bg = 'rgba(46,204,113,0.35)'; col = '#2ecc71';
-        } else if (pct >= 50) {
-          bg = 'rgba(241,196,15,0.25)'; col = '#f1c40f';
-        } else if (pct > 0) {
-          bg = 'rgba(231,76,60,0.2)';  col = '#e74c3c';
+        txt = pct.toFixed(0) + '%';
+        // Gradiente suave: 0%=rojo, 50%=amarillo, 100%=verde
+        let r, g, b;
+        if (pct <= 50) {
+          const t = pct / 50;
+          r = 231; g = Math.round(76 + (196 - 76) * t); b = 60;
+        } else {
+          const t = (pct - 50) / 50;
+          r = Math.round(231 - (231 - 46) * t); g = Math.round(196 + (204 - 196) * t); b = Math.round(60 + (113 - 60) * t);
         }
+        col = `rgb(${r},${g},${b})`;
+        bg  = `rgba(${r},${g},${b},0.18)`;
       }
       html += `<td style="background:${bg};color:${col};text-align:center;padding:3px 2px;border:1px solid rgba(255,255,255,.04);width:36px" title="${key}: ${c ? c.pct+'%' : 'sin datos'}">${txt}</td>`;
     }
