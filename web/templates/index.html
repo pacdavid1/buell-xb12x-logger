@@ -283,7 +283,6 @@ table.veg td:active{filter:brightness(1.6)}
   <div class="tab" onclick="showTab('cfg');trackUsage('tab_config')">Config</div>
   <div class="tab" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</div>
   <div class="tab" onclick="showTab('map');loadMapPane();trackUsage('tab_map')">Mapa</div>
-  <div class="tab" onclick="showTab('cobert');loadCoverage();trackUsage('tab_cobert')">Cobert.</div>
 </div>
 
 <!-- PANE RIDE -->
@@ -334,6 +333,16 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
   </div>
 
+  <!-- Botones cobertura por flavor -->
+  <div style="display:flex;gap:6px;margin-top:6px;margin-bottom:2px">
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);align-self:center;margin-right:2px">COBERT:</div>
+    <button class="btn" style="font-size:8px;padding:2px 7px;color:#7df;border-color:#7df" onclick="setCobertFlavor('SWEET');loadCoverage()">SWEET</button>
+    <button class="btn" style="font-size:8px;padding:2px 7px;color:#3d3;border-color:#3d3" onclick="setCobertFlavor('TIPIN');loadCoverage()">TIP-IN</button>
+    <button class="btn" style="font-size:8px;padding:2px 7px;color:#fa3;border-color:#fa3" onclick="setCobertFlavor('TIPOUT');loadCoverage()">TIP-OUT</button>
+    <button class="btn" style="font-size:8px;padding:2px 7px;color:#f74;border-color:#f74" onclick="setCobertFlavor('WOT');loadCoverage()">WOT</button>
+  </div>
+
+  <div id="ride-cobert-grid" style="overflow-x:auto;margin-bottom:4px"></div>
   <div class="obj-row-compact" id="objList"></div>
 </div>
 
@@ -519,58 +528,6 @@ table.veg td:active{filter:brightness(1.6)}
 
 </div>
 
-<!-- PANE COBERT -->
-<div class="pane content" id="pane-cobert" style="padding:8px;overflow-y:auto">
-
-  <!-- Targets configurables -->
-  <div style="background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:8px;margin-bottom:8px">
-    <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:6px">TARGETS (segundos válidos por celda)</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
-      <div>
-        <div style="font-family:var(--mono);font-size:8px;color:#7df;margin-bottom:2px">SWEET</div>
-        <input id="tgt-SWEET" type="number" min="5" max="300" value="30"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
-          onchange="updateCoverageTarget('SWEET',this.value)">
-      </div>
-      <div>
-        <div style="font-family:var(--mono);font-size:8px;color:#3d3;margin-bottom:2px">TIP-IN</div>
-        <input id="tgt-TIPIN" type="number" min="5" max="300" value="15"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
-          onchange="updateCoverageTarget('TIPIN',this.value)">
-      </div>
-      <div>
-        <div style="font-family:var(--mono);font-size:8px;color:#fa3;margin-bottom:2px">TIP-OUT</div>
-        <input id="tgt-TIPOUT" type="number" min="5" max="300" value="15"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
-          onchange="updateCoverageTarget('TIPOUT',this.value)">
-      </div>
-      <div>
-        <div style="font-family:var(--mono);font-size:8px;color:#f74;margin-bottom:2px">WOT</div>
-        <input id="tgt-WOT" type="number" min="5" max="300" value="10"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
-          onchange="updateCoverageTarget('WOT',this.value)">
-      </div>
-    </div>
-  </div>
-
-  <!-- Resumen global por flavor -->
-  <div id="cobert-summary" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px"></div>
-
-  <!-- Heatmap de celdas -->
-  <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-bottom:4px">
-    COBERTURA POR CELDA — <span id="cobert-active-flavor" style="color:#7df">SWEET</span>
-    <span style="float:right;color:var(--dim)">Verde=cubierto · Amarillo=parcial · Rojo=sin datos</span>
-  </div>
-  <div style="display:flex;gap:6px;margin-bottom:6px">
-    <button class="btn" style="font-size:9px;padding:3px 8px" onclick="setCobertFlavor('SWEET')">SWEET</button>
-    <button class="btn" style="font-size:9px;padding:3px 8px" onclick="setCobertFlavor('TIPIN')">TIP-IN</button>
-    <button class="btn" style="font-size:9px;padding:3px 8px" onclick="setCobertFlavor('TIPOUT')">TIP-OUT</button>
-    <button class="btn" style="font-size:9px;padding:3px 8px" onclick="setCobertFlavor('WOT')">WOT</button>
-  </div>
-  <div id="cobert-grid" style="overflow-x:auto"></div>
-
-</div>
-
 <!-- PANE CONFIG -->
 <div class="pane content" id="pane-cfg">
   
@@ -654,6 +611,36 @@ table.veg td:active{filter:brightness(1.6)}
       </button>
     </div>
     <button class="btn-danger" style="width:100%;margin-bottom:4px" onclick="confirmShutdown()">Apagar Pi</button>
+  </div>
+  <div class="cfg-section">
+    <div class="cfg-title">Coverage Targets</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">Segundos válidos requeridos por celda para considerar cobertura completa.</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+      <div>
+        <div style="font-family:var(--mono);font-size:8px;color:#7df;margin-bottom:2px">SWEET</div>
+        <input id="tgt-SWEET" type="number" min="5" max="300" value="30"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
+          onchange="updateCoverageTarget('SWEET',this.value)">
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:8px;color:#3d3;margin-bottom:2px">TIP-IN</div>
+        <input id="tgt-TIPIN" type="number" min="5" max="300" value="15"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
+          onchange="updateCoverageTarget('TIPIN',this.value)">
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:8px;color:#fa3;margin-bottom:2px">TIP-OUT</div>
+        <input id="tgt-TIPOUT" type="number" min="5" max="300" value="15"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
+          onchange="updateCoverageTarget('TIPOUT',this.value)">
+      </div>
+      <div>
+        <div style="font-family:var(--mono);font-size:8px;color:#f74;margin-bottom:2px">WOT</div>
+        <input id="tgt-WOT" type="number" min="5" max="300" value="10"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
+          onchange="updateCoverageTarget('WOT',this.value)">
+      </div>
+    </div>
   </div>
 </div>
 
@@ -772,7 +759,7 @@ let lastData = null;
 
 // ── TABS ──────────────────────────────────────────────────────────
 function showTab(id) {
-  const ids = ['ride','rides','graph','ve','cfg','net','map','cobert'];
+  const ids = ['ride','rides','graph','ve','cfg','net','map'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-'+id).classList.add('active');
@@ -780,7 +767,6 @@ function showTab(id) {
   if(id==='ve')      { setTimeout(loadEepromParams, 0); }
   if(id==='rides')   loadRidesList();
   if(id==='graph')   initGraphPane();
-  if(id==='cobert')  loadCoverage();
 }
 
 // ── GRID ──────────────────────────────────────────────────────────
@@ -1880,7 +1866,6 @@ const LOAD_BINS_COV = [10,15,20,30,40,50,60,80,100,125,175,255];
 
 function setCobertFlavor(f) {
   _cobertFlavor = f;
-  document.getElementById('cobert-active-flavor').textContent = f;
   renderCobertGrid(window._cobertData);
 }
 
@@ -1900,15 +1885,11 @@ async function loadCoverage() {
     // Auto-refresh cada 5s mientras el tab esté activo
     clearInterval(_cobertInterval);
     _cobertInterval = setInterval(async () => {
-      if (document.getElementById('pane-cobert').classList.contains('active')) {
-        const r2 = await fetch('/coverage.json');
-        const d2 = await r2.json();
-        window._cobertData = d2;
-        renderCobertSummary(d2.summary || {});
-        renderCobertGrid(d2);
-      } else {
-        clearInterval(_cobertInterval);
-      }
+      const r2 = await fetch('/coverage.json');
+      const d2 = await r2.json();
+      window._cobertData = d2;
+      renderCobertSummary(d2.summary || {});
+      renderCobertGrid(d2);
     }, 5000);
   } catch(e) { console.error('coverage error', e); }
 }
@@ -1916,7 +1897,7 @@ async function loadCoverage() {
 function renderCobertSummary(summary) {
   const colors = {SWEET:'#7df',TIPIN:'#3d3',TIPOUT:'#fa3',WOT:'#f74'};
   const el = document.getElementById('cobert-summary');
-  if (!el) return;
+  if (!el) return; // summary solo en tab cobert si existe
   el.innerHTML = Object.entries(summary).map(([f, s]) => {
     const pct = s.pct || 0;
     const col = pct >= 100 ? '#2ecc71' : pct >= 50 ? '#f1c40f' : '#e74c3c';
@@ -1929,7 +1910,7 @@ function renderCobertSummary(summary) {
 }
 
 function renderCobertGrid(d) {
-  const el = document.getElementById('cobert-grid');
+  const el = document.getElementById('ride-cobert-grid');
   if (!el || !d || !d.cells) return;
   const f      = _cobertFlavor;
   const cells  = d.cells;
