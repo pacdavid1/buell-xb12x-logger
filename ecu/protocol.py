@@ -83,13 +83,18 @@ RT_VARIABLES = {
 VSS_CPKM25 = 1368.0  # counts por 25km/h — calibrado con ride_015
 
 # ── Gear detection XB12X (5 velocidades, transmisión stock) ──
-GEAR_KPH_PER_KRPM = [0.0, 7.0, 11.8, 15.4, 19.1, 23.0]  # [0=neutro, 1-5]
-GEAR_THRESHOLDS = [
-    (GEAR_KPH_PER_KRPM[1] + GEAR_KPH_PER_KRPM[2]) / 2,  # entre 1a y 2a
-    (GEAR_KPH_PER_KRPM[2] + GEAR_KPH_PER_KRPM[3]) / 2,  # entre 2a y 3a
-    (GEAR_KPH_PER_KRPM[3] + GEAR_KPH_PER_KRPM[4]) / 2,  # entre 3a y 4a
-    (GEAR_KPH_PER_KRPM[4] + GEAR_KPH_PER_KRPM[5]) / 2,  # entre 4a y 5a
-]  # = [9.4, 13.6, 17.25, 21.05]
+# Ratios calculados de: primario 34/57 * sprocket 29/68 * ratio_caja_n
+# Gear ratios caja: 1=2.947 2=1.882 3=1.419 4=1.150 5=0.952
+# kph/krpm = (1000rpm / ratio_total) * circunferencia_rueda(1.93m) * 3.6
+GEAR_KPH_PER_KRPM = [0.0, 8.5, 13.2, 17.6, 21.8, 26.3]  # [0=neutro, 1-5]
+
+# Hysteresis: umbral subida mas alto que bajada (~8% banda)
+_G = GEAR_KPH_PER_KRPM
+GEAR_THR_UP   = [(_G[i] + _G[i+1]) / 2 * 1.04 for i in range(1, 5)]
+GEAR_THR_DOWN = [(_G[i] + _G[i+1]) / 2 * 0.96 for i in range(1, 5)]
+
+# Estado gear previo para hysteresis (module-level, reset en restart)
+_gear_prev = 1
 
 
 def decode_rt_packet(raw_bytes):
@@ -169,18 +174,28 @@ def decode_rt_packet(raw_bytes):
         result['VS_KPH'] = 0.0
 
     # ── Gear ─────────────────────────────────────────────────
+    global _gear_prev
     rpm_k = (result.get('RPM') or 0) / 1000.0
     kph   = result['VS_KPH']
     if rpm_k > 0.5 and kph > 3.0:
         ratio = kph / rpm_k
-        gear  = 1
-        for thr in GEAR_THRESHOLDS:
+        result['VSS_RPM_Ratio'] = round(ratio, 3)
+        gear = _gear_prev
+        if gear < 5 and ratio > GEAR_THR_UP[gear - 1]:
+            gear += 1
+        elif gear > 1 and ratio < GEAR_THR_DOWN[gear - 2]:
+            gear -= 1
+        # Sanity: recalculo absoluto si diff > 2 gears
+        gear_abs = 1
+        for thr in GEAR_THR_UP:
             if ratio > thr:
-                gear += 1
-            else:
-                break
+                gear_abs += 1
+        if abs(gear_abs - gear) > 2:
+            gear = gear_abs
+        _gear_prev = gear
         result['Gear'] = gear
     else:
+        _gear_prev = 1
         result['Gear'] = 0
 
     return result
