@@ -346,7 +346,8 @@ table.veg td:active{filter:brightness(1.6)}
   <div class="obj-row-compact" id="objList"></div>
 </div>
 
-<!-- PANE RIDES -->
+<div style="padding:4px 0"><a href="/cobertura" style="font-family:var(--mono);font-size:9px;color:var(--accent2);text-decoration:none">COBERTURA VE →</a></div>
+  <!-- PANE RIDES -->
 <div class="pane content" id="pane-rides">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
     <div class="cfg-title" style="margin:0;border:none;padding:0">Sesiones</div>
@@ -1019,6 +1020,7 @@ function renderIndicators(ind) {
 // ── FETCH LOOP ────────────────────────────────────────────────────
 let _lastLiveOk = Date.now();
 async function fetchLive() {
+  document.title="LIVE";
   if(window._viewingHistory){
     try {
       const _r = await fetch('/live.json?t='+Date.now());

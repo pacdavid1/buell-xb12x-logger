@@ -622,70 +622,44 @@ def cell_key(rpm, load):
     return f"{find_bin(rpm, RPM_BINS)}_{find_bin(load, LOAD_BINS)}"
 
 class CellTracker:
-    """Acumula tiempo, EGO y flavor por celda VE 13x12."""
-    FLAVORS = ("SWEET", "TIPIN", "TIPOUT", "WOT", "BITTER")
+    """Acumula tiempo y EGO promedio por celda del mapa VE 13×12."""
 
     def __init__(self):
-        self.cells     = {}
-        self.active    = None
-        self._lock     = threading.Lock()
-        self._dt       = 1.0 / 8.0
-        self._prev_tps = None
+        self.cells  = {}   # key → {seconds, ego_sum, count}
+        self.active = None
+        self._lock  = threading.Lock()
+        self._dt    = 1.0 / 8.0   # 8Hz → 0.125s por muestra
 
     def reset(self):
         with self._lock:
-            self.cells     = {}
-            self.active    = None
-            self._prev_tps = None
-
-    def _classify_flavor(self, tps_10bit):
-        tps_pct = (tps_10bit or 0) / 10.23
-        if tps_pct > 80: return "WOT"
-        if tps_pct < 10: return "BITTER"
-        if self._prev_tps is not None:
-            delta = (tps_10bit - self._prev_tps) / 10.23
-            if delta > 1.5: return "TIPIN"
-            if delta < -1.5: return "TIPOUT"
-        return "SWEET"
+            self.cells  = {}
+            self.active = None
 
     def update(self, data):
         rpm  = data.get("RPM",  0) or 0
         load = data.get("Load", 0) or 0
         ego  = data.get("EGO_Corr", 100) or 100
-        tps  = data.get("TPS_10Bit", 0) or 0
         if rpm < 300:
             with self._lock:
                 self.active = None
-                self._prev_tps = None
             return
         key = cell_key(rpm, load)
-        flavor = self._classify_flavor(tps)
         with self._lock:
             self.active = key
-            self._prev_tps = tps
-            c = self.cells.setdefault(key, {
-                "seconds": 0.0, "ego_sum": 0.0, "count": 0,
-                "flavor_seconds": {f: 0.0 for f in self.FLAVORS}
-            })
-            c["seconds"] += self._dt
-            c["ego_sum"] += ego
-            c["count"]   += 1
-            c["flavor_seconds"][flavor] += self._dt
+            c = self.cells.setdefault(key, {"seconds":0.0,"ego_sum":0.0,"count":0})
+            c["seconds"]  += self._dt
+            c["ego_sum"]  += ego
+            c["count"]    += 1
 
     def snapshot(self):
+        """Retorna copia thread-safe del estado."""
         with self._lock:
-            snap = {}
-            for k, v in self.cells.items():
-                avg = round(v["ego_sum"]/v["count"], 1) if v["count"] else 100.0
-                sweet = v["flavor_seconds"].get("SWEET", 0.0)
-                conf = min(1.0, sweet / 20.0)
-                snap[k] = {
-                    "seconds":       round(v["seconds"], 1),
-                    "ego_avg":       avg,
-                    "confidence":    round(conf, 2),
-                    "flavor_counts": {f: round(s, 1) for f, s in v["flavor_seconds"].items()},
-                }
-            return snap, self.active
+            snap_cells = {}
+            for k,v in self.cells.items():
+                avg = round(v["ego_sum"]/v["count"],1) if v["count"] else 100.0
+                snap_cells[k] = {"seconds":round(v["seconds"],1),"ego_avg":avg}
+            return snap_cells, self.active
+
 
 class LiveHandler(BaseHTTPRequestHandler):
     """Handler HTTP minimalista. state viene del LiveDashboard."""

@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-17 17:35 | versión: v1.16.3-316-gd708c73
+> Última actualización: 2026-05-17 20:39 | versión: v1.16.3-317-g330ba98
 
 ---
 
@@ -61,11 +61,14 @@ buell-xb12x-logger/
 │   └── test_ecu.py.save
 ├── web
 │   ├── templates
+│   │   ├── cobertura.html
 │   │   ├── index.html
+│   │   ├── index.html.bak.grid
 │   │   ├── sessions_vs.html
 │   │   └── tuner.html
 │   ├── __init__.py
-│   └── server.py
+│   ├── server.py
+│   └── server.py.bak.grid
 ├── ARCHITECTURE.md
 ├── BACKLOG.md
 ├── BACKLOG_ANL.md
@@ -75,6 +78,7 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md
 ├── add_map_diff.py
 ├── ddfi2_logger.py
+├── ddfi2_logger.py.bak.grid
 ├── fix_bmp280.py
 ├── fix_heatmap_valid.py
 ├── fix_network_mode_cache.py
@@ -85,7 +89,9 @@ buell-xb12x-logger/
 ├── install.sh
 ├── main.py
 ├── network_state.json
-└── objectives.json
+├── objectives.json
+├── patch_grid_v2.py
+└── patch_unified_grid.py
 ```
 
 ---
@@ -133,6 +139,7 @@ buell-xb12x-logger/
 | `LOAD_BINS` | `[10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]` |
 | `BUEIB_PARAMS` | `{'KTemp_Fan_On': (498, 1.0, 50.0, '°C', 'Fan ON temperatura (key-on)'), 'KTemp_Fan_Off': (499, 1.0, 50.0, '°C', 'Fan OFF temperatura (key-on)'), 'KTemp_Soft_Hi': (488, 1.0, 200.0, '°C', 'Soft limit trigger (EGO baja)'), 'KTemp_Soft_Lo': (489, 1.0, 200.0, '°C', 'Soft limit release'), 'KTemp_Hard_Hi': (490, 1.0, 200.0, '°C', 'Hard limit trigger (corta chispa)'), 'KTemp_Hard_Lo': (491, 1.0, 200.0, '°C', 'Hard limit release'), 'KTemp_Kill_Hi': (494, 1.0, 200.0, '°C', 'Kill limit trigger (apaga motor)'), 'KTemp_Kill_Lo': (495, 1.0, 200.0, '°C', 'Kill limit release'), 'KTemp_CEL_Flash_Hi': (496, 1.0, 200.0, '°C', 'CEL encendido temperatura'), 'KTemp_Fan_KO_On': (521, 1.0, 0.0, '°C', 'Fan key-off ON temp'), 'KTemp_Fan_KO_Off': (522, 1.0, 0.0, '°C', 'Fan key-off OFF temp'), 'KTemp_RPM_Soft': (485, 50.0, 0.0, 'RPM', 'RPM min para soft limit temp'), 'KTemp_RPM_Hard': (487, 50.0, 0.0, 'RPM', 'RPM min para hard limit temp'), 'KTemp_TP_Soft': (484, 1.0, 0.0, 'TPS', 'TPS min para soft limit temp'), 'KTemp_TP_Hard': (486, 1.0, 0.0, 'TPS', 'TPS min para hard limit temp'), 'KRPM_Soft_Hi': (458, 50.0, 0.0, 'RPM', 'RPM soft limit trigger'), 'KRPM_Soft_Lo': (459, 50.0, 0.0, 'RPM', 'RPM soft limit release'), 'KRPM_Hard_Hi': (460, 50.0, 0.0, 'RPM', 'RPM hard limit trigger'), 'KRPM_Hard_Lo': (461, 50.0, 0.0, 'RPM', 'RPM hard limit release'), 'KRPM_Kill_Hi': (464, 50.0, 0.0, 'RPM', 'RPM kill limit trigger'), 'KRPM_Kill_Lo': (465, 50.0, 0.0, 'RPM', 'RPM kill limit release'), 'KO2_Midpoint': (186, 0.00196, 0.0, 'V', 'O2 target voltage'), 'KO2_Rich': (187, 0.00196, 0.0, 'V', 'O2 rich threshold'), 'KO2_Lean': (188, 0.00196, 0.0, 'V', 'O2 lean threshold'), 'KO2_Min_RPM': (190, 50.0, 0.0, 'RPM', 'Closed loop min RPM'), 'KFBFuel_Max': (379, 0.4, 0.0, '%', 'EGO correction max'), 'KFBFuel_Min': (380, 0.4, -102.0, '%', 'EGO correction min'), 'KLFuel_Max': (395, 0.4, 0.0, '%', 'AFV max'), 'KLFuel_Min': (396, 0.4, -102.0, '%', 'AFV min'), 'KTPS0': (200, 0.00244, 0.0, 'V', 'TPS cerrado voltage'), 'KTPSV_Range': (201, 0.00244, 0.0, 'V', 'TPS voltage range'), 'KMFG_Year': (3, 1.0, 0.0, '', 'Anio fabricacion ECM'), 'KMFG_Day': (4, 1.0, 0.0, '', 'Dia fabricacion ECM'), 'KEngineRun': (6, 50.0, 0.0, 'RPM', 'RPM minimo motor encendido'), 'Ride_Counter': (1, 1.0, 0.0, '', 'Contador de rides')}` |
 | `MAP_REGIONS` | `{'spark_front': (670, 100), 'spark_rear': (770, 100), 'fuel_front': (870, 156), 'fuel_rear': (1038, 156)}` |
+| `FLAVORS` | `('SWEET', 'TIPIN', 'TIPOUT', 'WOT', 'BITTER')` |
 | `PORT` | `8080` |
 | `HOTSPOT_CON` | `buell-hotspot` |
 | `WIFI_TIMEOUT_S` | `60` |
@@ -155,8 +162,9 @@ buell-xb12x-logger/
 |--------|-----------|
 | `__init__` | — |
 | `reset` | — |
+| `_classify_flavor` | — |
 | `update` | — |
-| `snapshot` | Retorna copia thread-safe del estado. |
+| `snapshot` | — |
 
 **Clase `LiveHandler`**
 
@@ -643,6 +651,14 @@ A new  |
 
 ---
 
+### `patch_grid_v2.py`
+
+---
+
+### `patch_unified_grid.py`
+
+---
+
 ### `tools/recover_summaries.py`
 
 ---
@@ -702,7 +718,7 @@ A new  |
 | Método | Docstring |
 |--------|-----------|
 | `_set_coverage_targets` | — |
-| `_get_coverage` | Calcula cobertura en tiempo real por flavor x celda. |
+| `_get_coverage` | Cobertura unificada: segundos, EGO, flavors por celda. |
 | `__init__` | — |
 | `_get_rides` | — |
 | `start` | — |
@@ -723,6 +739,7 @@ A new  |
 - `/sessions_vs`
 - `/sessions_vs/compare`
 - `/tuner`
+- `/cobertura`
 - `/live.json`
 - `/coverage.json`
 - `/coverage/targets`

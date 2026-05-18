@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Cobertura VE — Buell XB12X</title>
+<style>
+:root{--bg:#0a0a0b;--panel:#111113;--border:#222;--text:#ddd;--dim:#555;--mono:monospace;--accent2:#f1c40f;--green:#2ecc71}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:11px;padding:8px;max-width:600px;margin:0 auto}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.hdr h1{font-size:12px;color:var(--dim);letter-spacing:.15em;font-weight:400}
+.hdr a{font-size:9px;color:var(--accent2);text-decoration:none;border:1px solid var(--accent2);padding:3px 8px;border-radius:2px}
+.btn{display:inline-block;padding:4px 8px;background:transparent;border:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:8px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;border-radius:2px}
+.btn:active{opacity:.7}
+.grid-wrap{overflow-x:auto;padding-bottom:4px}
+table.veg{border-collapse:collapse;font-family:var(--mono);white-space:nowrap}
+table.veg th{font-size:7px;color:var(--dim);padding:2px 3px;text-align:center;font-weight:400;min-width:28px}
+table.veg th.rh{text-align:right;min-width:26px;padding-right:4px}
+table.veg td{width:32px;height:28px;border:1px solid rgba(255,255,255,.04);text-align:center;vertical-align:middle}
+.cv{font-size:8px;font-weight:700;line-height:1}
+.c0{background:#141417}.c1{background:#2a1f08}.c2{background:#3a3000}.c3{background:#0f2e0f}.c4{background:#0a420a}
+.ca{background:#3d0800 !important;animation:pulse .7s infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(2.2)}}
+.legend{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--dim)}
+.leg-dot{width:10px;height:10px;flex-shrink:0}
+.obj-row-compact{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.obj-chip{display:flex;flex-direction:column;flex:1;min-width:70px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--dim);padding:5px 8px;border-radius:0 3px 3px 0}
+.obj-chip.done{border-left-color:var(--green)}.obj-chip.partial{border-left-color:var(--accent2)}
+.obj-chip-label{font-size:7px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px}
+.obj-chip-pct{font-size:18px;font-weight:900;color:#fff}
+.obj-chip-sub{font-size:7px;color:var(--dim);margin-top:1px}
+.obj-bar{height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-top:3px}
+.obj-fill{height:2px;border-radius:1px;background:var(--accent2);transition:width .5s}
+.obj-fill.done{background:var(--green)}
+.controls{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px}
+.ctrl-label{font-size:8px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase}
+.btns{display:flex;gap:3px;flex-wrap:wrap}
+.status{font-size:9px;color:var(--dim);margin-top:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>COBERTURA VE</h1>
+  <a href="/">← Dashboard</a>
+</div>
+<div class="controls">
+  <div class="ctrl-label">Celdas</div>
+  <div class="btns" id="cobert-btns">
+    <button class="btn cobert-btn active" data-mode="seconds" onclick="setCobertMode('seconds')" style="border-color:var(--accent2);color:var(--accent2)">Segundos</button>
+    <button class="btn cobert-btn" data-mode="ego" onclick="setCobertMode('ego')">EGO</button>
+    <button class="btn cobert-btn" data-mode="SWEET" onclick="setCobertMode('SWEET')" style="color:#7df">SWEET</button>
+    <button class="btn cobert-btn" data-mode="TIPIN" onclick="setCobertMode('TIPIN')" style="color:#3d3">TIPIN</button>
+    <button class="btn cobert-btn" data-mode="TIPOUT" onclick="setCobertMode('TIPOUT')" style="color:#fa3">TIPOUT</button>
+    <button class="btn cobert-btn" data-mode="WOT" onclick="setCobertMode('WOT')" style="color:#f74">WOT</button>
+  </div>
+</div>
+<div class="grid-wrap"><table class="veg" id="cobertGrid"></table></div>
+<div class="legend" id="cobert-legend"></div>
+<div class="obj-row-compact" id="cobert-summary"></div>
+<div class="status" id="cobert-status">Conectando...</div>
+
+<script>
+const RPM_BINS  = [0,800,1000,1350,1900,2400,2900,3400,4000,5000,6000,7000,8000];
+const LOAD_BINS = [10,15,20,30,40,50,60,80,100,125,175,255];
+let _cobertMode = 'seconds';
+let _cobertData = null;
+
+function setCobertMode(mode) {
+  _cobertMode = mode;
+  document.querySelectorAll('.cobert-btn').forEach(b => {
+    const a = b.dataset.mode === mode;
+    b.style.borderColor = a ? 'var(--accent2)' : '';
+    b.style.color = a ? 'var(--accent2)' : '';
+  });
+  renderCobertLegend();
+  if (_cobertData) renderCobertGrid(_cobertData);
+}
+
+function buildCobertGrid() {
+  const t = document.getElementById('cobertGrid');
+  if (t.children.length) return;
+  let h = '<thead><tr><th class="rh">L\\R</th>';
+  for (const r of RPM_BINS) h += '<th>'+(r===0?'0':r>=1000?(r/1000)+'k':r)+'</th>';
+  h += '</tr></thead><tbody>';
+  for (let li = LOAD_BINS.length-1; li >= 0; li--) {
+    h += '<tr><th class="rh">'+LOAD_BINS[li]+'</th>';
+    for (let ri = 0; ri < RPM_BINS.length; ri++) {
+      const k = RPM_BINS[ri]+'_'+LOAD_BINS[li];
+      h += '<td id="gc_'+k+'" class="c0"><div class="cv" id="gs_'+k+'"></div></td>';
+    }
+    h += '</tr>';
+  }
+  h += '</tbody>';
+  t.innerHTML = h;
+}
+
+function egoColor(e) {
+  if(e<90)return'rgba(255,50,50,0.9)';if(e<95)return'rgba(255,160,50,0.85)';
+  if(e<105)return'rgba(50,200,50,0.8)';if(e<110)return'rgba(50,150,255,0.85)';
+  return'rgba(80,80,255,0.9)';
+}
+function pctColor(p) {
+  let r,g,b;
+  if(p<=50){const t=p/50;r=231;g=Math.round(76+120*t);b=60;}
+  else{const t=(p-50)/50;r=Math.round(231-185*t);g=Math.round(196+8*t);b=Math.round(60+53*t);}
+  return'rgb('+r+','+g+','+b+')';
+}
+
+function renderCobertLegend() {
+  const el = document.getElementById('cobert-legend');
+  if(!el) return;
+  const m = _cobertMode;
+  if (m === 'seconds') {
+    el.innerHTML = '<div class="leg"><div class="leg-dot c0"></div>Sin datos</div>'
+      +'<div class="leg"><div class="leg-dot c1"></div>&lt;2s</div>'
+      +'<div class="leg"><div class="leg-dot c2"></div>2-5s</div>'
+      +'<div class="leg"><div class="leg-dot c3"></div>5-10s</div>'
+      +'<div class="leg"><div class="leg-dot c4"></div>&gt;10s</div>'
+      +'<div class="leg"><div class="leg-dot ca"></div>Activa</div>';
+  } else if (m === 'ego') {
+    el.innerHTML = '<div class="leg"><div class="leg-dot" style="background:rgba(255,50,50,.9)"></div>&lt;90</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(255,160,50,.85)"></div>90-95</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(50,200,50,.8)"></div>95-105</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(50,150,255,.85)"></div>105-110</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(80,80,255,.9)"></div>&gt;110</div>';
+  } else {
+    const tgt = (_cobertData&&_cobertData.targets&&_cobertData.targets[m]) || '?';
+    el.innerHTML = '<div class="leg" style="color:var(--dim)">'+m+' target: '+tgt+'s &middot; conf&ge;80% para converger</div>';
+  }
+}
+
+function renderCobertGrid(d) {
+  const cells = d.cells || {}, ac = d.active_cell || null, m = _cobertMode;
+  let populated = 0;
+  for (let li = 0; li < LOAD_BINS.length; li++) {
+    for (let ri = 0; ri < RPM_BINS.length; ri++) {
+      const k = RPM_BINS[ri]+'_'+LOAD_BINS[li];
+      const td = document.getElementById('gc_'+k), sv = document.getElementById('gs_'+k);
+      if (!td || !sv) continue;
+      const c = cells[k] || {};
+      let bg = 'c0', txt = '', isSt = false;
+      if (m === 'seconds') {
+        const s = c.seconds || 0;
+        if (s > 0) populated++;
+        bg = k===ac ? 'ca' : s<=0?'c0':s<2?'c1':s<5?'c2':s<10?'c3':'c4';
+        txt = s > 0 ? (s<10?s.toFixed(1):Math.round(s))+'s' : '';
+      } else if (m === 'ego') {
+        const e = c.ego_avg;
+        if (c.seconds > 0 && e != null) {
+          populated++;
+          bg = 'background:' + egoColor(e); txt = e.toFixed(1); isSt = true;
+        }
+      } else {
+        const fl = (c.flavors || {})[m];
+        if (fl) {
+          populated++;
+          const p = fl.pct || 0, col = pctColor(p);
+          bg = 'background:' + col.replace('rgb','rgba').replace(')',',0.2)');
+          txt = fl.done ? '\u2713' : p.toFixed(0) + '%';
+          sv.style.color = col; isSt = true;
+        }
+      }
+      td.className = isSt ? '' : bg;
+      td.style.cssText = isSt ? bg : '';
+      if (!isSt) sv.style.color = '';
+      sv.textContent = txt;
+    }
+  }
+  const st = document.getElementById('cobert-status');
+  if (st) st.textContent = populated + ' / ' + (RPM_BINS.length * LOAD_BINS.length) + ' celdas con datos';
+}
+
+async function poll() {
+  try {
+    const r = await fetch('/coverage.json?t='+Date.now());
+    if (!r.ok) return;
+    const d = await r.json();
+    _cobertData = d;
+    renderCobertGrid(d);
+  } catch(e) {}
+}
+
+buildCobertGrid();
+renderCobertLegend();
+poll();
+setInterval(poll, 1000);
+</script>
+</body>
+</html>

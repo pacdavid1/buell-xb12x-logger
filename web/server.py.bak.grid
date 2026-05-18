@@ -143,10 +143,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._html(self._load_html())
             return
 
-        if path == '/cobertura':
-            fp = Path(__file__).parent / 'templates' / 'cobertura.html'
-            if fp.exists(): self._html(fp.read_text())
-            return
         if path == '/live.json':
             self._json(self._get_live())
             return
@@ -563,42 +559,46 @@ class WebServer:
                 self._coverage_targets[k] = float(v)
 
     def _get_coverage(self):
-        """Cobertura unificada: segundos, EGO, flavors por celda."""
+        """Calcula cobertura en tiempo real por flavor x celda."""
         if not self.cell_tracker:
             return {"error": "tracker no disponible", "cells": {}, "summary": {}}
-        snap, active = self.cell_tracker.snapshot()
-        targets = self._coverage_targets
-        flavors = [f for f in ("SWEET", "TIPIN", "TIPOUT", "WOT") if targets.get(f, 0) > 0]
+        snap, _ = self.cell_tracker.snapshot()
+        targets  = self._coverage_targets
+        flavors  = [f for f in ("SWEET", "TIPIN", "TIPOUT", "WOT") if targets.get(f, 0) > 0]
         cells_out = {}
+        # Contadores globales por flavor
         summary = {f: {"done": 0, "total": 0, "pct": 0.0} for f in flavors}
         for key, c in snap.items():
-            fc   = c.get("flavor_counts", {})
-            conf = c.get("confidence", 0.0)
-            entry = {
-                "seconds": c.get("seconds", 0.0),
-                "ego_avg": c.get("ego_avg", 100.0),
-                "confidence": conf,
-                "flavors": {},
-            }
+            fc      = c.get("flavor_counts", {})
+            conf    = c.get("confidence", 0.0)
+            cell_entry = {}
             for f in flavors:
-                ts = targets[f]
-                actual = fc.get(f, 0.0)
-                conv = conf >= 0.8
-                done = actual >= ts and conv
-                pct = round(min(100.0, actual / ts * 100), 1) if ts > 0 else 0.0
-                entry["flavors"][f] = {
-                    "seconds": round(actual, 1), "target_s": ts,
-                    "pct": pct, "converged": conv, "done": done
+                target_s  = targets[f]
+                actual_s  = fc.get(f, 0.0)
+                converged = conf >= 0.8
+                done      = actual_s >= target_s and converged
+                pct       = round(min(100.0, actual_s / target_s * 100), 1) if target_s > 0 else 0.0
+                cell_entry[f] = {
+                    "seconds":   round(actual_s, 1),
+                    "target_s":  target_s,
+                    "pct":       pct,
+                    "converged": converged,
+                    "done":      done,
                 }
                 summary[f]["total"] += 1
-                if done: summary[f]["done"] += 1
-            cells_out[key] = entry
+                if done:
+                    summary[f]["done"] += 1
+            cells_out[key] = cell_entry
+        # Calcular pct global por flavor
         for f in flavors:
-            t, d = summary[f]["total"], summary[f]["done"]
-            summary[f]["pct"] = round(d/t*100, 1) if t > 0 else 0.0
+            t = summary[f]["total"]
+            d = summary[f]["done"]
+            summary[f]["pct"] = round(d / t * 100, 1) if t > 0 else 0.0
         return {
-            "targets": targets, "cells": cells_out, "summary": summary,
-            "active_cell": active, "n_cells": len(cells_out),
+            "targets":  targets,
+            "cells":    cells_out,
+            "summary":  summary,
+            "n_cells":  len(cells_out),
         }
 
     def __init__(self, host='0.0.0.0', port=8080, buell_dir=None):
