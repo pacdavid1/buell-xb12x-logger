@@ -300,7 +300,9 @@ class BuellLogger:
                             consecutive_errors = 0; ecu_lost_since = None; last_lost_interval = -1
                             self._last_reconnect_t = 0.0
                             if ride_active: self.error_log.reconnect_attempt(elapsed_s=elapsed_s, trigger="auto_30s", attempt_n=consecutive_errors // 30, success=True, time_s=lost_total)
-                    except Exception as e: self.logger.warning(f"Hard reconnect falló: {e}")
+                    except Exception as e:
+                        self.logger.warning(f"Hard reconnect falló: {e}")
+                        self._last_reconnect_t = time.monotonic()
 
                 time.sleep(max(0, INTERVAL - (time.monotonic() - t0)))
                 continue
