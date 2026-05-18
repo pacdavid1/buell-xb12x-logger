@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-17 20:39 | versión: v1.16.3-317-g330ba98
+> Última actualización: 2026-05-17 20:40 | versión: v1.16.3-318-g6e308a7
 
 ---
 
@@ -67,8 +67,7 @@ buell-xb12x-logger/
 │   │   ├── sessions_vs.html
 │   │   └── tuner.html
 │   ├── __init__.py
-│   ├── server.py
-│   └── server.py.bak.grid
+│   └── server.py
 ├── ARCHITECTURE.md
 ├── BACKLOG.md
 ├── BACKLOG_ANL.md
@@ -78,7 +77,6 @@ buell-xb12x-logger/
 ├── WORKING_METHOD.md
 ├── add_map_diff.py
 ├── ddfi2_logger.py
-├── ddfi2_logger.py.bak.grid
 ├── fix_bmp280.py
 ├── fix_heatmap_valid.py
 ├── fix_network_mode_cache.py
@@ -89,9 +87,7 @@ buell-xb12x-logger/
 ├── install.sh
 ├── main.py
 ├── network_state.json
-├── objectives.json
-├── patch_grid_v2.py
-└── patch_unified_grid.py
+└── objectives.json
 ```
 
 ---
@@ -648,14 +644,6 @@ A new  |
 | `start_monitor` | — |
 | `stop_monitor` | — |
 | `ssh_active` | — |
-
----
-
-### `patch_grid_v2.py`
-
----
-
-### `patch_unified_grid.py`
 
 ---
 
