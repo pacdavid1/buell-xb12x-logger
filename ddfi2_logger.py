@@ -846,9 +846,9 @@ class LiveHandler(BaseHTTPRequestHandler):
         elif self.path == '/network':
             action = payload.get("action", "")
             if action == "wifi":
-                NetworkManager.switch_to_wifi()
+                threading.Thread(target=NetworkManager.switch_to_wifi, daemon=True).start()
             elif action == "hotspot":
-                NetworkManager.switch_to_hotspot()
+                threading.Thread(target=NetworkManager.switch_to_hotspot, daemon=True).start()
             self._json({"ok": True, "action": action})
 
         elif self.path == '/wifi/scan':
