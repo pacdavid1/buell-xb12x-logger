@@ -533,6 +533,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "ecu_lost_s":      self.server_instance.ecu_lost_s,
             "live":            self._get_live_data(),
             "cells":           self.server_instance.cell_tracker.snapshot()[0] if self.server_instance.cell_tracker else {},
+            "active_cell":    self.server_instance.cell_tracker.snapshot()[1] if self.server_instance.cell_tracker else None,
             "objectives":      [],
             "serial_stats":    self.server_instance.serial_stats,
             "bike_serial":     self.server_instance.bike_serial,
