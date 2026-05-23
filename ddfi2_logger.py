@@ -346,7 +346,8 @@ STATIC_DIR = WEB_DIR / "static"
 def _read_version():
     try:
         import re
-        cl = open("/home/pi/buell/CHANGELOG.md").read()
+        with open("/home/pi/buell/CHANGELOG.md") as f:
+            cl = f.read()
         m = re.search(r"## \[([^\]]+)\]", cl)
         return m.group(1) if m else "unknown"
     except Exception:
@@ -365,8 +366,14 @@ MYSTERY_BYTES = {
 # ─────────────────────────────────────────────────────────────────
 # PROTOCOLO PDU
 # ─────────────────────────────────────────────────────────────────
-SOH=0x01;EOH=0xFF;SOT=0x02;EOT=0x03;ACK=0x06
-DROID_ID=0x00;STOCK_ECM_ID=0x42;CMD_GET=0x52
+SOH=0x01
+EOH=0xFF
+SOT=0x02
+EOT=0x03
+ACK=0x06
+DROID_ID=0x00
+STOCK_ECM_ID=0x42
+CMD_GET=0x52
 PDU_VERSION  = bytes([0x01,0x00,0x42,0x02,0xFF,0x02,0x56,0x03,0xE8])
 PDU_RT_DATA  = bytes([0x01,0x00,0x42,0x02,0xFF,0x02,0x43,0x03,0xFD])
 RT_RESPONSE_SIZE = 107
@@ -519,7 +526,9 @@ def decode_rt_packet(raw_bytes):
     if (cs&0xFF)!=raw_bytes[-1]: return None
     result={}
     for name,(offset,nbytes,scale,val_offset) in RT_VARIABLES.items():
-        if offset+nbytes>len(raw_bytes): result[name]=None; continue
+        if offset+nbytes>len(raw_bytes):
+            result[name]=None
+            continue
         raw=struct.unpack_from('<H',raw_bytes,offset)[0] if nbytes==2 else raw_bytes[offset]
         result[name]=round(raw*scale+val_offset,4)
 
@@ -785,7 +794,9 @@ class LiveHandler(BaseHTTPRequestHandler):
                     self.end_headers()
                     self.wfile.write(body)
                 except Exception as e:
-                    pass
+                    logging.getLogger("HTTP").exception(
+                        f"GET /csv/ {fname}: error al leer/enviar CSV"
+                    )
             else:
                 self._json({"error":"not found"}, 404)
         elif self.path.startswith('/ride/'):
@@ -1061,8 +1072,10 @@ class LiveDashboard:
         # Evaluar objetivos
         objectives_out = []
         for ct in obj_cfg.get("cell_targets", []):
-            rpm_min  = ct.get("rpm_min",0);    rpm_max  = ct.get("rpm_max",9999)
-            load_min = ct.get("load_min",0);   load_max = ct.get("load_max",255)
+            rpm_min  = ct.get("rpm_min",0)
+            rpm_max  = ct.get("rpm_max",9999)
+            load_min = ct.get("load_min",0)
+            load_max = ct.get("load_max",255)
             target_s = ct.get("seconds",5)
             matching = []
             for ri, r in enumerate(RPM_BINS):
@@ -1245,12 +1258,15 @@ class LiveDashboard:
             dt = 1.0/8.0
             for row in rows:
                 try:
-                    rpm=float(row.get("RPM",0) or 0); load=float(row.get("Load",0) or 0)
+                    rpm=float(row.get("RPM",0) or 0)
+                    load=float(row.get("Load",0) or 0)
                     ego=float(row.get("EGO_Corr",100) or 100)
                     if rpm<300: continue
                     key=f"{find_bin(rpm,RPM_BINS)}_{find_bin(load,LOAD_BINS)}"
                     c=cells.setdefault(key,{"seconds":0.0,"ego_sum":0.0,"count":0})
-                    c["seconds"]+=dt; c["ego_sum"]+=ego; c["count"]+=1
+                    c["seconds"]+=dt
+                    c["ego_sum"]+=ego
+                    c["count"]+=1
                 except Exception: pass
         except Exception as e:
             self.logger.warning(f"get_ride_summary fallback: {e}")
@@ -1531,7 +1547,9 @@ class NetworkManager:
 # ─────────────────────────────────────────────────────────────────
 class DDFI2Connection:
     def __init__(self, port):
-        self.port=port; self.ser=None; self.logger=logging.getLogger("DDFI2")
+        self.port=port
+        self.ser=None
+        self.logger=logging.getLogger("DDFI2")
 
     def connect(self):
         deadline = time.time()+15.0
@@ -1542,9 +1560,12 @@ class DDFI2Connection:
             parity=serial.PARITY_NONE,stopbits=serial.STOPBITS_ONE,timeout=1.0,
             xonxoff=False,rtscts=False,dsrdtr=False)
         # Toggle DTR para resetear estado serial de la ECU (igual que reboot Pi)
-        self.ser.dtr = False; time.sleep(0.05)
-        self.ser.dtr = True;  time.sleep(0.2)
-        self.ser.reset_input_buffer(); self.ser.reset_output_buffer()
+        self.ser.dtr = False
+        time.sleep(0.05)
+        self.ser.dtr = True
+        time.sleep(0.2)
+        self.ser.reset_input_buffer()
+        self.ser.reset_output_buffer()
         time.sleep(0.1)  # settle
         # Intentar bajar latency timer FT232RL de 16ms → 2ms via sysfs
         try:
@@ -1571,13 +1592,17 @@ class DDFI2Connection:
         import glob as _glob
         try:
             for path in _glob.glob('/sys/bus/usb/devices/*/idVendor'):
-                vendor = open(path).read().strip()
-                product = open(path.replace('idVendor','idProduct')).read().strip()
+                with open(path) as f:
+                    vendor = f.read().strip()
+                with open(path.replace('idVendor','idProduct')) as f:
+                    product = f.read().strip()
                 if vendor == '0403' and product == '6001':
                     auth = path.replace('idVendor','authorized')
-                    open(auth,'w').write('0')
+                    with open(auth,'w') as f:
+                        f.write('0')
                     time.sleep(0.8)
-                    open(auth,'w').write('1')
+                    with open(auth,'w') as f:
+                        f.write('1')
                     time.sleep(2.0)   # esperar re-enumeración
                     self.logger.info("USB reset FT232RL completado via sysfs")
                     return True
@@ -1587,10 +1612,14 @@ class DDFI2Connection:
             self.logger.warning(f"USB reset falló: {e}")
             return False
 
-    def _send(self,pdu): self.ser.reset_input_buffer(); self.ser.write(pdu); self.ser.flush()
+    def _send(self,pdu):
+        self.ser.reset_input_buffer()
+        self.ser.write(pdu)
+        self.ser.flush()
 
     def _read_exact(self,n,timeout_s=1.0):
-        buf=bytearray(); deadline=time.time()+timeout_s
+        buf=bytearray()
+        deadline=time.time()+timeout_s
         while len(buf)<n:
             rem=deadline-time.time()
             if rem<=0: raise TimeoutError(f"{len(buf)}/{n}")
@@ -1603,13 +1632,19 @@ class DDFI2Connection:
         """Reintentar hasta 5 veces con flush — ECU puede estar en modo RT."""
         for attempt in range(5):
             try:
-                self.ser.reset_input_buffer(); self.ser.reset_output_buffer()
-                self._send(PDU_VERSION); h=self._read_exact(6,2.0)
+                self.ser.reset_input_buffer()
+                self.ser.reset_output_buffer()
+                self._send(PDU_VERSION)
+                h=self._read_exact(6,2.0)
                 if h[0]!=SOH:
                     self.logger.debug(f"get_version intento {attempt+1}: byte0=0x{h[0]:02x}, flush+retry")
-                    time.sleep(0.3); continue
-                rest=self._read_exact(h[3]-1+2,2.0); full=h+rest
-                if full[6]!=ACK: time.sleep(0.3); continue
+                    time.sleep(0.3)
+                    continue
+                rest=self._read_exact(h[3]-1+2,2.0)
+                full=h+rest
+                if full[6]!=ACK:
+                    time.sleep(0.3)
+                    continue
                 ver = full[7:-2].decode("ascii",errors="replace").strip()
                 if ver: return ver
             except Exception as e:
@@ -1658,16 +1693,22 @@ class DDFI2Connection:
                 raw = first + self._read_exact(RT_RESPONSE_SIZE - 1, 0.3)
             return decode_rt_packet(raw)
         except TimeoutError: return None
-        except Exception as e: self.logger.debug(f"get_rt: {e}"); return None
+        except Exception as e:
+            self.logger.debug(f"get_rt: {e}")
+            return None
 
     def read_eeprom_page(self,page_nr,offset,length):
         try:
             payload=bytes([CMD_GET,offset&0xFF,page_nr&0xFF,length&0xFF])
-            self._send(build_pdu(payload)); h=self._read_exact(6,2.0)
+            self._send(build_pdu(payload))
+            h=self._read_exact(6,2.0)
             if h[0]!=SOH or h[4]!=EOH or h[5]!=SOT: return None
-            rest=self._read_exact(h[3]-1+2,2.0); full=h+rest
+            rest=self._read_exact(h[3]-1+2,2.0)
+            full=h+rest
             return bytes(full[7:-2]) if full[6]==ACK else None
-        except Exception as e: self.logger.error(f"eeprom: {e}"); return None
+        except Exception as e:
+            self.logger.error(f"eeprom: {e}")
+            return None
 
     def read_full_eeprom(self):
         """Lee las 6 páginas del BUEIB/DDFI-2 → 1206 bytes."""
@@ -1979,20 +2020,27 @@ class RideErrorLog:
 # ─────────────────────────────────────────────────────────────────
 class SessionManager:
     def __init__(self, sessions_dir):
-        self.sessions_dir=Path(sessions_dir); self.sessions_dir.mkdir(parents=True,exist_ok=True)
+        self.sessions_dir=Path(sessions_dir)
+        self.sessions_dir.mkdir(parents=True,exist_ok=True)
         self.logger=logging.getLogger("Session")
-        self.current_checksum=None; self.current_session_dir=None
-        self.current_ride_num=0; self.current_csv_fh=None
-        self.current_writer=None; self.ride_start_time=None
-        self.ride_sample_count=0; self.session_metadata={}
+        self.current_checksum=None
+        self.current_session_dir=None
+        self.current_ride_num=0
+        self.current_csv_fh=None
+        self.current_writer=None
+        self.ride_start_time=None
+        self.ride_sample_count=0
+        self.session_metadata={}
         self.last_elapsed_s=0
-        self.current_part=1; self.current_part_rows=0
+        self.current_part=1
+        self.current_part_rows=0
         self.MAX_CSV_ROWS=10000  # ~20 min a 8Hz
 
     def _checksum(self,v): return hashlib.md5(v.encode()).hexdigest()[:6].upper()
 
     def _load_or_create(self,cs,version_str):
-        sdir=self.sessions_dir/cs; meta_file=sdir/"session_metadata.json"
+        sdir=self.sessions_dir/cs
+        meta_file=sdir/"session_metadata.json"
         if sdir.exists() and meta_file.exists():
             with open(meta_file) as f: meta=json.load(f)
             self.logger.info(f"Sesión existente: {cs} ({meta.get('total_rides',0)} rides)")
@@ -2020,9 +2068,11 @@ class SessionManager:
         if not self.current_session_dir: raise RuntimeError("Sin sesión")
         self.session_metadata["total_rides"]=self.session_metadata.get("total_rides",0)+1
         self.current_ride_num=self.session_metadata["total_rides"]
-        self.current_part=1; self.current_part_rows=0
+        self.current_part=1
+        self.current_part_rows=0
         self._open_csv_part()
-        self.ride_start_time=time.monotonic(); self.ride_sample_count=0
+        self.ride_start_time=time.monotonic()
+        self.ride_sample_count=0
         self._ride_start_utc = datetime.now(timezone.utc).isoformat()
         self._save_metadata()
         self.logger.info(f"Ride {self.current_ride_num:03d} iniciado")
@@ -2049,7 +2099,8 @@ class SessionManager:
         row["time_elapsed_s"]=round(time.monotonic()-self.ride_start_time,3)
         self.last_elapsed_s=row["time_elapsed_s"]
         self.current_writer.writerow(row)
-        self.ride_sample_count+=1; self.current_part_rows+=1
+        self.ride_sample_count+=1
+        self.current_part_rows+=1
         rpm=data_dict.get("RPM",0) or 0
         if rpm>self.session_metadata.get("rpm_max_seen",0): self.session_metadata["rpm_max_seen"]=rpm
         if 0<rpm<self.session_metadata.get("rpm_min_seen",99999): self.session_metadata["rpm_min_seen"]=rpm
@@ -2061,7 +2112,9 @@ class SessionManager:
     def close_current_ride(self,reason="",tracker_snapshot=None,objectives_cfg=None,dtc_log=None):
         if not self.current_csv_fh: return
         dur = self.last_elapsed_s if self.last_elapsed_s else (time.monotonic()-self.ride_start_time if self.ride_start_time else 0)
-        self.current_csv_fh.close(); self.current_csv_fh=None; self.current_writer=None
+        self.current_csv_fh.close()
+        self.current_csv_fh=None
+        self.current_writer=None
         self.session_metadata["total_samples"]=self.session_metadata.get("total_samples",0)+self.ride_sample_count
         self.session_metadata["total_runtime_seconds"]=self.session_metadata.get("total_runtime_seconds",0)+dur
         self.logger.info(f"Ride {self.current_ride_num:03d} cerrado — {self.ride_sample_count} muestras, {dur:.0f}s, {self.current_part} parte(s)" + (f" ({reason})" if reason else ""))
@@ -2071,8 +2124,10 @@ class SessionManager:
             # Evaluar objetivos
             objectives_out = []
             for ct in (objectives_cfg or {}).get("cell_targets", []):
-                rpm_min=ct.get("rpm_min",0); rpm_max=ct.get("rpm_max",9999)
-                load_min=ct.get("load_min",0); load_max=ct.get("load_max",255)
+                rpm_min=ct.get("rpm_min",0)
+                rpm_max=ct.get("rpm_max",9999)
+                load_min=ct.get("load_min",0)
+                load_max=ct.get("load_max",255)
                 target_s=ct.get("seconds",5)
                 matching=[f"{r}_{l}" for r in RPM_BINS for l in LOAD_BINS
                           if rpm_min<=r<=rpm_max and load_min<=l<=load_max]
@@ -2101,7 +2156,8 @@ class SessionManager:
                 self.logger.info(f"Summary guardado: {sfile.name}")
             except Exception as e:
                 self.logger.warning(f"Error guardando summary: {e}")
-        self._save_metadata(); self._generate_consolidated()
+        self._save_metadata()
+        self._generate_consolidated()
 
     def _save_metadata(self):
         if not self.current_session_dir: return
@@ -2127,7 +2183,8 @@ class SessionManager:
                             writer=csv.DictWriter(out_fh,fieldnames=reader.fieldnames,extrasaction="ignore")
                             writer.writeheader()
                         for row in reader: writer.writerow(row)
-            tmp.replace(consolidated); self.logger.debug("consolidated.csv regenerado")
+            tmp.replace(consolidated)
+            self.logger.debug("consolidated.csv regenerado")
         except Exception as e: self.logger.warning(f"Error consolidated: {e}")
 
 # ─────────────────────────────────────────────────────────────────
@@ -2146,12 +2203,17 @@ class BuellLogger:
     DASHBOARD_UPDATE_HZ    = 1.0   # actualizar live.json 1 vez/s
 
     def __init__(self, port, sessions_dir, buell_dir, no_poweroff=False):
-        self.port=port; self.sessions_dir=sessions_dir
-        self.buell_dir=buell_dir; self.no_poweroff=no_poweroff
-        self.conn=DDFI2Connection(port); self.session=SessionManager(sessions_dir)
+        self.port=port
+        self.sessions_dir=sessions_dir
+        self.buell_dir=buell_dir
+        self.no_poweroff=no_poweroff
+        self.conn=DDFI2Connection(port)
+        self.session=SessionManager(sessions_dir)
         self.logger=logging.getLogger("BuellLogger")
-        self._running=False; self._ride_active=False
-        self._low_rpm_since=None; self._ecu_lost_since=None
+        self._running=False
+        self._ride_active=False
+        self._low_rpm_since=None
+        self._ecu_lost_since=None
         self._force_reconnect=False  # set via /reconnect para forzar salida del waiting_loop
         self._shutting_down=False        # True cuando llega SIGTERM/SIGINT
         self._last_logged_lost_interval=-1  # para evitar spam de log ECU perdida
@@ -2178,7 +2240,8 @@ class BuellLogger:
 
     def _handle_signal(self, signum, frame):
         self.logger.info(f"Señal {signum} — shutdown limpio (R15)")
-        self._running=False; self._shutting_down=True
+        self._running=False
+        self._shutting_down=True
 
     def _update_dashboard(self, live_data):
         now = time.monotonic()
@@ -2210,7 +2273,8 @@ class BuellLogger:
         if self._ecu_lost_since is not None:
             lost=time.monotonic()-self._ecu_lost_since
             self.logger.info(f"ECU recuperada tras {lost:.1f}s — ride continúa (R6)")
-            self._ecu_lost_since=None; self._last_logged_lost_interval=-1
+            self._ecu_lost_since=None
+            self._last_logged_lost_interval=-1
 
         # ── Detector ECU reset por Seconds retrocede ─────────────
         secs_now = data.get("Seconds", None)
@@ -2270,7 +2334,8 @@ class BuellLogger:
         self._prev_cdiag = cdiag_now
         self._active_dtcs = active
         if not self._ride_active and rpm>=self.RPM_START_THRESHOLD:
-            self._ride_active=True; self._low_rpm_since=None
+            self._ride_active=True
+            self._low_rpm_since=None
             self._dtc_log.clear()  # limpiar log de ride anterior al arrancar
             self.tracker.reset()
             self.session.start_ride()
@@ -2288,7 +2353,8 @@ class BuellLogger:
             if rpm<self.RPM_STOP_THRESHOLD:
                 if self._low_rpm_since is None: self._low_rpm_since=time.monotonic()
                 elif (time.monotonic()-self._low_rpm_since)>=self.STOP_CONFIRM_SECS:
-                    self._ride_active=False; self._low_rpm_since=None
+                    self._ride_active=False
+                    self._low_rpm_since=None
                     self._flush_ride(
                         "RPM=0 por 5s",
                         tracker_snap = self.tracker.snapshot(),
@@ -2305,13 +2371,15 @@ class BuellLogger:
 
     def _reading_loop(self):
         self.logger.info("Lectura RT @ ~8Hz")
-        consecutive_errors=0; loop_interval=1.0/self.TARGET_LOOP_HZ
+        consecutive_errors=0
+        loop_interval=1.0/self.TARGET_LOOP_HZ
         while self._running:
             # Chequear reconexión forzada AL INICIO — antes de tocar el puerto
             if self._force_reconnect:
                 self.logger.info("Reconexión forzada — saliendo de reading_loop")
                 return "waiting"
-            t0=time.monotonic(); wall_time=time.time()
+            t0=time.monotonic()
+            wall_time=time.time()
             elapsed_s = (time.monotonic()-self.session.ride_start_time
                          if self.session.ride_start_time and self._ride_active else 0.0)
             try:
@@ -2334,7 +2402,8 @@ class BuellLogger:
                 if self._ecu_lost_since is None:
                     self._ecu_lost_since=time.monotonic()
                     self.logger.warning("Puerto serial roto durante ride — esperando recuperación")
-                time.sleep(0.2); continue
+                time.sleep(0.2)
+                continue
             # ── ERROR LOG: dirty bytes (detectado dentro de get_rt_data) ──
             if self._ride_active and getattr(self.conn,'last_dirty_byte',None):
                 self.error_log.dirty_bytes(
@@ -2361,7 +2430,8 @@ class BuellLogger:
                                 last_valid_t= elapsed_s - lost)
                 else:
                     if consecutive_errors>=self.MAX_CONSECUTIVE_ERRORS:
-                        self.logger.info("ECU no responde — modo espera"); return "waiting"
+                        self.logger.info("ECU no responde — modo espera")
+                        return "waiting"
                 # Hard reconnect tras 30s de pérdida — close+open+DTR aunque haya ride activo
                 if self._ecu_lost_since is not None:
                     lost_total = time.monotonic() - self._ecu_lost_since
@@ -2405,7 +2475,8 @@ class BuellLogger:
                             consecutive_errors = 0
                             self._ecu_lost_since = None
                     except Exception: pass
-                time.sleep(0.05); continue
+                time.sleep(0.05)
+                continue
             consecutive_errors=0
             if self._ecu_lost_since is not None:
                 self.logger.info("ECU recuperada — retomando ride")
@@ -2421,7 +2492,8 @@ class BuellLogger:
 
     def _waiting_loop(self):
         self.logger.info(f"Modo espera — poweroff en {self.POWEROFF_AFTER_SECS}s sin ECU ni SSH")
-        time_sin_ecu=0.0; attempt=0
+        time_sin_ecu=0.0
+        attempt=0
         while self._running:
             # Pausa entre intentos para no saturar el bus
             if attempt > 0: time.sleep(self.WAITING_POLL_SECS)
@@ -2455,16 +2527,21 @@ class BuellLogger:
                 if time_sin_ecu>=self.POWEROFF_AFTER_SECS: return "poweroff"
                 if attempt%5==0 and attempt>0:
                     self.logger.info(f"Sin ECU {time_sin_ecu:.0f}s — poweroff en {self.POWEROFF_AFTER_SECS-time_sin_ecu:.0f}s")
-            attempt+=1; time.sleep(self.WAITING_POLL_SECS)
+            attempt+=1
+            time.sleep(self.WAITING_POLL_SECS)
         return "stop"
 
     def _do_poweroff(self):
         if self.no_poweroff:
-            self.logger.info("--no-poweroff: reiniciando espera"); return False
+            self.logger.info("--no-poweroff: reiniciando espera")
+            return False
         self.logger.info("Apagando Pi (R12)")
         if self._ride_active:
-            self._flush_ride("poweroff"); self._ride_active=False
-        self.conn.disconnect(); os.system("sudo poweroff"); return True
+            self._flush_ride("poweroff")
+            self._ride_active=False
+        self.conn.disconnect()
+        os.system("sudo poweroff")
+        return True
 
     def run(self):
         self._running=True
@@ -2475,9 +2552,11 @@ class BuellLogger:
         time.sleep(self.INIT_WAIT_SECS)
         state="waiting"
         try:
-            self.conn.connect(); version=self.conn.get_version()
+            self.conn.connect()
+            version=self.conn.get_version()
             if version:
-                self.session.open_session(version); state="reading"
+                self.session.open_session(version)
+                state="reading"
                 self.logger.info(f"ECU lista: {version}")
                 # ── Leer EEPROM al arrancar ──────────────────
                 self.logger.info("Leyendo EEPROM completa...")
@@ -2512,11 +2591,16 @@ class BuellLogger:
             else:
                 self.logger.info("Sin ECU al arrancar → WAITING (R3)")
             self.conn.disconnect()
-        except Exception as e: self.logger.info(f"Sin ECU ({e}) → WAITING (R3)"); self.conn.disconnect()
+        except Exception as e:
+            self.logger.info(f"Sin ECU ({e}) → WAITING (R3)")
+            self.conn.disconnect()
         while self._running:
             if state=="reading":
                 try: self.conn.connect()
-                except Exception as e: self.logger.error(f"No abrió puerto: {e}"); state="waiting"; continue
+                except Exception as e:
+                    self.logger.error(f"No abrió puerto: {e}")
+                    state="waiting"
+                    continue
                 result=self._reading_loop()
                 if self._ride_active:
                     reason="shutdown" if self._shutting_down else "salida loop"
@@ -2524,7 +2608,8 @@ class BuellLogger:
                         tracker_snap = self.tracker.snapshot(),
                         objectives   = self.dashboard.objectives,
                         dtc          = list(self._dtc_log))
-                    self._ride_active=False; self._ecu_lost_since=None
+                    self._ride_active=False
+                    self._ecu_lost_since=None
                     self._last_logged_lost_interval=-1
                     self._dtc_log.clear()
                 self.conn.disconnect()
@@ -2564,8 +2649,11 @@ class BuellLogger:
                         self.logger.error(f"Error en reconexión limpia: {e}")
                         self.conn.disconnect()
                         state="waiting"
-        if self._ride_active: self._flush_ride("shutdown"); self._ride_active=False
-        self.conn.disconnect(); self.dashboard.stop()
+        if self._ride_active:
+            self._flush_ride("shutdown")
+            self._ride_active=False
+        self.conn.disconnect()
+        self.dashboard.stop()
         self.logger.info("BuellLogger detenido.")
 
 # ─────────────────────────────────────────────────────────────────
