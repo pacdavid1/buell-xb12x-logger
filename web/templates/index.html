@@ -1735,11 +1735,14 @@ async function viewSelectedRides(){
     if(!s) continue;
     for(const [key,val] of Object.entries(s.cells||{})){
       if(!merged[key]) merged[key]={seconds:0,ego_sum:0,count:0,valid_seconds:0,valid_ego_sum:0,valid_count:0};
-      merged[key].valid_seconds+=val.valid_seconds||0;
-      merged[key].ego_sum+=val.ego_avg*(val.valid_seconds||0);
-      merged[key].count+=(val.valid_seconds||0);
-      merged[key].valid_ego_sum+=(val.valid_ego_avg||0)*(val.valid_seconds||0);
-      merged[key].valid_count+=(val.valid_seconds||0);
+      const useValid = val.valid_seconds != null && val.valid_seconds > 0;
+      const vs  = useValid ? val.valid_seconds : (val.seconds || 0);
+      const vea = useValid && val.valid_ego_avg != null ? val.valid_ego_avg : (val.ego_avg != null ? val.ego_avg : 100.0);
+      merged[key].valid_seconds += vs;
+      merged[key].ego_sum       += (val.ego_avg || 100.0) * vs;
+      merged[key].count         += vs;
+      merged[key].valid_ego_sum += vea * vs;
+      merged[key].valid_count   += vs;
     }
   }
   const cells={};

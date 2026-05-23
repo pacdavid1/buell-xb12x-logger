@@ -1,3 +1,9 @@
+## [v2.6.1] — 2026-05-23
+### Fixed
+-  en : merge de celdas ahora usa fallback a  cuando  (rides de motor frío)
+  - El grid VE en Ride tab mostraba vacío para rides con datos grabados durante calentamiento (WUE > 102)
+  - Afectaba rides de las sesiones ,  y cualquier ride donde CellTracker marcara datos como inválidos
+
 # CHANGELOG — Buell XB12X DDFI2 Logger
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger

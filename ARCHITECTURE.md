@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-23 11:16 | versión: v1.16.3-321-gc4ad4c7
+> Última actualización: 2026-05-23 14:07 | versión: v1.16.3-329-g0816553
 
 ---
 
@@ -27,7 +27,6 @@ buell-xb12x-logger/
 │   ├── fix_path_shadow.py
 │   ├── protocol.py
 │   ├── session.py
-│   ├── tuning_engine.py
 │   └── version_resolver.py
 ├── ecu_defs
 │   ├── B2RIB.xml
@@ -61,7 +60,6 @@ buell-xb12x-logger/
 │   └── test_ecu.py.save
 ├── web
 │   ├── templates
-│   │   ├── cobertura.html
 │   │   ├── index.html
 │   │   ├── index.html.bak.grid
 │   │   ├── sessions_vs.html
@@ -439,10 +437,6 @@ A new  |
 
 ---
 
-### `ecu/tuning_engine.py`
-
----
-
 ### `ecu/version_resolver.py`
 
 **Constantes**
@@ -563,6 +557,7 @@ A new  |
 | `__init__` | — |
 | `start` | — |
 | `stop` | — |
+| `is_alive` | — |
 | `get_fix` | — |
 | `_run` | — |
 
@@ -727,7 +722,6 @@ A new  |
 - `/sessions_vs`
 - `/sessions_vs/compare`
 - `/tuner`
-- `/cobertura`
 - `/live.json`
 - `/coverage.json`
 - `/coverage/targets`
@@ -774,10 +768,12 @@ A new  |
 
 - `getGradientColor()`
 - `showTab()`
-- `buildGrid()`
+- `buildCobertGrid()`
 - `egoColor()`
-- `setGridMode()`
-- `updateGrid()`
+- `pctColor()`
+- `setCobertMode()`
+- `renderCobertLegend()`
+- `renderCobertGrid()`
 - `fmtTime()`
 - `updateHeader()`
 - `renderObjectives()`
@@ -816,6 +812,7 @@ A new  |
 - `openLiveRideGraph()`
 - `loadRidesList()`
 - `viewSelectedRides()`
+- `pollCobertGrid()`
 - `exitHistory()`
 - `trackUsage()`
 - `destroyCharts()`
