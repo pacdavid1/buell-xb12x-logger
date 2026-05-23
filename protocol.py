@@ -97,12 +97,52 @@ GEAR_KPH_PER_KRPM = [0.0, 8.5, 13.2, 17.6, 21.8, 26.3]  # [0=neutro, 1-5]
 _G = GEAR_KPH_PER_KRPM
 GEAR_THRESHOLDS = [(_G[i] + _G[i+1]) / 2 for i in range(1, 5)]  # = [10.85, 15.4, 19.7, 24.05]
 
-# ── Ring buffers para median filter de gear ─────────────────
-# Almacena ~1s de samples (20 a ~20Hz) para validar la marcha
-# solo cuando RPM/KPH están estables, corrigiendo outliers.
-_gear_buffer = collections.deque(maxlen=20)
-_rpm_buffer  = collections.deque(maxlen=20)
-_kph_buffer  = collections.deque(maxlen=20)
+# ── GearFilter: median filter para gear detection ──────────
+# Encapsula ring buffers (~1s a 20Hz) para validar la marcha
+# cuando RPM/KPH están estables, corrigiendo outliers.
+# Al ser una clase, se puede testear sin estado global compartido.
+class GearFilter:
+    """Median filter que valida gear detection en estado estable.
+
+    Acumula ~1s de samples (20 a ~20Hz). Cuando el buffer se llena
+    y RPM/KPH se mantienen estables (rango RPM < 200, KPH < 8),
+    devuelve la mediana del buffer si difiere del gear instantáneo.
+
+    Uso:
+        gf = GearFilter()
+        corregido = gf.validate(gear, rpm, kph)  # None si no aplica
+        gf.clear()  # al parar
+    """
+
+    def __init__(self, window_size=20):
+        self.gear_buffer = collections.deque(maxlen=window_size)
+        self.rpm_buffer  = collections.deque(maxlen=window_size)
+        self.kph_buffer  = collections.deque(maxlen=window_size)
+
+    def validate(self, gear, rpm, kph):
+        """Agrega un sample. Si hay estabilidad y la mediana
+        difiere del gear instantáneo, devuelve el gear corregido.
+        Si no, retorna None (usar gear instantáneo)."""
+        self.gear_buffer.append(gear)
+        self.rpm_buffer.append(rpm)
+        self.kph_buffer.append(kph)
+        if len(self.gear_buffer) >= self.gear_buffer.maxlen:
+            rng_rpm = max(self.rpm_buffer) - min(self.rpm_buffer)
+            rng_kph = max(self.kph_buffer) - min(self.kph_buffer)
+            if rng_rpm < 200 and rng_kph < 8:
+                validated = int(statistics.median(self.gear_buffer))
+                if validated != gear:
+                    return validated
+        return None
+
+    def clear(self):
+        self.gear_buffer.clear()
+        self.rpm_buffer.clear()
+        self.kph_buffer.clear()
+
+
+# Instancia global por defecto (backward compatible)
+_gear_filter = GearFilter()
 
 
 def decode_rt_packet(raw_bytes):
@@ -200,25 +240,16 @@ def decode_rt_packet(raw_bytes):
         result['Gear'] = gear
 
         # ── Median filter: estabilidad → validación ────
-        _gear_buffer.append(gear)
-        _rpm_buffer.append(result.get('RPM', 0))
-        _kph_buffer.append(kph)
-        if len(_gear_buffer) >= 20:
-            rng_rpm = max(_rpm_buffer) - min(_rpm_buffer)
-            rng_kph = max(_kph_buffer) - min(_kph_buffer)
-            # Condiciones estables: RPM < 200 de rango, KPH < 8 de rango
-            # (equivale a ~1s de crucero sin aceleración/frenado fuerte)
-            if rng_rpm < 200 and rng_kph < 8:
-                validated = int(statistics.median(_gear_buffer))
-                if validated != result['Gear']:
-                    result['Gear'] = validated
+        validated = _gear_filter.validate(
+            gear, result.get('RPM', 0), kph
+        )
+        if validated is not None:
+            result['Gear'] = validated
     else:
         result['Gear'] = 0
         # RPM bajo o parado → limpiar buffers para no arrastrar
         # datos viejos al próximo arranque
-        _gear_buffer.clear()
-        _rpm_buffer.clear()
-        _kph_buffer.clear()
+        _gear_filter.clear()
 
     return result
 

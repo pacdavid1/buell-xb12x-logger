@@ -1,3 +1,10 @@
+## [v2.6.8] — 2026-05-23
+### Changed
+- ecu/protocol.py: gear detection — ring buffers envueltos en clase GearFilter.
+  Elimina estado mutable a nivel modulo, permite testeo independiente
+  y uso de instancias aisladas.
+- BACKLOG.md: marcado P2 completado.
+
 ## [v2.6.7] — 2026-05-23
 ### Changed
 - ddfi2_logger.py movido a archive/ (código muerto, modularizado hace tiempo)

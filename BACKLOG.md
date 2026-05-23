@@ -44,7 +44,7 @@
 - [ ] P1: DROID_ID, STOCK_ECM_ID, CMD_GET agregados a protocol.py como fuente única de verdad
 
 ### Media prioridad
-- [ ] P2: Gear detection — envolver ring buffers mutantes (`_gear_buffer`, `_rpm_buffer`, `_kph_buffer`) en clase en vez de módulo global
+- [x] P2: Gear detection — envolver ring buffers mutantes (`_gear_buffer`, `_rpm_buffer`, `_kph_buffer`) en clase en vez de módulo global
 - [ ] P2: connection.py — usar `with open(...)` en vez de `open(...).write()` directo en usb_power_cycle/usb_reset
 - [ ] P2: Agregar type hints a todo el código (empezar por ecu/protocol.py y ecu/connection.py)
 - [ ] P2: main.py — llamada duplicada `recover_orphan_rides()` (2 veces seguidas)
