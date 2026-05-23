@@ -2,6 +2,29 @@
 > Raspberry Pi Zero 2W · CH343P · Python 3 · 9600,8N1
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
+## [v2.6.0] — 2026-05-21
+### Added
+- `GPSReader.is_alive()` — método público que encapsula acceso a `_thread` (reemplaza `self.gps._thread.is_alive()` en `main.py`)
+- `pollCobertGrid()` en frontend — polling en tiempo real desde `/coverage.json` para el grid de cobertura VE
+
+### Changed
+- Grid de pane Ride reemplazado por grid de cobertura VE con 6 modos visuales: Segundos, EGO, SWEET, TIPIN, TIPOUT, WOT — con leyenda dinámica, coloreado por porcentaje y chips de resumen por flavor
+- Leyenda del mapa GPS actualizada a 5 stops consistentes con `getGradientColor()` (azul→verde→amarillo→naranja→magenta)
+- `getSpeedColor()` eliminada — mapa y perfil de altitud ahora usan `getGradientColor()` unificado
+
+### Fixed
+- `web/server.py`: imports perezosos (`csv`, `zlib`, `logging`, `json`, `urllib.parse`) movidos al inicio del archivo — elimina 8 imports redundantes dentro de métodos
+- `web/server.py`: bare `except:` cambiado a `except Exception:` (2 instancias)
+- `web/server.py`: path hardcodeado `/home/pi/buell/sessions` en `/gps_track` reemplazado por `Path(self.server_instance.buell_dir) / 'sessions'`
+- `web/server.py`: fetch duplicado de GPS en `_get_live_data()` eliminado — los datos GPS ya se inyectan en el ECU loop (`main.py:356`)
+- `gps/reader.py`: bare `except: continue` cambiado a `except Exception as e: logger.debug(...); continue`
+- `main.py`: acceso a `self.gps._thread.is_alive()` reemplazado por `self.gps.is_alive()`
+
+### Removed
+- `web/templates/cobertura.html` — eliminado, funcionalidad integrada en pane Ride de `index.html`
+- Ruta `/cobertura` en `web/server.py`
+---
+
 ## [v2.5.50] — 2026-04-27
 ### Added
 - GPS via gpsd — reemplaza pyserial directo, manejo profesional del M8N

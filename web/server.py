@@ -350,7 +350,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
                 session_id = params.get('session', [''])[0]
                 ride_num   = int(params.get('ride', [0])[0])
-                sessions_dir = Path('/home/pi/buell/sessions')
+                sessions_dir = Path(self.server_instance.buell_dir) / 'sessions'
                 # Buscar el archivo CSV del ride
                 ride_files = sorted(sessions_dir.glob(f'{session_id}/ride_{session_id}_{ride_num:03d}*.csv'))
                 if not ride_files:
@@ -501,17 +501,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
 
     def _get_live_data(self):
-        live = dict(self.server_instance.ecu_live or {})
-        try:
-            gps = getattr(self.server_instance, 'gps', None)
-            if gps:
-                fix = gps.get_fix().as_dict()
-                for k, v in fix.items():
-                    if v is not None or k not in live:
-                        live[k] = v
-        except Exception:
-            pass
-        return live
+        return dict(self.server_instance.ecu_live or {})
 
     def _get_live(self):
         net = self.server_instance.network
