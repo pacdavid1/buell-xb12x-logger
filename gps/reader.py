@@ -19,6 +19,8 @@ class GPSReader:
         logger.info(f"GPS reader iniciado via gpsd {self.host}:{self.port}")
     def stop(self):
         self._stop.set();self.running=False;logger.info("GPS reader detenido")
+    def is_alive(self):
+        return self._thread is not None and self._thread.is_alive()
     def get_fix(self):
         with self._lock:
             f=GPSFix()
@@ -36,7 +38,7 @@ class GPSReader:
                     line=sf.readline()
                     if not line: break
                     try: msg=json.loads(line)
-                    except: continue
+                    except Exception as e: logger.debug(f"gpsd parse: {e}"); continue
                     cls=msg.get('class')
                     if cls=='TPV':
                         valid=msg.get('mode',0)>=2

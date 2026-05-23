@@ -186,7 +186,7 @@ class BuellLogger:
             self.web.serial_stats = stats
 
             # GPS watchdog
-            if not self.gps._thread.is_alive():
+            if not self.gps.is_alive():
                 self.logger.warning("GPS thread muerto — reiniciando...")
                 try:
                     self.gps = GPSReader()
