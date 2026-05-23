@@ -154,7 +154,7 @@ class BuellLogger:
             try:
                 with open('/sys/class/thermal/thermal_zone0/temp') as f:
                     stats['cpu_temp'] = round(int(f.read().strip()) / 1000.0, 1)
-            except Exception: pass
+            except Exception as e: self.logger.debug(f"sysmon: {e}")
             
             try:
                 with open('/proc/stat') as f:
@@ -165,14 +165,14 @@ class BuellLogger:
                     _dt = _total - _cpu_prev[1]
                     stats['cpu_pct'] = round((1.0 - _di / _dt) * 100, 1) if _dt else 0.0
                 _cpu_prev = (_idle, _total)
-            except Exception: pass
+            except Exception as e: self.logger.debug(f"sysmon: {e}")
             
             try:
                 with open('/proc/meminfo') as f:
                     _mem = {k.strip(): int(v.split()[0]) for line in f for k, v in [line.split(':')]}
                 _mt, _mf = _mem['MemTotal'], _mem['MemAvailable']
                 stats['mem_pct'] = round((_mt - _mf) / _mt * 100, 1)
-            except Exception: pass
+            except Exception as e: self.logger.debug(f"sysmon: {e}")
 
             if self._bmp280:
                 try:
