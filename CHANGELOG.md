@@ -1,3 +1,9 @@
+## [v2.6.9] — 2026-05-23
+### Changed
+- ecu/connection.py: todos los open() ahora usan with open() (7 bloques).
+  Elimina file handles colgados en usb_power_cycle, usb_reset y usb_reset reads sysfs.
+- BACKLOG.md: marcado P2 completado.
+
 ## [v2.6.8] — 2026-05-23
 ### Changed
 - ecu/protocol.py: gear detection — ring buffers envueltos en clase GearFilter.

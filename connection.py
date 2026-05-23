@@ -97,9 +97,11 @@ class DDFI2Connection:
         Mas efectivo que authorized toggle cuando dwc2 queda hung."""
         try:
             hub = '/sys/bus/usb/devices/usb1'
-            open(f'{hub}/power/autosuspend_delay_ms', 'w').write('0')
+            with open(f'{hub}/power/autosuspend_delay_ms', 'w') as f:
+                f.write('0')
             time.sleep(1.0)
-            open(f'{hub}/power/level', 'w').write('on')
+            with open(f'{hub}/power/level', 'w') as f:
+                f.write('on')
             time.sleep(2.0)
             self.logger.info("USB power cycle completado")
             return True
@@ -117,14 +119,18 @@ class DDFI2Connection:
         ]
         try:
             for path in glob.glob('/sys/bus/usb/devices/*/idVendor'):
-                vendor  = open(path).read().strip()
-                product = open(path.replace('idVendor', 'idProduct')).read().strip()
+                with open(path) as f:
+                    vendor = f.read().strip()
+                with open(path.replace('idVendor', 'idProduct')) as f:
+                    product = f.read().strip()
                 match = next((n for v,p,n in KNOWN_ADAPTERS if v==vendor and p==product), None)
                 if match:
                     auth = path.replace('idVendor', 'authorized')
-                    open(auth, 'w').write('0')
+                    with open(auth, 'w') as f:
+                        f.write('0')
                     time.sleep(0.8)
-                    open(auth, 'w').write('1')
+                    with open(auth, 'w') as f:
+                        f.write('1')
                     time.sleep(2.0)
                     self.logger.info(f"USB reset {match} completado via sysfs")
                     return True
