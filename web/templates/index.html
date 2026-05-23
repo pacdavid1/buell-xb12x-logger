@@ -1530,6 +1530,8 @@ async function loadMapTrack() {
       const altLabels = [];
       const altData = [];
       const altColors = [];
+      const spdData = [];
+      const spdColors = [];
       for (let i = 0; i < d.points.length; i++) {
         if (i > 0) {
           distAcc += Math.hypot(
@@ -1541,6 +1543,8 @@ async function loadMapTrack() {
           altLabels.push(distAcc.toFixed(2));
           altData.push(d.points[i].alt);
           altColors.push(getSpeedColor(d.points[i].spd));
+          spdData.push(d.points[i].spd);
+          spdColors.push(getGradientColor(d.points[i].spd));
         }
       }
       window._altChart = new Chart(altCanvas, {
@@ -1561,6 +1565,18 @@ async function loadMapTrack() {
             segment: {
               borderColor: ctx => altColors[ctx.p0DataIndex] || '#fff'
             }
+          },
+          {
+            label: 'Velocidad (km/h)',
+            data: spdData,
+            borderColor: spdColors,
+            borderWidth: 2.5,
+            pointRadius: 0,
+            tension: 0.2,
+            segment: {
+              borderColor: ctx => spdColors[ctx.p0DataIndex] || '#fff'
+            },
+            yAxisID: 'y1'
           }]
         },
         options: {
@@ -1571,7 +1587,7 @@ async function loadMapTrack() {
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: ctx => `Alt: ${ctx.parsed.y.toFixed(1)}m · ${altColors[ctx.dataIndex]}`
+                label: function(ctx) { return ctx.dataset.label === "Altitud (m)" ? "Alt: " + ctx.parsed.y.toFixed(1) + "m" : "Vel: " + ctx.parsed.y.toFixed(1) + " km/h"; }
               }
             }
           },
@@ -1585,6 +1601,14 @@ async function loadMapTrack() {
               ticks: { color: '#aaa', font: { size: 8 } },
               grid: { color: '#1e1e24' },
               title: { display: true, text: 'Altitud (m)', color: '#666', font: { size: 8 } }
+            },
+            y1: {
+              position: 'right',
+              ticks: { color: '#4af', font: { size: 8 },
+                callback: function(value) { return value + ' km/h'; }
+              },
+              grid: { display: false },
+              title: { display: true, text: 'Velocidad (km/h)', color: '#4af', font: { size: 8 } }
             }
           }
         }

@@ -1,3 +1,10 @@
+## [v2.6.5] — 2026-05-23
+### Added
+- web/templates/index.html (loadMapTrack): perfil de altitud ahora incluye
+  linea de velocidad (km/h) como segundo eje Y (derecha) en el chart.
+  Coloreada con el mismo gradiente continuo azul-verde-amarillo-rojo-magenta
+  del mapa para correlacion visual inmediata.
+
 ## [v2.6.4] — 2026-05-23
 ### Added
 - ecu/protocol.py: filtro mediano (20 samples, ~1s) en gear detection.
