@@ -21,7 +21,14 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 .hdr{background:var(--panel);border-bottom:2px solid var(--accent);
      padding:4px 10px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
 .hdr-row{display:flex;align-items:center;gap:8px;width:100%}
-.nav-links{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.nav-menu{position:relative;flex-shrink:0}
+.nav-menu-btn{font-size:18px;color:var(--dim);cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:2px;background:none;font-family:var(--mono);letter-spacing:0}
+.nav-menu-btn:hover{color:var(--blue);border-color:var(--blue)}
+.nav-menu-drop{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:4px;min-width:180px;z-index:999}
+.nav-menu-drop.open{display:block}
+.nav-menu-drop a{display:block;font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:none;padding:10px 14px;border-radius:2px}
+.nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-menu-drop a.nav-tab.active{color:var(--accent);background:rgba(255,255,255,.06)}
 .nav-links a{font-family:var(--mono);font-size:8px;color:var(--dim);text-decoration:none;
   border:1px solid var(--border);padding:2px 7px;border-radius:2px;letter-spacing:.06em;text-transform:uppercase}
 .nav-links a:hover{color:var(--blue);border-color:var(--blue)}
@@ -54,11 +61,6 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
 
 /* TABS */
-.tabs{display:flex;background:var(--panel);border-bottom:1px solid var(--border);flex-shrink:0}
-.tab{flex:1;padding:8px 2px;text-align:center;font-family:var(--mono);font-size:8px;
-     letter-spacing:.06em;text-transform:uppercase;color:var(--dim);cursor:pointer;
-     border-bottom:2px solid transparent;transition:all .15s}
-.tab.active{color:#fff;border-bottom-color:var(--accent)}
 
 /* CONTENT */
 .content{flex:1;overflow-y:auto;overflow-x:hidden}
@@ -217,10 +219,21 @@ table.veg td:active{filter:brightness(1.6)}
 <div class="hdr">
   <div class="hdr-row" style="justify-content:space-between">
     <div style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em">BUELL LOGGER</div>
-    <div class="nav-links">
-      <a href="/" target="_blank" class="on">Dashboard</a>
-      <a href="/sessions_vs" target="_blank">Sessions VS</a>
-      <a href="/tuner" target="_blank">Tuner Studio</a>
+    <div class="nav-menu" id="navMenu">
+      <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
+      <div class="nav-menu-drop" id="navDrop">
+        <a href="/cobertura">Cobertura VE</a>
+        <a href="/sessions_vs" target="_blank">Sessions VS</a>
+        <a href="/tuner" target="_blank">Tuner Studio</a>
+        <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+        <a href="#" class="nav-tab active" data-tab="ride" onclick="showTab('ride');trackUsage('tab_ride')">Ride</a>
+        <a href="#" class="nav-tab" data-tab="rides" onclick="showTab('rides');trackUsage('tab_sesiones')">Sesiones</a>
+        <a href="#" class="nav-tab" data-tab="graph" onclick="showTab('graph');trackUsage('tab_graph')">Graf</a>
+        <a href="#" class="nav-tab" data-tab="ve" onclick="showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()">VE</a>
+        <a href="#" class="nav-tab" data-tab="cfg" onclick="showTab('cfg');trackUsage('tab_config')">Config</a>
+        <a href="#" class="nav-tab" data-tab="net" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</a>
+        <a href="#" class="nav-tab" data-tab="map" onclick="showTab('map');loadMapPane();trackUsage('tab_map')">Mapa</a>
+      </div>
     </div>
   </div>
   <!-- Fila 1: parámetros de moto -->
@@ -275,15 +288,7 @@ table.veg td:active{filter:brightness(1.6)}
 </div>
 
 <!-- TABS -->
-<div class="tabs">
-  <div class="tab active" onclick="showTab('ride');trackUsage('tab_ride')">Ride</div>
-  <div class="tab" onclick="showTab('rides');trackUsage('tab_sesiones')">Sesiones</div>
-  <div class="tab" onclick="showTab('graph');trackUsage('tab_graph')">Graf</div>
-  <div class="tab" onclick="showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()">VE</div>
-  <div class="tab" onclick="showTab('cfg');trackUsage('tab_config')">Config</div>
-  <div class="tab" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</div>
-  <div class="tab" onclick="showTab('map');loadMapPane();trackUsage('tab_map')">Mapa</div>
-</div>
+
 
 <!-- PANE RIDE -->
 <div class="pane active content" id="pane-ride" style="user-select:none;-webkit-user-select:none">
@@ -332,21 +337,9 @@ table.veg td:active{filter:brightness(1.6)}
       <div class="leg"><div class="leg-dot ca"></div>Activa</div>
     </div>
   </div>
-
-  <!-- Botones cobertura por flavor -->
-  <div style="display:flex;gap:6px;margin-top:6px;margin-bottom:2px">
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);align-self:center;margin-right:2px">COBERT:</div>
-    <button class="btn" style="font-size:8px;padding:2px 7px;color:#7df;border-color:#7df" onclick="setCobertFlavor('SWEET');loadCoverage()">SWEET</button>
-    <button class="btn" style="font-size:8px;padding:2px 7px;color:#3d3;border-color:#3d3" onclick="setCobertFlavor('TIPIN');loadCoverage()">TIP-IN</button>
-    <button class="btn" style="font-size:8px;padding:2px 7px;color:#fa3;border-color:#fa3" onclick="setCobertFlavor('TIPOUT');loadCoverage()">TIP-OUT</button>
-    <button class="btn" style="font-size:8px;padding:2px 7px;color:#f74;border-color:#f74" onclick="setCobertFlavor('WOT');loadCoverage()">WOT</button>
-  </div>
-
-  <div id="ride-cobert-grid" style="overflow-x:auto;margin-bottom:4px"></div>
   <div class="obj-row-compact" id="objList"></div>
 </div>
 
-<div style="padding:4px 0"><a href="/cobertura" style="font-family:var(--mono);font-size:9px;color:var(--accent2);text-decoration:none">COBERTURA VE →</a></div>
   <!-- PANE RIDES -->
 <div class="pane content" id="pane-rides">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -613,36 +606,6 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
     <button class="btn-danger" style="width:100%;margin-bottom:4px" onclick="confirmShutdown()">Apagar Pi</button>
   </div>
-  <div class="cfg-section">
-    <div class="cfg-title">Coverage Targets</div>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">Segundos válidos requeridos por celda para considerar cobertura completa.</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
-      <div>
-        <div style="font-family:var(--mono);font-size:8px;color:#7df;margin-bottom:2px">SWEET</div>
-        <input id="tgt-SWEET" type="number" min="5" max="300" value="30"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
-          onchange="updateCoverageTarget('SWEET',this.value)">
-      </div>
-      <div>
-        <div style="font-family:var(--mono);font-size:8px;color:#3d3;margin-bottom:2px">TIP-IN</div>
-        <input id="tgt-TIPIN" type="number" min="5" max="300" value="15"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
-          onchange="updateCoverageTarget('TIPIN',this.value)">
-      </div>
-      <div>
-        <div style="font-family:var(--mono);font-size:8px;color:#fa3;margin-bottom:2px">TIP-OUT</div>
-        <input id="tgt-TIPOUT" type="number" min="5" max="300" value="15"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
-          onchange="updateCoverageTarget('TIPOUT',this.value)">
-      </div>
-      <div>
-        <div style="font-family:var(--mono);font-size:8px;color:#f74;margin-bottom:2px">WOT</div>
-        <input id="tgt-WOT" type="number" min="5" max="300" value="10"
-          style="width:100%;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:3px;border-radius:3px"
-          onchange="updateCoverageTarget('WOT',this.value)">
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- PANE NET -->
@@ -761,7 +724,7 @@ let lastData = null;
 // ── TABS ──────────────────────────────────────────────────────────
 function showTab(id) {
   const ids = ['ride','rides','graph','ve','cfg','net','map'];
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ids[i]===id));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab===id));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-'+id).classList.add('active');
   if(id==='cfg')     { loadObj(); loadTpsCal(); loadVssCal(); loadEcu(); loadEepromParams(); }
@@ -1860,110 +1823,6 @@ function extractTransitions(rows, field, targetVal=1){
 }
 
 
-// ── Coverage Tracker ────────────────────────────────────────
-let _cobertFlavor = 'SWEET';
-let _cobertInterval = null;
-const RPM_BINS_COV  = [800,1000,1350,1900,2400,2900,3400,4000,5000,6000,7000,8000];
-const LOAD_BINS_COV = [10,15,20,30,40,50,60,80,100,125,175,255];
-
-function setCobertFlavor(f) {
-  _cobertFlavor = f;
-  renderCobertGrid(window._cobertData);
-}
-
-async function updateCoverageTarget(flavor, val) {
-  const body = {}; body[flavor] = parseFloat(val);
-  await fetch('/coverage/targets', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-  loadCoverage();
-}
-
-async function loadCoverage() {
-  try {
-    const r = await fetch('/coverage.json');
-    const d = await r.json();
-    window._cobertData = d;
-    renderCobertSummary(d.summary || {});
-    renderCobertGrid(d);
-    // Auto-refresh cada 5s mientras el tab esté activo
-    clearInterval(_cobertInterval);
-    _cobertInterval = setInterval(async () => {
-      const r2 = await fetch('/coverage.json');
-      const d2 = await r2.json();
-      window._cobertData = d2;
-      renderCobertSummary(d2.summary || {});
-      renderCobertGrid(d2);
-    }, 5000);
-  } catch(e) { console.error('coverage error', e); }
-}
-
-function renderCobertSummary(summary) {
-  const colors = {SWEET:'#7df',TIPIN:'#3d3',TIPOUT:'#fa3',WOT:'#f74'};
-  const el = document.getElementById('cobert-summary');
-  if (!el) return; // summary solo en tab cobert si existe
-  el.innerHTML = Object.entries(summary).map(([f, s]) => {
-    const pct = s.pct || 0;
-    const col = pct >= 100 ? '#2ecc71' : pct >= 50 ? '#f1c40f' : '#e74c3c';
-    return `<div style="background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:6px;text-align:center">
-      <div style="font-family:var(--mono);font-size:8px;color:${colors[f]||'#aaa'};margin-bottom:3px">${f}</div>
-      <div style="font-size:16px;font-weight:bold;color:${col};font-family:var(--mono)">${pct.toFixed(0)}%</div>
-      <div style="font-family:var(--mono);font-size:8px;color:var(--dim)">${s.done}/${s.total} celdas</div>
-    </div>`;
-  }).join('');
-}
-
-function renderCobertGrid(d) {
-  const el = document.getElementById('ride-cobert-grid');
-  if (!el || !d || !d.cells) return;
-  const f      = _cobertFlavor;
-  const cells  = d.cells;
-
-  // Construir lookup rpm_lo_load_lo -> data
-  const lookup = {};
-  for (const [key, fc] of Object.entries(cells)) {
-    lookup[key] = fc[f] || null;
-  }
-
-  const rpmBins  = RPM_BINS_COV;
-  const loadBins = LOAD_BINS_COV;
-
-  let html = '<table style="border-collapse:collapse;font-family:var(--mono);font-size:9px">';
-  // Header fila (load bins)
-  html += '<tr><th style="padding:2px 4px;color:var(--dim);font-weight:400;min-width:52px">RPM\Load</th>';
-  for (let li = 0; li < loadBins.length - 1; li++) {
-    html += `<th style="padding:2px 4px;color:var(--dim);font-weight:400;min-width:36px;text-align:center">${loadBins[li]}</th>`;
-  }
-  html += '</tr>';
-
-  // Filas RPM (de mayor a menor)
-  for (let ri = rpmBins.length - 2; ri >= 0; ri--) {
-    html += `<tr><td style="padding:2px 4px;color:var(--dim);text-align:right">${rpmBins[ri]}</td>`;
-    for (let li = 0; li < loadBins.length - 1; li++) {
-      const key = `${rpmBins[ri]}_${loadBins[li]}`;
-      const c   = lookup[key];
-      let bg = 'transparent', txt = '—', col = '#333';
-      if (c) {
-        const pct = c.pct || 0;
-        txt = pct.toFixed(0) + '%';
-        // Gradiente suave: 0%=rojo, 50%=amarillo, 100%=verde
-        let r, g, b;
-        if (pct <= 50) {
-          const t = pct / 50;
-          r = 231; g = Math.round(76 + (196 - 76) * t); b = 60;
-        } else {
-          const t = (pct - 50) / 50;
-          r = Math.round(231 - (231 - 46) * t); g = Math.round(196 + (204 - 196) * t); b = Math.round(60 + (113 - 60) * t);
-        }
-        col = `rgb(${r},${g},${b})`;
-        bg  = `rgba(${r},${g},${b},0.18)`;
-      }
-      html += `<td style="background:${bg};color:${col};text-align:center;padding:3px 2px;border:1px solid rgba(255,255,255,.04);width:36px" title="${key}: ${c ? c.pct+'%' : 'sin datos'}">${txt}</td>`;
-    }
-    html += '</tr>';
-  }
-  html += '</table>';
-  el.innerHTML = html;
-}
-// ── /Coverage Tracker ────────────────────────────────────────
 // Detectar cambios de marcha por saltos de RPM con VSS estable
 function detectGearChanges(rows){
   const events=[];
@@ -2890,5 +2749,5 @@ loadTpsCal();
 document.addEventListener("DOMContentLoaded", ()=>{ loadTpsCal(); loadVssCal(); buildGrid(); fetchLive(); });
 
 </script>
-</body>
+<script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script></body>
 </html>

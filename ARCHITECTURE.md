@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-17 20:43 | versión: v1.16.3-319-gcdb052f
+> Última actualización: 2026-05-23 10:00 | versión: v1.16.3-320-g5469f13
 
 ---
 
@@ -822,11 +822,6 @@ A new  |
 - `markerSet()`
 - `parseCSVtoRows()`
 - `extractTransitions()`
-- `setCobertFlavor()`
-- `updateCoverageTarget()`
-- `loadCoverage()`
-- `renderCobertSummary()`
-- `renderCobertGrid()`
 - `detectGearChanges()`
 - `detectWOT()`
 - `detectDTC()`

@@ -2374,7 +2374,7 @@ class BuellLogger:
                                 attempt_n = consecutive_errors // 10,
                                 success   = False,
                                 time_s    = lost_total)
-                        self.conn.usb_power_cycle()
+                        self.conn.usb_reset()
                         try:
                             self.conn.disconnect()
                             time.sleep(0.5)
