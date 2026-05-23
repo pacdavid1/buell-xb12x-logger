@@ -183,7 +183,10 @@ class BuellLogger:
                 except Exception:
                     stats['baro_hPa']   = None
                     stats['baro_temp_c']= None
-            self.web.serial_stats = stats
+            # Merge — no reemplazar!
+            existing = self.web.serial_stats if self.web.serial_stats else {}
+            existing.update(stats)
+            self.web.serial_stats = existing
 
             # GPS watchdog
             if not self.gps.is_alive():

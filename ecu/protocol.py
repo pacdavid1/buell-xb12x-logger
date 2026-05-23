@@ -88,13 +88,9 @@ VSS_CPKM25 = 1368.0  # counts por 25km/h — calibrado con ride_015
 # kph/krpm = (1000rpm / ratio_total) * circunferencia_rueda(1.93m) * 3.6
 GEAR_KPH_PER_KRPM = [0.0, 8.5, 13.2, 17.6, 21.8, 26.3]  # [0=neutro, 1-5]
 
-# Hysteresis: umbral subida mas alto que bajada (~8% banda)
+# Umbrales: punto medio entre marchas consecutivas
 _G = GEAR_KPH_PER_KRPM
-GEAR_THR_UP   = [(_G[i] + _G[i+1]) / 2 * 1.04 for i in range(1, 5)]
-GEAR_THR_DOWN = [(_G[i] + _G[i+1]) / 2 * 0.96 for i in range(1, 5)]
-
-# Estado gear previo para hysteresis (module-level, reset en restart)
-_gear_prev = 1
+GEAR_THRESHOLDS = [(_G[i] + _G[i+1]) / 2 for i in range(1, 5)]  # = [10.85, 15.4, 19.7, 24.05]
 
 
 def decode_rt_packet(raw_bytes):
@@ -173,29 +169,22 @@ def decode_rt_packet(raw_bytes):
     else:
         result['VS_KPH'] = 0.0
 
-    # ── Gear ─────────────────────────────────────────────────
-    global _gear_prev
+    # ── Gear — detección absoluta (sin estado/histeresis) ────
+    # Cada sample se evalúa independientemente; no se queda
+    # pegado en 5ta por VSS ruidoso.
     rpm_k = (result.get('RPM') or 0) / 1000.0
     kph   = result['VS_KPH']
     if rpm_k > 0.5 and kph > 3.0:
         ratio = kph / rpm_k
-        result['VSS_RPM_Ratio'] = round(ratio, 3)
-        gear = _gear_prev
-        if gear < 5 and ratio > GEAR_THR_UP[gear - 1]:
-            gear += 1
-        elif gear > 1 and ratio < GEAR_THR_DOWN[gear - 2]:
-            gear -= 1
-        # Sanity: recalculo absoluto si diff > 2 gears
-        gear_abs = 1
-        for thr in GEAR_THR_UP:
+        result['VSS_RPM_Ratio'] = round(ratio, 2)
+        gear = 1
+        for thr in GEAR_THRESHOLDS:
             if ratio > thr:
-                gear_abs += 1
-        if abs(gear_abs - gear) > 2:
-            gear = gear_abs
-        _gear_prev = gear
+                gear += 1
+            else:
+                break
         result['Gear'] = gear
     else:
-        _gear_prev = 1
         result['Gear'] = 0
 
     return result

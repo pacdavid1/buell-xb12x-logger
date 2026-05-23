@@ -1,3 +1,9 @@
+## [v2.6.3] — 2026-05-23
+### Fixed
+- main.py _sysmon_loop: merge en vez de overwrite de serial_stats — TTL%/BPS ya no parpadean en el dash
+- ecu/protocol.py gear detection: removida histeresis con _gear_prev — la marcha ya no se queda pegada en 5ta.
+  Vuelve a detección absoluta (cada sample se evalúa independientemente, como en v2.5.x).
+
 ## [v2.6.2] — 2026-05-23
 ### Added
 -  en : merge de celdas ahora incluye  de los summary JSON
