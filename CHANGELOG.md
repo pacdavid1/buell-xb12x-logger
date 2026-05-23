@@ -1,3 +1,10 @@
+## [v2.6.2] — 2026-05-23
+### Added
+-  en : merge de celdas ahora incluye  de los summary JSON
+  - Los modos SWEET, TIPIN, TIPOUT, WOT del grid VE ahora funcionan con rides históricos
+  - Usa  desde  para calcular porcentaje de cobertura
+  - Solo muestra flavors con segundos > 0 (consistente con el live /coverage.json)
+
 ## [v2.6.1] — 2026-05-23
 ### Fixed
 -  en : merge de celdas ahora usa fallback a  cuando  (rides de motor frío)
