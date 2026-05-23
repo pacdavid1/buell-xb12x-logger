@@ -142,10 +142,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._html(self._load_html())
             return
 
-        if path == '/cobertura':
-            fp = Path(__file__).parent / 'templates' / 'cobertura.html'
-            if fp.exists(): self._html(fp.read_text())
-            return
         if path == '/live.json':
             self._json(self._get_live())
             return

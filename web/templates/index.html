@@ -222,7 +222,6 @@ table.veg td:active{filter:brightness(1.6)}
     <div class="nav-menu" id="navMenu">
       <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
       <div class="nav-menu-drop" id="navDrop">
-        <a href="/cobertura">Cobertura VE</a>
         <a href="/sessions_vs" target="_blank">Sessions VS</a>
         <a href="/tuner" target="_blank">Tuner Studio</a>
         <div style="border-top:1px solid var(--border);margin:4px 0"></div>
@@ -314,28 +313,24 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
   </div>
 
-  <div class="ind-row" id="indicators"></div>
-
-  <div class="grid-section">
+  <div class="ind-row" id="indicators"></div>      <div class="grid-section">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
-      <div class="grid-label" style="margin:0;border:none;padding:0">Cobertura de celdas VE</div>
-      <div style="display:flex;gap:4px">
-        <button class="btn" id="gridBtnTime" onclick="setGridMode('time')" style="font-size:8px;padding:3px 6px;border-color:var(--accent2);color:var(--accent2)">Segundos</button>
-        <button class="btn" id="gridBtnEgo" onclick="setGridMode('ego')" style="font-size:8px;padding:3px 6px">EGO Promedio</button>
+      <div class="ctrl-label" style="font-size:8px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase">Celdas</div>
+      <div class="btns" id="cobert-btns" style="display:flex;gap:3px;flex-wrap:wrap">
+        <button class="btn cobert-btn active" data-mode="seconds" onclick="setCobertMode('seconds')" style="font-size:8px;padding:3px 6px;border-color:var(--accent2);color:var(--accent2)">Segundos</button>
+        <button class="btn cobert-btn" data-mode="ego" onclick="setCobertMode('ego')" style="font-size:8px;padding:3px 6px">EGO</button>
+        <button class="btn cobert-btn" data-mode="SWEET" onclick="setCobertMode('SWEET')" style="font-size:8px;padding:3px 6px;color:#7df">SWEET</button>
+        <button class="btn cobert-btn" data-mode="TIPIN" onclick="setCobertMode('TIPIN')" style="font-size:8px;padding:3px 6px;color:#3d3">TIPIN</button>
+        <button class="btn cobert-btn" data-mode="TIPOUT" onclick="setCobertMode('TIPOUT')" style="font-size:8px;padding:3px 6px;color:#fa3">TIPOUT</button>
+        <button class="btn cobert-btn" data-mode="WOT" onclick="setCobertMode('WOT')" style="font-size:8px;padding:3px 6px;color:#f74">WOT</button>
       </div>
     </div>
     <div class="grid-wrap">
-      <table class="veg" id="veGrid"></table>
+      <table class="veg" id="cobertGrid"></table>
     </div>
-    <div id="gridDebug" style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px"></div>
-    <div class="legend">
-      <div class="leg"><div class="leg-dot c0"></div>Sin datos</div>
-      <div class="leg"><div class="leg-dot c1"></div>&lt;2s</div>
-      <div class="leg"><div class="leg-dot c2"></div>2-5s</div>
-      <div class="leg"><div class="leg-dot c3"></div>5-10s</div>
-      <div class="leg"><div class="leg-dot c4"></div>&gt;10s</div>
-      <div class="leg"><div class="leg-dot ca"></div>Activa</div>
-    </div>
+    <div id="cobert-legend" class="legend"></div>
+    <div class="obj-row-compact" id="cobert-summary"></div>
+    <div id="cobert-status" style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:2px">Conectando...</div>
   </div>
   <div class="obj-row-compact" id="objList"></div>
 </div>
@@ -733,73 +728,112 @@ function showTab(id) {
   if(id==='graph')   initGraphPane();
 }
 
-// ── GRID ──────────────────────────────────────────────────────────
-function buildGrid() {
-  const t = document.getElementById('veGrid');
-  let html = '<thead><tr><th class="rh">L\\R</th>';
-  for(const r of RPM_BINS)
-    html += `<th>${r===0?'0':r>=1000?(r/1000)+'k':r}</th>`;
-  html += '</tr></thead><tbody>';
-  for(let li=LOAD_BINS.length-1; li>=0; li--) {
-    html += `<tr><th class="rh">${LOAD_BINS[li]}</th>`;
-    for(let ri=0; ri<RPM_BINS.length; ri++) {
-      const key = `${RPM_BINS[ri]}_${LOAD_BINS[li]}`;
-      html += `<td id="c_${key}" class="c0" >
-        <div class="cv" id="s_${key}"></div></td>`;
+// ── GRID (Cobertura VE) ──────────────────────────────────────────
+let _cobertMode = 'seconds';
+let _cobertData = null;
+
+function buildCobertGrid() {
+  const t = document.getElementById('cobertGrid');
+  let h = '<thead><tr><th class="rh">L\\R</th>';
+  for (const r of RPM_BINS) h += '<th>'+(r===0?'0':r>=1000?(r/1000)+'k':r)+'</th>';
+  h += '</tr></thead><tbody>';
+  for (let li = LOAD_BINS.length-1; li >= 0; li--) {
+    h += '<tr><th class="rh">'+LOAD_BINS[li]+'</th>';
+    for (let ri = 0; ri < RPM_BINS.length; ri++) {
+      const k = RPM_BINS[ri]+'_'+LOAD_BINS[li];
+      h += '<td id="gc_'+k+'" class="c0"><div class="cv" id="gs_'+k+'"></div></td>';
     }
-    html += '</tr>';
+    h += '</tr>';
   }
-  html += '</tbody>';
-  t.innerHTML = html;
+  h += '</tbody>';
+  t.innerHTML = h;
 }
 
-let _gridMode = 'time';
-function egoColor(ego) {
-  if (ego < 90) return 'rgba(255, 50, 50, 0.9)';
-  if (ego < 95) return 'rgba(255, 160, 50, 0.85)';
-  if (ego < 105) return 'rgba(50, 200, 50, 0.8)';
-  if (ego < 110) return 'rgba(50, 150, 255, 0.85)';
-  return 'rgba(80, 80, 255, 0.9)';
+function egoColor(e) {
+  if(e<90)return'rgba(255,50,50,0.9)';if(e<95)return'rgba(255,160,50,0.85)';
+  if(e<105)return'rgba(50,200,50,0.8)';if(e<110)return'rgba(50,150,255,0.85)';
+  return'rgba(80,80,255,0.9)';
 }
-function setGridMode(mode) {
-  _gridMode = mode;
-  document.getElementById('gridBtnTime').style.borderColor = mode==='time' ? 'var(--accent2)' : '';
-  document.getElementById('gridBtnEgo').style.borderColor = mode==='ego' ? 'var(--accent2)' : '';
-  document.getElementById('gridBtnTime').style.color = mode==='time' ? 'var(--accent2)' : '';
-  document.getElementById('gridBtnEgo').style.color = mode==='ego' ? 'var(--accent2)' : '';
-  if(lastData) updateGrid(lastData.cells || {}, lastData.active_cell);
+function pctColor(p) {
+  let r,g,b;
+  if(p<=50){const t=p/50;r=231;g=Math.round(76+120*t);b=60;}
+  else{const t=(p-50)/50;r=Math.round(231-185*t);g=Math.round(196+8*t);b=Math.round(60+53*t);}
+  return'rgb('+r+','+g+','+b+')';
 }
-function updateGrid(cells, activeCell) {
-  let painted = 0;
-  for(let li=0; li<LOAD_BINS.length; li++) {
-    for(let ri=0; ri<RPM_BINS.length; ri++) {
-      const key = `${RPM_BINS[ri]}_${LOAD_BINS[li]}`;
-      const td  = document.getElementById(`c_${key}`);
-      if(!td) continue;
-      const cell = cells[key] || {};
-      const secs = cell.seconds || 0;
-      const ego  = cell.valid_ego_avg != null ? cell.valid_ego_avg : cell.ego_avg;
-      let bg = '', txt = '';
-      if (_gridMode === 'time') {
-        bg = key===activeCell ? 'ca' : secs<=0 ? 'c0' : secs<2  ? 'c1' : secs<5  ? 'c2' : secs<10 ? 'c3' : 'c4';
-        txt = secs>0 ? (secs<10?secs.toFixed(1):Math.round(secs))+'s' : '';
-      } else if (_gridMode === 'ego') {
-        if (ego != null && secs > 2) {
-          bg = 'background:'+egoColor(ego);
-          txt = ego.toFixed(1);
-        } else {
-          bg = 'c0'; txt = '';
+
+function setCobertMode(mode) {
+  _cobertMode = mode;
+  document.querySelectorAll('.cobert-btn').forEach(b => {
+    const a = b.dataset.mode === mode;
+    b.style.borderColor = a ? 'var(--accent2)' : '';
+    b.style.color = a ? 'var(--accent2)' : '';
+  });
+  renderCobertLegend();
+  if (_cobertData) renderCobertGrid(_cobertData);
+}
+
+function renderCobertLegend() {
+  const el = document.getElementById('cobert-legend');
+  if(!el) return;
+  const m = _cobertMode;
+  if (m === 'seconds') {
+    el.innerHTML = '<div class="leg"><div class="leg-dot c0"></div>Sin datos</div>'
+      +'<div class="leg"><div class="leg-dot c1"></div>&lt;2s</div>'
+      +'<div class="leg"><div class="leg-dot c2"></div>2-5s</div>'
+      +'<div class="leg"><div class="leg-dot c3"></div>5-10s</div>'
+      +'<div class="leg"><div class="leg-dot c4"></div>&gt;10s</div>'
+      +'<div class="leg"><div class="leg-dot ca"></div>Activa</div>';
+  } else if (m === 'ego') {
+    el.innerHTML = '<div class="leg"><div class="leg-dot" style="background:rgba(255,50,50,.9)"></div>&lt;90</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(255,160,50,.85)"></div>90-95</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(50,200,50,.8)"></div>95-105</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(50,150,255,.85)"></div>105-110</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(80,80,255,.9)"></div>&gt;110</div>';
+  } else {
+    const tgt = (_cobertData&&_cobertData.targets&&_cobertData.targets[m]) || '?';
+    el.innerHTML = '<div class="leg" style="color:var(--dim)">'+m+' target: '+tgt+'s &middot; conf&ge;80% para converger</div>';
+  }
+}
+
+function renderCobertGrid(d) {
+  const cells = d.cells || {}, ac = d.active_cell || null, m = _cobertMode;
+  let populated = 0;
+  for (let li = 0; li < LOAD_BINS.length; li++) {
+    for (let ri = 0; ri < RPM_BINS.length; ri++) {
+      const k = RPM_BINS[ri]+'_'+LOAD_BINS[li];
+      const td = document.getElementById('gc_'+k), sv = document.getElementById('gs_'+k);
+      if (!td || !sv) continue;
+      const c = cells[k] || {};
+      let bg = 'c0', txt = '', isSt = false;
+      if (m === 'seconds') {
+        const s = c.seconds || 0;
+        if (s > 0) populated++;
+        bg = k===ac ? 'ca' : s<=0?'c0':s<2?'c1':s<5?'c2':s<10?'c3':'c4';
+        txt = s > 0 ? (s<10?s.toFixed(1):Math.round(s))+'s' : '';
+      } else if (m === 'ego') {
+        const e = c.ego_avg;
+        if (c.seconds > 0 && e != null) {
+          populated++;
+          bg = 'background:' + egoColor(e); txt = e.toFixed(1); isSt = true;
+        }
+      } else {
+        const fl = (c.flavors || {})[m];
+        if (fl) {
+          populated++;
+          const p = fl.pct || 0, col = pctColor(p);
+          bg = 'background:' + col.replace('rgb','rgba').replace(')',',0.2)');
+          txt = fl.done ? '\u2713' : p.toFixed(0) + '%';
+          sv.style.color = col; isSt = true;
         }
       }
-      td.className = bg.startsWith('background') ? '' : bg;
-      td.style.cssText = bg.startsWith('background') ? bg : '';
-      const sv = document.getElementById(`s_${key}`);
+      td.className = isSt ? '' : bg;
+      td.style.cssText = isSt ? bg : '';
+      if (!isSt) sv.style.color = '';
       sv.textContent = txt;
-      if(secs > 0) painted++;
     }
   }
-  const dbg = document.getElementById('gridDebug');
-  if(dbg) dbg.textContent = painted + ' celdas / ' + Object.keys(cells).length + ' keys';
+  const st = document.getElementById('cobert-status');
+  if (st) st.textContent = populated + ' / ' + (RPM_BINS.length * LOAD_BINS.length) + ' celdas con datos';
 }
 
 // ── BOTTOM SHEET ──────────────────────────────────────────────────
@@ -990,7 +1024,6 @@ async function fetchLive() {
       if(_r.ok){
         const _d = await _r.json();
         if(_d.ride_active){
-          updateGrid(_d.cells||{}, _d.active_cell);
           updateHeader(_d);
         }
       }
@@ -1004,7 +1037,6 @@ async function fetchLive() {
     _lastLiveOk = Date.now();
     lastData = d;
     updateHeader(d);
-    updateGrid(d.cells||{}, d.active_cell);
     renderObjectives(d.objectives);
     renderIndicators(d.indicators);
     if(d.network_mode) updateNetStatus(d.network_mode, d.ip);
@@ -1721,9 +1753,21 @@ async function viewSelectedRides(){
   });
   const rideLabel=rides.length===1?rides[0].filename.replace('.csv','').replace('_',' '):
                   `${rides.length} rides sumados`;
+  // Convert to cobertura grid format
+  const cobertCells = {};
+  for (const [k, v] of Object.entries(cells)) {
+    const ego = v.valid_ego_avg != null ? v.valid_ego_avg : v.ego_avg;
+    cobertCells[k] = {
+      seconds: v.seconds || 0,
+      ego_avg: ego || 100.0,
+      confidence: 0.0,
+      flavors: {}
+    };
+  }
+  _cobertData = { cells: cobertCells, active_cell: null, summary: {}, targets: {}, n_cells: Object.keys(cobertCells).length };
+  setCobertMode(_cobertMode);
   lastData={...(lastData||{}),cells,objectives,ride_active:false,
             ride_num:null,elapsed_s:0,active_cell:null};
-  updateGrid(cells,null);
   renderObjectives(objectives);
   window._viewingHistory=true;
   showTab('ride');
@@ -1732,6 +1776,17 @@ async function viewSelectedRides(){
       <span>${rideLabel}</span>
       <span onclick="exitHistory()" style="cursor:pointer;padding:2px 8px;border:1px solid var(--accent)">LIVE</span>
     </div>`);
+}
+
+async function pollCobertGrid() {
+  if (window._viewingHistory) return;
+  try {
+    const r = await fetch('/coverage.json?t='+Date.now());
+    if (!r.ok) return;
+    const d = await r.json();
+    _cobertData = d;
+    renderCobertGrid(d);
+  } catch(e) {}
 }
 
 function exitHistory(){
@@ -2746,7 +2801,7 @@ async function startTpsCapture(){
 loadTpsCal();
 
 // cargar cal al arrancar (no solo al abrir tab)
-document.addEventListener("DOMContentLoaded", ()=>{ loadTpsCal(); loadVssCal(); buildGrid(); fetchLive(); });
+document.addEventListener("DOMContentLoaded", ()=>{ loadTpsCal(); loadVssCal(); buildCobertGrid(); renderCobertLegend(); fetchLive(); setInterval(pollCobertGrid, 1000); });
 
 </script>
 <script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script></body>
