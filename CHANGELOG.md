@@ -1,3 +1,9 @@
+## [v2.6.6] — 2026-05-23
+### Changed
+- ecu/protocol.py: recalibración VSS_CPKM25 1368 → 1518 (~11% ajuste).
+  Alinea velocidad del dash (VS_KPH) con GPS. Derivado de 3,029 períodos
+  estables en rides 4-5 de sesión 47BF04.
+
 ## [v2.6.5] — 2026-05-23
 ### Added
 - web/templates/index.html (loadMapTrack): perfil de altitud ahora incluye

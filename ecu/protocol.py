@@ -82,7 +82,7 @@ RT_VARIABLES = {
 }
 
 # ── VSS / Velocidad ───────────────────────────────────────────
-VSS_CPKM25 = 1368.0  # counts por 25km/h — calibrado con ride_015
+VSS_CPKM25 = 1518.0  # counts por 25km/h — recalibrado vs GPS (ride_015 + rides 4-5 sesión 47BF04)
 
 # ── Gear detection XB12X (5 velocidades, transmisión stock) ──
 # Ratios calculados de: primario 34/57 * sprocket 29/68 * ratio_caja_n
