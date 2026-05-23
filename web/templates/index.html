@@ -1734,7 +1734,7 @@ async function viewSelectedRides(){
   for(const s of summaries){
     if(!s) continue;
     for(const [key,val] of Object.entries(s.cells||{})){
-      if(!merged[key]) merged[key]={seconds:0,ego_sum:0,count:0,valid_seconds:0,valid_ego_sum:0,valid_count:0};
+      if(!merged[key]) merged[key]={seconds:0,ego_sum:0,count:0,valid_seconds:0,valid_ego_sum:0,valid_count:0,flavor_sum:{}};
       const useValid = val.valid_seconds != null && val.valid_seconds > 0;
       const vs  = useValid ? val.valid_seconds : (val.seconds || 0);
       const vea = useValid && val.valid_ego_avg != null ? val.valid_ego_avg : (val.ego_avg != null ? val.ego_avg : 100.0);
@@ -1743,6 +1743,7 @@ async function viewSelectedRides(){
       merged[key].count         += vs;
       merged[key].valid_ego_sum += vea * vs;
       merged[key].valid_count   += vs;
+      if(val.flavor_counts) { for(const [fl,secs] of Object.entries(val.flavor_counts)) { merged[key].flavor_sum[fl]=(merged[key].flavor_sum[fl]||0)+secs; } }
     }
   }
   const cells={};
@@ -1758,16 +1759,26 @@ async function viewSelectedRides(){
                   `${rides.length} rides sumados`;
   // Convert to cobertura grid format
   const cobertCells = {};
+  const fTargets = (objCfg.flavor_targets || {});
   for (const [k, v] of Object.entries(cells)) {
     const ego = v.valid_ego_avg != null ? v.valid_ego_avg : v.ego_avg;
+    const flavors = {};
+    const fs = (merged[k] || {}).flavor_sum || {};
+    for (const [fl, secs] of Object.entries(fs)) {
+      if (secs > 0) {
+        const ts = fTargets[fl] || 30;
+        const pct = Math.round(Math.min(100, secs / ts * 100) * 10) / 10;
+        flavors[fl] = {seconds: Math.round(secs * 10) / 10, pct, target: ts, done: pct >= 100};
+      }
+    }
     cobertCells[k] = {
       seconds: v.seconds || 0,
       ego_avg: ego || 100.0,
       confidence: 0.0,
-      flavors: {}
+      flavors
     };
   }
-  _cobertData = { cells: cobertCells, active_cell: null, summary: {}, targets: {}, n_cells: Object.keys(cobertCells).length };
+  _cobertData = { cells: cobertCells, active_cell: null, summary: {}, targets: fTargets, n_cells: Object.keys(cobertCells).length };
   setCobertMode(_cobertMode);
   lastData={...(lastData||{}),cells,objectives,ride_active:false,
             ride_num:null,elapsed_s:0,active_cell:null};
