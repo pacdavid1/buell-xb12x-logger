@@ -3,11 +3,14 @@ WebServer - HTTP server con endpoints para red y status
 v2.1.0 - Fix scan GET, redirect URL, switch status polling
 """
 
+import csv
 import json
+import logging
 import urllib.parse
 import re
 import threading
 import time
+import zlib
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 import sys as _sys
@@ -62,7 +65,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         net  = self.server_instance.network
 
         if path == '/tuner/sessions':
-            import glob as _glob
             sessions = []
             for d in self.server_instance.buell_dir.glob('sessions/*/session_metadata.json'):
                 try:
@@ -73,7 +75,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         try:
                             b = ep.read_bytes()
                             if len(b) >= 14: serial = int.from_bytes(b[12:14], 'little')
-                        except: pass
+                        except Exception: pass
                     else:
                         continue
                     sessions.append({'id': d.parent.name, 'version': meta.get('version_string', '?'), 'rides': meta.get('total_rides', 0), 'samples': meta.get('total_samples', 0), 'created': meta.get('created_utc', '')[:10], 'serial': serial})
@@ -83,8 +85,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
 
         if path == '/tuner/maps':
-            import urllib.parse as _up
-            params = _up.parse_qs(_up.urlparse(self.path).query)
+            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             sess = params.get('session', [''])[0]
             if not sess: self._json({'error': 'Falta session'}, 400); return
             blob_path = self.server_instance.buell_dir / 'sessions' / sess / 'eeprom.bin'
@@ -96,8 +97,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
 
         if path == '/tuner/merge':
-            import urllib.parse as _up
-            params = _up.parse_qs(_up.urlparse(self.path).query)
+            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             sa = params.get('a', [''])[0]
             sb = params.get('b', [''])[0]
             mode = params.get('mode', ['BALANCE'])[0]
@@ -117,8 +117,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._json({'error': str(e)}, 500)
             return
         if path == '/sessions_vs/compare':
-            import urllib.parse as _up
-            params = _up.parse_qs(_up.urlparse(self.path).query)
+            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             sa = params.get('a', [''])[0]
             sb = params.get('b', [''])[0]
             if not sa or not sb:
@@ -188,10 +187,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         chunks.append(fh.read())
                     first = False
                 raw = b''.join(chunks)
-                import zlib as _zlib
                 accept_enc = self.headers.get('Accept-Encoding', '')
                 use_gzip = 'gzip' in accept_enc
-                body = _zlib.compress(raw, level=6, wbits=31) if use_gzip else raw
+                body = zlib.compress(raw, level=6, wbits=31) if use_gzip else raw
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/csv; charset=utf-8')
                 self.send_header('Access-Control-Allow-Origin', '*')
@@ -356,7 +354,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
                 session_id = params.get('session', [''])[0]
                 ride_num   = int(params.get('ride', [0])[0])
-                import csv as _csv
                 sessions_dir = Path('/home/pi/buell/sessions')
                 # Buscar el archivo CSV del ride
                 ride_files = sorted(sessions_dir.glob(f'{session_id}/ride_{session_id}_{ride_num:03d}*.csv'))
@@ -367,7 +364,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     with open(rf, newline='') as f:
                         # Skip comment lines starting with #
                         filtered = (row for row in f if not row.startswith('#'))
-                        reader = _csv.DictReader(filtered)
+                        reader = csv.DictReader(filtered)
                         for row in reader:
                             try:
                                 lat  = float(row.get('gps_lat') or 0)
@@ -409,7 +406,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         try:
             payload = json.loads(body)
         except Exception as e:
-            import logging
             logging.warning(f"Invalid JSON: {e} — body={body[:80]!r}")
             payload = {}
 
@@ -709,7 +705,6 @@ class WebServer:
             name="web-server"
         )
         self._thread.start()
-        import logging
         logging.getLogger("WebServer").info(f"HTTP en http://{self.host}:{self.port}")
 
     def stop(self):
@@ -812,7 +807,7 @@ def _compare_sessions_cached(buell_dir, sa, sb):
     def _meta(sid):
         mp = buell_dir / 'sessions' / sid / 'session_metadata.json'
         if mp.exists():
-            with open(mp) as f: return _json.load(f)
+            with open(mp) as f: return json.load(f)
         return {}
     ma, mb = _meta(sa), _meta(sb)
     fname = f"sessions_vs_{sa}-{_fmtk(ma.get('total_samples',0))}_{sb}-{_fmtk(mb.get('total_samples',0))}.json"
@@ -820,17 +815,16 @@ def _compare_sessions_cached(buell_dir, sa, sb):
     cache_file = cache_dir / fname
     if cache_file.exists():
         try:
-            return _json.load(open(cache_file))
+            return json.load(open(cache_file))
         except Exception:
             pass
     result = _compare_sessions(buell_dir, sa, sb)
     cache_dir.mkdir(parents=True, exist_ok=True)
     with open(cache_file, 'w') as f:
-        _json.dump(result, f)
+        json.dump(result, f)
     return result
 
 def _compare_sessions(buell_dir, sa, sb):
-    import csv as _csv
     from collections import defaultdict
 
     RPM_BINS = [800,1200,1600,2000,2400,2800,3200,3600,4000,4400,4800,5200,5600,6000,6400,6800]
@@ -846,11 +840,10 @@ def _compare_sessions(buell_dir, sa, sb):
         except: return d
 
     def load_meta(sid):
-        import json as _json
         mp = buell_dir / 'sessions' / sid / 'session_metadata.json'
         meta = {}
         if mp.exists():
-            with open(mp) as f: meta = _json.load(f)
+            with open(mp) as f: meta = json.load(f)
         # leer serial del eeprom.bin para identificar moto
         ep = buell_dir / 'sessions' / sid / 'eeprom.bin'
         if ep.exists():
@@ -858,7 +851,7 @@ def _compare_sessions(buell_dir, sa, sb):
                 b = ep.read_bytes()
                 if len(b) >= 14:
                     meta['bike_serial'] = int.from_bytes(b[12:14], 'little')
-            except: pass
+            except Exception: pass
         return meta
 
     def load_csv(sid):
@@ -869,7 +862,7 @@ def _compare_sessions(buell_dir, sa, sb):
             with open(cp) as f:
                 lines = [l for l in f if not l.startswith('#')]
             if not lines: continue
-            for r in _csv.DictReader(lines):
+            for r in csv.DictReader(lines):
                 try:
                     rpm = sf(r['RPM'])
                     if rpm < 100: continue
