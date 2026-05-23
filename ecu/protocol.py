@@ -9,6 +9,8 @@ Responsabilidades:
   - Constantes de gear detection y VSS
 """
 
+import collections
+import statistics
 import struct
 
 # ── Constantes de protocolo ───────────────────────────────────
@@ -92,6 +94,13 @@ GEAR_KPH_PER_KRPM = [0.0, 8.5, 13.2, 17.6, 21.8, 26.3]  # [0=neutro, 1-5]
 _G = GEAR_KPH_PER_KRPM
 GEAR_THRESHOLDS = [(_G[i] + _G[i+1]) / 2 for i in range(1, 5)]  # = [10.85, 15.4, 19.7, 24.05]
 
+# ── Ring buffers para median filter de gear ─────────────────
+# Almacena ~1s de samples (20 a ~20Hz) para validar la marcha
+# solo cuando RPM/KPH están estables, corrigiendo outliers.
+_gear_buffer = collections.deque(maxlen=20)
+_rpm_buffer  = collections.deque(maxlen=20)
+_kph_buffer  = collections.deque(maxlen=20)
+
 
 def decode_rt_packet(raw_bytes):
     """Convierte frame RT raw (107 bytes) → dict de parámetros ECU.
@@ -169,9 +178,11 @@ def decode_rt_packet(raw_bytes):
     else:
         result['VS_KPH'] = 0.0
 
-    # ── Gear — detección absoluta (sin estado/histeresis) ────
-    # Cada sample se evalúa independientemente; no se queda
-    # pegado en 5ta por VSS ruidoso.
+    # ── Gear — detección absoluta + median filter ────────────
+    # Cada sample se evalúa independientemente (sin histéresis).
+    # Además, cuando RPM/KPH están estables ~1s, un filtro
+    # mediano sobre los últimos 20 samples corrige outliers
+    # que pudieran dar una marcha errónea.
     rpm_k = (result.get('RPM') or 0) / 1000.0
     kph   = result['VS_KPH']
     if rpm_k > 0.5 and kph > 3.0:
@@ -184,8 +195,27 @@ def decode_rt_packet(raw_bytes):
             else:
                 break
         result['Gear'] = gear
+
+        # ── Median filter: estabilidad → validación ────
+        _gear_buffer.append(gear)
+        _rpm_buffer.append(result.get('RPM', 0))
+        _kph_buffer.append(kph)
+        if len(_gear_buffer) >= 20:
+            rng_rpm = max(_rpm_buffer) - min(_rpm_buffer)
+            rng_kph = max(_kph_buffer) - min(_kph_buffer)
+            # Condiciones estables: RPM < 200 de rango, KPH < 8 de rango
+            # (equivale a ~1s de crucero sin aceleración/frenado fuerte)
+            if rng_rpm < 200 and rng_kph < 8:
+                validated = int(statistics.median(_gear_buffer))
+                if validated != result['Gear']:
+                    result['Gear'] = validated
     else:
         result['Gear'] = 0
+        # RPM bajo o parado → limpiar buffers para no arrastrar
+        # datos viejos al próximo arranque
+        _gear_buffer.clear()
+        _rpm_buffer.clear()
+        _kph_buffer.clear()
 
     return result
 

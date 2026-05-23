@@ -1,3 +1,9 @@
+## [v2.6.4] — 2026-05-23
+### Added
+- ecu/protocol.py: filtro mediano (20 samples, ~1s) en gear detection.
+  Cuando RPM/KPH estan estables (rango RPM < 200, KPH < 8) valida la
+  marcha usando la mediana de los ultimos ~1s, corrigiendo outliers.
+
 ## [v2.6.3] — 2026-05-23
 ### Fixed
 - main.py _sysmon_loop: merge en vez de overwrite de serial_stats — TTL%/BPS ya no parpadean en el dash
