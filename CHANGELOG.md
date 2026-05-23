@@ -1,3 +1,15 @@
+## [v2.6.7] — 2026-05-23
+### Changed
+- ddfi2_logger.py movido a archive/ (código muerto, modularizado hace tiempo)
+- connection.py importa constantes de protocol.py (SOH, EOH, ACK, etc.) en vez de redefinirlas
+- protocol.py: nueva fuente única de verdad para constantes de protocolo DDFI2
+
+### Added
+- BACKLOG.md: nueva sección REFACTOR / DEUDA TÉCNICA con 10 mejoras identificadas
+
+### Removed
+- Temp scripts basura (_update_changelog*.py, _add_speed_axis.py, nul) del raíz
+
 ## [v2.6.6] — 2026-05-23
 ### Changed
 - ecu/protocol.py: recalibración VSS_CPKM25 1368 → 1518 (~11% ajuste).

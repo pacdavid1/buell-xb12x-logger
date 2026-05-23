@@ -1,6 +1,6 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
 > Auto-generado por `tools/make_index.py` — no editar manualmente
-> Última actualización: 2026-05-23 15:50 | versión: v1.16.3-335-g44beea9
+> Última actualización: 2026-05-23 15:58 | versión: v1.16.3-336-g5b30879
 
 ---
 
@@ -8,6 +8,8 @@
 
 ```
 buell-xb12x-logger/
+├── archive
+│   └── ddfi2_logger.py
 ├── docs
 │   ├── 00_OVERVIEW.md
 │   ├── 01_ARCHITECTURE.md
@@ -73,9 +75,8 @@ buell-xb12x-logger/
 ├── DEV_TIPS.md
 ├── README.md
 ├── WORKING_METHOD.md
-├── _update_changelog_v266.py
 ├── add_map_diff.py
-├── ddfi2_logger.py
+├── connection.py
 ├── fix_bmp280.py
 ├── fix_heatmap_valid.py
 ├── fix_network_mode_cache.py
@@ -86,7 +87,8 @@ buell-xb12x-logger/
 ├── install.sh
 ├── main.py
 ├── network_state.json
-└── objectives.json
+├── objectives.json
+└── protocol.py
 ```
 
 ---
@@ -104,15 +106,11 @@ buell-xb12x-logger/
 
 ## Módulos Python
 
-### `_update_changelog_v266.py`
-
----
-
 ### `add_map_diff.py`
 
 ---
 
-### `ddfi2_logger.py`
+### `archive/ddfi2_logger.py`
 
 **Constantes**
 
@@ -283,6 +281,37 @@ buell-xb12x-logger/
 | `_waiting_loop` | — |
 | `_do_poweroff` | — |
 | `run` | — |
+
+---
+
+### `connection.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `BUEIB_PAGES` | `[(1, 0, 256), (2, 256, 256), (3, 512, 158), (4, 670, 256), (5, 926, 256), (6, 1182, 24)]` |
+| `KNOWN_ADAPTERS` | `[('0403', '6001', 'FT232RL'), ('1a86', '55d3', 'CH343P')]` |
+
+**Clase `DDFI2Connection`**
+
+| Método | Docstring |
+|--------|-----------|
+| `__init__` | — |
+| `connect` | — |
+| `disconnect` | — |
+| `usb_power_cycle` | Power cycle del hub USB via sysfs autosuspend.
+Mas efectivo  |
+| `usb_reset` | Fuerza reset USB del FT232RL via sysfs (authorized toggle).
+ |
+| `_send` | — |
+| `_read_exact` | — |
+| `get_version` | Reintentar hasta 5 veces con flush — ECU puede estar en modo |
+| `_sync_to_soh` | Descarta basura del buffer hasta encontrar SOH (0x01). |
+| `_flush_and_retry_soh` | Segundo intento: vacía el buffer, reenvía PDU_RT_DATA y busc |
+| `get_rt_data` | Lee un frame RT de la ECU. Retorna dict de parámetros o None |
+| `read_eeprom_page` | — |
+| `read_full_eeprom` | Lee las 6 páginas del BUEIB/DDFI-2 → 1206 bytes. |
 
 ---
 
@@ -644,6 +673,30 @@ A new  |
 | `start_monitor` | — |
 | `stop_monitor` | — |
 | `ssh_active` | — |
+
+---
+
+### `protocol.py`
+
+**Constantes**
+
+| Nombre | Valor |
+|--------|-------|
+| `SOH` | `1` |
+| `EOH` | `255` |
+| `SOT` | `2` |
+| `EOT` | `3` |
+| `ACK` | `6` |
+| `DROID_ID` | `0` |
+| `STOCK_ECM_ID` | `66` |
+| `CMD_GET` | `82` |
+| `RT_RESPONSE_SIZE` | `107` |
+| `RT_VARIABLES` | `{'RPM': (11, 2, 1.0, 0.0), 'Seconds': (9, 2, 1.0, 0.0), 'MilliSec': (8, 1, 0.01, 0.0), 'TPD': (25, 2, 0.1, 0.0), 'Load': (27, 1, 1.0, 0.0), 'TPS_10Bit': (90, 2, 1.0, 0.0), 'Batt_V': (28, 2, 0.01, 0.0), 'CLT': (30, 2, 0.1, -40.0), 'MAT': (32, 2, 0.1, -40.0), 'O2_ADC': (34, 2, 1.0, 0.0), 'WUE': (38, 2, 0.1, 0.0), 'IAT_Corr': (40, 2, 0.1, 0.0), 'Accel_Corr': (42, 2, 0.1, 0.0), 'Decel_Corr': (44, 2, 0.1, 0.0), 'WOT_Corr': (46, 2, 0.1, 0.0), 'Idle_Corr': (48, 2, 0.1, 0.0), 'OL_Corr': (50, 2, 0.1, 0.0), 'AFV': (52, 2, 0.1, 0.0), 'EGO_Corr': (54, 2, 0.1, 0.0), 'spark1': (13, 2, 0.0025, 0.0), 'spark2': (15, 2, 0.0025, 0.0), 'veCurr1_RAW': (17, 2, 1.0, 0.0), 'veCurr2_RAW': (19, 2, 1.0, 0.0), 'pw1': (21, 2, 0.00133, 0.0), 'pw2': (23, 2, 0.00133, 0.0), 'Flags0': (56, 1, 1.0, 0.0), 'Flags1': (57, 1, 1.0, 0.0), 'Flags2': (58, 1, 1.0, 0.0), 'Flags3': (59, 1, 1.0, 0.0), 'Flags4': (60, 1, 1.0, 0.0), 'Flags5': (61, 1, 1.0, 0.0), 'Flags6': (62, 1, 1.0, 0.0), 'Unk63': (63, 1, 1.0, 0.0), 'CDiag0': (67, 1, 1.0, 0.0), 'CDiag1': (68, 1, 1.0, 0.0), 'CDiag2': (69, 1, 1.0, 0.0), 'CDiag3': (70, 1, 1.0, 0.0), 'CDiag4': (71, 1, 1.0, 0.0), 'HDiag0': (75, 1, 1.0, 0.0), 'HDiag1': (76, 1, 1.0, 0.0), 'HDiag2': (77, 1, 1.0, 0.0), 'HDiag3': (78, 1, 1.0, 0.0), 'HDiag4': (79, 1, 1.0, 0.0), 'Unk80': (80, 1, 1.0, 0.0), 'Unk81': (81, 1, 1.0, 0.0), 'Unk82': (82, 1, 1.0, 0.0), 'Rides': (83, 1, 1.0, 0.0), 'DOut': (84, 1, 1.0, 0.0), 'DIn': (85, 1, 1.0, 0.0), 'ETS_ADC': (94, 1, 1.0, 0.0), 'IAT_ADC': (95, 1, 1.0, 0.0), 'SysConfig': (7, 1, 1.0, 0.0), 'BAS_ADC': (65, 2, 1.0, 0.0), 'VSS_Count': (99, 1, 1.0, 0.0), 'Fan_Duty_Pct': (98, 1, 1.0, 0.0), 'VSS_RPM_Ratio': (100, 1, 1.0, 0.0)}` |
+| `VSS_CPKM25` | `1518.0` |
+| `GEAR_KPH_PER_KRPM` | `[0.0, 8.5, 13.2, 17.6, 21.8, 26.3]` |
+| `RPM_BINS` | `[0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000]` |
+| `LOAD_BINS` | `[10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]` |
+| `CSV_COLUMNS` | `['ride_num', 'timestamp_iso', 'time_elapsed_s', 'RPM', 'Load', 'TPD', 'TPS_10Bit', 'CLT', 'MAT', 'Batt_V', 'spark1', 'spark2', 'veCurr1_RAW', 'veCurr2_RAW', 'pw1', 'pw2', 'EGO_Corr', 'WUE', 'AFV', 'IAT_Corr', 'Accel_Corr', 'Decel_Corr', 'WOT_Corr', 'Idle_Corr', 'OL_Corr', 'O2_ADC', 'Flags0', 'Flags1', 'Flags2', 'Flags3', 'Flags4', 'Flags5', 'Flags6', 'Unk63', 'CDiag0', 'CDiag1', 'CDiag2', 'CDiag3', 'CDiag4', 'HDiag0', 'HDiag1', 'HDiag2', 'HDiag3', 'HDiag4', 'Unk80', 'Unk81', 'Unk82', 'Rides', 'DIn', 'DOut', 'ETS_ADC', 'IAT_ADC', 'BAS_ADC', 'SysConfig', 'TPS_V', 'TPS_pct', 'VSS_Count', 'VS_KPH', 'Fan_Duty_Pct', 'VSS_RPM_Ratio', 'Gear', 'dirty_byte_hex', 'dirty_byte_name', 'forensic_event', 'fl_engine_run', 'fl_o2_active', 'fl_accel', 'fl_decel', 'fl_engine_stop', 'fl_wot', 'fl_ignition', 'fl_closed_loop', 'fl_rich', 'fl_learn', 'fl_cam_active', 'fl_kill', 'fl_immob', 'fl_fuel_cut', 'fl_hot', 'do_coil1', 'do_coil2', 'do_inj1', 'do_inj2', 'do_fuel_pump', 'do_tacho', 'do_cel', 'do_fan', 'di_cam', 'di_tacho_fb', 'di_vss', 'di_clutch', 'di_neutral', 'di_crank', 'buf_in', 'ttl_pct', 'cpu_pct', 'cpu_temp', 'mem_pct', 'gps_lat', 'gps_lon', 'gps_alt_m', 'gps_speed_kmh', 'gps_heading', 'gps_satellites', 'gps_valid', 'baro_hPa', 'baro_temp_c']` |
 
 ---
 

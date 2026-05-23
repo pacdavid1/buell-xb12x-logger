@@ -36,6 +36,24 @@
 - [ ] Opción de exportar solo 1 mapa (ej: solo fuel_front)
 - [ ] Validación: no exceder rangos válidos del ECU (0-250 fuel, 0-45 spark)
 
+## REFACTOR / DEUDA TÉCNICA
+
+### Alta prioridad
+- [ ] P1: ddfi2_logger.py → archive/ (código muerto, todo está en módulos separados)
+- [ ] P1: connection.py importar constantes de protocol.py en vez de redefinirlas (SOH, EOH, ACK, etc.)
+- [ ] P1: DROID_ID, STOCK_ECM_ID, CMD_GET agregados a protocol.py como fuente única de verdad
+
+### Media prioridad
+- [ ] P2: Gear detection — envolver ring buffers mutantes (`_gear_buffer`, `_rpm_buffer`, `_kph_buffer`) en clase en vez de módulo global
+- [ ] P2: connection.py — usar `with open(...)` en vez de `open(...).write()` directo en usb_power_cycle/usb_reset
+- [ ] P2: Agregar type hints a todo el código (empezar por ecu/protocol.py y ecu/connection.py)
+- [ ] P2: main.py — llamada duplicada `recover_orphan_rides()` (2 veces seguidas)
+
+### Baja prioridad / Cosméticos
+- [ ] P3: web/server.py — refactor do_GET/do_POST a rutas separadas (handler muy monolítico)
+- [ ] P3: tools/make_index.py y tools/recover_summaries.py — scripts one-shot, archivar o documentar
+- [ ] P3: web/templates/index.html — separar JS a web/static/ para mejor cacheo y legibilidad
+
 ## NOTAS / REGLAS
 - Solo mover UN mapa a la vez entre sesiones (fuel_front, fuel_rear, spark_front, spark_rear)
 - Si se mueven 2+ mapas → datos no atribuibles → no merge
