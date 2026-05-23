@@ -294,10 +294,14 @@ class BuellLogger:
                     if ride_active: self.error_log.reconnect_attempt(elapsed_s=elapsed_s, trigger="auto_30s", attempt_n=consecutive_errors // 30, success=False, time_s=lost_total)
                     
                     try:
-                        self.ecu.disconnect(); time.sleep(0.5); self.ecu.connect()
+                        self.ecu.disconnect()
+                        time.sleep(0.5)
+                        self.ecu.connect()
                         if self.ecu.get_version():
                             self.logger.info("ECU responde tras hard reconnect")
-                            consecutive_errors = 0; ecu_lost_since = None; last_lost_interval = -1
+                            consecutive_errors = 0
+                            ecu_lost_since = None
+                            last_lost_interval = -1
                             self._last_reconnect_t = 0.0
                             if ride_active: self.error_log.reconnect_attempt(elapsed_s=elapsed_s, trigger="auto_30s", attempt_n=consecutive_errors // 30, success=True, time_s=lost_total)
                     except Exception as e:
@@ -308,7 +312,9 @@ class BuellLogger:
                 continue
 
             # ── Frame válido ───────────────────────────────────────────
-            consecutive_errors = 0; ecu_lost_since = None; last_lost_interval = -1
+            consecutive_errors = 0
+            ecu_lost_since = None
+            last_lost_interval = -1
 
             self.web.ecu_live = data
             self.web.ecu_connected = True
@@ -325,7 +331,8 @@ class BuellLogger:
                 else:
                     try:
                         self.session.start_ride()
-                        ride_active = True; rpm_zero_since = None
+                        ride_active = True
+                        rpm_zero_since = None
                         self.error_log.start(ride_num=self.session.current_ride_num, session_checksum=self.session.current_checksum, session_dir=str(self.session.current_session_dir))
                         self.logger.info(f"Ride {self.session.current_ride_num:03d} iniciado")
                     except RuntimeError as e:
@@ -355,8 +362,10 @@ class BuellLogger:
                 if rpm_zero_since is None: rpm_zero_since = time.monotonic()
                 elif time.monotonic() - rpm_zero_since >= STOP_CONFIRM_S:
                     self.session.close_current_ride(f"RPM=0 por {STOP_CONFIRM_S:.0f}s", tracker_snapshot=self.tracker.snapshot(), objectives_cfg=self.objectives_cfg)
-                    self.error_log.flush(); self.tracker.reset()
-                    ride_active = False; rpm_zero_since = None
+                    self.error_log.flush()
+                    self.tracker.reset()
+                    ride_active = False
+                    rpm_zero_since = None
             elif rpm >= RPM_STOP: rpm_zero_since = None
 
             # ── Conteo de bytes seriales (Simplificado) ───────────────
@@ -373,7 +382,8 @@ class BuellLogger:
                 current_stats.update({'bps': bps, 'pct': pct, 'tx': SERIAL_TX_BYTES*8, 'rx': SERIAL_RX_BYTES*8, 'buf_in': in_w, 'buf_pct': buf_pct})
                 self.web.serial_stats = current_stats
                 
-                _serial_bytes = 0; _serial_window = _now
+                _serial_bytes = 0
+                _serial_window = _now
 
             time.sleep(max(0, INTERVAL - (time.monotonic() - t0)))
 
