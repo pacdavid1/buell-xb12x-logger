@@ -62,458 +62,564 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        # ── Servir archivos estáticos (web/static/) ────────────────
-        if self.path.startswith("/static/"):
-            import mimetypes
-            path = self.path.lstrip("/")
-            fpath = os.path.join(os.path.dirname(__file__), path)
-            if os.path.isfile(fpath):
-                mime, _ = mimetypes.guess_type(fpath)
-                body = open(fpath, "rb").read()
-                self.send_response(200)
-                self.send_header("Content-Type", mime or "application/octet-stream")
-                self.send_header("Content-Length", str(len(body)))
-                self.send_header("Cache-Control", "max-age=3600")
-                self.end_headers()
-                self.wfile.write(body)
-                return
-            else:
-                self.send_response(404)
-                self.end_headers()
-                self.wfile.write(b"Not Found")
-                return
-
         path = self.path.split('?')[0]
-        net  = self.server_instance.network
 
-        if path == '/tuner/sessions':
-            sessions = []
-            for d in self.server_instance.buell_dir.glob('sessions/*/session_metadata.json'):
-                try:
-                    with open(d) as mf: meta = json.load(mf)
-                    ep = d.parent / 'eeprom.bin'
-                    serial = None
-                    if ep.exists() and ep.stat().st_size >= 1206:
-                        try:
-                            b = ep.read_bytes()
-                            if len(b) >= 14: serial = int.from_bytes(b[12:14], 'little')
-                        except Exception: pass
-                    else:
-                        continue
-                    sessions.append({'id': d.parent.name, 'version': meta.get('version_string', '?'), 'rides': meta.get('total_rides', 0), 'samples': meta.get('total_samples', 0), 'created': meta.get('created_utc', '')[:10], 'serial': serial})
-                except Exception: pass
-            sessions.sort(key=lambda s: s['created'], reverse=True)
-            self._json({'sessions': sessions})
+        # Static files
+        if self.path.startswith("/static/"):
+            self._handle_static(self.path)
             return
 
-        if path == '/tuner/maps':
-            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            sess = params.get('session', [''])[0]
-            if not sess: self._json({'error': 'Falta session'}, 400); return
-            blob_path = self.server_instance.buell_dir / 'sessions' / sess / 'eeprom.bin'
-            if not blob_path.exists(): self._json({'error': 'No hay eeprom.bin'}, 404); return
-            try:
-                self._json(_decode_eeprom_maps(blob_path.read_bytes()))
-            except Exception as e:
-                self._json({'error': f'Error al leer mapa: {e}'})
-            return
-
-        if path == '/tuner/merge':
-            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            sa = params.get('a', [''])[0]
-            sb = params.get('b', [''])[0]
-            mode = params.get('mode', ['BALANCE'])[0]
-            if not sa or not sb:
-                self._json({'error': 'Faltan sesiones'}, 400); return
-            try:
-                self._json(_merge_maps(self.server_instance.buell_dir, sa, sb, mode))
-            except Exception as e:
-                self._json({'error': str(e)}, 500)
-            return
-
-        if path == '/sessions_vs':
-            try:
-                f = Path(__file__).parent / 'templates' / 'sessions_vs.html'
-                self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
-            except Exception as e:
-                self._json({'error': str(e)}, 500)
-            return
-        if path == '/sessions_vs/compare':
-            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            sa = params.get('a', [''])[0]
-            sb = params.get('b', [''])[0]
-            if not sa or not sb:
-                self._json({'error': 'Faltan sesiones'}, 400); return
-            try:
-                self._json(_compare_sessions_cached(self.server_instance.buell_dir, sa, sb))
-            except Exception as e:
-                self._json({'error': str(e)}, 500)
-            return
-        if path == '/tuner' or path == '/tuner.html':
-            try:
-                tuner_file = Path(__file__).parent / 'templates' / 'tuner.html'
-                if tuner_file.exists():
-                    self._html(tuner_file.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
-                else:
-                    self._html("<h1>Buell Tuner - Página no encontrada</h1>")
-            except Exception as e:
-                self._json({'error': str(e)}, 500)
-            return
-
-        if path in ('/', '/index.html'):
-            self._html(self._load_html())
-            return
-
-        if path == '/live.json':
-            self._json(self._get_live())
-            return
-
-        if path == '/coverage.json':
-            self._json(self.server_instance._get_coverage())
-            return
-
-        if path == '/coverage/targets' and method == 'POST':
-            try:
-                body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
-                self.server_instance._set_coverage_targets(body)
-                self._json({'ok': True})
-            except Exception as e:
-                self._json({'error': str(e)}, 400)
+        _routes = {
+            '/tuner/sessions': self._handle_tuner_sessions,
+            '/tuner/maps': self._handle_tuner_maps,
+            '/tuner/merge': self._handle_tuner_merge,
+            '/sessions_vs': self._handle_sessions_vs,
+            '/sessions_vs/compare': self._handle_sessions_vs_compare,
+            '/tuner': self._handle_tuner,
+            '/': self._handle_index,
+            '/index.html': self._handle_index,
+            '/live.json': self._handle_live_json,
+            '/coverage.json': self._handle_coverage_json,
+            '/rides': self._handle_rides,
+            '/suggested_msq': self._handle_suggested_msq,
+            '/maps': self._handle_maps,
+            '/eeprom': self._handle_eeprom,
+            '/wifi/saved': self._handle_wifi_saved,
+            '/wifi/scan': self._handle_wifi_scan,
+            '/wifi/status': self._handle_wifi_status,
+            '/gps_fix': self._handle_gps_fix,
+            '/gps_track': self._handle_gps_track,
+            '/ride_note': self._handle_ride_note,
+        }
+        handler = _routes.get(path)
+        if handler:
+            handler(path)
             return
 
         if path.startswith('/csv/'):
-            fname = path.split('/csv/')[-1].split('?')[0]
-            rides = self.server_instance._get_rides()
-            fname_summary = fname.replace('.csv', '_summary.json')
-            match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
-            if not match:
-                self._json({'error': 'not found'}, 404)
-                return
-            try:
-                sdir = self.server_instance.buell_dir / 'sessions' / match['session']
-                ride_num = match.get('ride_num', 0)
-                parts = match.get('parts', 1)
-                chunks = []
-                first = True
-                for part in range(1, parts+1):
-                    suffix = f'_p{part}' if part > 1 else ''
-                    csv_stem = match['filename'].replace('_summary.json','').replace('.csv','')
-                    csv_path = sdir / f'{csv_stem}{suffix}.csv'
-                    if not csv_path.exists(): continue
-                    with open(csv_path, 'rb') as fh:
-                        if not first: fh.readline()
-                        chunks.append(fh.read())
-                    first = False
-                raw = b''.join(chunks)
-                accept_enc = self.headers.get('Accept-Encoding', '')
-                use_gzip = 'gzip' in accept_enc
-                body = zlib.compress(raw, level=6, wbits=31) if use_gzip else raw
-                self.send_response(200)
-                self.send_header('Content-Type', 'text/csv; charset=utf-8')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.send_header('Cache-Control', 'no-store')
-                self.send_header('Content-Length', str(len(body)))
-                if use_gzip: self.send_header('Content-Encoding', 'gzip')
-                self.end_headers()
-                self.wfile.write(body)
-            except Exception as e:
-                self._json({'error': str(e)}, 500)
+            self._handle_csv(path)
             return
+
         if path.startswith('/ride/'):
-            fname = path.split('/ride/')[-1].split('?')[0]
-            rides = self.server_instance._get_rides()
-            fname_summary = fname.replace('.csv', '_summary.json')
-            match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
-            if not match:
-                self._json({'error': 'not found'}, 404)
-                return
-            sdir = self.server_instance.buell_dir / 'sessions' / match['session']
-            fpath = sdir / fname
-            if not fpath.exists():
-                fpath = sdir / fname.replace('_summary.json', '.csv')
-            try:
-                if fpath.suffix == '.json':
-                    with open(fpath) as fh:
-                        s = json.load(fh)
-                    self._json({'cells': s.get('cells', {}), 'objectives': s.get('objectives', [])})
-                else:
-                    self._json({'cells': {}, 'objectives': []})
-            except Exception as e:
-                self._json({'error': str(e)}, 500)
+            self._handle_ride(path)
             return
+
         if path.startswith('/errorlog/'):
-            fname = path.split('/errorlog/')[-1].split('?')[0]
-            rides = self.server_instance._get_rides()
-            ride_num = int(fname.replace('_errorlog.json','').replace('ride_','').replace('.csv','')) if fname else 0
-            match = next((r for r in rides if r.get('ride_num')==ride_num), None)
-            if not match:
-                self._json({'error': 'not found'}, 404)
-                return
-            sdir = self.server_instance.buell_dir / 'sessions' / match['session']
-            el_path = sdir / f'ride_{ride_num:03d}_errorlog.json'
-            if el_path.exists():
-                try:
-                    with open(el_path) as fh:
-                        self._json(json.load(fh))
-                except Exception as e:
-                    self._json({'error': str(e)}, 500)
-            else:
-                self._json({'has_errorlog': False, 'events': [], 'summary': {}})
-            return
-        if path == '/rides':
-
-            rides = self.server_instance._get_rides()
-            self._json({"rides": rides})
-            return
-        if path == '/suggested_msq':
-            cs = self.server_instance.session.current_checksum
-            if not cs:
-                self._json({"error": "sin sesion activa"}); return
-            msq_path = Path('/home/pi/buell/sessions') / cs / ('suggested_' + cs + '.msq')
-            if not msq_path.exists():
-                self._json({"error": "sin MSQ generado aun"}); return
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/xml')
-            self.send_header('Content-Disposition',
-                'attachment; filename="suggested_' + cs + '.msq"')
-            self.end_headers()
-            self.wfile.write(msq_path.read_bytes())
-            return
-        if path == '/maps':
-            # Soporte para pedir mapa de una sesion especifica: /maps?session=XXXX
-            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            req_session = params.get('session', [''])[0]
-            if req_session:
-                ses_path = self.server_instance.buell_dir / 'sessions' / req_session / 'eeprom.bin'
-                if ses_path.exists():
-                    try:
-                        blob = ses_path.read_bytes()
-                        maps = _decode_eeprom_maps(blob)
-                        if maps and maps.get('fuel_front'):
-                            self._json(maps)
-                            return
-                    except Exception as e:
-                        self._json({'error': str(e)}, 500)
-                        return
-            # Fallback a logica original (Live o mas reciente)
-            maps = self.server_instance.eeprom_maps
-            if not maps or not maps.get('fuel_front'):
-                try:
-                    sessions_dir = Path('/home/pi/buell/sessions')
-                    bins = sorted(sessions_dir.glob('*/eeprom.bin'),
-                                  key=lambda p: p.stat().st_mtime)
-                    if bins:
-                        blob = bins[-1].read_bytes()
-                        maps = _decode_eeprom_maps(blob)
-                except Exception as e:
-                    maps = {'error': str(e)}
-            self._json(maps)
-            return
-        if path == '/eeprom':
-            params = self.server_instance.eeprom_params
-            if not params:
-                try:
-                    sessions_dir = Path('/home/pi/buell/sessions')
-                    bins = sorted(sessions_dir.glob('*/eeprom.bin'), key=lambda p: p.stat().st_mtime)
-                    if bins:
-                        blob = bins[-1].read_bytes()
-                        meta_path = bins[-1].parent / 'session_metadata.json'
-                        ver_str = None
-                        if meta_path.exists():
-                            try:
-                                with open(meta_path) as mf:
-                                    ver_str = json.load(mf).get('version_string')
-                            except Exception:
-                                pass
-                        if not ver_str:
-                            ver_str = 'desconocida'
-                        params = _decode_eeprom_params(blob, ver_str)
-                        if not params:
-                            params = {'error': f'Fallo decode_params (version: {ver_str})'}
-                except Exception as e:
-                    params = {'error': str(e)}
-            self._json(params)
-            return
-        if path == '/wifi/saved':
-            self._json({"saved": net.saved_wifi()})
+            self._handle_errorlog(path)
             return
 
-        # FIX: scan es GET, no POST
-        if path == '/wifi/scan':
-            self._json({"networks": net.scan_wifi()})
-            return
-
-        if path == '/wifi/status':
-            self._json({
-                "mode":          net.current_mode(),
-                "ip":            net.get_ip(),
-                "switch_status": net.get_switch_status(),
-                "state":         net.load_state(),
-            })
-            return
-
-        # Redirect URL antes de ejecutar switch
         if path.startswith('/wifi/redirect_url'):
-            action = self.path.split('action=')[-1] if 'action=' in self.path else ''
-            url    = net.get_redirect_url(action)
-            self._json({"url": url, "action": action})
+            self._handle_wifi_redirect_url(path)
             return
 
-        if path == '/gps_fix':
-            try:
-                gps = self.server_instance.gps
-                fix = gps.get_fix() if gps else None
-                self._json(fix.as_dict() if fix else {"error": "no gps"})
-            except Exception as e:
-                self._json({"error": str(e)})
+        if path == '/coverage/targets' and method == 'POST':
+            self._handle_coverage_targets(path)
             return
-        if path == '/gps_track':
-            try:
-                params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-                session_id = params.get('session', [''])[0]
-                ride_num   = int(params.get('ride', [0])[0])
-                sessions_dir = Path(self.server_instance.buell_dir) / 'sessions'
-                # Buscar el archivo CSV del ride
-                ride_files = sorted(sessions_dir.glob(f'{session_id}/ride_{session_id}_{ride_num:03d}*.csv'))
-                if not ride_files:
-                    self._json({'error': 'ride not found', 'points': []}); return
-                points = []
-                for rf in ride_files:
-                    with open(rf, newline='') as f:
-                        # Skip comment lines starting with #
-                        filtered = (row for row in f if not row.startswith('#'))
-                        reader = csv.DictReader(filtered)
-                        for row in reader:
-                            try:
-                                lat  = float(row.get('gps_lat') or 0)
-                                lon  = float(row.get('gps_lon') or 0)
-                                valid = row.get('gps_valid', 'False') == 'True'
-                                if lat != 0.0 and lon != 0.0:
-                                    points.append({
-                                        'lat': lat,
-                                        'lon': lon,
-                                        'spd': float(row.get('gps_speed_kmh') or 0),
-                                        'alt': float(row.get('gps_alt_m') or 0),
-                                        't':   float(row.get('time_elapsed_s') or 0),
-                                    })
-                            except (ValueError, TypeError):
-                                continue
-                self._json({'ok': True, 'points': points, 'count': len(points)})
-            except Exception as e:
-                self._json({'error': str(e), 'points': []}, 500)
-            return
-        if path == '/ride_note':
-            try:
-                params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-                session_id = params.get('session', [''])[0]
-                ride_num = int(params.get('ride', [0])[0])
-                note_path = self.server_instance.buell_dir / 'sessions' / session_id / f'ride_{session_id}_{ride_num:03d}_notes.txt'
-                note = note_path.read_text(encoding='utf-8') if note_path.exists() else ''
-                self._json({"ok": True, "note": note})
-            except Exception as e:
-                self._json({"ok": False, "note": "", "error": str(e)})
-            return
+
         self._json({"error": "not found"}, 404)
 
     def do_POST(self):
-        path   = self.path
+        path = self.path
         length = int(self.headers.get('Content-Length', 0))
-        body   = self.rfile.read(length) if length else b'{}'
-        net    = self.server_instance.network
+        body = self.rfile.read(length) if length else b'{}'
 
         try:
             payload = json.loads(body)
         except Exception as e:
-            logging.warning(f"Invalid JSON: {e} — body={body[:80]!r}")
+            logging.warning(f"Invalid JSON: {e} -- body={body[:80]!r}")
             payload = {}
 
-        if path == '/network':
-            action = payload.get('action', '')
-            if action == 'wifi':
-                net.switch_to_wifi()
-            elif action == 'hotspot':
-                net.switch_to_hotspot()
-            self._json({"ok": True, "action": action})
+        _routes = {
+            '/network': self._handle_post_network,
+            '/wifi/connect': self._handle_post_wifi_connect,
+            '/wifi/add': self._handle_post_wifi_add,
+            '/wifi/forget': self._handle_post_wifi_forget,
+            '/shutdown': self._handle_post_shutdown,
+            '/keepalive': self._handle_post_keepalive,
+            '/git_pull': self._handle_post_git_pull,
+            '/ride_note': self._handle_post_ride_note,
+            '/close_ride': self._handle_post_close_ride,
+            '/restart_logger': self._handle_post_restart_logger,
+            '/reboot_pi': self._handle_post_reboot_pi,
+        }
+        handler = _routes.get(path)
+        if handler:
+            handler(path, payload)
             return
 
-        if path == '/wifi/connect':
-            profile = payload.get('profile', '')
-            if profile:
-                net.connect_to_profile(profile)
-            self._json({"ok": True})
-            return
-
-        if path == '/wifi/add':
-            ssid     = payload.get('ssid', '')
-            password = payload.get('password', '')
-            if ssid and password:
-                net.add_and_connect(ssid, password)
-            self._json({"ok": True})
-            return
-
-        if path == '/wifi/forget':
-            name = payload.get('name', '')
-            ok   = net.forget_wifi(name) if name else False
-            self._json({"ok": ok})
-            return
-
-        if path == '/shutdown':
-            self.server_instance.pending_shutdown = True
-            self._json({"ok": True, "msg": "Apagando..."})
-            return
-
-        if path == '/keepalive':
-            now = time.time()
-            if now - self.server_instance.last_keepalive >= 10:
-                self.server_instance.last_keepalive = now
-            self._json({"ok": True})
-            return
-
-        if path == '/git_pull':
-            import subprocess
-            result = subprocess.run(
-                ['git', 'pull'],
-                capture_output=True, text=True,
-                cwd='/home/pi/buell'
-            )
-            output = result.stdout.strip() + result.stderr.strip()
-            ok = result.returncode == 0
-            if ok:
-                subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
-            self._json({"ok": ok, "output": output})
-            return
-        if path == '/ride_note':
-            try:
-                session_id = payload.get('session', '')
-                ride_num = int(payload.get('ride_num', 0))
-                note = payload.get('note', '').strip()
-                note_path = self.server_instance.buell_dir / 'sessions' / session_id / f'ride_{session_id}_{ride_num:03d}_notes.txt'
-                note_path.write_text(note, encoding='utf-8')
-                self._json({"ok": True})
-            except Exception as e:
-                self._json({"ok": False, "error": str(e)})
-            return
-        if path == '/close_ride':
-            session = getattr(self.server_instance, 'session', None)
-            if session and session.current_csv_fh:
-                checksum = session.current_checksum
-                ride_num = session.current_ride_num
-                session.close_current_ride(reason="dashboard_request")
-                self._json({"ok": True, "msg": "Ride cerrado", "session": checksum, "ride_num": ride_num})
-            else:
-                self._json({"ok": False, "msg": "Sin ride activo"})
-            return
-        if path == '/restart_logger':
-            import subprocess
-            subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
-            self._json({"ok": True, "msg": "Reiniciando logger..."})
-            return
-        if path == '/reboot_pi':
-            import subprocess
-            subprocess.Popen(['sudo', '/usr/sbin/reboot'])
-            self._json({"ok": True, "msg": "Reiniciando Pi..."})
-            return
         self._json({"error": "unknown endpoint"}, 404)
+
+    def _handle_static(self, path=None):
+        net  = self.server_instance.network
+        import mimetypes
+        path = self.path.lstrip("/")
+        fpath = os.path.join(os.path.dirname(__file__), path)
+        if os.path.isfile(fpath):
+            mime, _ = mimetypes.guess_type(fpath)
+            body = open(fpath, "rb").read()
+            self.send_response(200)
+            self.send_header("Content-Type", mime or "application/octet-stream")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "max-age=3600")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"Not Found")
+            return
+
+    def _handle_tuner_sessions(self, path=None):
+        net  = self.server_instance.network
+        sessions = []
+        for d in self.server_instance.buell_dir.glob('sessions/*/session_metadata.json'):
+            try:
+                with open(d) as mf: meta = json.load(mf)
+                ep = d.parent / 'eeprom.bin'
+                serial = None
+                if ep.exists() and ep.stat().st_size >= 1206:
+                    try:
+                        b = ep.read_bytes()
+                        if len(b) >= 14: serial = int.from_bytes(b[12:14], 'little')
+                    except Exception: pass
+                else:
+                    continue
+                sessions.append({'id': d.parent.name, 'version': meta.get('version_string', '?'), 'rides': meta.get('total_rides', 0), 'samples': meta.get('total_samples', 0), 'created': meta.get('created_utc', '')[:10], 'serial': serial})
+            except Exception: pass
+        sessions.sort(key=lambda s: s['created'], reverse=True)
+        self._json({'sessions': sessions})
+        return
+
+    def _handle_tuner_maps(self, path=None):
+        net  = self.server_instance.network
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        sess = params.get('session', [''])[0]
+        if not sess: self._json({'error': 'Falta session'}, 400); return
+        blob_path = self.server_instance.buell_dir / 'sessions' / sess / 'eeprom.bin'
+        if not blob_path.exists(): self._json({'error': 'No hay eeprom.bin'}, 404); return
+        try:
+            self._json(_decode_eeprom_maps(blob_path.read_bytes()))
+        except Exception as e:
+            self._json({'error': f'Error al leer mapa: {e}'})
+        return
+
+    def _handle_tuner_merge(self, path=None):
+        net  = self.server_instance.network
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        sa = params.get('a', [''])[0]
+        sb = params.get('b', [''])[0]
+        mode = params.get('mode', ['BALANCE'])[0]
+        if not sa or not sb:
+            self._json({'error': 'Faltan sesiones'}, 400); return
+        try:
+            self._json(_merge_maps(self.server_instance.buell_dir, sa, sb, mode))
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
+    def _handle_sessions_vs(self, path=None):
+        net  = self.server_instance.network
+        try:
+            f = Path(__file__).parent / 'templates' / 'sessions_vs.html'
+            self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
+    def _handle_sessions_vs_compare(self, path=None):
+        net  = self.server_instance.network
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        sa = params.get('a', [''])[0]
+        sb = params.get('b', [''])[0]
+        if not sa or not sb:
+            self._json({'error': 'Faltan sesiones'}, 400); return
+        try:
+            self._json(_compare_sessions_cached(self.server_instance.buell_dir, sa, sb))
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
+    def _handle_tuner(self, path=None):
+        net  = self.server_instance.network
+        try:
+            tuner_file = Path(__file__).parent / 'templates' / 'tuner.html'
+            if tuner_file.exists():
+                self._html(tuner_file.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
+            else:
+                self._html("<h1>Buell Tuner - Página no encontrada</h1>")
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
+    def _handle_index(self, path=None):
+        net  = self.server_instance.network
+        self._html(self._load_html())
+        return
+
+    def _handle_live_json(self, path=None):
+        net  = self.server_instance.network
+        self._json(self._get_live())
+        return
+
+    def _handle_coverage_json(self, path=None):
+        net  = self.server_instance.network
+        self._json(self.server_instance._get_coverage())
+        return
+
+    def _handle_coverage_targets(self, path=None):
+        net  = self.server_instance.network
+        try:
+            body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            self.server_instance._set_coverage_targets(body)
+            self._json({'ok': True})
+        except Exception as e:
+            self._json({'error': str(e)}, 400)
+        return
+
+    def _handle_csv(self, path=None):
+        net  = self.server_instance.network
+        fname = path.split('/csv/')[-1].split('?')[0]
+        rides = self.server_instance._get_rides()
+        fname_summary = fname.replace('.csv', '_summary.json')
+        match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
+        if not match:
+            self._json({'error': 'not found'}, 404)
+            return
+        try:
+            sdir = self.server_instance.buell_dir / 'sessions' / match['session']
+            ride_num = match.get('ride_num', 0)
+            parts = match.get('parts', 1)
+            chunks = []
+            first = True
+            for part in range(1, parts+1):
+                suffix = f'_p{part}' if part > 1 else ''
+                csv_stem = match['filename'].replace('_summary.json','').replace('.csv','')
+                csv_path = sdir / f'{csv_stem}{suffix}.csv'
+                if not csv_path.exists(): continue
+                with open(csv_path, 'rb') as fh:
+                    if not first: fh.readline()
+                    chunks.append(fh.read())
+                first = False
+            raw = b''.join(chunks)
+            accept_enc = self.headers.get('Accept-Encoding', '')
+            use_gzip = 'gzip' in accept_enc
+            body = zlib.compress(raw, level=6, wbits=31) if use_gzip else raw
+            self.send_response(200)
+            self.send_header('Content-Type', 'text/csv; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-store')
+            self.send_header('Content-Length', str(len(body)))
+            if use_gzip: self.send_header('Content-Encoding', 'gzip')
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
+    def _handle_ride(self, path=None):
+        net  = self.server_instance.network
+        fname = path.split('/ride/')[-1].split('?')[0]
+        rides = self.server_instance._get_rides()
+        fname_summary = fname.replace('.csv', '_summary.json')
+        match = next((r for r in rides if r['filename']==fname or r['filename']==fname_summary), None)
+        if not match:
+            self._json({'error': 'not found'}, 404)
+            return
+        sdir = self.server_instance.buell_dir / 'sessions' / match['session']
+        fpath = sdir / fname
+        if not fpath.exists():
+            fpath = sdir / fname.replace('_summary.json', '.csv')
+        try:
+            if fpath.suffix == '.json':
+                with open(fpath) as fh:
+                    s = json.load(fh)
+                self._json({'cells': s.get('cells', {}), 'objectives': s.get('objectives', [])})
+            else:
+                self._json({'cells': {}, 'objectives': []})
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
+    def _handle_errorlog(self, path=None):
+        net  = self.server_instance.network
+        fname = path.split('/errorlog/')[-1].split('?')[0]
+        rides = self.server_instance._get_rides()
+        ride_num = int(fname.replace('_errorlog.json','').replace('ride_','').replace('.csv','')) if fname else 0
+        match = next((r for r in rides if r.get('ride_num')==ride_num), None)
+        if not match:
+            self._json({'error': 'not found'}, 404)
+            return
+        sdir = self.server_instance.buell_dir / 'sessions' / match['session']
+        el_path = sdir / f'ride_{ride_num:03d}_errorlog.json'
+        if el_path.exists():
+            try:
+                with open(el_path) as fh:
+                    self._json(json.load(fh))
+            except Exception as e:
+                self._json({'error': str(e)}, 500)
+        else:
+            self._json({'has_errorlog': False, 'events': [], 'summary': {}})
+        return
+
+    def _handle_rides(self, path=None):
+        net  = self.server_instance.network
+        rides = self.server_instance._get_rides()
+        self._json({"rides": rides})
+        return
+
+    def _handle_suggested_msq(self, path=None):
+        net  = self.server_instance.network
+        cs = self.server_instance.session.current_checksum
+        if not cs:
+            self._json({"error": "sin sesion activa"}); return
+        msq_path = Path('/home/pi/buell/sessions') / cs / ('suggested_' + cs + '.msq')
+        if not msq_path.exists():
+            self._json({"error": "sin MSQ generado aun"}); return
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/xml')
+        self.send_header('Content-Disposition',
+            'attachment; filename="suggested_' + cs + '.msq"')
+        self.end_headers()
+        self.wfile.write(msq_path.read_bytes())
+        return
+
+    def _handle_maps(self, path=None):
+        net  = self.server_instance.network
+        # Soporte para pedir mapa de una sesion especifica: /maps?session=XXXX
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        req_session = params.get('session', [''])[0]
+        if req_session:
+            ses_path = self.server_instance.buell_dir / 'sessions' / req_session / 'eeprom.bin'
+            if ses_path.exists():
+                try:
+                    blob = ses_path.read_bytes()
+                    maps = _decode_eeprom_maps(blob)
+                    if maps and maps.get('fuel_front'):
+                        self._json(maps)
+                        return
+                except Exception as e:
+                    self._json({'error': str(e)}, 500)
+                    return
+        # Fallback a logica original (Live o mas reciente)
+        maps = self.server_instance.eeprom_maps
+        if not maps or not maps.get('fuel_front'):
+            try:
+                sessions_dir = Path('/home/pi/buell/sessions')
+                bins = sorted(sessions_dir.glob('*/eeprom.bin'),
+                              key=lambda p: p.stat().st_mtime)
+                if bins:
+                    blob = bins[-1].read_bytes()
+                    maps = _decode_eeprom_maps(blob)
+            except Exception as e:
+                maps = {'error': str(e)}
+        self._json(maps)
+        return
+
+    def _handle_eeprom(self, path=None):
+        net  = self.server_instance.network
+        params = self.server_instance.eeprom_params
+        if not params:
+            try:
+                sessions_dir = Path('/home/pi/buell/sessions')
+                bins = sorted(sessions_dir.glob('*/eeprom.bin'), key=lambda p: p.stat().st_mtime)
+                if bins:
+                    blob = bins[-1].read_bytes()
+                    meta_path = bins[-1].parent / 'session_metadata.json'
+                    ver_str = None
+                    if meta_path.exists():
+                        try:
+                            with open(meta_path) as mf:
+                                ver_str = json.load(mf).get('version_string')
+                        except Exception:
+                            pass
+                    if not ver_str:
+                        ver_str = 'desconocida'
+                    params = _decode_eeprom_params(blob, ver_str)
+                    if not params:
+                        params = {'error': f'Fallo decode_params (version: {ver_str})'}
+            except Exception as e:
+                params = {'error': str(e)}
+        self._json(params)
+        return
+
+    def _handle_wifi_saved(self, path=None):
+        net  = self.server_instance.network
+        self._json({"saved": net.saved_wifi()})
+        return
+
+    def _handle_wifi_scan(self, path=None):
+        net  = self.server_instance.network
+        self._json({"networks": net.scan_wifi()})
+        return
+
+    def _handle_wifi_status(self, path=None):
+        net  = self.server_instance.network
+        self._json({
+            "mode":          net.current_mode(),
+            "ip":            net.get_ip(),
+            "switch_status": net.get_switch_status(),
+            "state":         net.load_state(),
+        })
+        return
+
+    def _handle_wifi_redirect_url(self, path=None):
+        net  = self.server_instance.network
+        action = self.path.split('action=')[-1] if 'action=' in self.path else ''
+        url    = net.get_redirect_url(action)
+        self._json({"url": url, "action": action})
+        return
+
+    def _handle_gps_fix(self, path=None):
+        net  = self.server_instance.network
+        try:
+            gps = self.server_instance.gps
+            fix = gps.get_fix() if gps else None
+            self._json(fix.as_dict() if fix else {"error": "no gps"})
+        except Exception as e:
+            self._json({"error": str(e)})
+        return
+
+    def _handle_gps_track(self, path=None):
+        net  = self.server_instance.network
+        try:
+            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            session_id = params.get('session', [''])[0]
+            ride_num   = int(params.get('ride', [0])[0])
+            sessions_dir = Path(self.server_instance.buell_dir) / 'sessions'
+            # Buscar el archivo CSV del ride
+            ride_files = sorted(sessions_dir.glob(f'{session_id}/ride_{session_id}_{ride_num:03d}*.csv'))
+            if not ride_files:
+                self._json({'error': 'ride not found', 'points': []}); return
+            points = []
+            for rf in ride_files:
+                with open(rf, newline='') as f:
+                    # Skip comment lines starting with #
+                    filtered = (row for row in f if not row.startswith('#'))
+                    reader = csv.DictReader(filtered)
+                    for row in reader:
+                        try:
+                            lat  = float(row.get('gps_lat') or 0)
+                            lon  = float(row.get('gps_lon') or 0)
+                            valid = row.get('gps_valid', 'False') == 'True'
+                            if lat != 0.0 and lon != 0.0:
+                                points.append({
+                                    'lat': lat,
+                                    'lon': lon,
+                                    'spd': float(row.get('gps_speed_kmh') or 0),
+                                    'alt': float(row.get('gps_alt_m') or 0),
+                                    't':   float(row.get('time_elapsed_s') or 0),
+                                })
+                        except (ValueError, TypeError):
+                            continue
+            self._json({'ok': True, 'points': points, 'count': len(points)})
+        except Exception as e:
+            self._json({'error': str(e), 'points': []}, 500)
+        return
+
+    def _handle_ride_note(self, path=None):
+        net  = self.server_instance.network
+        try:
+            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+            session_id = params.get('session', [''])[0]
+            ride_num = int(params.get('ride', [0])[0])
+            note_path = self.server_instance.buell_dir / 'sessions' / session_id / f'ride_{session_id}_{ride_num:03d}_notes.txt'
+            note = note_path.read_text(encoding='utf-8') if note_path.exists() else ''
+            self._json({"ok": True, "note": note})
+        except Exception as e:
+            self._json({"ok": False, "note": "", "error": str(e)})
+        return
+
+    def _handle_post_network(self, path, payload):
+        action = payload.get('action', '')
+        if action == 'wifi':
+            net.switch_to_wifi()
+        elif action == 'hotspot':
+            net.switch_to_hotspot()
+        self._json({"ok": True, "action": action})
+        return
+
+    def _handle_post_wifi_connect(self, path, payload):
+        profile = payload.get('profile', '')
+        if profile:
+            net.connect_to_profile(profile)
+        self._json({"ok": True})
+        return
+
+    def _handle_post_wifi_add(self, path, payload):
+        ssid     = payload.get('ssid', '')
+        password = payload.get('password', '')
+        if ssid and password:
+            net.add_and_connect(ssid, password)
+        self._json({"ok": True})
+        return
+
+    def _handle_post_wifi_forget(self, path, payload):
+        name = payload.get('name', '')
+        ok   = net.forget_wifi(name) if name else False
+        self._json({"ok": ok})
+        return
+
+    def _handle_post_shutdown(self, path, payload):
+        self.server_instance.pending_shutdown = True
+        self._json({"ok": True, "msg": "Apagando..."})
+        return
+
+    def _handle_post_keepalive(self, path, payload):
+        now = time.time()
+        if now - self.server_instance.last_keepalive >= 10:
+            self.server_instance.last_keepalive = now
+        self._json({"ok": True})
+        return
+
+    def _handle_post_git_pull(self, path, payload):
+        import subprocess
+        result = subprocess.run(
+            ['git', 'pull'],
+            capture_output=True, text=True,
+            cwd='/home/pi/buell'
+        )
+        output = result.stdout.strip() + result.stderr.strip()
+        ok = result.returncode == 0
+        if ok:
+            subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
+        self._json({"ok": ok, "output": output})
+        return
+
+    def _handle_post_ride_note(self, path, payload):
+        try:
+            session_id = payload.get('session', '')
+            ride_num = int(payload.get('ride_num', 0))
+            note = payload.get('note', '').strip()
+            note_path = self.server_instance.buell_dir / 'sessions' / session_id / f'ride_{session_id}_{ride_num:03d}_notes.txt'
+            note_path.write_text(note, encoding='utf-8')
+            self._json({"ok": True})
+        except Exception as e:
+            self._json({"ok": False, "error": str(e)})
+        return
+
+    def _handle_post_close_ride(self, path, payload):
+        session = getattr(self.server_instance, 'session', None)
+        if session and session.current_csv_fh:
+            checksum = session.current_checksum
+            ride_num = session.current_ride_num
+            session.close_current_ride(reason="dashboard_request")
+            self._json({"ok": True, "msg": "Ride cerrado", "session": checksum, "ride_num": ride_num})
+        else:
+            self._json({"ok": False, "msg": "Sin ride activo"})
+        return
+
+    def _handle_post_restart_logger(self, path, payload):
+        import subprocess
+        subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
+        self._json({"ok": True, "msg": "Reiniciando logger..."})
+        return
+
+    def _handle_post_reboot_pi(self, path, payload):
+        import subprocess
+        subprocess.Popen(['sudo', '/usr/sbin/reboot'])
+        self._json({"ok": True, "msg": "Reiniciando Pi..."})
+        return
 
     def _load_html(self):
         template = Path(__file__).parent / 'templates' / 'index.html'

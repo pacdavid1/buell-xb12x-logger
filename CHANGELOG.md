@@ -2,6 +2,26 @@
 
 > All entries must be written in English.
 
+## [v2.6.20] — 2026-05-24
+### Changed
+- web/server.py: refactored monolithic do_GET (~26 routes) and do_POST (~12 routes)
+  into named _handle_* methods with clean dict-based dispatchers.
+  Each route block keeps its exact original logic — zero behavioral changes.
+- do_GET: dict dispatcher for exact matches + if/elif chain for prefix routes
+  (static, csv, ride, errorlog, wifi/redirect_url).
+- do_POST: dict dispatcher dispatching to _handle_post_* methods.
+
+## [v2.6.20] — 2026-05-24
+### Changed
+- web/server.py: refactored monolithic do_GET (~26 routes) and do_POST (~12 routes)
+  into named _handle_* methods with clean dict-based dispatchers.
+  Each handler preserves exact original logic — zero behavioral changes.
+- do_GET: dict dispatcher for exact matches + if/elif chain for prefix routes
+  (static, csv, ride, errorlog, wifi/redirect_url).
+- do_POST: dict dispatcher dispatching to _handle_post_* methods.
+- Each GET handler receives `path` as argument and resolves `net` internally
+  to fix NameError scope issues when extracting from the enclosing do_GET scope.
+
 ## [v2.6.19] — 2026-05-24
 ### Removed
 - web/static/app.js: removed orphaned TPS/VSS calibration functions
