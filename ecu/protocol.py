@@ -265,7 +265,7 @@ def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any]:
 
     # Gear — sliding window statistical detection
     kph = result['VS_KPH']
-    result['VSS_RPM_Ratio'] = kph / (result['RPM'] / 1000.0)  # unchanged for CSV
+    result['VSS_RPM_Ratio'] = kph / (result['RPM'] / 1000.0) if result.get('RPM', 0) > 0 else 0  # unchanged for CSV
     result['Gear'] = _gear_filter.detect(
         rpm=result.get('RPM', 0),
         kph=kph,

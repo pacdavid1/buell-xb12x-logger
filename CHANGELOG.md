@@ -24,6 +24,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.6.25] — 2026-05-24
+### Fixed
+- ecu/protocol.py: ZeroDivisionError in VSS_RPM_Ratio calculation when RPM=0. Added guard clause to avoid division by zero when engine is off.
+### AI
+- DeepSeek V4 Flash
+
 
 > All entries must be written in English.
 > Each entry must include an ### AI section crediting the AI(s) that contributed.
