@@ -358,7 +358,7 @@ async function fetchLive() {
     renderObjectives(d.objectives);
     renderIndicators(d.indicators);
     if(d.network_mode) updateNetStatus(d.network_mode, d.ip);
-    if(d.logger_version){ const el=document.getElementById('cfgVersion'); if(el) el.textContent=d.logger_version; }
+    if(d.logger_version){ const el=document.getElementById('hdrVersion'); if(el) el.textContent=d.logger_version; }
     // Banner ECU desconectada
     const banner = document.getElementById('ecuLostBanner');
     if(banner){
