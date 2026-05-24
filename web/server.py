@@ -23,6 +23,10 @@ from ecu.eeprom_params import decode_params as _decode_eeprom_params
 def _get_version():
     try:
         cl = open("/home/pi/buell/CHANGELOG.md").read()
+        # Skip HTML comment block before searching for version
+        end_comment = cl.find('-->')
+        if end_comment != -1:
+            cl = cl[end_comment:]
         m = re.search(r"## \[([^\]]+)\]", cl)
         return m.group(1) if m else "unknown"
     except Exception:
@@ -629,7 +633,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
 
     def _get_live_data(self):
-        return dict(self.server_instance.ecu_live or {})
+        data = dict(self.server_instance.ecu_live or {})
+        gps = self.server_instance.gps
+        if gps:
+            fix = gps.get_fix()
+            data.update(fix.as_dict())
+        return data
 
     def _get_live(self):
         net = self.server_instance.network

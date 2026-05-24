@@ -1,6 +1,43 @@
 # Changelog
 
+<!-- INSTRUCTIONS FOR AI ASSISTANTS — read before writing any entry:
+  1. All changelog entries MUST be written in English.
+  2. Each new entry follows this format:
+       ## [vX.Y.Z] — YYYY-MM-DD
+       ### Changed / Added / Fixed / Removed
+       - file: description of change
+       ### AI
+       - <AI name and provider> (e.g. "Claude Sonnet 4.6, Anthropic")
+  3. The ### AI section is MANDATORY for every new entry.
+     If multiple AIs contributed, list each one.
+     If no AI was involved, write: "- No AI assistance"
+  4. Do not modify existing entries.
+  5. Add new entries at the top, below this header block.
+-->
+
 > All entries must be written in English.
+> Each entry must include an ### AI section crediting the AI(s) that contributed.
+
+## [v2.6.22] — 2026-05-24
+### Fixed
+- web/server.py: _get_version() now skips the HTML comment block in CHANGELOG.md
+  before searching for the version — previously the regex matched the example
+  entry inside the instructions comment, returning "vX.Y.Z" instead of the
+  actual version.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.6.21] — 2026-05-24
+### Fixed
+- gps/reader.py: satellite count now reads gpsd `uSat` field directly instead of
+  counting `satellites[]` array entries — fixes persistent SAT=0 in dashboard header
+  when gpsd sends SKY messages without the full satellite list.
+- web/server.py: GPS fix data (lat, lon, alt, speed, heading, satellites, valid)
+  now merged into live.json `live{}` payload at all times, regardless of ECU
+  connection state — previously GPS fields were absent when ECU was disconnected.
+- web/static/app.js: dashboard SAT field now correctly reflects live satellite count.
+### AI
+- Claude Sonnet 4.6, Anthropic
 
 ## [v2.6.20] — 2026-05-24
 ### Changed
