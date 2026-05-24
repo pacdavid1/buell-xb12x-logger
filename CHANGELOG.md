@@ -24,6 +24,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.6.27] — 2026-05-24
+### Removed
+- protocol.py (root): orphaned duplicate of ecu/protocol.py — no imports since modularization in v2.0.
+### AI
+- DeepSeek V4 Flash
+
 ## [v2.6.26] — 2026-05-24
 ### Changed
 - web/templates/index.html: moved version display from config subtab to header, next to BUELL LOGGER.
