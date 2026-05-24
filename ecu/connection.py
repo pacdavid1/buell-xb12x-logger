@@ -18,24 +18,27 @@ import time
 
 import serial
 
+from typing import Any
+
 from ecu.protocol import decode_rt_packet, RT_RESPONSE_SIZE, SOH
 
 # ── Protocolo DDFI2 ──────────────────────────────────────────
-SOH            = 0x01
-EOH            = 0xFF
-SOT            = 0x02
-EOT            = 0x03
-ACK            = 0x06
-DROID_ID       = 0x00
-STOCK_ECM_ID   = 0x42
-CMD_GET        = 0x52
-RT_RESPONSE_SIZE = 107
+SOH: int      = 0x01
+EOH: int      = 0xFF
+SOT: int      = 0x02
+EOT: int      = 0x03
+ACK: int      = 0x06
+DROID_ID: int  = 0x00
+STOCK_ECM_ID: int = 0x42
+CMD_GET: int   = 0x52
+RT_RESPONSE_SIZE: int = 107
 
 PDU_VERSION = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x56, 0x03, 0xE8])
 # PDU_RT_DATA importado localmente — no está en protocol.py
 PDU_RT_DATA = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x43, 0x03, 0xFD])
 
-BUEIB_PAGES = [
+# (page_nr, start, length)
+BUEIB_PAGES: list[tuple[int, int, int]] = [
     (1,    0, 256),
     (2,  256, 256),
     (3,  512, 158),
@@ -45,7 +48,7 @@ BUEIB_PAGES = [
 ]
 
 
-def build_pdu(payload_bytes):
+def build_pdu(payload_bytes: bytes) -> bytes:
     length = len(payload_bytes) + 1
     frame = bytes([SOH, DROID_ID, STOCK_ECM_ID, length, EOH, SOT]) + bytes(payload_bytes) + bytes([EOT])
     cs = 0
@@ -55,13 +58,13 @@ def build_pdu(payload_bytes):
 
 
 class DDFI2Connection:
-    def __init__(self, port):
-        self.port = port
-        self.ser = None
-        self.last_dirty_byte = None
+    def __init__(self, port: str) -> None:
+        self.port: str = port
+        self.ser: serial.Serial | None = None
+        self.last_dirty_byte: str | None = None
         self.logger = logging.getLogger("DDFI2")
 
-    def connect(self):
+    def connect(self) -> None:
         deadline = time.time() + 15.0
         while not os.path.exists(self.port):
             if time.time() > deadline:
@@ -96,14 +99,14 @@ class DDFI2Connection:
             self.logger.debug(f"Latency timer no configurable: {e}")
         self.logger.info(f"Puerto serial abierto: {self.port}")
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         try:
             if self.ser and self.ser.is_open:
                 self.ser.close()
         except Exception:
             pass
 
-    def usb_power_cycle(self):
+    def usb_power_cycle(self) -> bool:
         """Power cycle del hub USB via sysfs autosuspend.
         Mas efectivo que authorized toggle cuando dwc2 queda hung."""
         try:
@@ -118,7 +121,7 @@ class DDFI2Connection:
             self.logger.warning(f"USB power cycle falló: {e}")
             return False
 
-    def usb_reset(self):
+    def usb_reset(self) -> bool:
         """Fuerza reset USB del FT232RL via sysfs (authorized toggle).
         Usar cuando DTR toggle no alcanza y el chip queda hung.
         Retorna True si el device fue reseteado, False si no se encontró."""
@@ -145,12 +148,12 @@ class DDFI2Connection:
             self.logger.warning(f"USB reset falló: {e}")
             return False
 
-    def _send(self, pdu):
+    def _send(self, pdu: bytes) -> None:
         self.ser.reset_input_buffer()
         self.ser.write(pdu)
         self.ser.flush()
 
-    def _read_exact(self, n, timeout_s=1.0):
+    def _read_exact(self, n: int, timeout_s: float = 1.0) -> bytes:
         buf = bytearray()
         deadline = time.time() + timeout_s
         while len(buf) < n:
@@ -163,7 +166,7 @@ class DDFI2Connection:
                 buf.extend(chunk)
         return bytes(buf)
 
-    def get_version(self):
+    def get_version(self) -> str | None:
         """Reintentar hasta 5 veces con flush — ECU puede estar en modo RT."""
         for attempt in range(5):
             try:
@@ -188,7 +191,7 @@ class DDFI2Connection:
                 time.sleep(0.3)
         return None
 
-    def _sync_to_soh(self, timeout_s=0.5):
+    def _sync_to_soh(self, timeout_s: float = 0.5) -> bool:
         """Descarta basura del buffer hasta encontrar SOH (0x01)."""
         deadline = time.time() + timeout_s
         while time.time() < deadline:
@@ -198,7 +201,7 @@ class DDFI2Connection:
                 return True
         return False
 
-    def _flush_and_retry_soh(self, timeout_s=0.4):
+    def _flush_and_retry_soh(self, timeout_s: float = 0.4) -> bool:
         """Segundo intento: vacía el buffer, reenvía PDU_RT_DATA y busca SOH."""
         try:
             self.ser.reset_input_buffer()
@@ -207,7 +210,7 @@ class DDFI2Connection:
         except Exception:
             return False
 
-    def get_rt_data(self):
+    def get_rt_data(self) -> dict[str, Any] | None:
         """Lee un frame RT de la ECU. Retorna dict de parámetros o None."""
         self.last_dirty_byte = None
         try:
@@ -234,7 +237,7 @@ class DDFI2Connection:
             self.logger.debug(f"get_rt: {e}")
             return None
 
-    def read_eeprom_page(self, page_nr, offset, length):
+    def read_eeprom_page(self, page_nr: int, offset: int, length: int) -> bytes | None:
         try:
             payload = bytes([CMD_GET, offset & 0xFF, page_nr & 0xFF, length & 0xFF])
             self._send(build_pdu(payload))
@@ -248,7 +251,7 @@ class DDFI2Connection:
             self.logger.error(f"eeprom page {page_nr}: {e}")
             return None
 
-    def read_full_eeprom(self):
+    def read_full_eeprom(self) -> bytes | None:
         """Lee las 6 páginas del BUEIB/DDFI-2 → 1206 bytes."""
         eeprom = bytearray(1206)
         try:

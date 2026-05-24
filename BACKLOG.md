@@ -46,12 +46,9 @@
 ### Media prioridad
 - [x] P2: Gear detection — envolver ring buffers mutantes (`_gear_buffer`, `_rpm_buffer`, `_kph_buffer`) en clase en vez de módulo global
 - [x] P2: connection.py — usar `with open(...)` en vez de `open(...).write()` directo en usb_power_cycle/usb_reset
-- [ ] P2: Agregar type hints a todo el código (empezar por ecu/protocol.py y ecu/connection.py)
-- [ ] P2: main.py — llamada duplicada `recover_orphan_rides()` (2 veces seguidas)
 
 ### Baja prioridad / Cosméticos
 - [ ] P3: web/server.py — refactor do_GET/do_POST a rutas separadas (handler muy monolítico)
-- [ ] P3: tools/make_index.py y tools/recover_summaries.py — scripts one-shot, archivar o documentar
 - [ ] P3: web/templates/index.html — separar JS a web/static/ para mejor cacheo y legibilidad
 
 ## NOTAS / REGLAS
@@ -59,3 +56,21 @@
 - Si se mueven 2+ mapas → datos no atribuibles → no merge
 - Knock sensor: NO por ahora (ruido mecánico alto en Buell air-cooled, falsos positivos)
 - Spark sin knock: tunear por dACC (si avanzás spark y aceleración sube sin subir vibración, no hay knock)
+
+## ARCHIVO / DOCUMENTACIÓN
+
+### Media prioridad
+
+## CODE STANDARDS
+
+### Workflow
+- **Backlog → Changelog**: When a task is completed, remove it from BACKLOG.md
+  and add an entry to CHANGELOG.md with the version number. Do NOT leave
+  completed items marked as [x] in the backlog.
+
+### Language
+- **All code, comments, and documentation must be written in English.**
+  This includes: variable names, function names, class names, docstrings,
+  inline comments, commit messages, and markdown documentation.
+  Spanish is only acceptable for direct user-facing strings in the web UI
+  (dashboard labels, tooltips) where the end-user speaks Spanish.

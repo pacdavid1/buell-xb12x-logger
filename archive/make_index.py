@@ -130,7 +130,7 @@ def generate():
     # Módulos Python
     lines.append("## Módulos Python")
     lines.append("")
-    skip_files = {"tools/make_index.py"}
+    skip_files = {"archive/make_index.py"}
     for py in sorted(REPO.rglob("*.py")):
         rel = py.relative_to(REPO)
         if any(str(rel) == s for s in skip_files):

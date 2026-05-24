@@ -2,7 +2,7 @@
 
 Raspberry Pi Zero 2W · CH343P USB-Serial · Python 3 · 9600,8N1
 
-> **Developers:** Before starting any work session, read [WORKING_METHOD.md](./WORKING_METHOD.md) first.
+> **Note:** WORKING_METHOD.md has been archived (v2.6.10). Refer to BACKLOG.md for current workflow rules.
 
 Real-time data logger for the **Delphi DDFI2 ECU** used in Buell XB motorcycles.
 

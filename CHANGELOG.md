@@ -1,3 +1,53 @@
+## [v2.6.15] — 2026-05-24
+### Changed
+- ARCHITECTURE.md: limpieza de datos de runtime en file tree — eliminados
+  network_state.json, objectives.json, backups (.bak/.save). Agregada nota
+  de exclusión en el header del árbol y advertencia ⚠️ en la sección "Archivos
+  de datos (runtime)".
+
+## [v2.6.14] — 2026-05-24
+### Fixed
+- ecu/protocol.py: crash al iniciar el servicio — `NameError: name "CENTERS" is
+  not defined` en GearFilter. Causa: list comprehension dentro de la clase no
+  podía acceder a otra variable de clase (Python 3 scoping). Solución: mover
+  CENTERS y THRESHOLDS a nivel módulo.
+
+## [v2.6.13] — 2026-05-24
+### Changed
+- ecu/protocol.py: gear detection migrada a ventana deslizante estadística.
+  - Nuevo GearFilter con ratio RPM/KPH (invertido vs VSS_RPM_Ratio)
+    para mayor separación entre marchas.
+  - Cliff detector: detecta cambios bruscos en ~0.5s (vs ~1s antes).
+  - Outlier filter + stability check via desviación estándar.
+  - Centros calibrados empíricamente: [75.5, 53.8, 40.1, 33.3, 28.7].
+  - VSS_RPM_Ratio en CSV se mantiene sin cambios.
+- Eliminadas constantes viejas: GEAR_KPH_PER_KRPM, GEAR_THRESHOLDS,
+  _gear_buffer, _rpm_buffer, _kph_buffer.
+
+# Buell XB12X Logger — Changelog
+
+> **Language policy:** All code, comments, variable names, and documentation
+> must be written in English. Spanish is only acceptable for UI strings
+> displayed to the end-user in the web dashboard.
+
+## [v2.6.12] — 2026-05-24
+### Changed
+- ecu/protocol.py: agregados type hints (GearFilter, decode_rt_packet, constantes).
+- ecu/connection.py: agregados type hints (DDFI2Connection, build_pdu, helpers).
+
+## [v2.6.11] — 2026-05-24
+### Fixed
+- main.py: eliminada llamada duplicada a `recover_orphan_rides()`.
+
+## [v2.6.10] — 2026-05-23
+### Changed
+- tools/make_index.py y tools/recover_summaries.py → archive/ (scripts one-shot,
+  mantenidos como referencia).
+- ARCHITECTURE.md: header actualizado con nota de archivado, file tree refleja
+  nuevas rutas.
+- BACKLOG.md: eliminado item P3 completado + agregado item P2 para revisar
+  lógica de ARCHITECTURE.md (ignorar datos de runtime).
+
 ## [v2.6.9] — 2026-05-23
 ### Changed
 - ecu/connection.py: todos los open() ahora usan with open() (7 bloques).

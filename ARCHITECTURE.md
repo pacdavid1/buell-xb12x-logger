@@ -1,5 +1,5 @@
 # ARCHITECTURE — Buell XB12X DDFI2 Logger
-> Auto-generado por `tools/make_index.py` — no editar manualmente
+> NOTA: Generador (`archive/make_index.py`) archivado — documento congelado desde v2.6.10
 > Última actualización: 2026-05-23 16:05 | versión: v1.16.3-339-gd963a40
 
 ---
@@ -8,8 +8,12 @@
 
 ```
 buell-xb12x-logger/
+# (nota: datos de runtime como sessions/, *.csv, *.json están excluidos del árbol)
 ├── archive
-│   └── ddfi2_logger.py
+│   ├── ddfi2_logger.py
+│   ├── make_index.py
+│   ├── recover_summaries.py
+│   └── WORKING_METHOD.md
 ├── docs
 │   ├── 00_OVERVIEW.md
 │   ├── 01_ARCHITECTURE.md
@@ -56,8 +60,6 @@ buell-xb12x-logger/
 │   └── manager.py
 ├── tools
 │   ├── diagnose_pi.sh
-│   ├── make_index.py
-│   ├── recover_summaries.py
 │   ├── test_ecu.py
 │   └── test_ecu.py.save
 ├── web
@@ -74,7 +76,6 @@ buell-xb12x-logger/
 ├── CHANGELOG.md
 ├── DEV_TIPS.md
 ├── README.md
-├── WORKING_METHOD.md
 ├── _update_cl_v268.py
 ├── add_map_diff.py
 ├── connection.py
@@ -87,14 +88,15 @@ buell-xb12x-logger/
 ├── fix_valid_simple.py
 ├── install.sh
 ├── main.py
-├── network_state.json
-├── objectives.json
 └── protocol.py
 ```
 
 ---
 
 ## Archivos de datos (runtime)
+
+> ⚠️ Los siguientes archivos se generan automáticamente en runtime.
+> No forman parte del código fuente — se documentan solo como referencia.
 
 | Archivo | Schema | Descripción |
 |---------|--------|-------------|
@@ -712,9 +714,6 @@ A new  |
 difiere de |
 | `clear` | — |
 
----
-
-### `tools/recover_summaries.py`
 
 ---
 
