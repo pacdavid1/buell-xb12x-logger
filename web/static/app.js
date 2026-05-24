@@ -40,7 +40,7 @@ function showTab(id) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.toggle('active', t.dataset.tab===id));
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-'+id).classList.add('active');
-  if(id==='cfg')     { loadObj(); loadTpsCal(); loadVssCal(); loadEcu(); loadEepromParams(); }
+  if(id==="cfg")     { loadObj(); loadEcu(); loadEepromParams(); }
   if(id==='ve')      { setTimeout(loadEepromParams, 0); }
   if(id==='rides')   loadRidesList();
   if(id==='graph')   initGraphPane();
@@ -2025,18 +2025,6 @@ async function doRestartLogger(){
 
 
 
-async function loadVssCal(){
-  try{
-    const d=await(await fetch('/live.json?t='+Date.now())).json();
-    if(d.vss_cal){
-      vssCal=d.vss_cal;
-      const el=document.getElementById('vssFactorInput');
-      if(el) el.value=vssCal.cpkm25;
-    }
-  }catch(e){}
-}
-
-// NUEVA función para Git Pull
 async function gitPull() {
   const status = document.getElementById('gitPullStatus');
   status.textContent = 'Ejecutando git pull...';
@@ -2061,101 +2049,8 @@ async function gitPull() {
     status.style.color = 'var(--red)';
   }
 }
-async function saveVssCal(){
-  const el=document.getElementById('vssFactorInput');
-  const st=document.getElementById('vssCalStatus');
-  const v=parseFloat(el.value);
-  if(isNaN(v)||v<100||v>9999){st.textContent='Error: valor inválido';st.style.color='var(--accent)';return;}
-  vssCal={cpkm25:v};
-  try{
-    await fetch('/vss_cal',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(vssCal)});
-    st.textContent='Guardado';
-    st.style.color='var(--green)';
-    setTimeout(()=>st.textContent='',2500);
-  }catch(e){st.textContent='Error al guardar';}
-}
 
-// TPS CALIBRACION
-let tpsCal={min:139,max:479};
-async function loadTpsCal(){
-  try{
-    const d=await(await fetch('/live.json?t='+Date.now())).json();
-    if(d.tps_cal){
-      tpsCal=d.tps_cal;
-      const mn=document.getElementById('tpsMin');
-      const mx=document.getElementById('tpsMax');
-      if(mn) mn.value=tpsCal.min;
-      if(mx) mx.value=tpsCal.max;
-    }
-  }catch(e){}
-}
-function calcTpsPct(raw){
-  if(tpsCal.max<=tpsCal.min) return 0;
-  return Math.max(0,Math.min(100,(raw-tpsCal.min)/(tpsCal.max-tpsCal.min)*100));
-}
-async function saveTpsCal(){
-  const mn=parseInt(document.getElementById('tpsMin').value);
-  const mx=parseInt(document.getElementById('tpsMax').value);
-  const st=document.getElementById('tpsCalStatus');
-  if(isNaN(mn)||isNaN(mx)||mn>=mx){
-    st.textContent='Error: MIN debe ser menor que MAX';
-    st.style.color='var(--accent)'; return;
-  }
-  tpsCal={min:mn,max:mx};
-  try{
-    await fetch('/tps_cal',{method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(tpsCal)});
-    st.textContent='Guardado';
-    st.style.color='var(--green)';
-    setTimeout(()=>st.textContent='',2500);
-  }catch(e){ st.textContent='Error al guardar'; }
-}
-
-let _tpsCaptureActive=false;
-async function startTpsCapture(){
-  if(_tpsCaptureActive) return;
-  _tpsCaptureActive=true;
-  const btn=document.getElementById('btnTpsCapture');
-  const bar=document.getElementById('tpsCaptureBar');
-  const msg=document.getElementById('tpsCaptureMsg');
-  const prog=document.getElementById('tpsCaptureProgress');
-  const st=document.getElementById('tpsCalStatus');
-  btn.disabled=true; bar.style.display='block';
-  msg.textContent='Mueve el acelerador de MIN a MAX y suéltalo...';
-  // 10 segundos capturando TPS_10Bit min/max
-  const DURATION_MS=10000; const START=Date.now();
-  let capMin=9999, capMax=0;
-  const iv=setInterval(async()=>{
-    const elapsed=Date.now()-START;
-    prog.style.width=Math.min(100,elapsed/DURATION_MS*100)+'%';
-    try{
-      const d=await(await fetch('/live.json?t='+Date.now())).json();
-      const raw=d.live&&d.live.TPS_10Bit!=null ? d.live.TPS_10Bit : null;
-      if(raw!=null){ capMin=Math.min(capMin,raw); capMax=Math.max(capMax,raw); }
-      msg.textContent=`Capturando... MIN=${capMin===9999?'--':capMin}  MAX=${capMax}`;
-    }catch(e){}
-    if(elapsed>=DURATION_MS){
-      clearInterval(iv);
-      bar.style.display='none';
-      btn.disabled=false; _tpsCaptureActive=false;
-      if(capMin<capMax-20){
-        document.getElementById('tpsMin').value=capMin;
-        document.getElementById('tpsMax').value=capMax;
-        st.textContent=`Capturado: MIN=${capMin} MAX=${capMax} — presiona Guardar`;
-        st.style.color='#a8f';
-      } else {
-        st.textContent='Captura inválida — rango muy pequeño, intenta de nuevo';
-        st.style.color='var(--accent)';
-        setTimeout(()=>st.textContent='',3000);
-      }
-    }
-  },500);
-}
-
-loadTpsCal();
 
 // cargar cal al arrancar (no solo al abrir tab)
-document.addEventListener("DOMContentLoaded", ()=>{ loadTpsCal(); loadVssCal(); buildCobertGrid(); renderCobertLegend(); fetchLive(); setInterval(pollCobertGrid, 1000); });
+document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); setInterval(pollCobertGrid, 1000); });
 

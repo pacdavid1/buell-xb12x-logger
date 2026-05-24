@@ -1,3 +1,17 @@
+# Changelog
+
+> All entries must be written in English.
+
+## [v2.6.19] — 2026-05-24
+### Removed
+- web/static/app.js: removed orphaned TPS/VSS calibration functions
+  (startTpsCapture, _tpsCaptureActive, init calls loadTpsCal/loadVssCal).
+  These were dead code — no backend endpoints existed.
+- web/templates/index.html: removed Calibracion TPS and Calibracion Velocidad
+  UI sections (orphaned, no backend).
+### Changed
+- CHANGELOG.md: added "All entries must be written in English" header.
+
 ## [v2.6.18] — 2026-05-24
 ### Fixed
 - web/static/app.js: bug del menú hamburguesa — el archivo contenía etiquetas

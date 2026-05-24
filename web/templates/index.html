@@ -549,46 +549,9 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
   </div>
 
-  <div class="cfg-section">
-    <div class="cfg-title">Calibracion TPS</div>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">NOTA: Esto guarda el rango RAW del sensor.<br>El cálculo en vivo aún usa valores por defecto.</div>
-    <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
-      <span style="font-family:var(--mono);font-size:9px;color:var(--dim);width:36px">MIN</span>
-      <input type="number" id="tpsMin" value="" min="0" max="1023" placeholder="135" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:13px;padding:7px 8px">
-    </div>
-    <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-      <span style="font-family:var(--mono);font-size:9px;color:var(--dim);width:36px">MAX</span>
-      <input type="number" id="tpsMax" value="" min="0" max="1023" placeholder="929" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:13px;padding:7px 8px">
-    </div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-      <button class="btn g" onclick="saveTpsCal()">Guardar</button>
-      <button class="btn" id="btnTpsCapture" onclick="startTpsCapture()"
-        style="background:#8e44ad;flex:1;padding:7px 0">
-        ⏺ Captura Auto (10s)
-      </button>
-    </div>
-    <div id="tpsCaptureBar" style="display:none;margin-bottom:6px">
-      <div style="font-family:var(--mono);font-size:8px;color:#a8f;margin-bottom:4px" id="tpsCaptureMsg">Mueve el acelerador de MIN a MAX...</div>
-      <div style="background:#333;border-radius:3px;height:6px">
-        <div id="tpsCaptureProgress" style="background:#8e44ad;height:6px;border-radius:3px;width:0%;transition:width 0.5s"></div>
-      </div>
-    </div>
-    <span style="font-family:var(--mono);font-size:8px" id="tpsCalStatus"></span>
-  </div>
 
-  <div class="cfg-section">
-    <div class="cfg-title">Calibracion Velocidad</div>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">Factor VSS (pulsos/25km):<br>Si cambias de llanta, el factor cambia proporcional al diámetro.</div>
-    <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
-      <span style="font-family:var(--mono);font-size:9px;color:var(--dim);width:46px">CPKM25</span>
-      <input type="number" id="vssFactorInput" value="" min="100" max="9999" placeholder="1368" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:13px;padding:7px 8px">
-    </div>
-    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">Calibrado a 50mph (80.5 kph) — ride_015</div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <button class="btn g" onclick="saveVssCal()">Guardar</button>
-      <span style="font-family:var(--mono);font-size:8px" id="vssCalStatus"></span>
-    </div>
-  </div>
+
+
 
   <div class="cfg-section">
     <div class="cfg-title">Sistema</div>
