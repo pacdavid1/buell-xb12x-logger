@@ -1,3 +1,11 @@
+## [v2.6.18] — 2026-05-24
+### Fixed
+- web/static/app.js: bug del menú hamburguesa — el archivo contenía etiquetas
+  `<script>` y `</script>` del HTML original (error de extracción con sed).
+  Al cargarse como JS externo, `<script>` causaba SyntaxError y ninguna
+  función (incluyendo showTab) se definía. Solución: remover las etiquetas
+  del principio y final del archivo.
+
 ## [v2.6.17] — 2026-05-24
 ### Changed
 - web/: JS separado de templates/index.html a static/app.js (~2100 líneas inline

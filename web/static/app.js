@@ -1,4 +1,3 @@
-<script>
 
 
 function getGradientColor(speed) {
@@ -2160,4 +2159,3 @@ loadTpsCal();
 // cargar cal al arrancar (no solo al abrir tab)
 document.addEventListener("DOMContentLoaded", ()=>{ loadTpsCal(); loadVssCal(); buildCobertGrid(); renderCobertLegend(); fetchLive(); setInterval(pollCobertGrid, 1000); });
 
-</script>
