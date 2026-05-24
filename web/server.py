@@ -1,3 +1,4 @@
+import os
 """
 WebServer - HTTP server con endpoints para red y status
 v2.1.0 - Fix scan GET, redirect URL, switch status polling
@@ -61,6 +62,27 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
+        # ── Servir archivos estáticos (web/static/) ────────────────
+        if self.path.startswith("/static/"):
+            import mimetypes
+            path = self.path.lstrip("/")
+            fpath = os.path.join(os.path.dirname(__file__), path)
+            if os.path.isfile(fpath):
+                mime, _ = mimetypes.guess_type(fpath)
+                body = open(fpath, "rb").read()
+                self.send_response(200)
+                self.send_header("Content-Type", mime or "application/octet-stream")
+                self.send_header("Content-Length", str(len(body)))
+                self.send_header("Cache-Control", "max-age=3600")
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            else:
+                self.send_response(404)
+                self.end_headers()
+                self.wfile.write(b"Not Found")
+                return
+
         path = self.path.split('?')[0]
         net  = self.server_instance.network
 

@@ -1,3 +1,15 @@
+## [v2.6.17] — 2026-05-24
+### Changed
+- web/: JS separado de templates/index.html a static/app.js (~2100 líneas inline
+  a archivo externo). Agregado ruteo /static/ en server.py con soporte MIME.
+- web/templates/index.html: reducido de 2846 a 685 líneas. El JS se carga vía
+  <script src=/static/app.js> con window.LOGGER_VERSION inline.
+
+## [v2.6.16] — 2026-05-24
+### Added
+- BACKLOG.md: Launch Event como prerequisito de FASE 1 (Merge RAW de mapas).
+  Detecta crucero estable ≥3s → WOT para etiquetar pulls válidos.
+
 ## [v2.6.15] — 2026-05-24
 ### Changed
 - ARCHITECTURE.md: limpieza de datos de runtime en file tree — eliminados
