@@ -1,6 +1,7 @@
 # BACKLOG — Buell Logger / Tuner
 
 ## FASE 1 — Merge RAW de mapas
+- [ ] Detector de eventos LAUNCH: crucero estable ≥3s (TPS/RPM/KPH con delta mínimo) → WOT (delta TPS grande o 100%) → fin cuando TPS sale de WOT. Necesario para etiquetar pulls válidos en el merge.
 - [ ] Auto-detección de qué mapa cambió entre sesiones (comparar eeprom.bin byte a byte)
 - [ ] Si cambió más de 1 mapa → marcar como "no atribuible", no generar merge
 - [ ] Merge RAW por celda:
