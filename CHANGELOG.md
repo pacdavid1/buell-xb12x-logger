@@ -1,6 +1,10 @@
 # Changelog
 
-<!-- INSTRUCTIONS FOR AI ASSISTANTS — read before writing any entry:
+<!-- PROMPT_START — read ALL instructions until PROMPT_END before doing anything.
+  If you only see part of this block (e.g. via head -5), scroll or read further —
+  there are more instructions below.
+
+  INSTRUCTIONS FOR AI ASSISTANTS:
   1. All changelog entries MUST be written in English.
   2. Each new entry follows this format:
        ## [vX.Y.Z] — YYYY-MM-DD
@@ -13,10 +17,23 @@
      If no AI was involved, write: "- No AI assistance"
   4. Do not modify existing entries.
   5. Add new entries at the top, below this header block.
--->
+  6. After every change to this repo, run:
+       git add <changed files> && git commit -m "vX.Y.Z: description" && git push
+     This keeps history clean and allows rollback to any previous state.
+PROMPT_END -->
 
 > All entries must be written in English.
 > Each entry must include an ### AI section crediting the AI(s) that contributed.
+
+## [v2.6.23] — 2026-05-24
+### Changed
+- CHANGELOG.md: added PROMPT_START/PROMPT_END markers to instruction block so AI
+  assistants know to read all instructions before acting, even when only a partial
+  view of the file is available (e.g. head -5).
+- CHANGELOG.md: added instruction #6 requiring git add + commit + push after every
+  change to keep history clean and enable rollback to any previous state.
+### AI
+- Claude Sonnet 4.6, Anthropic
 
 ## [v2.6.22] — 2026-05-24
 ### Fixed
