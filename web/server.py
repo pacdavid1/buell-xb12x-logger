@@ -535,6 +535,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_post_network(self, path, payload):
+        net    = self.server_instance.network
         action = payload.get('action', '')
         if action == 'wifi':
             net.switch_to_wifi()

@@ -20,10 +20,30 @@
   6. After every change to this repo, run:
        git add <changed files> && git commit -m "vX.Y.Z: description" && git push
      This keeps history clean and allows rollback to any previous state.
+  7. Before every commit, check for leftover fix_*.py scripts and delete them:
+       ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
+     Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
 > All entries must be written in English.
 > Each entry must include an ### AI section crediting the AI(s) that contributed.
+
+## [v2.6.24] — 2026-05-24
+### Fixed
+- web/server.py: _handle_post_network() was missing `net = self.server_instance.network`
+  causing a NameError when the hotspot button was pressed — hotspot/wifi switch now works.
+- gps/reader.py: satellite count now reads gpsd `uSat` field directly; falls back to
+  counting satellites[] array — fixes SAT=0 in dashboard header.
+- web/server.py: GPS fix data merged into live.json `live{}` at all times regardless
+  of ECU connection state.
+- web/server.py: _get_version() now skips HTML comment block in CHANGELOG.md before
+  searching for version string — fixes dashboard showing "vX.Y.Z".
+### Changed
+- CHANGELOG.md: added PROMPT_START/PROMPT_END markers and instructions #6 and #7
+  requiring git commit+push after every change and cleanup of fix_*.py before commit.
+- Removed stale fix_*.py scripts from working directory.
+### AI
+- Claude Sonnet 4.6, Anthropic
 
 ## [v2.6.23] — 2026-05-24
 ### Changed
