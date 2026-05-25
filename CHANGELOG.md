@@ -24,6 +24,16 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.6.28] — 2026-05-24
+### Fixed
+- web/server.py: replaced 2 bare `except:` clauses with specific exception types.
+  - sf() float converter: `except (ValueError, TypeError)` — precise, won't swallow
+    unexpected errors.
+  - CSV row parser loop: `except Exception: continue` — intentionally broad to skip
+    malformed rows without killing KeyboardInterrupt or SystemExit.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.27] — 2026-05-24
 ### Removed
 - protocol.py (root): orphaned duplicate of ecu/protocol.py — no imports since modularization in v2.0.

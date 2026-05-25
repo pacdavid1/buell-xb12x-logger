@@ -961,7 +961,7 @@ def _compare_sessions(buell_dir, sa, sb):
 
     def sf(v, d=0.0):
         try: return float(v) if v and str(v).strip() else d
-        except: return d
+        except (ValueError, TypeError): return d
 
     def load_meta(sid):
         mp = buell_dir / 'sessions' / sid / 'session_metadata.json'
@@ -1010,7 +1010,7 @@ def _compare_sessions(buell_dir, sa, sb):
                         'fl_fc':   r.get('fl_fuel_cut','0').strip() in ('1','True','true'),
                         'fl_eng':  r.get('fl_engine_run','1').strip() in ('1','True','true'),
                     })
-                except: continue
+                except Exception: continue
         return rows
 
     def derivatives(rows):
