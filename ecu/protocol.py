@@ -96,9 +96,6 @@ VSS_CPKM25 = 1518.0  # counts por 25km/h — recalibrado vs GPS (ride_015 + ride
 # cannot reference other class-level variables in Python 3.
 CENTERS: list[float] = [0.0, 75.5, 53.8, 40.1, 33.3, 28.7]
 THRESHOLDS: list[float] = [(CENTERS[i] + CENTERS[i+1]) / 2 for i in range(1, 5)]
-# Minimum VS_KPH per gear — physically impossible below these speeds.
-# Calibrated from real ride data (47BF04 ride_009, mayo 2026).
-MIN_KPH: list[float] = [0.0, 5.0, 15.0, 25.0, 35.0, 50.0]
 
 
 class GearFilter:
@@ -124,7 +121,7 @@ class GearFilter:
         self.last_gear = 0
 
     def detect(self, rpm, kph, elapsed_s, di_neutral):
-        if rpm < 1200 or kph < 5.0 or di_neutral:
+        if rpm < 800 or kph < 5.0 or di_neutral:
             self.buffer.clear()
             if di_neutral or kph < 5.0:
                 self.last_gear = 0
@@ -153,7 +150,7 @@ class GearFilter:
                     (t, r) for t, r in self.buffer if t >= cliff_t
                 )
                 if len(self.buffer) >= self.MIN_SAMPLES:
-                    return self._median_gear(kph)
+                    return self._median_gear()
                 return self.last_gear
 
         # Filter outliers
@@ -169,25 +166,18 @@ class GearFilter:
         if statistics.stdev(clean) > self.STD_THR:
             return self.last_gear
 
-        self.last_gear = self._ratio_to_gear(statistics.median(clean), kph)
+        self.last_gear = self._ratio_to_gear(statistics.median(clean))
         return self.last_gear
 
-    def _ratio_to_gear(self, ratio, kph):
-        # Nearest center wins — no overlap possible
-        best_gear, best_dist = 1, float('inf')
-        for g, center in enumerate(CENTERS[1:], start=1):
-            d = abs(center - ratio)
-            if d < best_dist:
-                best_dist = d
-                best_gear = g
-        # Physical speed constraint — downshift until speed is valid
-        while best_gear > 1 and kph < MIN_KPH[best_gear]:
-            best_gear -= 1
-        return best_gear
+    def _ratio_to_gear(self, ratio):
+        for g, thr in enumerate(THRESHOLDS, start=1):
+            if ratio >= thr:
+                return g
+        return 5
 
-    def _median_gear(self, kph):
+    def _median_gear(self):
         ratios = [r for _, r in self.buffer]
-        return self._ratio_to_gear(statistics.median(ratios), kph)
+        return self._ratio_to_gear(statistics.median(ratios))
 
     def clear(self):
         self.buffer.clear()
