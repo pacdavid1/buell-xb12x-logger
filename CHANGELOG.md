@@ -24,22 +24,6 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
-## [v2.6.28] — 2026-05-24
-### Fixed
-- web/server.py: replaced 2 bare `except:` clauses with specific exception types.
-  - sf() float converter: `except (ValueError, TypeError)` — precise, won't swallow
-    unexpected errors.
-  - CSV row parser loop: `except Exception: continue` — intentionally broad to skip
-    malformed rows without killing KeyboardInterrupt or SystemExit.
-### AI
-- Claude Sonnet 4.6, Anthropic
-
-## [v2.6.27] — 2026-05-24
-### Removed
-- protocol.py (root): orphaned duplicate of ecu/protocol.py — no imports since modularization in v2.0.
-### AI
-- DeepSeek V4 Flash
-
 ## [v2.6.26] — 2026-05-24
 ### Changed
 - web/templates/index.html: moved version display from config subtab to header, next to BUELL LOGGER.
@@ -56,19 +40,6 @@ PROMPT_END -->
 
 > All entries must be written in English.
 > Each entry must include an ### AI section crediting the AI(s) that contributed.
-
-## [v2.6.25] — 2026-05-24
-### Fixed
-- ecu/protocol.py: GearFilter — RPM minimum raised from 800 to 1200 to prevent
-  false gear detection during fuel cut / near-idle conditions.
-- ecu/protocol.py: GearFilter — _ratio_to_gear() now uses nearest-center distance
-  instead of threshold cascade — eliminates overlap ambiguity between gears.
-- ecu/protocol.py: GearFilter — added MIN_KPH per gear physical constraint with
-  progressive downshift fallback (5th>=50, 4th>=35, 3rd>=25, 2nd>=15, 1st>=5).
-  Validated against real ride data (47BF04 ride_009): 172 false 5th-gear samples
-  corrected, 0 false 5th detections remaining below 50 kph.
-### AI
-- Claude Sonnet 4.6, Anthropic
 
 ## [v2.6.24] — 2026-05-24
 ### Fixed

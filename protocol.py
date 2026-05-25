@@ -11,8 +11,6 @@ Responsabilidades:
 
 import collections
 import statistics
-from typing import Any, final
-
 import struct
 
 # ── Constantes de protocolo ───────────────────────────────────
@@ -21,10 +19,13 @@ EOH            = 0xFF
 SOT            = 0x02
 EOT            = 0x03
 ACK            = 0x06
+DROID_ID       = 0x00
+STOCK_ECM_ID   = 0x42
+CMD_GET        = 0x52
 RT_RESPONSE_SIZE = 107
 
 # ── Variables RT: {nombre: (offset, nbytes, scale, val_offset)} ─
-RT_VARIABLES: dict[str, tuple[int, int, float, float]] = {
+RT_VARIABLES = {
     "RPM":          (11, 2, 1.0,    0.0),
     "Seconds":      ( 9, 2, 1.0,    0.0),
     "MilliSec":     ( 8, 1, 0.01,   0.0),
@@ -86,108 +87,65 @@ RT_VARIABLES: dict[str, tuple[int, int, float, float]] = {
 # ── VSS / Velocidad ───────────────────────────────────────────
 VSS_CPKM25 = 1518.0  # counts por 25km/h — recalibrado vs GPS (ride_015 + rides 4-5 sesión 47BF04)
 
-# ── GearFilter: windowed statistical gear detection ──────────
-# Internal ratio = RPM / KPH (inverted vs VSS_RPM_Ratio) for
-# wider separation between gears. 3s window, outlier filter
-# via median deviation, and cliff detector for fast transitions.
-# VSS_RPM_Ratio in CSV remains unchanged.
-# Calibrated centers: rpm / kph (empirical from real rides)
-# Defined at module level because class-level list comprehensions
-# cannot reference other class-level variables in Python 3.
-CENTERS: list[float] = [0.0, 75.5, 53.8, 40.1, 33.3, 28.7]
-THRESHOLDS: list[float] = [(CENTERS[i] + CENTERS[i+1]) / 2 for i in range(1, 5)]
+# ── Gear detection XB12X (5 velocidades, transmisión stock) ──
+# Ratios calculados de: primario 34/57 * sprocket 29/68 * ratio_caja_n
+# Gear ratios caja: 1=2.947 2=1.882 3=1.419 4=1.150 5=0.952
+# kph/krpm = (1000rpm / ratio_total) * circunferencia_rueda(1.93m) * 3.6
+GEAR_KPH_PER_KRPM = [0.0, 8.5, 13.2, 17.6, 21.8, 26.3]  # [0=neutro, 1-5]
 
+# Umbrales: punto medio entre marchas consecutivas
+_G = GEAR_KPH_PER_KRPM
+GEAR_THRESHOLDS = [(_G[i] + _G[i+1]) / 2 for i in range(1, 5)]  # = [10.85, 15.4, 19.7, 24.05]
 
+# ── GearFilter: median filter para gear detection ──────────
+# Encapsula ring buffers (~1s a 20Hz) para validar la marcha
+# cuando RPM/KPH están estables, corrigiendo outliers.
+# Al ser una clase, se puede testear sin estado global compartido.
 class GearFilter:
+    """Median filter que valida gear detection en estado estable.
 
-    '''Statistical gear filter using sliding window + cliff detection.'''
+    Acumula ~1s de samples (20 a ~20Hz). Cuando el buffer se llena
+    y RPM/KPH se mantienen estables (rango RPM < 200, KPH < 8),
+    devuelve la mediana del buffer si difiere del gear instantáneo.
 
-    WINDOW_S       = 3.0
-    MIN_S          = 1.5
-    OUTLIER_THR    = 3.0
-    STD_THR        = 1.5
-    MIN_SAMPLES    = 8
+    Uso:
+        gf = GearFilter()
+        corregido = gf.validate(gear, rpm, kph)  # None si no aplica
+        gf.clear()  # al parar
+    """
 
-    CLIFF_TIME_S   = 0.5
-    CLIFF_DIFF_THR = 3.0
-    CLIFF_MIN_OLD  = 4
-    CLIFF_MIN_NEW  = 3
+    def __init__(self, window_size=20):
+        self.gear_buffer = collections.deque(maxlen=window_size)
+        self.rpm_buffer  = collections.deque(maxlen=window_size)
+        self.kph_buffer  = collections.deque(maxlen=window_size)
 
-    # THRESHOLDS now defined at module level (must be outside class
-    # due to Python 3 class-level list comprehension scoping rules)
-
-    def __init__(self) -> None:
-        self.buffer = collections.deque()
-        self.last_gear = 0
-
-    def detect(self, rpm, kph, elapsed_s, di_neutral):
-        if rpm < 800 or kph < 5.0 or di_neutral:
-            self.buffer.clear()
-            if di_neutral or kph < 5.0:
-                self.last_gear = 0
-            return self.last_gear
-
-        ratio = rpm / kph
-        self.buffer.append((elapsed_s, ratio))
-
-        cutoff = elapsed_s - self.WINDOW_S
-        while self.buffer and self.buffer[0][0] < cutoff:
-            self.buffer.popleft()
-
-        if len(self.buffer) < 2:
-            return self.last_gear
-        span = self.buffer[-1][0] - self.buffer[0][0]
-        if span < self.MIN_S:
-            return self.last_gear
-
-        # Cliff detector: compare old vs new averages
-        cliff_t = elapsed_s - self.CLIFF_TIME_S
-        old = [r for t, r in self.buffer if t < cliff_t]
-        new = [r for t, r in self.buffer if t >= cliff_t]
-        if len(old) >= self.CLIFF_MIN_OLD and len(new) >= self.CLIFF_MIN_NEW:
-            if abs(statistics.mean(new) - statistics.mean(old)) > self.CLIFF_DIFF_THR:
-                self.buffer = collections.deque(
-                    (t, r) for t, r in self.buffer if t >= cliff_t
-                )
-                if len(self.buffer) >= self.MIN_SAMPLES:
-                    return self._median_gear()
-                return self.last_gear
-
-        # Filter outliers
-        values = [r for _, r in self.buffer]
-        if len(values) < self.MIN_SAMPLES:
-            return self.last_gear
-        med = statistics.median(values)
-        clean = [r for r in values if abs(r - med) < self.OUTLIER_THR]
-        if len(clean) < self.MIN_SAMPLES:
-            return self.last_gear
-
-        # Stability check
-        if statistics.stdev(clean) > self.STD_THR:
-            return self.last_gear
-
-        self.last_gear = self._ratio_to_gear(statistics.median(clean))
-        return self.last_gear
-
-    def _ratio_to_gear(self, ratio):
-        for g, thr in enumerate(THRESHOLDS, start=1):
-            if ratio >= thr:
-                return g
-        return 5
-
-    def _median_gear(self):
-        ratios = [r for _, r in self.buffer]
-        return self._ratio_to_gear(statistics.median(ratios))
+    def validate(self, gear, rpm, kph):
+        """Agrega un sample. Si hay estabilidad y la mediana
+        difiere del gear instantáneo, devuelve el gear corregido.
+        Si no, retorna None (usar gear instantáneo)."""
+        self.gear_buffer.append(gear)
+        self.rpm_buffer.append(rpm)
+        self.kph_buffer.append(kph)
+        if len(self.gear_buffer) >= self.gear_buffer.maxlen:
+            rng_rpm = max(self.rpm_buffer) - min(self.rpm_buffer)
+            rng_kph = max(self.kph_buffer) - min(self.kph_buffer)
+            if rng_rpm < 200 and rng_kph < 8:
+                validated = int(statistics.median(self.gear_buffer))
+                if validated != gear:
+                    return validated
+        return None
 
     def clear(self):
-        self.buffer.clear()
-        self.last_gear = 0
+        self.gear_buffer.clear()
+        self.rpm_buffer.clear()
+        self.kph_buffer.clear()
 
 
+# Instancia global por defecto (backward compatible)
 _gear_filter = GearFilter()
 
 
-def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any]:
+def decode_rt_packet(raw_bytes):
     """Convierte frame RT raw (107 bytes) → dict de parámetros ECU.
     Retorna None si el frame es inválido o el checksum no coincide."""
     if len(raw_bytes) < RT_RESPONSE_SIZE:
@@ -263,24 +221,44 @@ def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any]:
     else:
         result['VS_KPH'] = 0.0
 
-    # Gear — sliding window statistical detection
-    kph = result['VS_KPH']
-    result['VSS_RPM_Ratio'] = kph / (result['RPM'] / 1000.0) if result.get('RPM', 0) > 0 else 0  # unchanged for CSV
-    result['Gear'] = _gear_filter.detect(
-        rpm=result.get('RPM', 0),
-        kph=kph,
-        elapsed_s=result.get('Seconds', 0.0) + result.get('MilliSec', 0.0) / 1000.0,
-        di_neutral=result.get('di_neutral', 0),
-    )
+    # ── Gear — detección absoluta + median filter ────────────
+    # Cada sample se evalúa independientemente (sin histéresis).
+    # Además, cuando RPM/KPH están estables ~1s, un filtro
+    # mediano sobre los últimos 20 samples corrige outliers
+    # que pudieran dar una marcha errónea.
+    rpm_k = (result.get('RPM') or 0) / 1000.0
+    kph   = result['VS_KPH']
+    if rpm_k > 0.5 and kph > 3.0:
+        ratio = kph / rpm_k
+        result['VSS_RPM_Ratio'] = round(ratio, 2)
+        gear = 1
+        for thr in GEAR_THRESHOLDS:
+            if ratio > thr:
+                gear += 1
+            else:
+                break
+        result['Gear'] = gear
+
+        # ── Median filter: estabilidad → validación ────
+        validated = _gear_filter.validate(
+            gear, result.get('RPM', 0), kph
+        )
+        if validated is not None:
+            result['Gear'] = validated
+    else:
+        result['Gear'] = 0
+        # RPM bajo o parado → limpiar buffers para no arrastrar
+        # datos viejos al próximo arranque
+        _gear_filter.clear()
 
     return result
 
 # ── Bins para CellTracker (mapa VE) ─────────────────────────
 RPM_BINS  = [0, 800, 1000, 1350, 1900, 2400, 2900, 3400, 4000, 5000, 6000, 7000, 8000]
-LOAD_BINS: list[float] = [10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]
+LOAD_BINS = [10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]
 
 # ── Columnas CSV — orden canónico del archivo de log ─────────
-CSV_COLUMNS: list[str] = [
+CSV_COLUMNS = [
     "ride_num", "timestamp_iso", "time_elapsed_s",
     "RPM", "Load", "TPD", "TPS_10Bit", "CLT", "MAT", "Batt_V",
     "spark1", "spark2", "veCurr1_RAW", "veCurr2_RAW", "pw1", "pw2",
