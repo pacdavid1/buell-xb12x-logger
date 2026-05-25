@@ -47,6 +47,19 @@ PROMPT_END -->
 > All entries must be written in English.
 > Each entry must include an ### AI section crediting the AI(s) that contributed.
 
+## [v2.6.25] — 2026-05-24
+### Fixed
+- ecu/protocol.py: GearFilter — RPM minimum raised from 800 to 1200 to prevent
+  false gear detection during fuel cut / near-idle conditions.
+- ecu/protocol.py: GearFilter — _ratio_to_gear() now uses nearest-center distance
+  instead of threshold cascade — eliminates overlap ambiguity between gears.
+- ecu/protocol.py: GearFilter — added MIN_KPH per gear physical constraint with
+  progressive downshift fallback (5th>=50, 4th>=35, 3rd>=25, 2nd>=15, 1st>=5).
+  Validated against real ride data (47BF04 ride_009): 172 false 5th-gear samples
+  corrected, 0 false 5th detections remaining below 50 kph.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.24] — 2026-05-24
 ### Fixed
 - web/server.py: _handle_post_network() was missing `net = self.server_instance.network`
