@@ -197,6 +197,11 @@ class SessionManager:
                     "done_cells": done, "total_cells": len(matching),
                     "pct": round(pct, 1)
                 })
+            total_valid_s = sum(c.get("valid_seconds", 0) for c in cells.values())
+            any_warm = any(
+                c.get("clt_avg") is not None and c.get("clt_avg") >= 70
+                for c in cells.values()
+            )
             summary = {
                 "ride_num":   self.current_ride_num,
                 "session":    self.current_checksum,
@@ -207,6 +212,7 @@ class SessionManager:
                 "closed_utc": datetime.now(timezone.utc).isoformat(),
                 "reason":     reason,
                 "cells":      cells,
+                "valid_for_tuning": any_warm and total_valid_s >= 180,
                 "objectives": objectives_out,
                 "dtc_events": dtc_log or [],
             }

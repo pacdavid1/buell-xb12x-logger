@@ -31,6 +31,8 @@ PROMPT_END -->
 ### Changed
 - main.py: replaced magic sleep values with named constants for clarity and maintainability (GPS_RESTART_DELAY, SESSION_OPEN_DELAY, ECU_RETRY_INTERVAL, ECU_READ_ERROR_DELAY, HARD_RECONNECT_DELAY, ECU_STABILIZE_DELAY, MAIN_LOOP_HEARTBEAT)
 ### Fixed
+### Added- ANL6: added valid_for_tuning flag to ride summary JSON — computed from cell data (clt_avg >= 70°C and total_valid_seconds >= 180s)
+
 - web/server.py: replaced bare except: blocks with specific exception handlers in sf(), load_meta(), and load_csv() — added debug logging for visibility, eliminated risk of accidentally catching SystemExit/KeyboardInterrupt
 ### AI
 - DeepSeek V4 Flash
