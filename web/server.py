@@ -375,10 +375,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
     def _handle_errorlog(self, path=None):
         net  = self.server_instance.network
-        fname = path.split('/errorlog/')[-1].split('?')[0]
+        parts = path.split('/errorlog/')[-1].split('?')[0].strip('/').split('/')
+        if len(parts) >= 2:
+            session = parts[0]
+            fname = parts[1]
+        else:
+            fname = parts[0] if parts else ''
+            session = None
         rides = self.server_instance._get_rides()
         ride_num = int(fname.replace('_errorlog.json','').replace('ride_','').replace('.csv','')) if fname else 0
-        match = next((r for r in rides if r.get('ride_num')==ride_num), None)
+        match = None
+        if session:
+            match = next((r for r in rides if r.get('ride_num')==ride_num and r.get('session')==session), None)
+        if not match:
+            match = next((r for r in rides if r.get('ride_num')==ride_num), None)
         if not match:
             self._json({'error': 'not found'}, 404)
             return
@@ -846,6 +856,16 @@ class WebServer:
                             note_preview = note_path.read_text(encoding='utf-8').split('\n')[0][:60]
                         except Exception:
                             pass
+                    el_path = session_dir / f'ride_{ride_num:03d}_errorlog.json'
+                    has_errorlog = el_path.exists()
+                    errorlog_events = 0
+                    if has_errorlog:
+                        try:
+                            with open(el_path) as ef:
+                                el = json.load(ef)
+                            errorlog_events = el.get('summary', {}).get('total_events', len(el.get('events', [])))
+                        except Exception:
+                            pass
                     rides.append({
                         'session': session_dir.name,
                         'firmware': fw,
@@ -860,6 +880,8 @@ class WebServer:
                         'has_note': has_note,
                         'note_preview': note_preview,
                         'dtc_events': summary.get('dtc_events', []),
+                        'has_errorlog': has_errorlog,
+                        'errorlog_events': errorlog_events,
                     })
                 except Exception:
                     pass

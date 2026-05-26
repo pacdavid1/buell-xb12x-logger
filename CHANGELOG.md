@@ -30,6 +30,12 @@ PROMPT_END -->
 - web/templates/index.html + web/static/app.js: error log viewer modal — el badge ⚠️ ahora es clickeable y abre un modal con resumen de errores (tabla de conteos por tipo) y lista cronológica de eventos con contexto del motor (RPM, CLT, TPS, VSS, BATT) para cada error
 ### AI
 - Implemented error log viewer feature: clickable errBadge in ride list opens modal fetching /errorlog/{ride_num} and renders summary table + event timeline with ctx
+
+### Fixed
+- Bug: session-mismatch en /errorlog/ — endpoint buscaba solo por ride_num, devolviendo datos de sesión incorrecta cuando existían rides con el mismo número en distintas sesiones. Se agregó session al path (/errorlog/<session>/<ride_num>).
+- Bug: _get_rides() no poblaba has_errorlog/errorlog_events — backend no enviaba los campos que el frontend ya esperaba para mostrar el badge ⚠️.
+- Bug: modal mostraba "No se encontraron eventos" — frontend checkeaba !d.has_errorlog pero el endpoint devuelve el JSON crudo sin ese campo. Se eliminó la condición redundante.
+- Bug: errBadge no era clickeable (backfill) — se agregó onclick con openErrorLog(sk, ride_num).
 ## [v2.6.27] - 2026-05-26
 ### Added
 - ANL6: added valid_for_tuning flag to ride summary JSON

@@ -2084,9 +2084,9 @@ function openErrorLog(session,ride_num){
   document.getElementById('errLogModalTitle').textContent=`ERROR LOG — ${session} ride_${String(ride_num).padStart(3,'0')}`;
   document.getElementById('errLogContent').innerHTML='Cargando...';
   document.getElementById('errorLogModal').style.display='flex';
-  fetch(`/errorlog/${String(ride_num).padStart(3,'0')}?t=${Date.now()}`)
+  fetch(`/errorlog/${session}/${String(ride_num).padStart(3,'0')}?t=${Date.now()}`)
     .then(r=>r.json()).then(d=>{
-      if(!d.has_errorlog || !d.events || d.events.length===0){
+      if(!d.events || d.events.length===0){
         document.getElementById('errLogContent').innerHTML='<div style="color:var(--dim);padding:12px">No se encontraron eventos de error para este ride.</div>';
         return;
       }
