@@ -72,6 +72,11 @@ function egoColor(e) {
   if(e<105)return'rgba(50,200,50,0.8)';if(e<110)return'rgba(50,150,255,0.85)';
   return'rgba(80,80,255,0.9)';
 }
+function confColor(v) {
+  if(v<=0)return'rgba(100,100,100,0.5)';if(v<0.3)return'rgba(255,50,50,0.8)';
+  if(v<0.6)return'rgba(255,160,50,0.85)';if(v<0.8)return'rgba(50,150,255,0.85)';
+  return'rgba(50,200,50,0.9)';
+}
 function pctColor(p) {
   let r,g,b;
   if(p<=50){const t=p/50;r=231;g=Math.round(76+120*t);b=60;}
