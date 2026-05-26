@@ -86,6 +86,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/coverage.json': self._handle_coverage_json,
             '/rides': self._handle_rides,
             '/suggested_msq': self._handle_suggested_msq,
+'/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
             '/eeprom': self._handle_eeprom,
             '/wifi/saved': self._handle_wifi_saved,
@@ -1198,4 +1199,19 @@ def _compare_sessions(buell_dir, sa, sb):
         'common': len(common),
         'delta': delta,
     }
+    def _handle_tuning_report(self, path=None):
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        session = params.get("session", [None])[0]
+        if not session:
+            session = self.server_instance.session.current_checksum
+        if not session:
+            self._json({"error": "no session specified and no active session"})
+            return
+        report_path = self.server_instance.buell_dir / "sessions" / session / f"tuning_report_{session}.json"
+        if not report_path.exists():
+            self._json({"error": "no tuning report for this session"})
+            return
+        self._json(json.loads(report_path.read_text()))
+        return
+
 

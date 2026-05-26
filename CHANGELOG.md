@@ -31,7 +31,7 @@ PROMPT_END -->
 ### Changed
 - main.py: replaced magic sleep values with named constants for clarity and maintainability (GPS_RESTART_DELAY, SESSION_OPEN_DELAY, ECU_RETRY_INTERVAL, ECU_READ_ERROR_DELAY, HARD_RECONNECT_DELAY, ECU_STABILIZE_DELAY, MAIN_LOOP_HEARTBEAT)
 ### Fixed
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)- ANL6: added valid_for_tuning flag to ride summary JSON — computed from cell data (clt_avg >= 70°C and total_valid_seconds >= 180s)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)- ANL6: added valid_for_tuning flag to ride summary JSON — computed from cell data (clt_avg >= 70°C and total_valid_seconds >= 180s)
 
 - web/server.py: replaced bare except: blocks with specific exception handlers in sf(), load_meta(), and load_csv() — added debug logging for visibility, eliminated risk of accidentally catching SystemExit/KeyboardInterrupt
 ### AI
@@ -148,7 +148,7 @@ PROMPT_END -->
   <script src=/static/app.js> con window.LOGGER_VERSION inline.
 
 ## [v2.6.16] — 2026-05-24
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - BACKLOG.md: Launch Event como prerequisito de FASE 1 (Merge RAW de mapas).
   Detecta crucero estable ≥3s → WOT para etiquetar pulls válidos.
 
@@ -221,7 +221,7 @@ PROMPT_END -->
 - connection.py importa constantes de protocol.py (SOH, EOH, ACK, etc.) en vez de redefinirlas
 - protocol.py: nueva fuente única de verdad para constantes de protocolo DDFI2
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - BACKLOG.md: nueva sección REFACTOR / DEUDA TÉCNICA con 10 mejoras identificadas
 
 ### Removed
@@ -234,14 +234,14 @@ PROMPT_END -->
   estables en rides 4-5 de sesión 47BF04.
 
 ## [v2.6.5] — 2026-05-23
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - web/templates/index.html (loadMapTrack): perfil de altitud ahora incluye
   linea de velocidad (km/h) como segundo eje Y (derecha) en el chart.
   Coloreada con el mismo gradiente continuo azul-verde-amarillo-rojo-magenta
   del mapa para correlacion visual inmediata.
 
 ## [v2.6.4] — 2026-05-23
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - ecu/protocol.py: filtro mediano (20 samples, ~1s) en gear detection.
   Cuando RPM/KPH estan estables (rango RPM < 200, KPH < 8) valida la
   marcha usando la mediana de los ultimos ~1s, corrigiendo outliers.
@@ -253,7 +253,7 @@ PROMPT_END -->
   Vuelve a detección absoluta (cada sample se evalúa independientemente, como en v2.5.x).
 
 ## [v2.6.2] — 2026-05-23
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 -  en : merge de celdas ahora incluye  de los summary JSON
   - Los modos SWEET, TIPIN, TIPOUT, WOT del grid VE ahora funcionan con rides históricos
   - Usa  desde  para calcular porcentaje de cobertura
@@ -270,7 +270,7 @@ PROMPT_END -->
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 ## [v2.6.0] — 2026-05-21
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `GPSReader.is_alive()` — método público que encapsula acceso a `_thread` (reemplaza `self.gps._thread.is_alive()` en `main.py`)
 - `pollCobertGrid()` en frontend — polling en tiempo real desde `/coverage.json` para el grid de cobertura VE
 
@@ -293,7 +293,7 @@ PROMPT_END -->
 ---
 
 ## [v2.5.50] — 2026-04-27
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - GPS via gpsd — reemplaza pyserial directo, manejo profesional del M8N
 - Endpoint /gps_fix para monitorear GPS sin ECU conectada
 - GPS satellites visible en header del dash (SAT)
@@ -308,7 +308,7 @@ PROMPT_END -->
 - GPS inject removido de sysmon — lo maneja _get_live_data en server.py
 ---
 ## [v2.5.49] — 2026-04-19
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Altitude profile chart (Chart.js) below Leaflet map, colored by speed
 - GPS confirmed at 5Hz (UBX CFG-RATE 200ms persisted in module flash)
 ### Fixed
@@ -324,21 +324,21 @@ PROMPT_END -->
 - GPS reader: keeps last known position when fix is lost (gps_valid=False but lat/lon retained)
 - /gps_track endpoint: includes all points with non-null lat/lon regardless of gps_valid flag
 - except Exception in run() now logs full traceback for easier debugging
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - BACKLOG-INF1: session_metadata.json corruption guard (queued)
 
 ## [v2.5.47] — 2026-04-18
 ### Fixed
 - shutdown() ahora cierra el ride activo limpiamente antes de detener servicios
 - Rides huérfanos (sin summary JSON) ya no se pierden en apagados abruptos
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - tools/recover_summaries.py — recupera summaries JSON de rides huérfanos leyendo CSV
 - 31 summaries recuperados de sesiones anteriores
 ### Changed
 - Tab Mapa: selector de rides ordenado por fecha descendente (Date object sort)
 
 ## [v2.5.46] — 2026-04-18
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Tab "Mapa" en dashboard con Leaflet.js (OpenStreetMap, sin API key)
 - Endpoint `/gps_track?session=X&ride=N` — lee CSV y devuelve puntos GPS válidos
 - Mapa de ruta con polyline coloreada por velocidad (verde=lento, rojo=rápido)
@@ -349,7 +349,7 @@ PROMPT_END -->
 - `showTab()` extendido para incluir 'map'
 
 ## [v2.5.45] — 2026-04-18
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - GPS integration: NEO-M8N connected via UART (ttyS0, pins 8/10, 9600 baud)
 - `gps/reader.py`: GPSReader thread — parses $GNRMC and $GNGGA, thread-safe get_fix()
 - `gps/__init__.py`: module init
@@ -368,7 +368,7 @@ PROMPT_END -->
 - Gráficas borrosas/distorsionadas: corregido aspect ratio eliminando `!important` en CSS canvas
 - Líneas de gráfica más nítidas: `borderWidth` 2.5, `tension` 0 (líneas rectas)
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Panel lateral de datos ("DATOS CURSOR"): visualización fija de RPM, KPH, CLT al mover cursor
 - Plugin crosshair Chart.js: línea vertical punteada que sigue el cursor en tiempo real
 - Tooltip external: sistema personalizado que alimenta el panel lateral sin interferir visualmente
@@ -392,7 +392,7 @@ PROMPT_END -->
 - Gráficas borrosas/distorsionadas: corregido aspect ratio eliminando `!important` en CSS canvas
 - Líneas de gráfica más nítidas: `borderWidth` 2.5, `tension` 0 (líneas rectas)
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Panel lateral de datos ("DATOS CURSOR"): visualización fija de RPM, KPH, CLT al mover cursor
 - Plugin crosshair Chart.js: línea vertical punteada que sigue el cursor en tiempo real
 - Tooltip external: sistema personalizado que alimenta el panel lateral sin interferir visualmente
@@ -417,7 +417,7 @@ PROMPT_END -->
 - Co-authored-by: Claude (Anthropic)
 
 ## [v2.5.42] — 2026-04-11
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `WebServer.ecu_identity`: new field exposing resolved ECU metadata (name, dbfile, ddfi, remark)
 - `main.py`: populates `ecu_identity` via `resolve_ecu()` at all 3 EEPROM load sites (startup, reconnect, cached fallback)
 - `live.json`: includes `ecu_identity` alongside `bike_serial`
@@ -429,7 +429,7 @@ PROMPT_END -->
 - Co-diagnosed: Claude (Anthropic)
 
 ## [v2.5.41] — 2026-04-09
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `SessionManager._generate_suggested_msq()`: genera MSQ con sugerencias aplicadas automáticamente al cerrar cada ride
 - MSQ toma EEPROM actual como base y aplica factor de corrección solo a celdas con suggestion
 - Safety limits: VE entre 10-250, máximo 5% de cambio por iteración
@@ -452,7 +452,7 @@ PROMPT_END -->
 - Co-diagnosed: Claude (Anthropic)
 
 ## [v2.5.39] — 2026-04-06
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `eeprom_decoded.json`: generado desde eeprom.bin (35 params, 4 mapas VE/spark)
 - `SessionManager._update_tuning_report()`: incluye eeprom_decoded en tuning_report
 ### Notes
@@ -460,7 +460,7 @@ PROMPT_END -->
 - Co-diagnosed: Claude (Anthropic)
 
 ## [v2.5.38] — 2026-04-06
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `CellTracker`: filtros de validez por sample (WUE, CLT, RPM, AFV, decel, fuel_cut, TPS_delta)
 - `CellTracker`: acumuladores de calidad por celda (valid_seconds, valid_ego_avg, confidence, clt_avg, wue_avg, afv_avg, inv_reasons)
 - `CellTracker._is_valid()`: retorna (bool, reason) para clasificar cada sample
@@ -510,7 +510,7 @@ PROMPT_END -->
 
 ---
 ## [v2.5.34] — 2026-04-02
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `usb_power_cycle()` method in `ecu/connection.py` — recovers dwc2 IRQ crash via sysfs autosuspend without reboot.
 - Watchdog now triggers USB power cycle at 15s without ECU, USB reset at 30s.
 ### Changed
@@ -535,7 +535,7 @@ PROMPT_END -->
 ---
 
 ## [v2.5.32] — 2026-04-01
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - udev rule `/etc/udev/rules.d/99-ecu-serial.rules` — auto-detects FT232RL (0403:6001) and CH343P (1a86:55d3), both symlinked to `/dev/ttyECU`.
 - `ftdi_sio` driver added to `/etc/modules-load.d/ftdi.conf` for automatic load on boot.
 - Service and install.sh updated to use `/dev/ttyECU` — adapter-agnostic, no code changes needed when switching TTL adapters.
@@ -575,7 +575,7 @@ PROMPT_END -->
 ---
 
 ## [v2.5.29] — 2026-03-28
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Deterministic ECU variant resolution using `ecu_defs/files.xml`.
 - New ECU version resolver maps `get_version()` strings (e.g. `BUEIB310`) to the correct EEPROM XML definition via `dbfile`.
 
@@ -592,7 +592,7 @@ PROMPT_END -->
 ## [v2.3.1] — 2026-03-21
 **DASHBOARD COMPLETO — SESIONES, CSV Y GRÁFICAS**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **Endpoint `/rides`** (`web/server.py`) — lista rides desde summaries JSON.
   Fallback para rides sin summary (ride activo o sin cerrar).
@@ -616,7 +616,7 @@ sesiones grabadas, gráficas de rides visibles.
 ## [v2.3.0] — 2026-03-20
 **EEPROM MODULAR — MAPAS VE Y SPARK EN DASHBOARD**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **`ecu/eeprom.py`** — `BUEIB_PARAMS` (35 parámetros), `decode_eeprom_params()`
   y `decode_eeprom_maps()` extraídos del monolito. Módulo independiente y testeable.
@@ -676,7 +676,7 @@ sesiones grabadas, gráficas de rides visibles.
 ## [v2.2.0] — 2026-03-20
 **MODULARIZACIÓN ECU — ecu/connection.py + ecu/protocol.py**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **`ecu/connection.py`** — `DDFI2Connection` extraída del monolito.
   Maneja apertura de puerto serial, toggle DTR, envío de PDUs,
@@ -734,7 +734,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 **GIT PULL DESDE BROWSER — ACTUALIZACIÓN SIN TERMINAL**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **Endpoint `POST /git_pull`** en `server.py` — corre `git pull` en el repo
   y reinicia el servicio automáticamente. Sin necesidad de SSH ni terminal.
@@ -786,7 +786,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 **ARCHITECTURE INDEX — AUTO-GENERADO EN CADA COMMIT**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **`tools/make_index.py`** — script que escanea el repo completo y genera
   `ARCHITECTURE.md` automáticamente. Detecta: árbol de archivos, clases,
@@ -826,7 +826,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 **MÓDULO DE RED — SWITCH A PRUEBA DE BALAS**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **`network/manager.py`** — módulo independiente de gestión de red.
   Extraído del monolito `ddfi2_logger.py` y reescrito con lógica completa:
@@ -885,7 +885,7 @@ sesiones grabadas, gráficas de rides visibles.
 ## [v1.16.2] — 2026-03-14
 **README — PROJECT DOCUMENTATION**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Full `README.md`: project description, captured parameters table, hardware diagram,
   installation instructions, generated file structure, protocol notes and license.
 
@@ -894,7 +894,7 @@ sesiones grabadas, gráficas de rides visibles.
 ## [v1.16.1] — 2026-03-13
 **REAL-TIME DIAGNOSTICS · AUTO NOTES ON CLOSE · VERSION IN CSV**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **ERR cell in header** — new cell in the dashboard header next to Batt.  
   Shows total errors of the active ride (dirty + timeout) with dynamic color:
   - 🟢 Green: 0–2 errors/min
@@ -998,7 +998,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 | G4 | `chartSPK` h=95 | Spark1/2 °BTDC · PW1/2 ms | °BTDC left, ms right |
 | G5 | `chartBatt` h=70 | Batt V | Auto ±0.3V with 12.5V reference line |
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **G2: Average line** — `(EGO + AFV + WUE) / 3` per sample, thick white dashed line.
   Shows the actual net fuel correction without the 3 curves visually canceling each other.
 - **G1: 250°F threshold line** — visual reference for critical temperature on the CLT curve.
@@ -1014,7 +1014,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.15.0] — 2026-03-12
 **GEAR DETECTION · AUTO TPS CAPTURE · FT232RL LATENCY TIMER · VSS_RPM_RATIO**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **Gear detection** — `Gear` field (0=neutral/unknown, 1–5) calculated in
   `parse_rt_data()` from the `VS_KPH / (RPM/1000)` ratio compared against
   `GEAR_THRESHOLDS` for the stock XB12X transmission. Requires RPM>500 and
@@ -1057,7 +1057,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   The real field in the JSON is `"reason"`, not `"close_reason"`. Fixed with fallback:  
   `summary.get("reason", summary.get("close_reason", ""))`.
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **Date and duration in chart selector** — each ride in the dropdown shows
   `YYMMDDHHMM · Xmin · N samples`.
 
@@ -1093,7 +1093,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.13.0] — 2026-03-10
 **RIDE ERROR LOG — STRUCTURED ERROR RECORDING**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **`RideErrorLog`** — new class that records communication error events per ride.  
   File `ride_NNN_errorlog.json` is created only if errors occurred.
   Clean ride = no file = immediate diagnosis.
@@ -1128,7 +1128,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.12.0] — 2026-03-10
 **VE HEATMAP · ACTIVE RIDE BANNER · STATUS INDICATOR**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **VE Heatmap** in VE tab — 4 real EEPROM maps: Fuel Front/Rear, Spark Front/Rear.
   RPM and TPS axes, blue→red color scale by value. Active cell highlighted in real time.
 - **Active ride banner** in Sessions tab with timer and "View Chart" button.
@@ -1139,7 +1139,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ## [v1.11.2] — 2026-03-10
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **Battery chart** — `chartBatt`, height 70px. Auto Y axis from ride min/max ±0.3V.
   12.5V reference line.
 - **WUE in AFV chart** — `WUE` added to the corrections chart as a dashed orange series.
@@ -1171,7 +1171,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.11.0] — 2026-03-09
 **SESSIONS REDESIGN · RIDE NOTES · USAGE TRACKER**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **"Sessions" tab** (formerly "Rides") — rides grouped by session/checksum,
   collapsible, sorted most recent first. `[View]` `[Chart]` `[📝]` buttons per ride.
 - **Notes modal** — textarea per ride (`ride_NNN_notes.txt`). Auto-opens when
@@ -1193,7 +1193,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.10.1] — 2026-03-08
 **WiFi NETWORK MANAGEMENT · FIX DURATION_S**
 
-### Added- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **Networks tab** — WiFi scan, connect/forget networks, hotspot/WiFi switch from the dashboard.
 
 ### Fixed
