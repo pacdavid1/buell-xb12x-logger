@@ -24,6 +24,16 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.6.27] — 2026-05-26
+### Removed
+- archive/: deleted unused legacy code (ddfi2_logger.py, make_index.py, recover_summaries.py, WORKING_METHOD.md) — nothing in the project imports from archive/
+### Changed
+- main.py: replaced magic sleep values with named constants for clarity and maintainability (GPS_RESTART_DELAY, SESSION_OPEN_DELAY, ECU_RETRY_INTERVAL, ECU_READ_ERROR_DELAY, HARD_RECONNECT_DELAY, ECU_STABILIZE_DELAY, MAIN_LOOP_HEARTBEAT)
+### Fixed
+- web/server.py: replaced bare except: blocks with specific exception handlers in sf(), load_meta(), and load_csv() — added debug logging for visibility, eliminated risk of accidentally catching SystemExit/KeyboardInterrupt
+### AI
+- DeepSeek V4 Flash
+
 ## [v2.6.26] — 2026-05-24
 ### Changed
 - web/templates/index.html: moved version display from config subtab to header, next to BUELL LOGGER.
