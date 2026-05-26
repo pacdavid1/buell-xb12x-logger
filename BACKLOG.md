@@ -38,6 +38,20 @@
 - [ ] Validación: no exceder rangos válidos del ECU (0-250 fuel, 0-45 spark)
 
 
+
+## CLEANUP — Dead Code
+
+### app.js — funciones definidas pero nunca llamadas
+- [ ] `handleMsqDrop` (line 583): manejador drag/drop de MSQ — nunca enlazado
+- [ ] `markerSet` (line 1224): helper para marker en maps — nunca usado
+- [ ] `extractTransitions` (line 1249): parsing de transiciones — nunca llamado
+- [ ] `detectGearChanges` (line 1262): detección de cambios de marcha — nunca llamado
+- [ ] `detectWOT` (line 1274): detección de WOT — nunca llamado
+- [ ] `detectDTC` (line 1284): detección de DTCs — nunca llamado
+- [ ] `doKeepalive` (line 1919): mantener sesión activa — nunca llamado
+- [ ] `toggleEcu` (line 1957): conectar/desconectar ECU — nunca llamado (nota: hay un botón "ECU" en el panel de red, verificar si debería estar enlazado)
+
+
 ## NOTAS / REGLAS
 - Solo mover UN mapa a la vez entre sesiones (fuel_front, fuel_rear, spark_front, spark_rear)
 - Si se mueven 2+ mapas → datos no atribuibles → no merge

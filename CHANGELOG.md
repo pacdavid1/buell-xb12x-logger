@@ -43,6 +43,19 @@ PROMPT_END -->
 - web/server.py: replaced bare except: blocks with specific handlers + logging
 ### AI
 - DeepSeek V4 Flash
+
+## [v2.6.27] - 2026-05-26
+### Fixed
+- web/static/app.js: added missing `confColor()` function — was nested inside `pctColor()`, breaking JS execution before `fetchLive()` could display version
+- web/static/app.js: cleaned corrupted `renderCobertLegend()` — had grid code (variables `c`, `populated`, `bg`) mistakenly inserted between legend blocks
+- web/static/app.js: added missing `confidence` and `o2_adc` mode cases to `renderCobertGrid()` — were accidentally omitted when confidence/o2_adc overlays were added
+- web/server.py: moved `_handle_tuning_report()` out of `_compare_sessions()` — was defined inside `_compare_sessions()` after `return`, making it unreachable dead code; caused `AttributeError: DashboardHandler object has no attribute _handle_tuning_report` on every request
+- web/server.py: fixed indentation of `/tuning_report` route entry in routes dict (was missing leading whitespace)
+- web/server.py: split inline dict entry — `"confidence"` and `"o2_adc_avg"` on separate lines (cosmetic)
+- ecu/session.py: added missing `n=v["count"]; vn=v["valid_count"]` in `_rebuild_summary()` — variables were deleted but dict still referenced them; caused `NameError` in `power_loss_recovered` recovery path
+- web/templates/index.html: added `--LOGGER_VERSION--` placeholder inside `hdrVersion` span so version renders statically from server (no longer depends solely on JS fetchLive)
+### AI
+- DeepSeek V4 Flash
 ## [v2.6.26] — 2026-05-24
 ### Changed
 - web/templates/index.html: moved version display from config subtab to header, next to BUELL LOGGER.

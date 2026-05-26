@@ -86,7 +86,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/coverage.json': self._handle_coverage_json,
             '/rides': self._handle_rides,
             '/suggested_msq': self._handle_suggested_msq,
-'/tuning_report': self._handle_tuning_report,
+            '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
             '/eeprom': self._handle_eeprom,
             '/wifi/saved': self._handle_wifi_saved,
@@ -768,7 +768,8 @@ class WebServer:
             entry = {
                 "seconds": c.get("seconds", 0.0),
                 "ego_avg": c.get("ego_avg", 100.0),
-                "confidence": conf,                "o2_adc_avg": c.get("o2_adc_avg", None),
+                "confidence": conf,
+                "o2_adc_avg": c.get("o2_adc_avg", None),
                 "flavors": {},
             }
             for f in flavors:
