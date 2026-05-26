@@ -71,3 +71,7 @@
   inline comments, commit messages, and markdown documentation.
   Spanish is only acceptable for direct user-facing strings in the web UI
   (dashboard labels, tooltips) where the end-user speaks Spanish.
+
+## UX — Export / Download
+
+- [ ] **Session consolidated CSV download button**: add a download button per session in the rides list that fetches and downloads a single merged CSV of all rides in that session. Currently only individual ride CSVs are downloadable. Endpoint suggestion: `GET /session_csv?session=<checksum>` → streams all `ride_*.csv` files concatenated with a single header row.
