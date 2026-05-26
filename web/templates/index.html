@@ -287,6 +287,17 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 </div>
 
+<!-- ERROR LOG MODAL -->
+<div id="errorLogModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-start;justify-content:center;padding-top:40px" onclick="if(event.target===this)closeErrorLog()">
+  <div style="background:#1a1a1a;border:1px solid var(--border);padding:16px;width:90%;max-width:520px;border-radius:4px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em" id="errLogModalTitle">ERROR LOG</div>
+      <span onclick="closeErrorLog()" style="cursor:pointer;color:var(--dim);font-size:14px;font-weight:bold">&times;</span>
+    </div>
+    <div id="errLogContent" style="font-family:var(--mono);font-size:10px;color:#ccc;min-height:60px">Cargando...</div>
+  </div>
+</div>
+
 <!-- TABS -->
 
 

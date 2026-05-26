@@ -998,7 +998,7 @@ async function loadSessions(){
         const dur=r.duration_s?Math.round(r.duration_s)+'s':'--';
         const dtcBadge=(r.dtc_events&&r.dtc_events.length)?`<span style="color:var(--accent);font-size:9px">⚠${r.dtc_events.length}</span>`:'';
         const noteBadge=r.has_note?'<span style="color:#7df;font-size:9px">📝</span>':'';
-        const errBadge=r.has_errorlog?`<span style="color:#f90;font-size:9px" title="${r.errorlog_summary||'errores'}">🔴${r.errorlog_events||''}</span>`:'';
+const errBadge=r.has_errorlog?`<span style="color:#f90;font-size:9px;cursor:pointer;text-decoration:underline dotted rgba(255,153,0,0.4)" title="${r.errorlog_summary||'errores'} — clic para ver" onclick="event.stopPropagation();openErrorLog('${sk}',${r.ride_num})">⚠️${r.errorlog_events||''}</span>`:'';
         const closeR=r.close_reason?` · ${r.close_reason}`:'';
         html+=`<div class="ride-item" style="gap:4px;opacity:${live?0.5:1};pointer-events:${live?'none':'auto'}">
           <div style="flex:1;min-width:0">
@@ -2078,3 +2078,62 @@ async function gitPull() {
 // cargar cal al arrancar (no solo al abrir tab)
 document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); setInterval(pollCobertGrid, 1000); });
 
+
+// ── Error Log Viewer ──
+function openErrorLog(session,ride_num){
+  document.getElementById('errLogModalTitle').textContent=`ERROR LOG — ${session} ride_${String(ride_num).padStart(3,'0')}`;
+  document.getElementById('errLogContent').innerHTML='Cargando...';
+  document.getElementById('errorLogModal').style.display='flex';
+  fetch(`/errorlog/${String(ride_num).padStart(3,'0')}?t=${Date.now()}`)
+    .then(r=>r.json()).then(d=>{
+      if(!d.has_errorlog || !d.events || d.events.length===0){
+        document.getElementById('errLogContent').innerHTML='<div style="color:var(--dim);padding:12px">No se encontraron eventos de error para este ride.</div>';
+        return;
+      }
+      // Summary table
+      const sumKeys=Object.keys(d.summary).filter(k=>k!=='total_events'&&d.summary[k]>0);
+      let html='<div style="margin-bottom:10px;background:#111;border:1px solid var(--border);border-radius:3px;padding:8px">';
+      html+='<div style="color:var(--dim);font-size:8px;letter-spacing:.1em;margin-bottom:4px">RESUMEN</div>';
+      html+='<table style="width:100%;border-collapse:collapse">';
+      for(let i=0;i<sumKeys.length;i++){
+        const k=sumKeys[i];
+        const label=k.replace(/_/g,' ');
+        html+=`<tr><td style="padding:1px 4px;color:#999">${label}</td><td style="padding:1px 4px;text-align:right;color:#f90">${d.summary[k]}</td></tr>`;
+      }
+      html+=`<tr><td style="padding:1px 4px;color:#999;border-top:1px solid var(--border)">total eventos</td><td style="padding:1px 4px;text-align:right;color:#fff;border-top:1px solid var(--border)">${d.events.length}</td></tr>`;
+      html+='</table></div>';
+
+      // Events list
+      html+='<div style="color:var(--dim);font-size:8px;letter-spacing:.1em;margin-bottom:4px">EVENTOS</div>';
+      for(let i=0;i<d.events.length;i++){
+        const ev=d.events[i];
+        const icon=ev.type==='reconnect'?'⚡':'⏱';
+        let ctxHtml='';
+        if(ev.ctx){
+          const parts=[];
+          if(ev.ctx.rpm!==undefined) parts.push('RPM: '+ev.ctx.rpm);
+          if(ev.ctx.clt!==undefined) parts.push('CLT: '+ev.ctx.clt+'°');
+          if(ev.ctx.tps!==undefined) parts.push('TPS: '+ev.ctx.tps+'%');
+          if(ev.ctx.vss!==undefined) parts.push('VSS: '+ev.ctx.vss);
+          if(ev.ctx.batt!==undefined) parts.push('BATT: '+ev.ctx.batt.toFixed(1)+'V');
+          if(ev.ctx.ego!==undefined) parts.push('EGO: '+ev.ctx.ego.toFixed(1));
+          if(ev.ctx.afv!==undefined) parts.push('AFV: '+ev.ctx.afv.toFixed(2));
+          if(parts.length) ctxHtml='<div style="color:#888;font-size:9px;padding-left:4px">'+parts.join('  ')+'</div>';
+        }
+        let extra='';
+        if(ev.lost_s) extra+=' <span style="color:#f66">perdida '+ev.lost_s.toFixed(1)+'s</span>';
+        if(ev.trigger) extra+=' <span style="color:#6af">trigger: '+ev.trigger+'</span>';
+        const timeStr=Math.floor(ev.t/60)+':'+String(Math.floor(ev.t%60)).padStart(2,'0');
+        html+=`<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">`;
+        html+=`<div>${icon} <span style="color:#aaa">t=${timeStr}</span> <span style="color:${ev.type==='reconnect'?'#6af':'#f90'}">${ev.type}</span>${extra}</div>`;
+        html+=ctxHtml;
+        html+=`</div>`;
+      }
+      document.getElementById('errLogContent').innerHTML=html;
+    }).catch(function(e){
+      document.getElementById('errLogContent').innerHTML='<div style="color:#f66;padding:12px">Error al cargar: '+e.message+'</div>';
+    });
+}
+function closeErrorLog(){
+  document.getElementById('errorLogModal').style.display='none';
+}
