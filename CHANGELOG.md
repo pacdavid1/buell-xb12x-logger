@@ -24,19 +24,22 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
-## [v2.6.27] — 2026-05-26
-- BACKLOG.md: removed completed REFACTOR items (P1, P2, P3) and empty ARCHIVO section- BACKLOG_ANL.md: removed completed BACKLOG-ANL4 (tuning report)
+## [v2.6.27] - 2026-05-26
+### Added
+- ANL6: added valid_for_tuning flag to ride summary JSON
+- ANL7: added health_score (0-100) to ride summary JSON
+- ANL12: added /tuning_report HTTP endpoint
+- ANL13: added format=csv option to /tuning_report
 ### Removed
-- archive/: deleted unused legacy code (ddfi2_logger.py, make_index.py, recover_summaries.py, WORKING_METHOD.md) — nothing in the project imports from archive/
+- archive/: deleted unused legacy code
+- BACKLOG.md: removed completed REFACTOR items and empty ARCHIVO section
+- BACKLOG_ANL.md: removed completed BACKLOG-ANL4
 ### Changed
-- main.py: replaced magic sleep values with named constants for clarity and maintainability (GPS_RESTART_DELAY, SESSION_OPEN_DELAY, ECU_RETRY_INTERVAL, ECU_READ_ERROR_DELAY, HARD_RECONNECT_DELAY, ECU_STABILIZE_DELAY, MAIN_LOOP_HEARTBEAT)
+- main.py: replaced magic sleep values with named constants
 ### Fixed
-### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)- ANL6: added valid_for_tuning flag to ride summary JSON — computed from cell data (clt_avg >= 70°C and total_valid_seconds >= 180s)
-
-- web/server.py: replaced bare except: blocks with specific exception handlers in sf(), load_meta(), and load_csv() — added debug logging for visibility, eliminated risk of accidentally catching SystemExit/KeyboardInterrupt
+- web/server.py: replaced bare except: blocks with specific handlers + logging
 ### AI
 - DeepSeek V4 Flash
-
 ## [v2.6.26] — 2026-05-24
 ### Changed
 - web/templates/index.html: moved version display from config subtab to header, next to BUELL LOGGER.

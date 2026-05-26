@@ -1201,6 +1201,7 @@ def _compare_sessions(buell_dir, sa, sb):
     }
     def _handle_tuning_report(self, path=None):
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        fmt = params.get("format", [None])[0]
         session = params.get("session", [None])[0]
         if not session:
             session = self.server_instance.session.current_checksum
@@ -1211,7 +1212,32 @@ def _compare_sessions(buell_dir, sa, sb):
         if not report_path.exists():
             self._json({"error": "no tuning report for this session"})
             return
-        self._json(json.loads(report_path.read_text()))
+        report = json.loads(report_path.read_text())
+        if fmt == "csv":
+            import csv, io
+            buf = io.StringIO()
+            w = csv.writer(buf)
+            w.writerow(["rpm", "load", "seconds", "count", "ego_sum", "clt_sum",
+                        "wue_sum", "afv_sum", "valid_seconds", "valid_ego_sum",
+                        "valid_count", "inv_reasons"])
+            for key, cell in sorted(report.get("agg_cells", {}).items()):
+                parts = key.split("_")
+                rpm = parts[0] if len(parts) == 2 else key
+                load = parts[1] if len(parts) == 2 else ""
+                inv_str = "; ".join(f"{k}:{v}" for k, v in cell.get("inv_reasons", {}).items())
+                w.writerow([rpm, load, cell.get("seconds", 0), cell.get("count", 0),
+                           cell.get("ego_sum", 0), cell.get("clt_sum", 0),
+                           cell.get("wue_sum", 0), cell.get("afv_sum", 0),
+                           cell.get("valid_seconds", 0), cell.get("valid_ego_sum", 0),
+                           cell.get("valid_count", 0), inv_str])
+            csv_out = buf.getvalue()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition",
+                             f"attachment; filename=tuning_report_{session}.csv")
+            self.end_headers()
+            self.wfile.write(csv_out.encode("utf-8"))
+            return
+        self._json(report)
         return
-
 
