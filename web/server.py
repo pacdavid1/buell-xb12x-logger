@@ -158,7 +158,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self._json({"error": "unknown endpoint"}, 404)
 
     def _handle_static(self, path=None):
-        net  = self.server_instance.network
         import mimetypes
         path = self.path.lstrip("/")
         fpath = os.path.join(os.path.dirname(__file__), path)
@@ -179,7 +178,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
 
     def _handle_tuner_sessions(self, path=None):
-        net  = self.server_instance.network
         sessions = []
         for d in self.server_instance.buell_dir.glob('sessions/*/session_metadata.json'):
             try:
@@ -200,7 +198,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_tuner_maps(self, path=None):
-        net  = self.server_instance.network
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         sess = params.get('session', [''])[0]
         if not sess: self._json({'error': 'Falta session'}, 400); return
@@ -213,7 +210,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_tuner_merge(self, path=None):
-        net  = self.server_instance.network
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         sa = params.get('a', [''])[0]
         sb = params.get('b', [''])[0]
@@ -227,7 +223,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_sessions_vs(self, path=None):
-        net  = self.server_instance.network
         try:
             f = Path(__file__).parent / 'templates' / 'sessions_vs.html'
             self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
@@ -236,7 +231,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_sessions_vs_compare(self, path=None):
-        net  = self.server_instance.network
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         sa = params.get('a', [''])[0]
         sb = params.get('b', [''])[0]
@@ -249,7 +243,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_tuner(self, path=None):
-        net  = self.server_instance.network
         try:
             tuner_file = Path(__file__).parent / 'templates' / 'tuner.html'
             if tuner_file.exists():
@@ -261,12 +254,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_index(self, path=None):
-        net  = self.server_instance.network
         self._html(self._load_html())
         return
 
     def _handle_live_json(self, path=None):
-        net  = self.server_instance.network
         self._json(self._get_live())
         return
 
@@ -303,7 +294,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_coverage_targets(self, path=None):
-        net  = self.server_instance.network
         try:
             body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
             self.server_instance._set_coverage_targets(body)
@@ -313,7 +303,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_csv(self, path=None):
-        net  = self.server_instance.network
         fname = path.split('/csv/')[-1].split('?')[0]
         rides = self.server_instance._get_rides()
         fname_summary = fname.replace('.csv', '_summary.json')
@@ -353,7 +342,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_ride(self, path=None):
-        net  = self.server_instance.network
         fname = path.split('/ride/')[-1].split('?')[0]
         rides = self.server_instance._get_rides()
         fname_summary = fname.replace('.csv', '_summary.json')
@@ -377,7 +365,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_errorlog_viz(self, path=None):
-        net  = self.server_instance.network
         try:
             f = Path(__file__).parent / 'templates' / 'errorlog_viz.html'
             self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
@@ -386,7 +373,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_errorlog(self, path=None):
-        net  = self.server_instance.network
         parts = path.split('/errorlog/')[-1].split('?')[0].strip('/').split('/')
         if len(parts) >= 2:
             session = parts[0]
@@ -417,13 +403,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_rides(self, path=None):
-        net  = self.server_instance.network
         rides = self.server_instance._get_rides()
         self._json({"rides": rides})
         return
 
     def _handle_suggested_msq(self, path=None):
-        net  = self.server_instance.network
         cs = self.server_instance.session.current_checksum
         if not cs:
             self._json({"error": "sin sesion activa"}); return
@@ -439,7 +423,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_maps(self, path=None):
-        net  = self.server_instance.network
         # Soporte para pedir mapa de una sesion especifica: /maps?session=XXXX
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         req_session = params.get('session', [''])[0]
@@ -471,7 +454,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_eeprom(self, path=None):
-        net  = self.server_instance.network
         params = self.server_instance.eeprom_params
         if not params:
             try:
@@ -498,17 +480,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_wifi_saved(self, path=None):
-        net  = self.server_instance.network
         self._json({"saved": net.saved_wifi()})
         return
 
     def _handle_wifi_scan(self, path=None):
-        net  = self.server_instance.network
         self._json({"networks": net.scan_wifi()})
         return
 
     def _handle_wifi_status(self, path=None):
-        net  = self.server_instance.network
         self._json({
             "mode":          net.current_mode(),
             "ip":            net.get_ip(),
@@ -518,14 +497,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_wifi_redirect_url(self, path=None):
-        net  = self.server_instance.network
         action = self.path.split('action=')[-1] if 'action=' in self.path else ''
         url    = net.get_redirect_url(action)
         self._json({"url": url, "action": action})
         return
 
     def _handle_gps_fix(self, path=None):
-        net  = self.server_instance.network
         try:
             gps = self.server_instance.gps
             fix = gps.get_fix() if gps else None
@@ -535,7 +512,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_gps_track(self, path=None):
-        net  = self.server_instance.network
         try:
             params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             session_id = params.get('session', [''])[0]
@@ -572,7 +548,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_ride_note(self, path=None):
-        net  = self.server_instance.network
         try:
             params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             session_id = params.get('session', [''])[0]
