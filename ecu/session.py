@@ -197,11 +197,23 @@ class SessionManager:
                     "done_cells": done, "total_cells": len(matching),
                     "pct": round(pct, 1)
                 })
+            total_s = sum(c.get("seconds", 0) for c in cells.values())
             total_valid_s = sum(c.get("valid_seconds", 0) for c in cells.values())
             any_warm = any(
                 c.get("clt_avg") is not None and c.get("clt_avg") >= 70
                 for c in cells.values()
             )
+            # Health score 0-100 (40% warmup, 30% data quality, 30% AFV health)
+            warm_factor = 40 if any_warm else 0
+            quality_ratio = total_valid_s / total_s if total_s > 0 else 0
+            quality_factor = round(min(quality_ratio, 1.0) * 30)
+            afv_list = [c["afv_avg"] for c in cells.values() if c.get("afv_avg") is not None]
+            if afv_list:
+                avg_afv = sum(afv_list) / len(afv_list)
+                afv_factor = round(max(0, 30 - abs(avg_afv - 100) * 1.5))
+            else:
+                afv_factor = 0
+            health_score = warm_factor + quality_factor + afv_factor
             summary = {
                 "ride_num":   self.current_ride_num,
                 "session":    self.current_checksum,
@@ -213,6 +225,7 @@ class SessionManager:
                 "reason":     reason,
                 "cells":      cells,
                 "valid_for_tuning": any_warm and total_valid_s >= 180,
+                "health_score": health_score,
                 "objectives": objectives_out,
                 "dtc_events": dtc_log or [],
             }
