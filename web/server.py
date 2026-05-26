@@ -961,7 +961,7 @@ def _compare_sessions(buell_dir, sa, sb):
 
     def sf(v, d=0.0):
         try: return float(v) if v and str(v).strip() else d
-        except: return d
+        except (ValueError, TypeError): return d
 
     def load_meta(sid):
         mp = buell_dir / 'sessions' / sid / 'session_metadata.json'
@@ -975,7 +975,8 @@ def _compare_sessions(buell_dir, sa, sb):
                 b = ep.read_bytes()
                 if len(b) >= 14:
                     meta['bike_serial'] = int.from_bytes(b[12:14], 'little')
-            except Exception: pass
+            except (OSError, TypeError):
+                logging.getLogger("WebServer").debug("load_meta: could not read serial from %s" % ep)
         return meta
 
     def load_csv(sid):
@@ -1010,7 +1011,9 @@ def _compare_sessions(buell_dir, sa, sb):
                         'fl_fc':   r.get('fl_fuel_cut','0').strip() in ('1','True','true'),
                         'fl_eng':  r.get('fl_engine_run','1').strip() in ('1','True','true'),
                     })
-                except: continue
+                except Exception as e:
+                    logging.getLogger("WebServer").debug("csv row skip: %s" % e)
+                    continue
         return rows
 
     def derivatives(rows):
