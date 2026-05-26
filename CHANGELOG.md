@@ -30,7 +30,9 @@ PROMPT_END -->
 - ANL7: added health_score (0-100) to ride summary JSON
 - ANL12: added /tuning_report HTTP endpoint
 - ANL13: added format=csv option to /tuning_report
-- ANL3: added format=csv option to /coverage.json — exports per-cell VE coverage data with flavor progress
+- ANL3: added format=csv option to /coverage.json
+- ANL2: added O2_ADC real-time overlay to the cobertura heatmap (frontend + backend - o2_adc_avg per cell)
+- ANL1: added confidence overlay mode (Confianza) to the cobertura heatmap (frontend) — exports per-cell VE coverage data with flavor progress
 ### Removed
 - archive/: deleted unused legacy code
 - BACKLOG.md: removed completed REFACTOR items and empty ARCHIVO section

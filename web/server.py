@@ -725,7 +725,7 @@ class WebServer:
             entry = {
                 "seconds": c.get("seconds", 0.0),
                 "ego_avg": c.get("ego_avg", 100.0),
-                "confidence": conf,
+                "confidence": conf,                "o2_adc_avg": c.get("o2_adc_avg", None),
                 "flavors": {},
             }
             for f in flavors:
