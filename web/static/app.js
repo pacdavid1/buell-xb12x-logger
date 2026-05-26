@@ -106,19 +106,7 @@ function renderCobertLegend() {
       +'<div class="leg"><div class="leg-dot c3"></div>5-10s</div>'
       +'<div class="leg"><div class="leg-dot c4"></div>&gt;10s</div>'
       +'<div class="leg"><div class="leg-dot ca"></div>Activa</div>';
-        } else if (m === 'confidence') {
-        const cf = c.confidence;
-        if (c.seconds > 0 && cf != null) {
-          populated++;
-          bg = 'background:' + confColor(cf); txt = (cf*100).toFixed(0) + '%'; isSt = true;
-        }
-      } else if (m === 'o2_adc') {
-        const o2 = c.o2_adc_avg;
-        if (c.seconds > 0 && o2 != null) {
-          populated++;
-          bg = 'background:' + egoColor(o2/5*100); txt = o2.toFixed(2); isSt = true;
-        }
-            } else if (m === 'confidence') {
+  } else if (m === 'confidence') {
     el.innerHTML = '<div class="leg"><div class="leg-dot" style="background:rgba(100,100,100,0.5)"></div>0%</div>'
       +'<div class="leg"><div class="leg-dot" style="background:rgba(255,50,50,0.8)"></div><30%</div>'
       +'<div class="leg"><div class="leg-dot" style="background:rgba(255,160,50,0.85)"></div>30-60%</div>'
@@ -132,26 +120,11 @@ function renderCobertLegend() {
       +'<div class="leg"><div class="leg-dot" style="background:rgba(50,200,50,.8)"></div>95-105</div>'
       +'<div class="leg"><div class="leg-dot" style="background:rgba(50,150,255,.85)"></div>105-110</div>'
       +'<div class="leg"><div class="leg-dot" style="background:rgba(80,80,255,.9)"></div>>110</div>';
-
-} else if (m === 'ego') {
-        const e = c.ego_avg;
-        if (c.seconds > 0 && e != null) {
-          populated++;
-          bg = 'background:' + egoColor(e); txt = e.toFixed(1); isSt = true;
-        }
-
-} else if (m === 'ego') {
-    el.innerHTML = '<div class="leg"><div class="leg-dot" style="background:rgba(255,50,50,.9)"></div>&lt;90</div>'
-      +'<div class="leg"><div class="leg-dot" style="background:rgba(255,160,50,.85)"></div>90-95</div>'
-      +'<div class="leg"><div class="leg-dot" style="background:rgba(50,200,50,.8)"></div>95-105</div>'
-      +'<div class="leg"><div class="leg-dot" style="background:rgba(50,150,255,.85)"></div>105-110</div>'
-      +'<div class="leg"><div class="leg-dot" style="background:rgba(80,80,255,.9)"></div>&gt;110</div>';
   } else {
     const tgt = (_cobertData&&_cobertData.targets&&_cobertData.targets[m]) || '?';
     el.innerHTML = '<div class="leg" style="color:var(--dim)">'+m+' target: '+tgt+'s &middot; conf&ge;80% para converger</div>';
   }
 }
-
 function renderCobertGrid(d) {
   const cells = d.cells || {}, ac = d.active_cell || null, m = _cobertMode;
   let populated = 0;
@@ -167,6 +140,18 @@ function renderCobertGrid(d) {
         if (s > 0) populated++;
         bg = k===ac ? 'ca' : s<=0?'c0':s<2?'c1':s<5?'c2':s<10?'c3':'c4';
         txt = s > 0 ? (s<10?s.toFixed(1):Math.round(s))+'s' : '';
+      } else if (m === 'confidence') {
+        const cf = c.confidence;
+        if (c.seconds > 0 && cf != null) {
+          populated++;
+          bg = 'background:' + confColor(cf); txt = (cf*100).toFixed(0) + '%'; isSt = true;
+        }
+      } else if (m === 'o2_adc') {
+        const o2 = c.o2_adc_avg;
+        if (c.seconds > 0 && o2 != null) {
+          populated++;
+          bg = 'background:' + egoColor(o2/5*100); txt = o2.toFixed(2); isSt = true;
+        }
       } else if (m === 'ego') {
         const e = c.ego_avg;
         if (c.seconds > 0 && e != null) {
