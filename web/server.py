@@ -268,8 +268,35 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_coverage_json(self, path=None):
-        net  = self.server_instance.network
-        self._json(self.server_instance._get_coverage())
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        fmt = params.get("format", [None])[0]
+        report = self.server_instance._get_coverage()
+        if fmt == "csv":
+            import csv, io
+            cells = report.get("cells", {})
+            flavors = list(report.get("summary", {}).keys())
+            buf = io.StringIO()
+            w = csv.writer(buf)
+            header = ["cell", "seconds", "ego_avg", "confidence"]
+            for f in flavors:
+                header += [f + "_s", f + "_pct", f + "_done"]
+            w.writerow(header)
+            for key, cell in sorted(cells.items()):
+                row = [key, cell.get("seconds", 0), cell.get("ego_avg", 100),
+                       cell.get("confidence", 0)]
+                for f in flavors:
+                    fd = cell.get("flavors", {}).get(f, {})
+                    row += [fd.get("seconds", 0), fd.get("pct", 0),
+                            1 if fd.get("done") else 0]
+                w.writerow(row)
+            csv_out = buf.getvalue()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", "attachment; filename=coverage.csv")
+            self.end_headers()
+            self.wfile.write(csv_out.encode("utf-8"))
+            return
+        self._json(report)
         return
 
     def _handle_coverage_targets(self, path=None):

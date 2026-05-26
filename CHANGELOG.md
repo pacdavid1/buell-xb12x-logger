@@ -30,6 +30,7 @@ PROMPT_END -->
 - ANL7: added health_score (0-100) to ride summary JSON
 - ANL12: added /tuning_report HTTP endpoint
 - ANL13: added format=csv option to /tuning_report
+- ANL3: added format=csv option to /coverage.json — exports per-cell VE coverage data with flavor progress
 ### Removed
 - archive/: deleted unused legacy code
 - BACKLOG.md: removed completed REFACTOR items and empty ARCHIVO section
