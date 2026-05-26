@@ -43,6 +43,16 @@ SERIAL_RX_BYTES = 107
 MAX_FIFO_PCT = 50  # 192 bytes es el 50% de 384
 MAX_SERIAL_BPS = 960.0
 
+# ── Timing / Sleep Delays ───────────────────────────────────────
+GPS_RESTART_DELAY    = 2.0   # Pause after GPS restart attempt
+SESSION_OPEN_DELAY   = 0.5   # Pause after opening ECU session
+ECU_RETRY_INTERVAL   = 5.0   # Delay between ECU reconnection retries
+ECU_READ_ERROR_DELAY = 0.2   # Brief pause after serial read error
+HARD_RECONNECT_DELAY = 0.5   # Wait before hard reconnecting to ECU
+ECU_STABILIZE_DELAY  = 3.0   # Let ECU stabilize after connect
+MAIN_LOOP_HEARTBEAT  = 1.0   # Main loop idle heartbeat
+
+
 
 def _get_version():
     try:
@@ -198,7 +208,7 @@ class BuellLogger:
                 except Exception as e:
                     self.logger.warning(f"GPS restart failed: {e}")
                     
-            time.sleep(2.0)
+            time.sleep(GPS_RESTART_DELAY)
 
     def _ecu_loop(self):
         """Thread de lectura RT — Limpio, solo se centra en el protocolo serie."""
@@ -227,7 +237,7 @@ class BuellLogger:
                         
                         blob = self._load_eeprom_blob(ecu_version)
                         self.session.open_session(ecu_version, blob)
-                        time.sleep(0.5)
+                        time.sleep(SESSION_OPEN_DELAY)
                         
                         if not (self.session.current_session_dir / 'eeprom.bin').exists():
                             self.session.save_eeprom(blob)
@@ -245,7 +255,7 @@ class BuellLogger:
                                 self.session.open_session('cached', blob)
                                 self._update_web_ecu_state(blob, 'cached')
                                 self.logger.warning(f"Session opened from cached EEPROM")
-                        time.sleep(5)
+                        time.sleep(ECU_RETRY_INTERVAL)
                         continue
                 except Exception as e:
                     self.logger.debug(f"ECU no disponible: {e} — reintento en 5s")
@@ -254,7 +264,7 @@ class BuellLogger:
                     if no_ecu_s >= 10.0 and int(no_ecu_s) % 10 == 0:
                         self.logger.info(f"USB power cycle — {no_ecu_s:.0f}s sin ECU")
                         self.ecu.usb_power_cycle()
-                    time.sleep(5)
+                    time.sleep(ECU_RETRY_INTERVAL)
                     continue
 
             # ── Leer frame RT ──────────────────────────────────────────
@@ -268,7 +278,7 @@ class BuellLogger:
                 data = None
                 consecutive_errors += 1
                 if ecu_lost_since is None: ecu_lost_since = time.monotonic()
-                time.sleep(0.2)
+                time.sleep(ECU_READ_ERROR_DELAY)
 
             if data is None:
                 consecutive_errors += 1
@@ -287,7 +297,7 @@ class BuellLogger:
                 if not ride_active and consecutive_errors >= MAX_CONSEC_ERRORS:
                     self.logger.info("ECU no responde — cerrando puerto")
                     self.ecu.disconnect()
-                    time.sleep(5)
+                    time.sleep(ECU_RETRY_INTERVAL)
                     consecutive_errors = 0
                     ecu_lost_since = None
 
@@ -297,7 +307,7 @@ class BuellLogger:
                     
                     try:
                         self.ecu.disconnect()
-                        time.sleep(0.5)
+                        time.sleep(HARD_RECONNECT_DELAY)
                         self.ecu.connect()
                         if self.ecu.get_version():
                             self.logger.info("ECU responde tras hard reconnect")
@@ -409,7 +419,7 @@ class BuellLogger:
             ver = self.ecu.get_version()
             if ver:
                 self.logger.info(f"ECU connected: {ver}")
-                time.sleep(3.0) # Wait for ECU to stabilize
+                time.sleep(ECU_STABILIZE_DELAY)  # Wait for ECU to stabilize
                 
                 blob = self._load_eeprom_blob(ver)
                 if blob:
@@ -448,7 +458,7 @@ class BuellLogger:
         
         last_status = 0
         while self._running:
-            time.sleep(1)
+            time.sleep(MAIN_LOOP_HEARTBEAT)
             now = time.time()
             if now - last_status > 30:
                 self.logger.info(f"Status: modo={self.network.current_mode()} ip={self.network.get_ip()}")
