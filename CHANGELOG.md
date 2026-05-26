@@ -25,6 +25,7 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 ## [v2.6.27] — 2026-05-26
+- BACKLOG.md: removed completed REFACTOR items (P1, P2, P3) and empty ARCHIVO section- BACKLOG_ANL.md: removed completed BACKLOG-ANL4 (tuning report)
 ### Removed
 - archive/: deleted unused legacy code (ddfi2_logger.py, make_index.py, recover_summaries.py, WORKING_METHOD.md) — nothing in the project imports from archive/
 ### Changed

@@ -37,30 +37,12 @@
 - [ ] Opción de exportar solo 1 mapa (ej: solo fuel_front)
 - [ ] Validación: no exceder rangos válidos del ECU (0-250 fuel, 0-45 spark)
 
-## REFACTOR / DEUDA TÉCNICA
-
-### Alta prioridad
-- [x] P1: ddfi2_logger.py → archive/ (código muerto, todo está en módulos separados)
-- [x] P1: connection.py importar constantes de protocol.py en vez de redefinirlas (SOH, EOH, ACK, etc.)
-- [x] P1: DROID_ID, STOCK_ECM_ID, CMD_GET agregados a protocol.py como fuente única de verdad
-
-### Media prioridad
-- [x] P2: Gear detection — envolver ring buffers mutantes (`_gear_buffer`, `_rpm_buffer`, `_kph_buffer`) en clase en vez de módulo global
-- [x] P2: connection.py — usar `with open(...)` en vez de `open(...).write()` directo en usb_power_cycle/usb_reset
-
-### Baja prioridad / Cosméticos
-- [ ] P3: web/server.py — refactor do_GET/do_POST a rutas separadas (handler muy monolítico)
-- [ ] P3: web/templates/index.html — separar JS a web/static/ para mejor cacheo y legibilidad
 
 ## NOTAS / REGLAS
 - Solo mover UN mapa a la vez entre sesiones (fuel_front, fuel_rear, spark_front, spark_rear)
 - Si se mueven 2+ mapas → datos no atribuibles → no merge
 - Knock sensor: NO por ahora (ruido mecánico alto en Buell air-cooled, falsos positivos)
 - Spark sin knock: tunear por dACC (si avanzás spark y aceleración sube sin subir vibración, no hay knock)
-
-## ARCHIVO / DOCUMENTACIÓN
-
-### Media prioridad
 
 ## CODE STANDARDS
 
