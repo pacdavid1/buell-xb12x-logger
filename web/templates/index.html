@@ -223,7 +223,8 @@ table.veg td:active{filter:brightness(1.6)}
     <div class="nav-menu" id="navMenu">
       <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
       <div class="nav-menu-drop" id="navDrop">
-        <a href="/sessions_vs" target="_blank">Sessions VS</a>
+        <a href="/errorlog/viz" target="_blank" class="nav-tab" onclick="this.classList.add('active')">Errores</a>
+            <a href="/sessions_vs" target="_blank">Sessions VS</a>
         <a href="/tuner" target="_blank">Tuner Studio</a>
         <div style="border-top:1px solid var(--border);margin:4px 0"></div>
         <a href="#" class="nav-tab active" data-tab="ride" onclick="showTab('ride');trackUsage('tab_ride')">Ride</a>

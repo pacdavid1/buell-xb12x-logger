@@ -109,6 +109,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._handle_ride(path)
             return
 
+        if path.startswith('/errorlog/viz'):
+            self._handle_errorlog_viz(path)
+            return
         if path.startswith('/errorlog/'):
             self._handle_errorlog(path)
             return
@@ -369,6 +372,15 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._json({'cells': s.get('cells', {}), 'objectives': s.get('objectives', [])})
             else:
                 self._json({'cells': {}, 'objectives': []})
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
+    def _handle_errorlog_viz(self, path=None):
+        net  = self.server_instance.network
+        try:
+            f = Path(__file__).parent / 'templates' / 'errorlog_viz.html'
+            self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
         except Exception as e:
             self._json({'error': str(e)}, 500)
         return

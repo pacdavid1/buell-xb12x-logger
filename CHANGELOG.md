@@ -36,6 +36,22 @@ PROMPT_END -->
 - Bug: _get_rides() no poblaba has_errorlog/errorlog_events — backend no enviaba los campos que el frontend ya esperaba para mostrar el badge ⚠️.
 - Bug: modal mostraba "No se encontraron eventos" — frontend checkeaba !d.has_errorlog pero el endpoint devuelve el JSON crudo sin ese campo. Se eliminó la condición redundante.
 - Bug: errBadge no era clickeable (backfill) — se agregó onclick con openErrorLog(sk, ride_num).
+## [v2.6.29] - 2026-05-26
+
+### Added
+- Pagina dedicada /errorlog/viz con visor grafico de error logs.
+  - Selectores de sesion y ride con filtro por tipo de evento.
+  - Stats en vivo: total eventos, timeouts, reconnects, tiempo perdido, % afectado.
+  - Timeline canvas: linea RPM + barras de timeout con altura proporcional a lost_s.
+  - Scatter plots (Canvas nativo): RPM x CLT coloreado por lost_s y BATT x lost_s.
+  - Barras de distribucion por tipo de evento.
+  - Lista de eventos filtrable con contexto completo del motor.
+- Nav-tab "Errores" en index.html apuntando a /errorlog/viz.
+- Ruta /errorlog/viz en server.py con handler _handle_errorlog_viz.
+
+### Fixed
+- La ruta /errorlog/viz se antepone al prefix /errorlog/ para evitar conflicto.
+
 ## [v2.6.27] - 2026-05-26
 ### Added
 - ANL6: added valid_for_tuning flag to ride summary JSON
