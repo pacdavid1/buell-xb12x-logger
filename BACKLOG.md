@@ -80,7 +80,7 @@
 ## CODE CLEANUP — Found during code review (2026-05-26)
 
 ### 🔴 Priority High — Confirmed Bugs
-- [ ] **#1 — `o2_adc_avg` wrong variable scope** (`ecu/session.py:341`): Uses `v["o2_adc_sum"]` but `v` is from outer scope — should be `a["o2_adc_sum"]`. Causes NameError at runtime when generating tuning report.
+- [x] **#1 — `o2_adc_avg` wrong variable scope** (`ecu/session.py:341`): Uses `v["o2_adc_sum"]` but `v` is from outer scope — should be `a["o2_adc_sum"]`. Causes NameError at runtime when generating tuning report.
 - [ ] **#2 — Infinite loop on serial port wait** (`ecu/connection.py:69`): `while not os.path.exists(self.port):` has no timeout. Process hangs forever if USB serial never appears.
 - [ ] **#3 — Heartbeat loop unprotected** (`main.py:460-471`): `while self._running:` body has no try/except wrapper. Thread dies silently if anything raises.
 
