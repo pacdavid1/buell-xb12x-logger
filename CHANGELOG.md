@@ -25,6 +25,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.32] - 2026-05-26
+
+### Fixed
+- Bug #4: Replaced time.time() with time.monotonic() in connection.py and ecu/connection.py (12 occurrences) — prevents infinite timeout loops when system clock jumps due to NTP/DST
+- Left main.py time.time() calls unchanged (data timestamps and logging interval need wall-clock time)
+
 ## [v2.6.31] - 2026-05-26
 
 ### Fixed
