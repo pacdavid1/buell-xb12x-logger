@@ -25,6 +25,11 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.36] - 2026-05-26
+
+### Fixed
+- Bug #7: Added _validate_eeprom() sanity checks (KMFG_Year, KMFG_Day, Ride_Counter, KEngineRun, spark_load axis ranges) — corrupted EEPROM dumps now return empty dicts with warning log instead of silently decoding garbage
+
 ## [v2.6.35] - 2026-05-26
 
 ### Fixed
