@@ -262,7 +262,8 @@ class SessionManager:
             try:
                 with open(report_path) as f:
                     report = json.load(f)
-            except Exception:
+            except Exception as e:
+                self.logger.debug(f"Corrupted tuning report JSON: {e}")
                 report = {}
         else:
             report = {}
@@ -359,8 +360,8 @@ class SessionManager:
             try:
                 with open(eeprom_path) as f:
                     eeprom_snapshot = json.load(f)
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.debug(f"Corrupted eeprom_decoded.json: {e}")
 
         report = {
             "generated_utc":  summary.get("closed_utc", ""),
@@ -431,7 +432,8 @@ class SessionManager:
                     if ve_old is not None:
                         fuel_front[li][ri] = max(10, min(250, round(ve_old * sug["factor"])))
                         applied += 1
-            except Exception:
+            except Exception as e:
+                self.logger.debug(f"MSQ gen: skip iteration ({e})")
                 continue
         if applied == 0:
             self.logger.debug("MSQ gen: sin sugerencias que aplicar")
@@ -643,7 +645,8 @@ class SessionManager:
                             c["clt_sum"]+=clt*weight; c["wue_sum"]+=wue*weight; c["afv_sum"]+=afv*weight
                             if valid: c["valid_seconds"]+=dt*weight; c["valid_ego_sum"]+=ego*weight; c["valid_count"]+=weight
                             if inv: c["inv_reasons"][inv]=c["inv_reasons"].get(inv,0)+weight
-                    except Exception: pass
+                    except Exception as e:
+                        self.logger.debug(f"Agg cell: skipped ({e})")
         cells_out = {}
         for k,v in cells.items():
             n=v["count"]; vn=v["valid_count"]

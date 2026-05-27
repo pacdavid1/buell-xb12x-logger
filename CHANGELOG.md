@@ -25,6 +25,11 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.33] - 2026-05-26
+
+### Fixed
+- Bug #5: Added self.logger.debug() to 4 silent except blocks in session.py (tuning report, eeprom_decoded, MSQ gen, cell aggregation) — no behavior change, just visibility
+
 ## [v2.6.32] - 2026-05-26
 
 ### Fixed
