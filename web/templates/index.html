@@ -219,11 +219,12 @@ table.veg td:active{filter:brightness(1.6)}
 <!-- HEADER -->
 <div class="hdr">
   <div class="hdr-row" style="justify-content:space-between">
-    <div style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em;display:flex;align-items:center;gap:8px">BUELL LOGGER<span id="hdrVersion" style="font-weight:400;color:#7df;font-size:11px"></span></div>
+    <div style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em;display:flex;align-items:center;gap:8px">BUELL LOGGER<span id="hdrVersion" style="font-weight:400;color:#7df;font-size:11px">--LOGGER_VERSION--</span></div>
     <div class="nav-menu" id="navMenu">
       <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
       <div class="nav-menu-drop" id="navDrop">
-        <a href="/sessions_vs" target="_blank">Sessions VS</a>
+        <a href="/errorlog/viz" target="_blank" class="nav-tab" onclick="this.classList.add('active')">Errores</a>
+            <a href="/sessions_vs" target="_blank">Sessions VS</a>
         <a href="/tuner" target="_blank">Tuner Studio</a>
         <div style="border-top:1px solid var(--border);margin:4px 0"></div>
         <a href="#" class="nav-tab active" data-tab="ride" onclick="showTab('ride');trackUsage('tab_ride')">Ride</a>
@@ -287,6 +288,17 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 </div>
 
+<!-- ERROR LOG MODAL -->
+<div id="errorLogModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-start;justify-content:center;padding-top:40px" onclick="if(event.target===this)closeErrorLog()">
+  <div style="background:#1a1a1a;border:1px solid var(--border);padding:16px;width:90%;max-width:520px;border-radius:4px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em" id="errLogModalTitle">ERROR LOG</div>
+      <span onclick="closeErrorLog()" style="cursor:pointer;color:var(--dim);font-size:14px;font-weight:bold">&times;</span>
+    </div>
+    <div id="errLogContent" style="font-family:var(--mono);font-size:10px;color:#ccc;min-height:60px">Cargando...</div>
+  </div>
+</div>
+
 <!-- TABS -->
 
 
@@ -323,6 +335,8 @@ table.veg td:active{filter:brightness(1.6)}
         <button class="btn cobert-btn" data-mode="SWEET" onclick="setCobertMode('SWEET')" style="font-size:8px;padding:3px 6px;color:#7df">SWEET</button>
         <button class="btn cobert-btn" data-mode="TIPIN" onclick="setCobertMode('TIPIN')" style="font-size:8px;padding:3px 6px;color:#3d3">TIPIN</button>
         <button class="btn cobert-btn" data-mode="TIPOUT" onclick="setCobertMode('TIPOUT')" style="font-size:8px;padding:3px 6px;color:#fa3">TIPOUT</button>
+        <button class="btn cobert-btn" data-mode="confidence" onclick="setCobertMode('confidence')" style="font-size:8px;padding:3px 6px;color:#fa0">Confianza</button>
+        <button class="btn cobert-btn" data-mode="o2_adc" onclick="setCobertMode('o2_adc')" style="font-size:8px;padding:3px 6px;color:#a8f">O2 ADC</button>
         <button class="btn cobert-btn" data-mode="WOT" onclick="setCobertMode('WOT')" style="font-size:8px;padding:3px 6px;color:#f74">WOT</button>
       </div>
     </div>

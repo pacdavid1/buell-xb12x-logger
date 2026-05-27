@@ -25,6 +25,7 @@ class NetworkManager:
         self._monitor_thread = None
         self._monitor_active = False
         self._switch_status  = {}
+        self._state_lock     = threading.Lock()
 
     @staticmethod
     def _run(cmd, timeout=10):
@@ -107,8 +108,9 @@ class NetworkManager:
 
     def load_state(self):
         try:
-            if STATE_FILE.exists():
-                return json.loads(STATE_FILE.read_text())
+            with self._state_lock:
+                if STATE_FILE.exists():
+                    return json.loads(STATE_FILE.read_text())
         except Exception:
             pass
         return {}

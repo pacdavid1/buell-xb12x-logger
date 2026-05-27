@@ -51,10 +51,42 @@ BUEIB_PARAMS = {
 }
 
 
+def _validate_eeprom(eeprom_bytes):
+    """Sanity-check EEPROM bytes against known ranges.
+    Returns True if data looks valid, False if likely corrupted."""
+    if not eeprom_bytes or len(eeprom_bytes) < 600:
+        return False
+    try:
+        # KMFG_Year (offset 3): 0-99
+        if not (0 <= eeprom_bytes[3] <= 99):
+            return False
+        # KMFG_Day (offset 4): 1-366
+        if not (1 <= eeprom_bytes[4] <= 366):
+            return False
+        # Ride_Counter (offset 1): should be < 65535
+        if eeprom_bytes[1] > 250:  # single byte, max 255 rides is reasonable
+            return False
+        # KEngineRun (offset 6): 2-20 (100-1000 RPM range)
+        if not (2 <= eeprom_bytes[6] <= 20):
+            return False
+        # spark_load axis (offset 602, 10 bytes): all values 0-100
+        for i in range(10):
+            v = eeprom_bytes[602 + i]
+            if v < 0 or v > 100:
+                return False
+        return True
+    except (IndexError, TypeError):
+        return False
+
+
 def decode_eeprom_params(eeprom_bytes):
     """Decodifica parámetros del dump EEPROM BUEIB.
     Retorna dict {varname: {val, raw, units, desc}}"""
     if not eeprom_bytes or len(eeprom_bytes) < 600:
+        return {}
+    if not _validate_eeprom(eeprom_bytes):
+        import logging
+        logging.getLogger(__name__).warning(f"EEPROM params: invalid data (len={len(eeprom_bytes)})")
         return {}
     result = {}
     for varname, (offset, scale, translate, units, desc) in BUEIB_PARAMS.items():
@@ -71,6 +103,10 @@ def decode_eeprom_maps(eeprom_bytes):
     Offsets verificados contra ecmdroid.db cat=8.
     Retorna dict con axes y tables listos para JSON."""
     if not eeprom_bytes or len(eeprom_bytes) < 1206:
+        return {}
+    if not _validate_eeprom(eeprom_bytes):
+        import logging
+        logging.getLogger(__name__).warning(f"EEPROM maps: invalid data (len={len(eeprom_bytes)})")
         return {}
 
     def read_axis_1b(off, count):

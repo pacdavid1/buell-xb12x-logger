@@ -24,6 +24,123 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+
+## [v2.6.39] — 2026-05-26
+### Fixed
+- web/server.py: add JSON type validation to _handle_coverage_targets — reject non-dict payloads with clear error message
+- network/manager.py: add threading.Lock to NetworkManager for _save_state and load_state (prevents network_state.json corruption on concurrent WiFi/hotspot switches)
+- web/server.py: _handle_static FD leak incidentally fixed in v2.6.38 (with open)
+### AI
+- DeepSeek V4 Flash, DeepSeek
+## [v2.6.38] — 2026-05-26
+### Fixed
+- web/server.py: fix path traversal in _handle_static — sanitize with os.path.realpath() + startswith(base) guard (also fixes FD leak with `with open`)
+- main.py: add _check_threads() watchdog — restart dead ecu-rt/sysmon daemon threads from heartbeat loop
+- web/server.py + main.py: add threading.RLock (_data_lock) for serial_stats read-modify-write and ecu_live writes
+### AI
+- DeepSeek V4 Flash, DeepSeek
+## [v2.6.37] — 2026-05-26
+### Fixed
+- ecu/session.py: fix variable scope bug in _rebuild_summary — a["o2_adc_sum"] → v["o2_adc_sum"] (NameError when recovering orphaned rides)
+### AI
+- DeepSeek V4 Flash, DeepSeek
+## [v2.6.36] - 2026-05-26
+
+### Fixed
+- Bug #7: Added _validate_eeprom() sanity checks (KMFG_Year, KMFG_Day, Ride_Counter, KEngineRun, spark_load axis ranges) — corrupted EEPROM dumps now return empty dicts with warning log instead of silently decoding garbage
+
+## [v2.6.35] - 2026-05-26
+
+### Fixed
+- Bug #6: Added 5-second cooldown to FIFO flush with getattr/monotonic — prevents rapid repeated buffer flushes when serial port is erratic
+- Optimized: Inlined time.monotonic() calls and replaced hasattr with getattr for cleaner cooldown check
+
+## [v2.6.34] - 2026-05-26
+
+### Fixed
+- Bug #8: Added (total_valid_s or 0) guard in quality_ratio calculation — prevents TypeError when total_valid_s is None due to data corruption
+
+## [v2.6.33] - 2026-05-26
+
+### Fixed
+- Bug #5: Added self.logger.debug() to 4 silent except blocks in session.py (tuning report, eeprom_decoded, MSQ gen, cell aggregation) — no behavior change, just visibility
+
+## [v2.6.32] - 2026-05-26
+
+### Fixed
+- Bug #4: Replaced time.time() with time.monotonic() in connection.py and ecu/connection.py (12 occurrences) — prevents infinite timeout loops when system clock jumps due to NTP/DST
+- Left main.py time.time() calls unchanged (data timestamps and logging interval need wall-clock time)
+
+## [v2.6.31] - 2026-05-26
+
+### Fixed
+- Bug #3: Heartbeat loop now wrapped in try/except — thread won't die silently
+- Fixed indentation in _sysmon_loop and _ecu_loop caused by collateral from sed (removed duplicate/empty `try:` lines)
+
+## [v2.6.30] - 2026-05-26
+
+### Fixed
+- **Bug #1 — `o2_adc_avg` variable scope:** Fixed NameError in `_update_tuning_report` (`ecu/session.py:341`). Changed `v["o2_adc_sum"]` to `a["o2_adc_sum"]` — `v` was from an outer loop scope while all other fields correctly used the aggregated dict `a`.
+
+## [v2.6.28] - 2026-05-26
+### Added
+- web/templates/index.html + web/static/app.js: error log viewer modal — el badge ⚠️ ahora es clickeable y abre un modal con resumen de errores (tabla de conteos por tipo) y lista cronológica de eventos con contexto del motor (RPM, CLT, TPS, VSS, BATT) para cada error
+### AI
+- Implemented error log viewer feature: clickable errBadge in ride list opens modal fetching /errorlog/{ride_num} and renders summary table + event timeline with ctx
+
+### Fixed
+- Bug: session-mismatch en /errorlog/ — endpoint buscaba solo por ride_num, devolviendo datos de sesión incorrecta cuando existían rides con el mismo número en distintas sesiones. Se agregó session al path (/errorlog/<session>/<ride_num>).
+- Bug: _get_rides() no poblaba has_errorlog/errorlog_events — backend no enviaba los campos que el frontend ya esperaba para mostrar el badge ⚠️.
+- Bug: modal mostraba "No se encontraron eventos" — frontend checkeaba !d.has_errorlog pero el endpoint devuelve el JSON crudo sin ese campo. Se eliminó la condición redundante.
+- Bug: errBadge no era clickeable (backfill) — se agregó onclick con openErrorLog(sk, ride_num).
+## [v2.6.29] - 2026-05-26
+
+### Added
+- Pagina dedicada /errorlog/viz con visor grafico de error logs.
+  - Selectores de sesion y ride con filtro por tipo de evento.
+  - Stats en vivo: total eventos, timeouts, reconnects, tiempo perdido, % afectado.
+  - Timeline canvas: linea RPM + barras de timeout con altura proporcional a lost_s.
+  - Scatter plots (Canvas nativo): RPM x CLT coloreado por lost_s y BATT x lost_s.
+  - Barras de distribucion por tipo de evento.
+  - Lista de eventos filtrable con contexto completo del motor.
+- Nav-tab "Errores" en index.html apuntando a /errorlog/viz.
+- Ruta /errorlog/viz en server.py con handler _handle_errorlog_viz.
+
+### Fixed
+- La ruta /errorlog/viz se antepone al prefix /errorlog/ para evitar conflicto.
+
+## [v2.6.27] - 2026-05-26
+### Added
+- ANL6: added valid_for_tuning flag to ride summary JSON
+- ANL7: added health_score (0-100) to ride summary JSON
+- ANL12: added /tuning_report HTTP endpoint
+- ANL13: added format=csv option to /tuning_report
+- ANL3: added format=csv option to /coverage.json
+- ANL2: added O2_ADC real-time overlay to the cobertura heatmap (frontend + backend - o2_adc_avg per cell)
+- ANL1: added confidence overlay mode (Confianza) to the cobertura heatmap (frontend) — exports per-cell VE coverage data with flavor progress
+### Removed
+- archive/: deleted unused legacy code
+- BACKLOG.md: removed completed REFACTOR items and empty ARCHIVO section
+- BACKLOG_ANL.md: removed completed BACKLOG-ANL4
+### Changed
+- main.py: replaced magic sleep values with named constants
+### Fixed
+- web/server.py: replaced bare except: blocks with specific handlers + logging
+### AI
+- DeepSeek V4 Flash
+
+## [v2.6.27] - 2026-05-26
+### Fixed
+- web/static/app.js: added missing `confColor()` function — was nested inside `pctColor()`, breaking JS execution before `fetchLive()` could display version
+- web/static/app.js: cleaned corrupted `renderCobertLegend()` — had grid code (variables `c`, `populated`, `bg`) mistakenly inserted between legend blocks
+- web/static/app.js: added missing `confidence` and `o2_adc` mode cases to `renderCobertGrid()` — were accidentally omitted when confidence/o2_adc overlays were added
+- web/server.py: moved `_handle_tuning_report()` out of `_compare_sessions()` — was defined inside `_compare_sessions()` after `return`, making it unreachable dead code; caused `AttributeError: DashboardHandler object has no attribute _handle_tuning_report` on every request
+- web/server.py: fixed indentation of `/tuning_report` route entry in routes dict (was missing leading whitespace)
+- web/server.py: split inline dict entry — `"confidence"` and `"o2_adc_avg"` on separate lines (cosmetic)
+- ecu/session.py: added missing `n=v["count"]; vn=v["valid_count"]` in `_rebuild_summary()` — variables were deleted but dict still referenced them; caused `NameError` in `power_loss_recovered` recovery path
+- web/templates/index.html: added `--LOGGER_VERSION--` placeholder inside `hdrVersion` span so version renders statically from server (no longer depends solely on JS fetchLive)
+### AI
+- DeepSeek V4 Flash
 ## [v2.6.26] — 2026-05-24
 ### Changed
 - web/templates/index.html: moved version display from config subtab to header, next to BUELL LOGGER.
@@ -135,7 +252,7 @@ PROMPT_END -->
   <script src=/static/app.js> con window.LOGGER_VERSION inline.
 
 ## [v2.6.16] — 2026-05-24
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - BACKLOG.md: Launch Event como prerequisito de FASE 1 (Merge RAW de mapas).
   Detecta crucero estable ≥3s → WOT para etiquetar pulls válidos.
 
@@ -208,7 +325,7 @@ PROMPT_END -->
 - connection.py importa constantes de protocol.py (SOH, EOH, ACK, etc.) en vez de redefinirlas
 - protocol.py: nueva fuente única de verdad para constantes de protocolo DDFI2
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - BACKLOG.md: nueva sección REFACTOR / DEUDA TÉCNICA con 10 mejoras identificadas
 
 ### Removed
@@ -221,14 +338,14 @@ PROMPT_END -->
   estables en rides 4-5 de sesión 47BF04.
 
 ## [v2.6.5] — 2026-05-23
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - web/templates/index.html (loadMapTrack): perfil de altitud ahora incluye
   linea de velocidad (km/h) como segundo eje Y (derecha) en el chart.
   Coloreada con el mismo gradiente continuo azul-verde-amarillo-rojo-magenta
   del mapa para correlacion visual inmediata.
 
 ## [v2.6.4] — 2026-05-23
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - ecu/protocol.py: filtro mediano (20 samples, ~1s) en gear detection.
   Cuando RPM/KPH estan estables (rango RPM < 200, KPH < 8) valida la
   marcha usando la mediana de los ultimos ~1s, corrigiendo outliers.
@@ -240,7 +357,7 @@ PROMPT_END -->
   Vuelve a detección absoluta (cada sample se evalúa independientemente, como en v2.5.x).
 
 ## [v2.6.2] — 2026-05-23
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 -  en : merge de celdas ahora incluye  de los summary JSON
   - Los modos SWEET, TIPIN, TIPOUT, WOT del grid VE ahora funcionan con rides históricos
   - Usa  desde  para calcular porcentaje de cobertura
@@ -257,7 +374,7 @@ PROMPT_END -->
 > Repository: https://github.com/pacdavid1/buell-xb12x-logger
 ---
 ## [v2.6.0] — 2026-05-21
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `GPSReader.is_alive()` — método público que encapsula acceso a `_thread` (reemplaza `self.gps._thread.is_alive()` en `main.py`)
 - `pollCobertGrid()` en frontend — polling en tiempo real desde `/coverage.json` para el grid de cobertura VE
 
@@ -280,7 +397,7 @@ PROMPT_END -->
 ---
 
 ## [v2.5.50] — 2026-04-27
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - GPS via gpsd — reemplaza pyserial directo, manejo profesional del M8N
 - Endpoint /gps_fix para monitorear GPS sin ECU conectada
 - GPS satellites visible en header del dash (SAT)
@@ -295,7 +412,7 @@ PROMPT_END -->
 - GPS inject removido de sysmon — lo maneja _get_live_data en server.py
 ---
 ## [v2.5.49] — 2026-04-19
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Altitude profile chart (Chart.js) below Leaflet map, colored by speed
 - GPS confirmed at 5Hz (UBX CFG-RATE 200ms persisted in module flash)
 ### Fixed
@@ -311,21 +428,21 @@ PROMPT_END -->
 - GPS reader: keeps last known position when fix is lost (gps_valid=False but lat/lon retained)
 - /gps_track endpoint: includes all points with non-null lat/lon regardless of gps_valid flag
 - except Exception in run() now logs full traceback for easier debugging
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - BACKLOG-INF1: session_metadata.json corruption guard (queued)
 
 ## [v2.5.47] — 2026-04-18
 ### Fixed
 - shutdown() ahora cierra el ride activo limpiamente antes de detener servicios
 - Rides huérfanos (sin summary JSON) ya no se pierden en apagados abruptos
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - tools/recover_summaries.py — recupera summaries JSON de rides huérfanos leyendo CSV
 - 31 summaries recuperados de sesiones anteriores
 ### Changed
 - Tab Mapa: selector de rides ordenado por fecha descendente (Date object sort)
 
 ## [v2.5.46] — 2026-04-18
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Tab "Mapa" en dashboard con Leaflet.js (OpenStreetMap, sin API key)
 - Endpoint `/gps_track?session=X&ride=N` — lee CSV y devuelve puntos GPS válidos
 - Mapa de ruta con polyline coloreada por velocidad (verde=lento, rojo=rápido)
@@ -336,7 +453,7 @@ PROMPT_END -->
 - `showTab()` extendido para incluir 'map'
 
 ## [v2.5.45] — 2026-04-18
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - GPS integration: NEO-M8N connected via UART (ttyS0, pins 8/10, 9600 baud)
 - `gps/reader.py`: GPSReader thread — parses $GNRMC and $GNGGA, thread-safe get_fix()
 - `gps/__init__.py`: module init
@@ -355,7 +472,7 @@ PROMPT_END -->
 - Gráficas borrosas/distorsionadas: corregido aspect ratio eliminando `!important` en CSS canvas
 - Líneas de gráfica más nítidas: `borderWidth` 2.5, `tension` 0 (líneas rectas)
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Panel lateral de datos ("DATOS CURSOR"): visualización fija de RPM, KPH, CLT al mover cursor
 - Plugin crosshair Chart.js: línea vertical punteada que sigue el cursor en tiempo real
 - Tooltip external: sistema personalizado que alimenta el panel lateral sin interferir visualmente
@@ -379,7 +496,7 @@ PROMPT_END -->
 - Gráficas borrosas/distorsionadas: corregido aspect ratio eliminando `!important` en CSS canvas
 - Líneas de gráfica más nítidas: `borderWidth` 2.5, `tension` 0 (líneas rectas)
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Panel lateral de datos ("DATOS CURSOR"): visualización fija de RPM, KPH, CLT al mover cursor
 - Plugin crosshair Chart.js: línea vertical punteada que sigue el cursor en tiempo real
 - Tooltip external: sistema personalizado que alimenta el panel lateral sin interferir visualmente
@@ -404,7 +521,7 @@ PROMPT_END -->
 - Co-authored-by: Claude (Anthropic)
 
 ## [v2.5.42] — 2026-04-11
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `WebServer.ecu_identity`: new field exposing resolved ECU metadata (name, dbfile, ddfi, remark)
 - `main.py`: populates `ecu_identity` via `resolve_ecu()` at all 3 EEPROM load sites (startup, reconnect, cached fallback)
 - `live.json`: includes `ecu_identity` alongside `bike_serial`
@@ -416,7 +533,7 @@ PROMPT_END -->
 - Co-diagnosed: Claude (Anthropic)
 
 ## [v2.5.41] — 2026-04-09
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `SessionManager._generate_suggested_msq()`: genera MSQ con sugerencias aplicadas automáticamente al cerrar cada ride
 - MSQ toma EEPROM actual como base y aplica factor de corrección solo a celdas con suggestion
 - Safety limits: VE entre 10-250, máximo 5% de cambio por iteración
@@ -439,7 +556,7 @@ PROMPT_END -->
 - Co-diagnosed: Claude (Anthropic)
 
 ## [v2.5.39] — 2026-04-06
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `eeprom_decoded.json`: generado desde eeprom.bin (35 params, 4 mapas VE/spark)
 - `SessionManager._update_tuning_report()`: incluye eeprom_decoded en tuning_report
 ### Notes
@@ -447,7 +564,7 @@ PROMPT_END -->
 - Co-diagnosed: Claude (Anthropic)
 
 ## [v2.5.38] — 2026-04-06
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `CellTracker`: filtros de validez por sample (WUE, CLT, RPM, AFV, decel, fuel_cut, TPS_delta)
 - `CellTracker`: acumuladores de calidad por celda (valid_seconds, valid_ego_avg, confidence, clt_avg, wue_avg, afv_avg, inv_reasons)
 - `CellTracker._is_valid()`: retorna (bool, reason) para clasificar cada sample
@@ -497,7 +614,7 @@ PROMPT_END -->
 
 ---
 ## [v2.5.34] — 2026-04-02
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - `usb_power_cycle()` method in `ecu/connection.py` — recovers dwc2 IRQ crash via sysfs autosuspend without reboot.
 - Watchdog now triggers USB power cycle at 15s without ECU, USB reset at 30s.
 ### Changed
@@ -522,7 +639,7 @@ PROMPT_END -->
 ---
 
 ## [v2.5.32] — 2026-04-01
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - udev rule `/etc/udev/rules.d/99-ecu-serial.rules` — auto-detects FT232RL (0403:6001) and CH343P (1a86:55d3), both symlinked to `/dev/ttyECU`.
 - `ftdi_sio` driver added to `/etc/modules-load.d/ftdi.conf` for automatic load on boot.
 - Service and install.sh updated to use `/dev/ttyECU` — adapter-agnostic, no code changes needed when switching TTL adapters.
@@ -562,7 +679,7 @@ PROMPT_END -->
 ---
 
 ## [v2.5.29] — 2026-03-28
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Deterministic ECU variant resolution using `ecu_defs/files.xml`.
 - New ECU version resolver maps `get_version()` strings (e.g. `BUEIB310`) to the correct EEPROM XML definition via `dbfile`.
 
@@ -579,7 +696,7 @@ PROMPT_END -->
 ## [v2.3.1] — 2026-03-21
 **DASHBOARD COMPLETO — SESIONES, CSV Y GRÁFICAS**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **Endpoint `/rides`** (`web/server.py`) — lista rides desde summaries JSON.
   Fallback para rides sin summary (ride activo o sin cerrar).
@@ -603,7 +720,7 @@ sesiones grabadas, gráficas de rides visibles.
 ## [v2.3.0] — 2026-03-20
 **EEPROM MODULAR — MAPAS VE Y SPARK EN DASHBOARD**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **`ecu/eeprom.py`** — `BUEIB_PARAMS` (35 parámetros), `decode_eeprom_params()`
   y `decode_eeprom_maps()` extraídos del monolito. Módulo independiente y testeable.
@@ -663,7 +780,7 @@ sesiones grabadas, gráficas de rides visibles.
 ## [v2.2.0] — 2026-03-20
 **MODULARIZACIÓN ECU — ecu/connection.py + ecu/protocol.py**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **`ecu/connection.py`** — `DDFI2Connection` extraída del monolito.
   Maneja apertura de puerto serial, toggle DTR, envío de PDUs,
@@ -721,7 +838,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 **GIT PULL DESDE BROWSER — ACTUALIZACIÓN SIN TERMINAL**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **Endpoint `POST /git_pull`** en `server.py` — corre `git pull` en el repo
   y reinicia el servicio automáticamente. Sin necesidad de SSH ni terminal.
@@ -773,7 +890,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 **ARCHITECTURE INDEX — AUTO-GENERADO EN CADA COMMIT**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **`tools/make_index.py`** — script que escanea el repo completo y genera
   `ARCHITECTURE.md` automáticamente. Detecta: árbol de archivos, clases,
@@ -813,7 +930,7 @@ sesiones grabadas, gráficas de rides visibles.
 
 **MÓDULO DE RED — SWITCH A PRUEBA DE BALAS**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 
 * **`network/manager.py`** — módulo independiente de gestión de red.
   Extraído del monolito `ddfi2_logger.py` y reescrito con lógica completa:
@@ -872,7 +989,7 @@ sesiones grabadas, gráficas de rides visibles.
 ## [v1.16.2] — 2026-03-14
 **README — PROJECT DOCUMENTATION**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - Full `README.md`: project description, captured parameters table, hardware diagram,
   installation instructions, generated file structure, protocol notes and license.
 
@@ -881,7 +998,7 @@ sesiones grabadas, gráficas de rides visibles.
 ## [v1.16.1] — 2026-03-13
 **REAL-TIME DIAGNOSTICS · AUTO NOTES ON CLOSE · VERSION IN CSV**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **ERR cell in header** — new cell in the dashboard header next to Batt.  
   Shows total errors of the active ride (dirty + timeout) with dynamic color:
   - 🟢 Green: 0–2 errors/min
@@ -985,7 +1102,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 | G4 | `chartSPK` h=95 | Spark1/2 °BTDC · PW1/2 ms | °BTDC left, ms right |
 | G5 | `chartBatt` h=70 | Batt V | Auto ±0.3V with 12.5V reference line |
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **G2: Average line** — `(EGO + AFV + WUE) / 3` per sample, thick white dashed line.
   Shows the actual net fuel correction without the 3 curves visually canceling each other.
 - **G1: 250°F threshold line** — visual reference for critical temperature on the CLT curve.
@@ -1001,7 +1118,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.15.0] — 2026-03-12
 **GEAR DETECTION · AUTO TPS CAPTURE · FT232RL LATENCY TIMER · VSS_RPM_RATIO**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **Gear detection** — `Gear` field (0=neutral/unknown, 1–5) calculated in
   `parse_rt_data()` from the `VS_KPH / (RPM/1000)` ratio compared against
   `GEAR_THRESHOLDS` for the stock XB12X transmission. Requires RPM>500 and
@@ -1044,7 +1161,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   The real field in the JSON is `"reason"`, not `"close_reason"`. Fixed with fallback:  
   `summary.get("reason", summary.get("close_reason", ""))`.
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **Date and duration in chart selector** — each ride in the dropdown shows
   `YYMMDDHHMM · Xmin · N samples`.
 
@@ -1080,7 +1197,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.13.0] — 2026-03-10
 **RIDE ERROR LOG — STRUCTURED ERROR RECORDING**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **`RideErrorLog`** — new class that records communication error events per ride.  
   File `ride_NNN_errorlog.json` is created only if errors occurred.
   Clean ride = no file = immediate diagnosis.
@@ -1115,7 +1232,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.12.0] — 2026-03-10
 **VE HEATMAP · ACTIVE RIDE BANNER · STATUS INDICATOR**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **VE Heatmap** in VE tab — 4 real EEPROM maps: Fuel Front/Rear, Spark Front/Rear.
   RPM and TPS axes, blue→red color scale by value. Active cell highlighted in real time.
 - **Active ride banner** in Sessions tab with timer and "View Chart" button.
@@ -1126,7 +1243,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 ## [v1.11.2] — 2026-03-10
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **Battery chart** — `chartBatt`, height 70px. Auto Y axis from ride min/max ±0.3V.
   12.5V reference line.
 - **WUE in AFV chart** — `WUE` added to the corrections chart as a dashed orange series.
@@ -1158,7 +1275,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.11.0] — 2026-03-09
 **SESSIONS REDESIGN · RIDE NOTES · USAGE TRACKER**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **"Sessions" tab** (formerly "Rides") — rides grouped by session/checksum,
   collapsible, sorted most recent first. `[View]` `[Chart]` `[📝]` buttons per ride.
 - **Notes modal** — textarea per ride (`ride_NNN_notes.txt`). Auto-opens when
@@ -1180,7 +1297,7 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ## [v1.10.1] — 2026-03-08
 **WiFi NETWORK MANAGEMENT · FIX DURATION_S**
 
-### Added
+### Added- ANL12: added /tuning_report HTTP endpoint — reads tuning_report_{session}.json from the session directory and returns it as JSON- ANL7: added health_score (0-100) to ride summary JSON — computed from warmup (40pts), valid data ratio (30pts), and AFV proximity to 100 (30pts)
 - **Networks tab** — WiFi scan, connect/forget networks, hotspot/WiFi switch from the dashboard.
 
 ### Fixed

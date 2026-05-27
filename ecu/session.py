@@ -197,6 +197,23 @@ class SessionManager:
                     "done_cells": done, "total_cells": len(matching),
                     "pct": round(pct, 1)
                 })
+            total_s = sum(c.get("seconds", 0) for c in cells.values())
+            total_valid_s = sum(c.get("valid_seconds", 0) for c in cells.values())
+            any_warm = any(
+                c.get("clt_avg") is not None and c.get("clt_avg") >= 70
+                for c in cells.values()
+            )
+            # Health score 0-100 (40% warmup, 30% data quality, 30% AFV health)
+            warm_factor = 40 if any_warm else 0
+            quality_ratio = (total_valid_s or 0) / total_s if total_s > 0 else 0
+            quality_factor = round(min(quality_ratio, 1.0) * 30)
+            afv_list = [c["afv_avg"] for c in cells.values() if c.get("afv_avg") is not None]
+            if afv_list:
+                avg_afv = sum(afv_list) / len(afv_list)
+                afv_factor = round(max(0, 30 - abs(avg_afv - 100) * 1.5))
+            else:
+                afv_factor = 0
+            health_score = warm_factor + quality_factor + afv_factor
             summary = {
                 "ride_num":   self.current_ride_num,
                 "session":    self.current_checksum,
@@ -207,6 +224,8 @@ class SessionManager:
                 "closed_utc": datetime.now(timezone.utc).isoformat(),
                 "reason":     reason,
                 "cells":      cells,
+                "valid_for_tuning": any_warm and total_valid_s >= 180,
+                "health_score": health_score,
                 "objectives": objectives_out,
                 "dtc_events": dtc_log or [],
             }
@@ -243,7 +262,8 @@ class SessionManager:
             try:
                 with open(report_path) as f:
                     report = json.load(f)
-            except Exception:
+            except Exception as e:
+                self.logger.debug(f"Corrupted tuning report JSON: {e}")
                 report = {}
         else:
             report = {}
@@ -319,6 +339,7 @@ class SessionManager:
                 "valid_ego_avg": v_ego,
                 "clt_avg":       clt_avg,
                 "afv_avg":       afv_avg,
+                    "o2_adc_avg":     round(v["o2_adc_sum"] / n, 1) if n else None,
                 "inv_reasons":   a["inv_reasons"],
                 "suggestion":    suggestion,
             }
@@ -339,8 +360,8 @@ class SessionManager:
             try:
                 with open(eeprom_path) as f:
                     eeprom_snapshot = json.load(f)
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.debug(f"Corrupted eeprom_decoded.json: {e}")
 
         report = {
             "generated_utc":  summary.get("closed_utc", ""),
@@ -348,7 +369,6 @@ class SessionManager:
             "rides_included":  sorted(rides_included),
             "agg_cells":       agg,
             "global": {
-                "afv_avg":               afv_global,
                 "afv_action":            afv_action,
                 "cells_total":           len(cells_out),
                 "cells_conf_ok":         sum(1 for v in cells_out.values() if v["confidence"] >= 0.3),
@@ -412,7 +432,8 @@ class SessionManager:
                     if ve_old is not None:
                         fuel_front[li][ri] = max(10, min(250, round(ve_old * sug["factor"])))
                         applied += 1
-            except Exception:
+            except Exception as e:
+                self.logger.debug(f"MSQ gen: skip iteration ({e})")
                 continue
         if applied == 0:
             self.logger.debug("MSQ gen: sin sugerencias que aplicar")
@@ -624,11 +645,12 @@ class SessionManager:
                             c["clt_sum"]+=clt*weight; c["wue_sum"]+=wue*weight; c["afv_sum"]+=afv*weight
                             if valid: c["valid_seconds"]+=dt*weight; c["valid_ego_sum"]+=ego*weight; c["valid_count"]+=weight
                             if inv: c["inv_reasons"][inv]=c["inv_reasons"].get(inv,0)+weight
-                    except Exception: pass
+                    except Exception as e:
+                        self.logger.debug(f"Agg cell: skipped ({e})")
         cells_out = {}
         for k,v in cells.items():
             n=v["count"]; vn=v["valid_count"]
-            cells_out[k]={"seconds":round(v["seconds"],1),"ego_avg":round(v["ego_sum"]/n,1) if n else 100.0,"valid_seconds":round(v["valid_seconds"],1),"valid_ego_avg":round(v["valid_ego_sum"]/vn,1) if vn else None,"confidence":round(min(1.0,v["valid_seconds"]/10.0),2),"clt_avg":round(v["clt_sum"]/n,1) if n else None,"wue_avg":round(v["wue_sum"]/n,1) if n else None,"afv_avg":round(v["afv_sum"]/n,1) if n else None,"inv_reasons":dict(v["inv_reasons"])}
+            cells_out[k]={"seconds":round(v["seconds"],1),"ego_avg":round(v["ego_sum"]/n,1) if n else 100.0,"valid_seconds":round(v["valid_seconds"],1),"valid_ego_avg":round(v["valid_ego_sum"]/vn,1) if vn else None,"confidence":round(min(1.0,v["valid_seconds"]/10.0),2),"clt_avg":round(v["clt_sum"]/n,1) if n else None,"wue_avg":round(v["wue_sum"]/n,1) if n else None,"afv_avg":round(v["afv_sum"]/n,1) if n else None,"inv_reasons":dict(v["inv_reasons"]),"o2_adc_avg":round(v["o2_adc_sum"]/n,1)if n else None}
         summary={"ride_num":ride_num,"session":checksum,"samples":total_samples,"parts":len(csv_files),"duration_s":round(last_elapsed,1),"opened_utc":first_ts or "","closed_utc":last_ts or "","reason":"power_loss_recovered","cells":cells_out,"objectives":[],"dtc_events":[]}
         sfile=sdir/f"ride_{checksum}_{ride_num:03d}_summary.json"
         tmp=sfile.with_suffix(".tmp")
@@ -693,7 +715,7 @@ class CellTracker:
         return {
             "seconds": 0.0, "ego_sum": 0.0, "count": 0.0,
             "valid_seconds": 0.0, "valid_ego_sum": 0.0, "valid_count": 0.0,
-            "ego_iir": None,
+            "ego_iir": None, "o2_adc_sum": 0.0,
             "clt_sum": 0.0, "wue_sum": 0.0, "afv_sum": 0.0,
             "inv_reasons": {},
             "flavor_counts": {"SWEET": 0.0, "TIPIN": 0.0, "TIPOUT": 0.0, "WOT": 0.0, "BITTER": 0.0},
@@ -737,6 +759,7 @@ class CellTracker:
         wue  = data.get("WUE",  100) or 100
         afv  = data.get("AFV",  100) or 100
         tps  = data.get("TPS_pct", 0) or 0
+        o2   = data.get("O2_ADC",  0) or 0
         if rpm < 300:
             with self._lock:
                 self.active = None
@@ -759,6 +782,7 @@ class CellTracker:
                 c["clt_sum"]  += clt * weight
                 c["wue_sum"]  += wue * weight
                 c["afv_sum"]  += afv * weight
+                c["o2_adc_sum"] += o2 * weight
                 c["flavor_counts"][flavor] = c["flavor_counts"].get(flavor, 0.0) + self._dt * weight
                 if valid:
                     c["valid_seconds"] += self._dt * weight
@@ -803,6 +827,7 @@ class CellTracker:
                     "clt_avg":        clt_a,
                     "wue_avg":        wue_a,
                     "afv_avg":        afv_a,
+                    "o2_adc_avg":     round(v["o2_adc_sum"] / n, 1) if n else None,
                     "inv_reasons":    dict(v["inv_reasons"]),
                 "flavor_counts":  {f: round(s, 1) for f, s in v.get("flavor_counts", {}).items()},
                 }

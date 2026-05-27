@@ -72,6 +72,11 @@ function egoColor(e) {
   if(e<105)return'rgba(50,200,50,0.8)';if(e<110)return'rgba(50,150,255,0.85)';
   return'rgba(80,80,255,0.9)';
 }
+function confColor(v) {
+  if(v<=0)return'rgba(100,100,100,0.5)';if(v<0.3)return'rgba(255,50,50,0.8)';
+  if(v<0.6)return'rgba(255,160,50,0.85)';if(v<0.8)return'rgba(50,150,255,0.85)';
+  return'rgba(50,200,50,0.9)';
+}
 function pctColor(p) {
   let r,g,b;
   if(p<=50){const t=p/50;r=231;g=Math.round(76+120*t);b=60;}
@@ -101,18 +106,25 @@ function renderCobertLegend() {
       +'<div class="leg"><div class="leg-dot c3"></div>5-10s</div>'
       +'<div class="leg"><div class="leg-dot c4"></div>&gt;10s</div>'
       +'<div class="leg"><div class="leg-dot ca"></div>Activa</div>';
+  } else if (m === 'confidence') {
+    el.innerHTML = '<div class="leg"><div class="leg-dot" style="background:rgba(100,100,100,0.5)"></div>0%</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(255,50,50,0.8)"></div><30%</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(255,160,50,0.85)"></div>30-60%</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(50,150,255,0.85)"></div>60-80%</div>'
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(50,200,50,0.9)"></div>>80%</div>';
+  } else if (m === 'o2_adc') {
+    el.innerHTML = '<div class="leg" style="color:var(--dim)">O2 ADC</div>';
   } else if (m === 'ego') {
-    el.innerHTML = '<div class="leg"><div class="leg-dot" style="background:rgba(255,50,50,.9)"></div>&lt;90</div>'
+    el.innerHTML = '<div class="leg"><div class="leg-dot" style="background:rgba(255,50,50,.9)"></div><90</div>'
       +'<div class="leg"><div class="leg-dot" style="background:rgba(255,160,50,.85)"></div>90-95</div>'
       +'<div class="leg"><div class="leg-dot" style="background:rgba(50,200,50,.8)"></div>95-105</div>'
       +'<div class="leg"><div class="leg-dot" style="background:rgba(50,150,255,.85)"></div>105-110</div>'
-      +'<div class="leg"><div class="leg-dot" style="background:rgba(80,80,255,.9)"></div>&gt;110</div>';
+      +'<div class="leg"><div class="leg-dot" style="background:rgba(80,80,255,.9)"></div>>110</div>';
   } else {
     const tgt = (_cobertData&&_cobertData.targets&&_cobertData.targets[m]) || '?';
     el.innerHTML = '<div class="leg" style="color:var(--dim)">'+m+' target: '+tgt+'s &middot; conf&ge;80% para converger</div>';
   }
 }
-
 function renderCobertGrid(d) {
   const cells = d.cells || {}, ac = d.active_cell || null, m = _cobertMode;
   let populated = 0;
@@ -128,6 +140,18 @@ function renderCobertGrid(d) {
         if (s > 0) populated++;
         bg = k===ac ? 'ca' : s<=0?'c0':s<2?'c1':s<5?'c2':s<10?'c3':'c4';
         txt = s > 0 ? (s<10?s.toFixed(1):Math.round(s))+'s' : '';
+      } else if (m === 'confidence') {
+        const cf = c.confidence;
+        if (c.seconds > 0 && cf != null) {
+          populated++;
+          bg = 'background:' + confColor(cf); txt = (cf*100).toFixed(0) + '%'; isSt = true;
+        }
+      } else if (m === 'o2_adc') {
+        const o2 = c.o2_adc_avg;
+        if (c.seconds > 0 && o2 != null) {
+          populated++;
+          bg = 'background:' + egoColor(o2/5*100); txt = o2.toFixed(2); isSt = true;
+        }
       } else if (m === 'ego') {
         const e = c.ego_avg;
         if (c.seconds > 0 && e != null) {
@@ -974,7 +998,7 @@ async function loadSessions(){
         const dur=r.duration_s?Math.round(r.duration_s)+'s':'--';
         const dtcBadge=(r.dtc_events&&r.dtc_events.length)?`<span style="color:var(--accent);font-size:9px">⚠${r.dtc_events.length}</span>`:'';
         const noteBadge=r.has_note?'<span style="color:#7df;font-size:9px">📝</span>':'';
-        const errBadge=r.has_errorlog?`<span style="color:#f90;font-size:9px" title="${r.errorlog_summary||'errores'}">🔴${r.errorlog_events||''}</span>`:'';
+const errBadge=r.has_errorlog?`<span style="color:#f90;font-size:9px;cursor:pointer;text-decoration:underline dotted rgba(255,153,0,0.4)" title="${r.errorlog_summary||'errores'} — clic para ver" onclick="event.stopPropagation();openErrorLog('${sk}',${r.ride_num})">⚠️${r.errorlog_events||''}</span>`:'';
         const closeR=r.close_reason?` · ${r.close_reason}`:'';
         html+=`<div class="ride-item" style="gap:4px;opacity:${live?0.5:1};pointer-events:${live?'none':'auto'}">
           <div style="flex:1;min-width:0">
@@ -2054,3 +2078,62 @@ async function gitPull() {
 // cargar cal al arrancar (no solo al abrir tab)
 document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); setInterval(pollCobertGrid, 1000); });
 
+
+// ── Error Log Viewer ──
+function openErrorLog(session,ride_num){
+  document.getElementById('errLogModalTitle').textContent=`ERROR LOG — ${session} ride_${String(ride_num).padStart(3,'0')}`;
+  document.getElementById('errLogContent').innerHTML='Cargando...';
+  document.getElementById('errorLogModal').style.display='flex';
+  fetch(`/errorlog/${session}/${String(ride_num).padStart(3,'0')}?t=${Date.now()}`)
+    .then(r=>r.json()).then(d=>{
+      if(!d.events || d.events.length===0){
+        document.getElementById('errLogContent').innerHTML='<div style="color:var(--dim);padding:12px">No se encontraron eventos de error para este ride.</div>';
+        return;
+      }
+      // Summary table
+      const sumKeys=Object.keys(d.summary).filter(k=>k!=='total_events'&&d.summary[k]>0);
+      let html='<div style="margin-bottom:10px;background:#111;border:1px solid var(--border);border-radius:3px;padding:8px">';
+      html+='<div style="color:var(--dim);font-size:8px;letter-spacing:.1em;margin-bottom:4px">RESUMEN</div>';
+      html+='<table style="width:100%;border-collapse:collapse">';
+      for(let i=0;i<sumKeys.length;i++){
+        const k=sumKeys[i];
+        const label=k.replace(/_/g,' ');
+        html+=`<tr><td style="padding:1px 4px;color:#999">${label}</td><td style="padding:1px 4px;text-align:right;color:#f90">${d.summary[k]}</td></tr>`;
+      }
+      html+=`<tr><td style="padding:1px 4px;color:#999;border-top:1px solid var(--border)">total eventos</td><td style="padding:1px 4px;text-align:right;color:#fff;border-top:1px solid var(--border)">${d.events.length}</td></tr>`;
+      html+='</table></div>';
+
+      // Events list
+      html+='<div style="color:var(--dim);font-size:8px;letter-spacing:.1em;margin-bottom:4px">EVENTOS</div>';
+      for(let i=0;i<d.events.length;i++){
+        const ev=d.events[i];
+        const icon=ev.type==='reconnect'?'⚡':'⏱';
+        let ctxHtml='';
+        if(ev.ctx){
+          const parts=[];
+          if(ev.ctx.rpm!==undefined) parts.push('RPM: '+ev.ctx.rpm);
+          if(ev.ctx.clt!==undefined) parts.push('CLT: '+ev.ctx.clt+'°');
+          if(ev.ctx.tps!==undefined) parts.push('TPS: '+ev.ctx.tps+'%');
+          if(ev.ctx.vss!==undefined) parts.push('VSS: '+ev.ctx.vss);
+          if(ev.ctx.batt!==undefined) parts.push('BATT: '+ev.ctx.batt.toFixed(1)+'V');
+          if(ev.ctx.ego!==undefined) parts.push('EGO: '+ev.ctx.ego.toFixed(1));
+          if(ev.ctx.afv!==undefined) parts.push('AFV: '+ev.ctx.afv.toFixed(2));
+          if(parts.length) ctxHtml='<div style="color:#888;font-size:9px;padding-left:4px">'+parts.join('  ')+'</div>';
+        }
+        let extra='';
+        if(ev.lost_s) extra+=' <span style="color:#f66">perdida '+ev.lost_s.toFixed(1)+'s</span>';
+        if(ev.trigger) extra+=' <span style="color:#6af">trigger: '+ev.trigger+'</span>';
+        const timeStr=Math.floor(ev.t/60)+':'+String(Math.floor(ev.t%60)).padStart(2,'0');
+        html+=`<div style="padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)">`;
+        html+=`<div>${icon} <span style="color:#aaa">t=${timeStr}</span> <span style="color:${ev.type==='reconnect'?'#6af':'#f90'}">${ev.type}</span>${extra}</div>`;
+        html+=ctxHtml;
+        html+=`</div>`;
+      }
+      document.getElementById('errLogContent').innerHTML=html;
+    }).catch(function(e){
+      document.getElementById('errLogContent').innerHTML='<div style="color:#f66;padding:12px">Error al cargar: '+e.message+'</div>';
+    });
+}
+function closeErrorLog(){
+  document.getElementById('errorLogModal').style.display='none';
+}

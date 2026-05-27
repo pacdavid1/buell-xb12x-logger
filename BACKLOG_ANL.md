@@ -42,22 +42,6 @@ Debería exportarse directo desde el dashboard como JSON o CSV.
 - New endpoint en web/server.py
 - Matriz 13 RPM × 12 Load bins — mismos ejes que EEPROM
 
----
-
-**BACKLOG-ANL4** `CLOSED` — hoy
-Tuning report incremental automático
-
-### Done
-- analyze_session.py — script standalone para procesar todos los CSVs de una sesión
-- _update_tuning_report() en session.py — se ejecuta al cerrar cada ride
-- Solo procesa rides con formato nuevo (valid_seconds en cells) — rides viejos ignorados
-- Agrega agg_cells incrementalmente sin reprocesar CSVs
-- Calcula suggestion por celda: factor, error_pct, action (subir/bajar VE)
-- Target EGO diferenciado: WOT=95%, crucero=100%, parcial=100%
-- AFV global promedio con acción sugerida si fuera de rango 95-105%
-- Output: sessions/CHECKSUM/tuning_report_CHECKSUM.json
-
----
 
 **BACKLOG-ANL5** `OPEN`
 Tab de Tuning en dashboard

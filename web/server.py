@@ -86,6 +86,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/coverage.json': self._handle_coverage_json,
             '/rides': self._handle_rides,
             '/suggested_msq': self._handle_suggested_msq,
+            '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
             '/eeprom': self._handle_eeprom,
             '/wifi/saved': self._handle_wifi_saved,
@@ -108,6 +109,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._handle_ride(path)
             return
 
+        if path.startswith('/errorlog/viz'):
+            self._handle_errorlog_viz(path)
+            return
         if path.startswith('/errorlog/'):
             self._handle_errorlog(path)
             return
@@ -154,13 +158,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self._json({"error": "unknown endpoint"}, 404)
 
     def _handle_static(self, path=None):
-        net  = self.server_instance.network
         import mimetypes
         path = self.path.lstrip("/")
-        fpath = os.path.join(os.path.dirname(__file__), path)
-        if os.path.isfile(fpath):
+        base = os.path.realpath(os.path.dirname(__file__))
+        fpath = os.path.realpath(os.path.join(base, path))
+        if fpath.startswith(base) and os.path.isfile(fpath):
             mime, _ = mimetypes.guess_type(fpath)
-            body = open(fpath, "rb").read()
+            with open(fpath, "rb") as f:
+                body = f.read()
             self.send_response(200)
             self.send_header("Content-Type", mime or "application/octet-stream")
             self.send_header("Content-Length", str(len(body)))
@@ -175,7 +180,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
 
     def _handle_tuner_sessions(self, path=None):
-        net  = self.server_instance.network
         sessions = []
         for d in self.server_instance.buell_dir.glob('sessions/*/session_metadata.json'):
             try:
@@ -196,7 +200,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_tuner_maps(self, path=None):
-        net  = self.server_instance.network
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         sess = params.get('session', [''])[0]
         if not sess: self._json({'error': 'Falta session'}, 400); return
@@ -209,7 +212,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_tuner_merge(self, path=None):
-        net  = self.server_instance.network
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         sa = params.get('a', [''])[0]
         sb = params.get('b', [''])[0]
@@ -223,7 +225,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_sessions_vs(self, path=None):
-        net  = self.server_instance.network
         try:
             f = Path(__file__).parent / 'templates' / 'sessions_vs.html'
             self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
@@ -232,7 +233,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_sessions_vs_compare(self, path=None):
-        net  = self.server_instance.network
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         sa = params.get('a', [''])[0]
         sb = params.get('b', [''])[0]
@@ -245,7 +245,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_tuner(self, path=None):
-        net  = self.server_instance.network
         try:
             tuner_file = Path(__file__).parent / 'templates' / 'tuner.html'
             if tuner_file.exists():
@@ -257,24 +256,51 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_index(self, path=None):
-        net  = self.server_instance.network
         self._html(self._load_html())
         return
 
     def _handle_live_json(self, path=None):
-        net  = self.server_instance.network
         self._json(self._get_live())
         return
 
     def _handle_coverage_json(self, path=None):
-        net  = self.server_instance.network
-        self._json(self.server_instance._get_coverage())
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        fmt = params.get("format", [None])[0]
+        report = self.server_instance._get_coverage()
+        if fmt == "csv":
+            import csv, io
+            cells = report.get("cells", {})
+            flavors = list(report.get("summary", {}).keys())
+            buf = io.StringIO()
+            w = csv.writer(buf)
+            header = ["cell", "seconds", "ego_avg", "confidence"]
+            for f in flavors:
+                header += [f + "_s", f + "_pct", f + "_done"]
+            w.writerow(header)
+            for key, cell in sorted(cells.items()):
+                row = [key, cell.get("seconds", 0), cell.get("ego_avg", 100),
+                       cell.get("confidence", 0)]
+                for f in flavors:
+                    fd = cell.get("flavors", {}).get(f, {})
+                    row += [fd.get("seconds", 0), fd.get("pct", 0),
+                            1 if fd.get("done") else 0]
+                w.writerow(row)
+            csv_out = buf.getvalue()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition", "attachment; filename=coverage.csv")
+            self.end_headers()
+            self.wfile.write(csv_out.encode("utf-8"))
+            return
+        self._json(report)
         return
 
     def _handle_coverage_targets(self, path=None):
-        net  = self.server_instance.network
         try:
             body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            if not isinstance(body, dict):
+                self._json({'error': 'Expected JSON object'}, 400)
+                return
             self.server_instance._set_coverage_targets(body)
             self._json({'ok': True})
         except Exception as e:
@@ -282,7 +308,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_csv(self, path=None):
-        net  = self.server_instance.network
         fname = path.split('/csv/')[-1].split('?')[0]
         rides = self.server_instance._get_rides()
         fname_summary = fname.replace('.csv', '_summary.json')
@@ -322,7 +347,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_ride(self, path=None):
-        net  = self.server_instance.network
         fname = path.split('/ride/')[-1].split('?')[0]
         rides = self.server_instance._get_rides()
         fname_summary = fname.replace('.csv', '_summary.json')
@@ -345,12 +369,29 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({'error': str(e)}, 500)
         return
 
+    def _handle_errorlog_viz(self, path=None):
+        try:
+            f = Path(__file__).parent / 'templates' / 'errorlog_viz.html'
+            self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
     def _handle_errorlog(self, path=None):
-        net  = self.server_instance.network
-        fname = path.split('/errorlog/')[-1].split('?')[0]
+        parts = path.split('/errorlog/')[-1].split('?')[0].strip('/').split('/')
+        if len(parts) >= 2:
+            session = parts[0]
+            fname = parts[1]
+        else:
+            fname = parts[0] if parts else ''
+            session = None
         rides = self.server_instance._get_rides()
         ride_num = int(fname.replace('_errorlog.json','').replace('ride_','').replace('.csv','')) if fname else 0
-        match = next((r for r in rides if r.get('ride_num')==ride_num), None)
+        match = None
+        if session:
+            match = next((r for r in rides if r.get('ride_num')==ride_num and r.get('session')==session), None)
+        if not match:
+            match = next((r for r in rides if r.get('ride_num')==ride_num), None)
         if not match:
             self._json({'error': 'not found'}, 404)
             return
@@ -367,13 +408,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_rides(self, path=None):
-        net  = self.server_instance.network
         rides = self.server_instance._get_rides()
         self._json({"rides": rides})
         return
 
     def _handle_suggested_msq(self, path=None):
-        net  = self.server_instance.network
         cs = self.server_instance.session.current_checksum
         if not cs:
             self._json({"error": "sin sesion activa"}); return
@@ -389,7 +428,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_maps(self, path=None):
-        net  = self.server_instance.network
         # Soporte para pedir mapa de una sesion especifica: /maps?session=XXXX
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         req_session = params.get('session', [''])[0]
@@ -421,7 +459,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_eeprom(self, path=None):
-        net  = self.server_instance.network
         params = self.server_instance.eeprom_params
         if not params:
             try:
@@ -448,17 +485,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_wifi_saved(self, path=None):
-        net  = self.server_instance.network
         self._json({"saved": net.saved_wifi()})
         return
 
     def _handle_wifi_scan(self, path=None):
-        net  = self.server_instance.network
         self._json({"networks": net.scan_wifi()})
         return
 
     def _handle_wifi_status(self, path=None):
-        net  = self.server_instance.network
         self._json({
             "mode":          net.current_mode(),
             "ip":            net.get_ip(),
@@ -468,14 +502,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_wifi_redirect_url(self, path=None):
-        net  = self.server_instance.network
         action = self.path.split('action=')[-1] if 'action=' in self.path else ''
         url    = net.get_redirect_url(action)
         self._json({"url": url, "action": action})
         return
 
     def _handle_gps_fix(self, path=None):
-        net  = self.server_instance.network
         try:
             gps = self.server_instance.gps
             fix = gps.get_fix() if gps else None
@@ -485,7 +517,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_gps_track(self, path=None):
-        net  = self.server_instance.network
         try:
             params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             session_id = params.get('session', [''])[0]
@@ -522,7 +553,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         return
 
     def _handle_ride_note(self, path=None):
-        net  = self.server_instance.network
         try:
             params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
             session_id = params.get('session', [''])[0]
@@ -665,6 +695,49 @@ class DashboardHandler(BaseHTTPRequestHandler):
         }
 
 
+    def _handle_tuning_report(self, path=None):
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        fmt = params.get("format", [None])[0]
+        session = params.get("session", [None])[0]
+        if not session:
+            session = self.server_instance.session.current_checksum
+        if not session:
+            self._json({"error": "no session specified and no active session"})
+            return
+        report_path = self.server_instance.buell_dir / "sessions" / session / f"tuning_report_{session}.json"
+        if not report_path.exists():
+            self._json({"error": "no tuning report for this session"})
+            return
+        report = json.loads(report_path.read_text())
+        if fmt == "csv":
+            import csv, io
+            buf = io.StringIO()
+            w = csv.writer(buf)
+            w.writerow(["rpm", "load", "seconds", "count", "ego_sum", "clt_sum",
+                        "wue_sum", "afv_sum", "valid_seconds", "valid_ego_sum",
+                        "valid_count", "inv_reasons"])
+            for key, cell in sorted(report.get("agg_cells", {}).items()):
+                parts = key.split("_")
+                rpm = parts[0] if len(parts) == 2 else key
+                load = parts[1] if len(parts) == 2 else ""
+                inv_str = "; ".join(f"{k}:{v}" for k, v in cell.get("inv_reasons", {}).items())
+                w.writerow([rpm, load, cell.get("seconds", 0), cell.get("count", 0),
+                           cell.get("ego_sum", 0), cell.get("clt_sum", 0),
+                           cell.get("wue_sum", 0), cell.get("afv_sum", 0),
+                           cell.get("valid_seconds", 0), cell.get("valid_ego_sum", 0),
+                           cell.get("valid_count", 0), inv_str])
+            csv_out = buf.getvalue()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/csv; charset=utf-8")
+            self.send_header("Content-Disposition",
+                             f"attachment; filename=tuning_report_{session}.csv")
+            self.end_headers()
+            self.wfile.write(csv_out.encode("utf-8"))
+            return
+        self._json(report)
+        return
+
+
 class WebServer:
 
     # Targets de coverage por flavor (segundos validos requeridos)
@@ -698,6 +771,7 @@ class WebServer:
                 "seconds": c.get("seconds", 0.0),
                 "ego_avg": c.get("ego_avg", 100.0),
                 "confidence": conf,
+                "o2_adc_avg": c.get("o2_adc_avg", None),
                 "flavors": {},
             }
             for f in flavors:
@@ -742,6 +816,7 @@ class WebServer:
         self.ecu_identity     = {}   # {name, dbfile, ddfi, remark}
         self.cell_tracker     = None
         self._coverage_targets = dict(self.COVERAGE_TARGETS_DEFAULT)
+        self._data_lock = threading.RLock()
 
     def _get_rides(self):
         rides = []
@@ -774,6 +849,16 @@ class WebServer:
                             note_preview = note_path.read_text(encoding='utf-8').split('\n')[0][:60]
                         except Exception:
                             pass
+                    el_path = session_dir / f'ride_{ride_num:03d}_errorlog.json'
+                    has_errorlog = el_path.exists()
+                    errorlog_events = 0
+                    if has_errorlog:
+                        try:
+                            with open(el_path) as ef:
+                                el = json.load(ef)
+                            errorlog_events = el.get('summary', {}).get('total_events', len(el.get('events', [])))
+                        except Exception:
+                            pass
                     rides.append({
                         'session': session_dir.name,
                         'firmware': fw,
@@ -788,6 +873,8 @@ class WebServer:
                         'has_note': has_note,
                         'note_preview': note_preview,
                         'dtc_events': summary.get('dtc_events', []),
+                        'has_errorlog': has_errorlog,
+                        'errorlog_events': errorlog_events,
                     })
                 except Exception:
                     pass
@@ -961,7 +1048,7 @@ def _compare_sessions(buell_dir, sa, sb):
 
     def sf(v, d=0.0):
         try: return float(v) if v and str(v).strip() else d
-        except: return d
+        except (ValueError, TypeError): return d
 
     def load_meta(sid):
         mp = buell_dir / 'sessions' / sid / 'session_metadata.json'
@@ -975,7 +1062,8 @@ def _compare_sessions(buell_dir, sa, sb):
                 b = ep.read_bytes()
                 if len(b) >= 14:
                     meta['bike_serial'] = int.from_bytes(b[12:14], 'little')
-            except Exception: pass
+            except (OSError, TypeError):
+                logging.getLogger("WebServer").debug("load_meta: could not read serial from %s" % ep)
         return meta
 
     def load_csv(sid):
@@ -1010,7 +1098,9 @@ def _compare_sessions(buell_dir, sa, sb):
                         'fl_fc':   r.get('fl_fuel_cut','0').strip() in ('1','True','true'),
                         'fl_eng':  r.get('fl_engine_run','1').strip() in ('1','True','true'),
                     })
-                except: continue
+                except Exception as e:
+                    logging.getLogger("WebServer").debug("csv row skip: %s" % e)
+                    continue
         return rows
 
     def derivatives(rows):
@@ -1195,4 +1285,4 @@ def _compare_sessions(buell_dir, sa, sb):
         'common': len(common),
         'delta': delta,
     }
-
+    

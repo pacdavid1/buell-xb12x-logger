@@ -51,9 +51,9 @@ class DDFI2Connection:
         self.logger = logging.getLogger("DDFI2")
 
     def connect(self):
-        deadline = time.time() + 15.0
+        deadline = time.monotonic() + 15.0
         while not os.path.exists(self.port):
-            if time.time() > deadline:
+            if time.monotonic() > deadline:
                 raise serial.SerialException(f"{self.port} no aparece")
             time.sleep(0.5)
         self.ser = serial.Serial(
@@ -147,9 +147,9 @@ class DDFI2Connection:
 
     def _read_exact(self, n, timeout_s=1.0):
         buf = bytearray()
-        deadline = time.time() + timeout_s
+        deadline = time.monotonic() + timeout_s
         while len(buf) < n:
-            rem = deadline - time.time()
+            rem = deadline - time.monotonic()
             if rem <= 0:
                 raise TimeoutError(f"{len(buf)}/{n}")
             self.ser.timeout = min(rem, 0.1)
@@ -185,8 +185,8 @@ class DDFI2Connection:
 
     def _sync_to_soh(self, timeout_s=0.5):
         """Descarta basura del buffer hasta encontrar SOH (0x01)."""
-        deadline = time.time() + timeout_s
-        while time.time() < deadline:
+        deadline = time.monotonic() + timeout_s
+        while time.monotonic() < deadline:
             self.ser.timeout = 0.05
             b = self.ser.read(1)
             if b and b[0] == SOH:
