@@ -25,6 +25,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.38] — 2026-05-26
+### Fixed
+- web/server.py: fix path traversal in _handle_static — sanitize with os.path.realpath() + startswith(base) guard (also fixes FD leak with `with open`)
+- main.py: add _check_threads() watchdog — restart dead ecu-rt/sysmon daemon threads from heartbeat loop
+- web/server.py + main.py: add threading.RLock (_data_lock) for serial_stats read-modify-write and ecu_live writes
+### AI
+- DeepSeek V4 Flash, DeepSeek
 ## [v2.6.37] — 2026-05-26
 ### Fixed
 - ecu/session.py: fix variable scope bug in _rebuild_summary — a["o2_adc_sum"] → v["o2_adc_sum"] (NameError when recovering orphaned rides)

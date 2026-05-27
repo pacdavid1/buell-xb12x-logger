@@ -160,10 +160,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def _handle_static(self, path=None):
         import mimetypes
         path = self.path.lstrip("/")
-        fpath = os.path.join(os.path.dirname(__file__), path)
-        if os.path.isfile(fpath):
+        base = os.path.realpath(os.path.dirname(__file__))
+        fpath = os.path.realpath(os.path.join(base, path))
+        if fpath.startswith(base) and os.path.isfile(fpath):
             mime, _ = mimetypes.guess_type(fpath)
-            body = open(fpath, "rb").read()
+            with open(fpath, "rb") as f:
+                body = f.read()
             self.send_response(200)
             self.send_header("Content-Type", mime or "application/octet-stream")
             self.send_header("Content-Length", str(len(body)))
@@ -811,6 +813,7 @@ class WebServer:
         self.ecu_identity     = {}   # {name, dbfile, ddfi, remark}
         self.cell_tracker     = None
         self._coverage_targets = dict(self.COVERAGE_TARGETS_DEFAULT)
+        self._data_lock = threading.RLock()
 
     def _get_rides(self):
         rides = []

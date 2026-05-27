@@ -194,9 +194,10 @@ class BuellLogger:
                     stats['baro_hPa']   = None
                     stats['baro_temp_c']= None
             # Merge — no reemplazar!
-            existing = self.web.serial_stats if self.web.serial_stats else {}
-            existing.update(stats)
-            self.web.serial_stats = existing
+            with self.web._data_lock:
+                existing = self.web.serial_stats if self.web.serial_stats else {}
+                existing.update(stats)
+                self.web.serial_stats = existing
 
             # GPS watchdog
             if not self.gps.is_alive():
@@ -328,8 +329,9 @@ class BuellLogger:
             ecu_lost_since = None
             last_lost_interval = -1
 
-            self.web.ecu_live = data
-            self.web.ecu_connected = True
+            with self.web._data_lock:
+                self.web.ecu_live = data
+                self.web.ecu_connected = True
             self.web.ecu_lost_s = 0.0
             self.web.ride_active = ride_active
             self.web.elapsed_s = elapsed_s
@@ -393,9 +395,10 @@ class BuellLogger:
                 buf_pct = round(in_w / 384.0 * 100, 1)
                 
                 # Aquí solo actualizamos BPS y Buffer, el resto viene de sysmon
-                current_stats = self.web.serial_stats or {}
-                current_stats.update({'bps': bps, 'pct': pct, 'tx': SERIAL_TX_BYTES*8, 'rx': SERIAL_RX_BYTES*8, 'buf_in': in_w, 'buf_pct': buf_pct})
-                self.web.serial_stats = current_stats
+                with self.web._data_lock:
+                    current_stats = self.web.serial_stats or {}
+                    current_stats.update({'bps': bps, 'pct': pct, 'tx': SERIAL_TX_BYTES*8, 'rx': SERIAL_RX_BYTES*8, 'buf_in': in_w, 'buf_pct': buf_pct})
+                    self.web.serial_stats = current_stats
                 
                 _serial_bytes = 0
                 _serial_window = _now
@@ -462,6 +465,7 @@ class BuellLogger:
         last_status = 0
         while self._running:
             try:
+                self._check_threads()
                 time.sleep(MAIN_LOOP_HEARTBEAT)
                 now = time.time()
                 if now - last_status > 30:
@@ -478,6 +482,18 @@ class BuellLogger:
         
         self.shutdown()
     
+    def _check_threads(self):
+        """Watchdog: restart dead background threads."""
+        for name, thread in [(ecu-rt, self._ecu_thread), (sysmon, self._sysmon_thread)]:
+            if not thread.is_alive():
+                self.logger.critical("Thread %s is dead - restarting", name)
+                if name == "ecu-rt":
+                    self._ecu_thread = threading.Thread(target=self._ecu_loop, daemon=True, name="ecu-rt")
+                    self._ecu_thread.start()
+                elif name == "sysmon":
+                    self._sysmon_thread = threading.Thread(target=self._sysmon_loop, daemon=True, name="sysmon")
+                    self._sysmon_thread.start()
+
     def shutdown(self):
         """Limpieza al salir."""
         self.logger.info("Deteniendo servicios...")
