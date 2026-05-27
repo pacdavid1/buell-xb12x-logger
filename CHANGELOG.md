@@ -25,6 +25,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.35] - 2026-05-26
+
+### Fixed
+- Bug #6: Added 5-second cooldown to FIFO flush with getattr/monotonic — prevents rapid repeated buffer flushes when serial port is erratic
+- Optimized: Inlined time.monotonic() calls and replaced hasattr with getattr for cleaner cooldown check
+
 ## [v2.6.34] - 2026-05-26
 
 ### Fixed

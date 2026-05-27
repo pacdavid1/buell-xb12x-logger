@@ -353,8 +353,11 @@ class BuellLogger:
             if ride_active:
                 data['buf_in'] = self.ecu.ser.in_waiting if self.ecu.ser and self.ecu.ser.is_open else 0
                 if data['buf_in'] > (384 * (MAX_FIFO_PCT / 100)) and self.ecu.ser and self.ecu.ser.is_open:
-                    self.ecu.ser.reset_input_buffer()
-                    self.logger.warning(f"AUTO-FLUSH FIFO buf_in={data['buf_in']}b >{MAX_FIFO_PCT}% — flushed")
+                    now = time.monotonic()
+                    if not hasattr(self, '_last_fifo_flush') or now - self._last_fifo_flush > 5:
+                        self.ecu.ser.reset_input_buffer()
+                        self._last_fifo_flush = now
+                        self.logger.warning(f"AUTO-FLUSH FIFO buf_in={data['buf_in']}b >{MAX_FIFO_PCT}% — flushed")
                 
                 # Inyectar stats del sistema (que ya calculó el hilo _sysmon_loop)
                 ss = self.web.serial_stats or {}
