@@ -25,6 +25,11 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.37] — 2026-05-26
+### Fixed
+- ecu/session.py: fix variable scope bug in _rebuild_summary — a["o2_adc_sum"] → v["o2_adc_sum"] (NameError when recovering orphaned rides)
+### AI
+- DeepSeek V4 Flash, DeepSeek
 ## [v2.6.36] - 2026-05-26
 
 ### Fixed

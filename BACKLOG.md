@@ -99,3 +99,15 @@
 ### 📋 Planned Features
 - [ ] **Version tracking per ride** — Store `logger_version` in ride_summary.json at ride close, show in UI, correlate error rates with code versions.
 - [ ] **GLM-5.1 API integration** — "AI Analyze" button in errorlog visualizer that sends ride data to Zhipu AI's GLM-5.1 for pattern analysis.
+
+### Priority High (Confirmed Bugs)
+- **#12 — Path traversal in _handle_static** (`web/server.py:162-163`): `lstrip("/")` + `os.path.join` allows `..` traversal to read files outside the web root.
+- **#13 — Daemon threads without watchdog** (`main.py:446-449`): `_ecu_thread` and `_sysmon_thread` are `daemon=True`. If they die, the process continues but without ECU data or system monitoring. No recovery mechanism.
+
+### Priority Medium (Fragile Patterns)
+- **#14 — No threading locks on shared state** (`main.py`, `server.py`): `serial_stats`, `ecu_live`, `gps`, `eeprom_maps` accessed from HTTP threads + ECU loop + sysmon loop without `threading.Lock` protection.
+- **#15 — File descriptor leak in _handle_static** (`web/server.py:166`): `open(fpath, "rb").read()` without `with` statement — file handle remains open until garbage collection.
+- **#16 — Missing JSON schema validation** (`web/server.py:298`): `_handle_coverage_targets` parses JSON without validation — `KeyError` on malformed input.
+- **#17 — network_state.json race condition** (`network/manager.py:92-108`): `_save_state` reads/writes without lock — file corruption on concurrent WiFi/hotspot state switches.
+
+### Priority Low (Improvements)

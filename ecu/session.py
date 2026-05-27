@@ -339,7 +339,7 @@ class SessionManager:
                 "valid_ego_avg": v_ego,
                 "clt_avg":       clt_avg,
                 "afv_avg":       afv_avg,
-                    "o2_adc_avg":     round(a["o2_adc_sum"] / n, 1) if n else None,
+                    "o2_adc_avg":     round(v["o2_adc_sum"] / n, 1) if n else None,
                 "inv_reasons":   a["inv_reasons"],
                 "suggestion":    suggestion,
             }
@@ -650,7 +650,7 @@ class SessionManager:
         cells_out = {}
         for k,v in cells.items():
             n=v["count"]; vn=v["valid_count"]
-            cells_out[k]={"seconds":round(v["seconds"],1),"ego_avg":round(v["ego_sum"]/n,1) if n else 100.0,"valid_seconds":round(v["valid_seconds"],1),"valid_ego_avg":round(v["valid_ego_sum"]/vn,1) if vn else None,"confidence":round(min(1.0,v["valid_seconds"]/10.0),2),"clt_avg":round(v["clt_sum"]/n,1) if n else None,"wue_avg":round(v["wue_sum"]/n,1) if n else None,"afv_avg":round(v["afv_sum"]/n,1) if n else None,"inv_reasons":dict(v["inv_reasons"]),"o2_adc_avg":round(a["o2_adc_sum"]/n,1)if n else None}
+            cells_out[k]={"seconds":round(v["seconds"],1),"ego_avg":round(v["ego_sum"]/n,1) if n else 100.0,"valid_seconds":round(v["valid_seconds"],1),"valid_ego_avg":round(v["valid_ego_sum"]/vn,1) if vn else None,"confidence":round(min(1.0,v["valid_seconds"]/10.0),2),"clt_avg":round(v["clt_sum"]/n,1) if n else None,"wue_avg":round(v["wue_sum"]/n,1) if n else None,"afv_avg":round(v["afv_sum"]/n,1) if n else None,"inv_reasons":dict(v["inv_reasons"]),"o2_adc_avg":round(v["o2_adc_sum"]/n,1)if n else None}
         summary={"ride_num":ride_num,"session":checksum,"samples":total_samples,"parts":len(csv_files),"duration_s":round(last_elapsed,1),"opened_utc":first_ts or "","closed_utc":last_ts or "","reason":"power_loss_recovered","cells":cells_out,"objectives":[],"dtc_events":[]}
         sfile=sdir/f"ride_{checksum}_{ride_num:03d}_summary.json"
         tmp=sfile.with_suffix(".tmp")
@@ -827,7 +827,7 @@ class CellTracker:
                     "clt_avg":        clt_a,
                     "wue_avg":        wue_a,
                     "afv_avg":        afv_a,
-                    "o2_adc_avg":     round(a["o2_adc_sum"] / n, 1) if n else None,
+                    "o2_adc_avg":     round(v["o2_adc_sum"] / n, 1) if n else None,
                     "inv_reasons":    dict(v["inv_reasons"]),
                 "flavor_counts":  {f: round(s, 1) for f, s in v.get("flavor_counts", {}).items()},
                 }
