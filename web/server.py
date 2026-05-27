@@ -298,6 +298,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def _handle_coverage_targets(self, path=None):
         try:
             body = json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            if not isinstance(body, dict):
+                self._json({'error': 'Expected JSON object'}, 400)
+                return
             self.server_instance._set_coverage_targets(body)
             self._json({'ok': True})
         except Exception as e:

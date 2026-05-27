@@ -106,8 +106,4 @@
 
 ### Priority Medium (Fragile Patterns)
 - **#14 — No threading locks on shared state** (`main.py`, `server.py`): `serial_stats`, `ecu_live`, `gps`, `eeprom_maps` accessed from HTTP threads + ECU loop + sysmon loop without `threading.Lock` protection.
-- **#15 — File descriptor leak in _handle_static** (`web/server.py:166`): `open(fpath, "rb").read()` without `with` statement — file handle remains open until garbage collection.
-- **#16 — Missing JSON schema validation** (`web/server.py:298`): `_handle_coverage_targets` parses JSON without validation — `KeyError` on malformed input.
-- **#17 — network_state.json race condition** (`network/manager.py:92-108`): `_save_state` reads/writes without lock — file corruption on concurrent WiFi/hotspot state switches.
-
 ### Priority Low (Improvements)

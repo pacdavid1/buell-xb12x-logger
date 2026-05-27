@@ -25,6 +25,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.39] — 2026-05-26
+### Fixed
+- web/server.py: add JSON type validation to _handle_coverage_targets — reject non-dict payloads with clear error message
+- network/manager.py: add threading.Lock to NetworkManager for _save_state and load_state (prevents network_state.json corruption on concurrent WiFi/hotspot switches)
+- web/server.py: _handle_static FD leak incidentally fixed in v2.6.38 (with open)
+### AI
+- DeepSeek V4 Flash, DeepSeek
 ## [v2.6.38] — 2026-05-26
 ### Fixed
 - web/server.py: fix path traversal in _handle_static — sanitize with os.path.realpath() + startswith(base) guard (also fixes FD leak with `with open`)
