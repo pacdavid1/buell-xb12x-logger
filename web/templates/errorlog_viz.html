@@ -173,7 +173,11 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:monospace;font-size:14px;min-h
       }
       sessions[r.session].rides.push(r);
     });
-    var sorted = Object.keys(sessions).sort();
+    var sorted = Object.keys(sessions).sort(function(a, b) {
+      var aMax = Math.max.apply(null, sessions[a].rides.map(function(r) { return new Date(r.opened_utc || 0).getTime(); }));
+      var bMax = Math.max.apply(null, sessions[b].rides.map(function(r) { return new Date(r.opened_utc || 0).getTime(); }));
+      return bMax - aMax;
+    });
     var html = '<option value="">Select session</option>';
     sorted.forEach(function(sk) {
       var s = sessions[sk];

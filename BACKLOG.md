@@ -75,3 +75,27 @@
 ## UX — Export / Download
 
 - [ ] **Session consolidated CSV download button**: add a download button per session in the rides list that fetches and downloads a single merged CSV of all rides in that session. Currently only individual ride CSVs are downloadable. Endpoint suggestion: `GET /session_csv?session=<checksum>` → streams all `ride_*.csv` files concatenated with a single header row.
+
+
+## CODE CLEANUP — Found during code review (2026-05-26)
+
+### 🔴 Priority High — Confirmed Bugs
+- [ ] **#1 — `o2_adc_avg` wrong variable scope** (`ecu/session.py:341`): Uses `v["o2_adc_sum"]` but `v` is from outer scope — should be `a["o2_adc_sum"]`. Causes NameError at runtime when generating tuning report.
+- [ ] **#2 — Infinite loop on serial port wait** (`ecu/connection.py:69`): `while not os.path.exists(self.port):` has no timeout. Process hangs forever if USB serial never appears.
+- [ ] **#3 — Heartbeat loop unprotected** (`main.py:460-471`): `while self._running:` body has no try/except wrapper. Thread dies silently if anything raises.
+
+### 🟡 Priority Medium — Fragile Patterns
+- [ ] **#4 — `time.time()` vulnerable to clock jumps** (`ecu/connection.py:197`): `while time.time() < deadline:` — if system clock jumps backward (NTP, DST), loop blocks indefinitely. Use `time.monotonic()`.
+- [ ] **#5 — Silent except: pass** (`ecu/session.py`): Multiple `except Exception` blocks log warnings but don't repair corrupted data. Swallows structural validation errors.
+- [ ] **#6 — Aggressive FIFO flush** (`main.py:355-357`): When serial buffer > 50%, flushes input. In erratic serial state, keeps flushing good data. Add cooldown or rate-limit.
+- [ ] **#7 — No CRC/magic byte validation** (`ecu/eeprom.py`): Decodes assuming valid dump. If EEPROM is corrupted, silently extracts garbage values.
+- [ ] **#8 — No type guard on quality_ratio** (`ecu/session.py:208`): `total_valid_s / total_s` — protected against div by zero but not against `None` values from data corruption.
+
+### 🟢 Priority Low — Improvements
+- [ ] **#9 — `_get_version()` reads CHANGELOG.md at every call** (`main.py:57-65`): Cache `LOGGER_VERSION` instead of re-reading file.
+- [ ] **#10 — Floating point drift in long sessions** (`ecu/session.py`): Cumulative sums of `seconds` and `ego_sum` use `round()` but drift over very long rides (>1h).
+- [ ] **#11 — Reconnect race condition** (`main.py:ecu_loop`): `ECU_RETRY_INTERVAL=5s` but serial port takes 1-2s to release. Retry fails because port is still busy. Add jitter or port availability check.
+
+### 📋 Planned Features
+- [ ] **Version tracking per ride** — Store `logger_version` in ride_summary.json at ride close, show in UI, correlate error rates with code versions.
+- [ ] **GLM-5.1 API integration** — "AI Analyze" button in errorlog visualizer that sends ride data to Zhipu AI's GLM-5.1 for pattern analysis.
