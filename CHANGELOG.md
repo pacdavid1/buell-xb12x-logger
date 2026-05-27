@@ -25,6 +25,11 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.34] - 2026-05-26
+
+### Fixed
+- Bug #8: Added (total_valid_s or 0) guard in quality_ratio calculation — prevents TypeError when total_valid_s is None due to data corruption
+
 ## [v2.6.33] - 2026-05-26
 
 ### Fixed

@@ -205,7 +205,7 @@ class SessionManager:
             )
             # Health score 0-100 (40% warmup, 30% data quality, 30% AFV health)
             warm_factor = 40 if any_warm else 0
-            quality_ratio = total_valid_s / total_s if total_s > 0 else 0
+            quality_ratio = (total_valid_s or 0) / total_s if total_s > 0 else 0
             quality_factor = round(min(quality_ratio, 1.0) * 30)
             afv_list = [c["afv_avg"] for c in cells.values() if c.get("afv_avg") is not None]
             if afv_list:
