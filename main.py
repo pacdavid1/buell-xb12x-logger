@@ -458,16 +458,20 @@ class BuellLogger:
         
         last_status = 0
         while self._running:
-            time.sleep(MAIN_LOOP_HEARTBEAT)
-            now = time.time()
-            if now - last_status > 30:
-                self.logger.info(f"Status: modo={self.network.current_mode()} ip={self.network.get_ip()}")
-                last_status = now
-            
-            if self.web.pending_shutdown:
-                self.logger.info("Shutdown solicitado desde web")
-                self._poweroff_requested = True
-                self._running = False
+            try:
+                time.sleep(MAIN_LOOP_HEARTBEAT)
+                now = time.time()
+                if now - last_status > 30:
+                    self.logger.info(f"Status: modo={self.network.current_mode()} ip={self.network.get_ip()}")
+                    last_status = now
+                
+                if self.web.pending_shutdown:
+                    self.logger.info("Shutdown solicitado desde web")
+                    self._poweroff_requested = True
+                    self._running = False
+            except Exception as e:
+                self.logger.error(f"Heartbeat loop error: {e}")
+                time.sleep(1)
         
         self.shutdown()
     

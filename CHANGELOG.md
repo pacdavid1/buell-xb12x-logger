@@ -25,6 +25,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.31] - 2026-05-26
+
+### Fixed
+- Bug #3: Heartbeat loop now wrapped in try/except — thread won't die silently
+- Fixed indentation in _sysmon_loop and _ecu_loop caused by collateral from sed (removed duplicate/empty `try:` lines)
+
 ## [v2.6.30] - 2026-05-26
 
 ### Fixed
