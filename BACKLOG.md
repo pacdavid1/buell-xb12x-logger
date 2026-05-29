@@ -58,6 +58,25 @@
 - Knock sensor: NO por ahora (ruido mecánico alto en Buell air-cooled, falsos positivos)
 - Spark sin knock: tunear por dACC (si avanzás spark y aceleración sube sin subir vibración, no hay knock)
 
+
+
+## UX — Grid Simplification (Cobertura)
+- [ ] Simplificar grid: eliminar modos EGO, O2 ADC, Confianza (no útiles con narrowband bloqueado a 100%)
+- [ ] Mantener solo: Segundos (cantidad de data) + SWEET + TIPIN + TIPOUT + WOT (calidad por condición)
+- [ ] Navegación: swipe left/right entre modos en lugar de botones
+- [ ] Dots indicadores de posición (carrusel) debajo del grid
+- [ ] Animación de transición suave entre modos
+
+## HARDWARE — Wideband Piggyback (AFR Target Controller)
+- [ ] Hardware: wideband O2 sensor (ej: Spartan 2, 14Point7) → Arduino/RPi ADC → leer AFR real
+- [ ] Lógica: comparar AFR real vs AFR objetivo (mapa por RPM/TPS)
+- [ ] Emular señal narrowband a la DDFI2: si AFR real == objetivo → mandar 14.7 (0.45V). Si real < objetivo (rica) → mandar voltaje que la DDFI2 interprete como rico. Si real > objetivo (pobre) → mandar voltaje que la DDFI2 interprete como pobre.
+- [ ] La DDFI2 corrige combustible vía EGO para llegar a 14.7 — pero el piggyback la engaña para que inyecte lo correcto
+- [ ] Target AFR map editable desde la web (VE-like, tabla RPM x TPS con AFR objetivo)
+- [ ] Modo "passthrough" para desactivar el piggyback y dejar la DDFI2 operar normal
+- [ ] El logger ya captura Accel_Corr, WUE, EGO_Corr — se puede loggear la señal del wideband como columna extra en CSV
+- [ ] Seguridad: limits de corrección máximos para evitar daño al motor si el WB falla
+
 ## CODE STANDARDS
 
 ### Workflow
@@ -81,18 +100,12 @@
 
 ### 🔴 Priority High — Confirmed Bugs
 - [x] **#1 — `o2_adc_avg` wrong variable scope** (`ecu/session.py:341`): Uses `v["o2_adc_sum"]` but `v` is from outer scope — should be `a["o2_adc_sum"]`. Causes NameError at runtime when generating tuning report.
-- [ ] **#2 — Infinite loop on serial port wait** (`ecu/connection.py:69`): `while not os.path.exists(self.port):` has no timeout. Process hangs forever if USB serial never appears.
-- [ ] **#3 — Heartbeat loop unprotected** (`main.py:460-471`): `while self._running:` body has no try/except wrapper. Thread dies silently if anything raises.
 
 ### 🟡 Priority Medium — Fragile Patterns
-- [ ] **#4 — `time.time()` vulnerable to clock jumps** (`ecu/connection.py:197`): `while time.time() < deadline:` — if system clock jumps backward (NTP, DST), loop blocks indefinitely. Use `time.monotonic()`.
 - [ ] **#5 — Silent except: pass** (`ecu/session.py`): Multiple `except Exception` blocks log warnings but don't repair corrupted data. Swallows structural validation errors.
-- [ ] **#6 — Aggressive FIFO flush** (`main.py:355-357`): When serial buffer > 50%, flushes input. In erratic serial state, keeps flushing good data. Add cooldown or rate-limit.
-- [ ] **#7 — No CRC/magic byte validation** (`ecu/eeprom.py`): Decodes assuming valid dump. If EEPROM is corrupted, silently extracts garbage values.
 - [ ] **#8 — No type guard on quality_ratio** (`ecu/session.py:208`): `total_valid_s / total_s` — protected against div by zero but not against `None` values from data corruption.
 
 ### 🟢 Priority Low — Improvements
-- [ ] **#9 — `_get_version()` reads CHANGELOG.md at every call** (`main.py:57-65`): Cache `LOGGER_VERSION` instead of re-reading file.
 - [ ] **#10 — Floating point drift in long sessions** (`ecu/session.py`): Cumulative sums of `seconds` and `ego_sum` use `round()` but drift over very long rides (>1h).
 - [ ] **#11 — Reconnect race condition** (`main.py:ecu_loop`): `ECU_RETRY_INTERVAL=5s` but serial port takes 1-2s to release. Retry fails because port is still busy. Add jitter or port availability check.
 
@@ -101,9 +114,7 @@
 - [ ] **GLM-5.1 API integration** — "AI Analyze" button in errorlog visualizer that sends ride data to Zhipu AI's GLM-5.1 for pattern analysis.
 
 ### Priority High (Confirmed Bugs)
-- **#12 — Path traversal in _handle_static** (`web/server.py:162-163`): `lstrip("/")` + `os.path.join` allows `..` traversal to read files outside the web root.
 - **#13 — Daemon threads without watchdog** (`main.py:446-449`): `_ecu_thread` and `_sysmon_thread` are `daemon=True`. If they die, the process continues but without ECU data or system monitoring. No recovery mechanism.
 
 ### Priority Medium (Fragile Patterns)
-- **#14 — No threading locks on shared state** (`main.py`, `server.py`): `serial_stats`, `ecu_live`, `gps`, `eeprom_maps` accessed from HTTP threads + ECU loop + sysmon loop without `threading.Lock` protection.
 ### Priority Low (Improvements)

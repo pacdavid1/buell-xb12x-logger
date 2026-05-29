@@ -18,6 +18,7 @@ import sys as _sys
 _sys.path.insert(0, '/home/pi/buell')
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 from ecu.eeprom_params import decode_params as _decode_eeprom_params
+import datetime
 
 
 def _get_version():
@@ -79,6 +80,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/tuner/merge': self._handle_tuner_merge,
             '/sessions_vs': self._handle_sessions_vs,
             '/sessions_vs/compare': self._handle_sessions_vs_compare,
+            '/sessions_vs/download': self._handle_sessions_vs_download,
             '/tuner': self._handle_tuner,
             '/': self._handle_index,
             '/index.html': self._handle_index,
@@ -149,6 +151,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/close_ride': self._handle_post_close_ride,
             '/restart_logger': self._handle_post_restart_logger,
             '/reboot_pi': self._handle_post_reboot_pi,
+            '/ride/launch_event': self._handle_ride_launch_event,
         }
         handler = _routes.get(path)
         if handler:
@@ -162,7 +165,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         path = self.path.lstrip("/")
         base = os.path.realpath(os.path.dirname(__file__))
         fpath = os.path.realpath(os.path.join(base, path))
-        if fpath.startswith(base) and os.path.isfile(fpath):
+        if os.path.commonpath([base, fpath]) == base and os.path.isfile(fpath):
             mime, _ = mimetypes.guess_type(fpath)
             with open(fpath, "rb") as f:
                 body = f.read()
@@ -178,6 +181,28 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"Not Found")
             return
+
+    def _handle_sessions_vs_download(self, path=None):
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        sa = params.get("a", [""])[0]
+        sb = params.get("b", [""])[0]
+        if not sa or not sb:
+            self._json({"error": "Faltan sesiones"}, 400); return
+        try:
+            data = _compare_sessions_cached(self.server_instance.buell_dir, sa, sb)
+            import json
+            body = json.dumps(data, indent=2).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Disposition", f"attachment; filename=sessions_vs_{sa}_{sb}.json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as e:
+            self._json({"error": str(e)}, 500)
+        return
 
     def _handle_tuner_sessions(self, path=None):
         sessions = []
@@ -262,6 +287,23 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def _handle_live_json(self, path=None):
         self._json(self._get_live())
         return
+
+    def _handle_ride_launch_event(self, path=None):
+        try:
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length)
+            evt = json.loads(body)
+            evt['captured_utc'] = datetime.datetime.utcnow().isoformat() + 'Z'
+            session_dir = self.server_instance.session.current_session_dir if self.server_instance.session else None
+            if session_dir:
+                log_path = session_dir / 'launch_events.jsonl'
+                with open(log_path, 'a') as f:
+                    f.write(json.dumps(evt) + '\n')
+            self._json({'ok': True})
+        except Exception as e:
+            import logging
+            logging.getLogger("WebServer").warning("launch_event save failed: %s" % e)
+            self._json({'ok': False, 'error': str(e)})
 
     def _handle_coverage_json(self, path=None):
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
@@ -674,6 +716,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def _get_live(self):
         net = self.server_instance.network
         return {
+
             "ts":              time.time(),
             "logger_version":  _get_version(),
             "network_mode":    net.current_mode(),
@@ -1026,7 +1069,10 @@ def _compare_sessions_cached(buell_dir, sa, sb):
     cache_file = cache_dir / fname
     if cache_file.exists():
         try:
-            return json.load(open(cache_file))
+            cached = json.load(open(cache_file))
+            # Accept cached data even without clusters_a (legacy caches)
+            if 'sa' in cached and 'sb' in cached and 'delta' in cached:
+                return cached
         except Exception:
             pass
     result = _compare_sessions(buell_dir, sa, sb)
@@ -1034,6 +1080,292 @@ def _compare_sessions_cached(buell_dir, sa, sb):
     with open(cache_file, 'w') as f:
         json.dump(result, f)
     return result
+
+
+def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=15.0, min_rpm=1500):
+    """Detect throttle tip-in events, classify as Type A (cruise) or Type B (moderate accel)."""
+    if len(rows) < 30:
+        return []
+    launches = []
+    def _s(v):
+        n=len(v)
+        if n<2: return 0.0
+        m=sum(v)/n
+        return (sum((x-m)**2 for x in v)/n)**0.5
+    i = 1
+    while i < len(rows):
+        dtps = rows[i]['tps'] - rows[i-1]['tps']
+        if dtps > min_dtps and rows[i]['rpm'] > min_rpm:
+            t0 = rows[i]['t']
+            pre = [r for r in rows if t0 - pre_window <= r['t'] <= t0 - 0.05]
+            if len(pre) < 10:
+                i += 1; continue
+            tail = pre[-min(20, len(pre)):]
+            rs = _s([r['rpm'] for r in tail])
+            ts = _s([r['tps'] for r in tail])
+            ss = _s([r['spd'] for r in tail])
+            if ts < 5:
+                lt = 'A'
+            elif ts < 20 and rs < 500 and ss < 15:
+                lt = 'B'
+            else:
+                i += 1; continue
+            # Series: -pre to +post, sampled ~200ms
+            t_start, t_end = t0 - pre_window, t0 + post_window
+            series = []; last_t = -999
+            for r in rows:
+                if r['t'] < t_start: continue
+                if r['t'] > t_end: break
+                if r['t'] - last_t >= 0.18:
+                    series.append({
+                        'dt': round(r['t'] - t0, 2),
+                        'rpm': round(r['rpm'], 0),
+                        'tps': round(r['tps'], 1),
+                        'spd': round(r['spd'], 1),
+                        'pw1': round(r['pw1'], 3),
+                        'pw2': round(r.get('pw2') or r['pw1'], 3),
+                        'ae': round(r.get('ae', 100), 1),
+                    })
+                    last_t = r['t']
+            post = [r for r in rows if t0 <= r['t'] <= t_end]
+            launch = {
+                'type': lt, 't': round(t0, 1),
+                'gear': int(rows[i].get('gear', 0)),
+                'dtps_raw': round(dtps, 1),
+                'pre_rpm': round(sum(r['rpm'] for r in tail)/len(tail), 0),
+                'pre_spd': round(sum(r['spd'] for r in tail)/len(tail), 1),
+                'pre_tps': round(sum(r['tps'] for r in tail)/len(tail), 1),
+                'pre_rpm_std': round(rs, 0),
+                'pre_tps_std': round(ts, 1),
+                'pre_spd_std': round(ss, 1),
+                'series': series,
+            }
+            if post:
+                launch['peak_rpm']  = round(max(r['rpm'] for r in post), 0)
+                launch['peak_spd']  = round(max(r['spd'] for r in post), 1)
+                launch['peak_pw']   = round(max((r['pw1']+(r.get('pw2') or r['pw1']))/2 for r in post), 3)
+                launch['peak_ae']   = round(max(r.get('ae', 100) for r in post), 1)
+                launch['rpm_gain']  = round(post[-1]['rpm'] - tail[-1]['rpm'], 0)
+                launch['spd_gain']  = round(post[-1]['spd'] - tail[-1]['spd'], 1)
+            launches.append(launch)
+            # skip past post-window
+            skip = t0 + post_window
+            while i < len(rows) and rows[i]['t'] <= skip:
+                i += 1
+            continue
+        i += 1
+    return launches
+
+
+
+def _s_std(vals):
+    """Standard deviation"""
+    n = len(vals)
+    if n < 2: return 0.0
+    m = sum(vals) / n
+    return (sum((x - m) ** 2 for x in vals) / (n - 1)) ** 0.5
+
+def cluster_launches(launches, rpm_tol=400, spd_tol=12, tps_tol=2.5):
+    """
+    Group similar launch events by initial conditions (RPM, speed, TPS, gear).
+    Uses normalized Euclidean distance with adaptive centroid updates.
+    Returns list of cluster dicts with statistical aggregations.
+    """
+    if not launches:
+        return []
+
+    clusters = []
+
+    for l in launches:
+        gear = l.get('gear')
+        rpm = l.get('pre_rpm', 0)
+        spd = l.get('pre_spd', 0)
+        tps = l.get('pre_tps', 0)
+
+        best_idx = -1
+        best_dist = float('inf')
+
+        for i, c in enumerate(clusters):
+            if c['gear'] != gear:
+                continue
+            dr = abs(c['mean_rpm'] - rpm) / rpm_tol
+            ds = abs(c['mean_spd'] - spd) / spd_tol
+            dt = abs(c['mean_tps'] - tps) / max(tps_tol, 0.1)
+            dist = dr + ds + dt
+            if dist < 1.5 and dist < best_dist:
+                best_dist = dist
+                best_idx = i
+
+        if best_idx >= 0:
+            c = clusters[best_idx]
+            c['launches'].append(l)
+            c['count'] += 1
+            c['mean_rpm'] = sum(ll.get('pre_rpm',0) for ll in c['launches']) / c['count']
+            c['mean_spd'] = sum(ll.get('pre_spd',0) for ll in c['launches']) / c['count']
+            c['mean_tps'] = sum(ll.get('pre_tps',0) for ll in c['launches']) / c['count']
+        else:
+            newc = {
+                'id': len(clusters), 'gear': gear, 'count': 1,
+                'mean_rpm': rpm, 'mean_spd': spd, 'mean_tps': tps,
+                'launches': [l],
+            }
+            clusters.append(newc)
+
+    # Compute stats and mean series for each cluster
+    for c in clusters:
+        ll = c['launches']
+        c['rpm_std'] = _s_std([x.get('pre_rpm',0) for x in ll])
+        c['spd_std'] = _s_std([x.get('pre_spd',0) for x in ll])
+        c['tps_std'] = _s_std([x.get('pre_tps',0) for x in ll])
+
+        # Peak metrics stats
+        pk_pw_vals = [x.get('peak_pw',0) for x in ll]
+        pk_ae_vals = [x.get('peak_ae',0) for x in ll]
+        rpm_g_vals = [x.get('rpm_gain',0) for x in ll]
+        spd_g_vals = [x.get('spd_gain',0) for x in ll]
+        dtps_vals = [x.get('dtps_raw',0) for x in ll]
+
+        c['peak_pw_mean'] = sum(pk_pw_vals) / len(pk_pw_vals)
+        c['peak_pw_std'] = _s_std(pk_pw_vals)
+        c['peak_ae_mean'] = sum(pk_ae_vals) / len(pk_ae_vals)
+        c['peak_ae_std'] = _s_std(pk_ae_vals)
+        c['rpm_gain_mean'] = sum(rpm_g_vals) / len(rpm_g_vals)
+        c['rpm_gain_std'] = _s_std(rpm_g_vals)
+        c['spd_gain_mean'] = sum(spd_g_vals) / len(spd_g_vals)
+        c['spd_gain_std'] = _s_std(spd_g_vals)
+        c['dtps_mean'] = sum(dtps_vals) / len(dtps_vals)
+        c['dtps_std'] = _s_std(dtps_vals)
+
+        # Build mean curve at common time points
+        dt_min = 0
+        dt_max = 0
+        for x in ll:
+            pts = x.get('series', [])
+            if pts:
+                t0 = pts[0]['dt']
+                t1 = pts[-1]['dt']
+                if t0 < dt_min: dt_min = t0
+                if t1 > dt_max: dt_max = t1
+
+        # Interpolate each launch to 0.25s intervals
+        time_points = []
+        t = dt_min
+        while t <= dt_max + 0.01:
+            time_points.append(round(t, 2))
+            t += 0.25
+
+        if len(time_points) > 1:
+            mean_rpm_curve = [0.0] * len(time_points)
+            mean_tps_curve = [0.0] * len(time_points)
+            mean_pw_curve = [0.0] * len(time_points)
+            mean_ae_curve = [0.0] * len(time_points)
+            all_rpm_curves = []
+            all_tps_curves = []
+            all_pw_curves = []
+            all_ae_curves = []
+
+            for x in ll:
+                pts = x.get('series', [])
+                rpm_vals = []
+                tps_vals = []
+                pw_vals = []
+                ae_vals = []
+                for tp in time_points:
+                    # Find nearest point in series
+                    best = None
+                    best_dt = 999
+                    for p in pts:
+                        d = abs(p['dt'] - tp)
+                        if d < best_dt:
+                            best_dt = d
+                            best = p
+                    if best and best_dt < 0.15:
+                        rpm_vals.append(best.get('rpm', 0))
+                        tps_vals.append(best.get('tps', 0))
+                        pw_vals.append(best.get('pw1', 0) or best.get('pw2', 0) or 0)
+                        ae_vals.append(best.get('ae', 0))
+                    else:
+                        rpm_vals.append(None)
+                        tps_vals.append(None)
+                        pw_vals.append(None)
+                        ae_vals.append(None)
+
+                all_rpm_curves.append(rpm_vals)
+                all_tps_curves.append(tps_vals)
+                all_pw_curves.append(pw_vals)
+                all_ae_curves.append(ae_vals)
+
+            for i in range(len(time_points)):
+                r_vals = [cv[i] for cv in all_rpm_curves if cv[i] is not None]
+                t_vals = [cv[i] for cv in all_tps_curves if cv[i] is not None]
+                p_vals = [cv[i] for cv in all_pw_curves if cv[i] is not None]
+                a_vals = [cv[i] for cv in all_ae_curves if cv[i] is not None]
+                if r_vals:
+                    mean_rpm_curve[i] = sum(r_vals) / len(r_vals)
+                if t_vals:
+                    mean_tps_curve[i] = sum(t_vals) / len(t_vals)
+                if p_vals:
+                    mean_pw_curve[i] = sum(p_vals) / len(p_vals)
+                if a_vals:
+                    mean_ae_curve[i] = sum(a_vals) / len(a_vals)
+
+            # Std curves
+            std_rpm_curve = [0.0] * len(time_points)
+            std_tps_curve = [0.0] * len(time_points)
+            for i in range(len(time_points)):
+                r_vals = [cv[i] for cv in all_rpm_curves if cv[i] is not None]
+                t_vals = [cv[i] for cv in all_tps_curves if cv[i] is not None]
+                if r_vals:
+                    std_rpm_curve[i] = _s_std(r_vals)
+                if t_vals:
+                    std_tps_curve[i] = _s_std(t_vals)
+
+            c['mean_series'] = [{'dt': time_points[i], 'rpm': round(mean_rpm_curve[i], 1),
+                                 'tps': round(mean_tps_curve[i], 1), 'pw': round(mean_pw_curve[i], 3),
+                                 'ae': round(mean_ae_curve[i], 1)} for i in range(len(time_points))]
+            c['std_series'] = [{'dt': time_points[i], 'rpm': round(std_rpm_curve[i], 1),
+                                'tps': round(std_tps_curve[i], 1)} for i in range(len(time_points))]
+        else:
+            c['mean_series'] = []
+            c['std_series'] = []
+
+        # Remove raw launches from cluster (keep in original arrays)
+        del c['launches']
+
+    # Sort clusters by gear, then count desc
+    clusters.sort(key=lambda c: (c['gear'] if c['gear'] else 99, -c['count']))
+    # Re-assign sequential IDs
+    for i, c in enumerate(clusters):
+        c['id'] = i
+    return clusters
+
+
+def match_clusters(clusters_a, clusters_b, rpm_tol=400, spd_tol=12, tps_tol=2.5):
+    """
+    Find matching clusters between sessions A and B.
+    Returns list of (a_idx, b_idx, distance) for matched pairs.
+    """
+    matches = []
+    used_b = set()
+    for ca in clusters_a:
+        best_b = None
+        best_d = float('inf')
+        for j, cb in enumerate(clusters_b):
+            if j in used_b:
+                continue
+            if ca['gear'] != cb['gear']:
+                continue
+            dr = abs(ca['mean_rpm'] - cb['mean_rpm']) / rpm_tol
+            ds = abs(ca['mean_spd'] - cb['mean_spd']) / spd_tol
+            dt = abs(ca['mean_tps'] - cb['mean_tps']) / max(tps_tol, 0.1)
+            d = dr + ds + dt
+            if d < best_d:
+                best_d = d
+                best_b = j
+        if best_b is not None and best_d < 2.0:
+            matches.append((ca['id'], clusters_b[best_b]['id'], round(best_d, 2)))
+            used_b.add(best_b)
+    return matches
 
 def _compare_sessions(buell_dir, sa, sb):
     from collections import defaultdict
@@ -1224,6 +1556,13 @@ def _compare_sessions(buell_dir, sa, sb):
     derivatives(ra); derivatives(rb)
     ia, fca = build_index(ra)
     ib, fcb = build_index(rb)
+    launches_a = detect_launches(ra)
+    launches_b = detect_launches(rb)
+
+    # Cluster similar launches
+    clusters_a = cluster_launches(launches_a)
+    clusters_b = cluster_launches(launches_b)
+    cluster_matches = match_clusters(clusters_a, clusters_b)
 
     # Comparar celdas comunes por flavor
     MIN_N = 5
@@ -1275,10 +1614,15 @@ def _compare_sessions(buell_dir, sa, sb):
     return {
         'sa': {'id': sa, 'checksum': ma.get('checksum','?'), 'version': ma.get('version_string','?'),
                'created': ma.get('created_utc','')[:10], 'rides': ma.get('total_rides',0),
-               'samples': len(ra), 'flavors': fca},
+               'samples': len(ra), 'flavors': fca,
+               'launches_a': launches_a},
         'sb': {'id': sb, 'checksum': mb.get('checksum','?'), 'version': mb.get('version_string','?'),
                'created': mb.get('created_utc','')[:10], 'rides': mb.get('total_rides',0),
-               'samples': len(rb), 'flavors': fcb},
+               'samples': len(rb), 'flavors': fcb,
+               'launches_b': launches_b},
+        'clusters_a': clusters_a,
+        'clusters_b': clusters_b,
+        'cluster_matches': cluster_matches,
         'same_bike': ma.get('bike_serial') is not None and ma.get('bike_serial') == mb.get('bike_serial'),
         'bike_serial_a': ma.get('bike_serial'),
         'bike_serial_b': mb.get('bike_serial'),

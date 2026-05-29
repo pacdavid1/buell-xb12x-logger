@@ -205,7 +205,9 @@ class SessionManager:
             )
             # Health score 0-100 (40% warmup, 30% data quality, 30% AFV health)
             warm_factor = 40 if any_warm else 0
-            quality_ratio = (total_valid_s or 0) / total_s if total_s > 0 else 0
+            tv = total_valid_s if isinstance(total_valid_s, (int, float)) else 0
+            ts = total_s if isinstance(total_s, (int, float)) else 0
+            quality_ratio = tv / ts if ts > 0 else 0
             quality_factor = round(min(quality_ratio, 1.0) * 30)
             afv_list = [c["afv_avg"] for c in cells.values() if c.get("afv_avg") is not None]
             if afv_list:
@@ -279,7 +281,7 @@ class SessionManager:
         # Merge cells del ride nuevo en el agregado
         for k, v in cells.items():
             a = agg.setdefault(k, {
-                "seconds":0.0, "ego_sum":0.0, "count":0,
+                "seconds":0.0, "ego_sum":0.0, "count":0, "o2_adc_sum":0.0, "o2_adc_sum":0.0,
                 "valid_seconds":0.0, "valid_ego_sum":0.0, "valid_count":0,
                 "clt_sum":0.0, "wue_sum":0.0, "afv_sum":0.0, "inv_reasons":{}
             })
@@ -300,6 +302,7 @@ class SessionManager:
             a["afv_sum"]       += (v.get("afv_avg") or 0.0) * n
             for r, cnt in v.get("inv_reasons", {}).items():
                 a["inv_reasons"][r] = a["inv_reasons"].get(r, 0) + cnt
+            a["o2_adc_sum"] += (v.get("o2_adc_avg") or 0.0) * n
 
         rides_included.append(ride_num)
 
@@ -339,7 +342,7 @@ class SessionManager:
                 "valid_ego_avg": v_ego,
                 "clt_avg":       clt_avg,
                 "afv_avg":       afv_avg,
-                    "o2_adc_avg":     round(v["o2_adc_sum"] / n, 1) if n else None,
+                    "o2_adc_avg":     round(a["o2_adc_sum"] / n, 1) if n else None,
                 "inv_reasons":   a["inv_reasons"],
                 "suggestion":    suggestion,
             }
@@ -583,7 +586,9 @@ class SessionManager:
                     else:
                         checksum = parts[0]
                         ride_num = int(parts[-1])
-                except (ValueError, IndexError): continue
+                except (ValueError, IndexError) as e:
+                    self.logger.warning(f"Error parsing ride dir {sdir}: {e}")
+                    continue
                 try:
                     self._rebuild_summary(sdir, checksum, ride_num, ride_files)
                     recovered += 1
@@ -640,7 +645,7 @@ class SessionManager:
                         tl = (load-l0)/(l1-l0) if l1!=l0 else 0.0
                         for key,weight in [(f"{r0}_{l0}",(1-tr)*(1-tl)),(f"{r0}_{l1}",(1-tr)*tl),(f"{r1}_{l0}",tr*(1-tl)),(f"{r1}_{l1}",tr*tl)]:
                             if weight<0.01: continue
-                            c = cells.setdefault(key, {"seconds":0.0,"ego_sum":0.0,"count":0.0,"valid_seconds":0.0,"valid_ego_sum":0.0,"valid_count":0.0,"clt_sum":0.0,"wue_sum":0.0,"afv_sum":0.0,"inv_reasons":{}})
+                            c = cells.setdefault(key, {"seconds":0.0,"ego_sum":0.0,"count":0.0,"valid_seconds":0.0,"valid_ego_sum":0.0,"valid_count":0.0,"clt_sum":0.0,"wue_sum":0.0,"afv_sum":0.0,"o2_adc_sum":0.0,"inv_reasons":{}})
                             c["seconds"]+=dt*weight; c["ego_sum"]+=ego*weight; c["count"]+=weight
                             c["clt_sum"]+=clt*weight; c["wue_sum"]+=wue*weight; c["afv_sum"]+=afv*weight
                             if valid: c["valid_seconds"]+=dt*weight; c["valid_ego_sum"]+=ego*weight; c["valid_count"]+=weight
@@ -827,7 +832,7 @@ class CellTracker:
                     "clt_avg":        clt_a,
                     "wue_avg":        wue_a,
                     "afv_avg":        afv_a,
-                    "o2_adc_avg":     round(v["o2_adc_sum"] / n, 1) if n else None,
+                    "o2_adc_avg":     round(a["o2_adc_sum"] / n, 1) if n else None,
                     "inv_reasons":    dict(v["inv_reasons"]),
                 "flavor_counts":  {f: round(s, 1) for f, s in v.get("flavor_counts", {}).items()},
                 }

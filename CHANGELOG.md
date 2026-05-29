@@ -25,6 +25,27 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+
+## [v2.6.41] — 2026-05-27
+
+### Fixed
+
+- **web/server.py: Path traversal vulnerability in _handle_static** (#12): `lstrip("/")` + `os.path.join` allowed `../` traversal to read arbitrary files outside the web root. Replaced `fpath.startswith(base)` with `os.path.commonpath([base, fpath]) == base` — the robust Python approach that correctly resolves both `../` traversal and prefix-matching attacks.
+
+- **Bug #9: `_get_version()` reads CHANGELOG.md every call** — `LOGGER_VERSION = _get_version()` was moved to module level so the file is read only once at import time. Also fixed parsing to skip HTML comment blocks (PROMPT_START/PROMPT_END).
+
+## [v2.6.40] — 2026-05-27
+
+### Fixed
+
+- main.py: _check_threads string literals missing quotes (ecu-rt, sysmon) causing NameError in thread watchdog - dead threads would never be restarted
+- ecu/session.py: _update_tuning_report used leaked outer-loop variable v instead of agg dict a for o2_adc_avg calculation - caused KeyError and corrupted tuning reports
+- ecu/session.py: _rebuild_summary cell default dict missing o2_adc_sum key - caused KeyError when recovering orphan rides
+
+### AI
+
+- Codebuff (DeepSeek V4 Flash) - bug analysis and fixes
+
 ## [v2.6.39] — 2026-05-26
 ### Fixed
 - web/server.py: add JSON type validation to _handle_coverage_targets — reject non-dict payloads with clear error message
@@ -1308,3 +1329,5 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 
 
 ---
+
+- **Bug #14: No threading locks on shared state** — Added `threading.RLock()` in `web/server.py` (`_data_lock`) protecting `serial_stats`, `ecu_live`, `gps`, and `eeprom_maps` from concurrent access by HTTP threads, ECU loop, and sysmon loop. Used via `self.web._data_lock` in main.py.

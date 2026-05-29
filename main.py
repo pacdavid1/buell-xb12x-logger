@@ -8,6 +8,7 @@ import argparse
 import json
 import logging
 import time
+import random
 import signal
 import sys
 import subprocess
@@ -201,13 +202,18 @@ class BuellLogger:
 
             # GPS watchdog
             if not self.gps.is_alive():
-                self.logger.warning("GPS thread muerto — reiniciando...")
-                try:
-                    self.gps = GPSReader()
-                    self.gps.start()
-                    self.web.gps = self.gps # Mantener referencia actualizada
-                except Exception as e:
-                    self.logger.warning(f"GPS restart failed: {e}")
+                now_gps = time.monotonic()
+                if getattr(self, "_last_gps_restart", 0) and now_gps - self._last_gps_restart < 30:
+                    self.logger.warning(f"GPS thread dead, skipping restart (cooldown)")
+                else:
+                    self.logger.warning("GPS thread muerto — reiniciando...")
+                    self._last_gps_restart = now_gps
+                    try:
+                        self.gps = GPSReader()
+                        self.gps.start()
+                        self.web.gps = self.gps # Mantener referencia actualizada
+                    except Exception as e:
+                        self.logger.warning(f"GPS restart failed: {e}")
                     
             time.sleep(GPS_RESTART_DELAY)
 
@@ -256,7 +262,7 @@ class BuellLogger:
                                 self.session.open_session('cached', blob)
                                 self._update_web_ecu_state(blob, 'cached')
                                 self.logger.warning(f"Session opened from cached EEPROM")
-                        time.sleep(ECU_RETRY_INTERVAL)
+                        time.sleep(ECU_RETRY_INTERVAL + random.uniform(0, 1.5))
                         continue
                 except Exception as e:
                     self.logger.debug(f"ECU no disponible: {e} — reintento en 5s")
@@ -265,7 +271,7 @@ class BuellLogger:
                     if no_ecu_s >= 10.0 and int(no_ecu_s) % 10 == 0:
                         self.logger.info(f"USB power cycle — {no_ecu_s:.0f}s sin ECU")
                         self.ecu.usb_power_cycle()
-                    time.sleep(ECU_RETRY_INTERVAL)
+                    time.sleep(ECU_RETRY_INTERVAL + random.uniform(0, 1.5))
                     continue
 
             # ── Leer frame RT ──────────────────────────────────────────
@@ -298,7 +304,7 @@ class BuellLogger:
                 if not ride_active and consecutive_errors >= MAX_CONSEC_ERRORS:
                     self.logger.info("ECU no responde — cerrando puerto")
                     self.ecu.disconnect()
-                    time.sleep(ECU_RETRY_INTERVAL)
+                    time.sleep(ECU_RETRY_INTERVAL + random.uniform(0, 1.5))
                     consecutive_errors = 0
                     ecu_lost_since = None
 
@@ -483,10 +489,16 @@ class BuellLogger:
         self.shutdown()
     
     def _check_threads(self):
-        """Watchdog: restart dead background threads."""
-        for name, thread in [(ecu-rt, self._ecu_thread), (sysmon, self._sysmon_thread)]:
+        """Watchdog: restart dead background threads with cooldown."""
+        now = time.monotonic()
+        for name, thread in [("ecu-rt", self._ecu_thread), ("sysmon", self._sysmon_thread)]:
             if not thread.is_alive():
+                last = getattr(self, f"_last_{name}_restart", 0)
+                if now - last < 30:
+                    self.logger.warning(f"Thread {name} dead, skipping restart (cooldown {now-last:.0f}s < 30s)")
+                    continue
                 self.logger.critical("Thread %s is dead - restarting", name)
+                setattr(self, f"_last_{name}_restart", now)
                 if name == "ecu-rt":
                     self._ecu_thread = threading.Thread(target=self._ecu_loop, daemon=True, name="ecu-rt")
                     self._ecu_thread.start()

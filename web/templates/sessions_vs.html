@@ -72,7 +72,7 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
       </div>
       <span class="bike-tag" id="bikeTag">—</span>
       <button class="btn" id="btnCmp" onclick="compare()" disabled>COMPARAR</button>
-      <button class="btn" id="btnDl" onclick="download()" disabled style="background:var(--bl)">JSON</button>
+      <button class="btn" id="btnDl" onclick="download()" style="background:var(--bl)">JSON</button>
     </div>
     <div id="st">Cargando sesiones...</div>
   </div>
@@ -223,6 +223,7 @@ function render(){
   }
   renderFlavors('fcA',_data.sa);
   renderFlavors('fcB',_data.sb);
+  try{renderLaunches(_data)}catch(e){console.error("Launch error:",e)}
   document.getElementById('fsum').style.display='flex';
   document.getElementById('ftabs').style.display='flex';
   document.getElementById('dtWrap').style.display='block';
@@ -344,15 +345,470 @@ document.querySelector('#dtTable thead').addEventListener('click',function(e){
 });
 
 function download(){
-  if(!_data)return;
-  var blob=new Blob([JSON.stringify(_data,null,2)],{type:'application/json'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='sessions_vs_'+_data.sa.id+'_'+_data.sb.id+'.json';
-  a.click();
+  var a=document.getElementById('sA').value,b=document.getElementById('sB').value;
+  var l=document.createElement('a');
+  l.href='/sessions_vs/download?a='+a+'&b='+b;
+  l.download='sessions_vs_'+a+'_'+b+'.json';
+  l.click();
 }
 document.getElementById('sA').onchange=onSelect;
 document.getElementById('sB').onchange=onSelect;
 init();
+
+
+// ── Launch Events Rendering ──
+function renderLaunches(data) {
+  _data = data;
+  var ls = document.getElementById('launch-section');
+  var hasA = data.clusters_a && data.clusters_a.length > 0;
+  var hasB = data.clusters_b && data.clusters_b.length > 0;
+  if(!hasA && !hasB){ ls.style.display='none'; return; }
+  ls.style.display='block';
+  renderClusterTable('launch-a-wrap', data.clusters_a || [], 'A', data);
+  renderClusterTable('launch-b-wrap', data.clusters_b || [], 'B', data);
+  renderClusterMatches(data);
+}
+
+var _expandedClusterRow = null;
+
+function renderClusterTable(elId, clusters, ses, data) {
+  var el = document.getElementById(elId);
+  if(!clusters || !clusters.length){ el.innerHTML='<div class="launch-none">None detected</div>'; return; }
+  var c = ses=='A' ? 'var(--c-a)' : 'var(--c-b)';
+  var h = '<table class="launch-table"><tr style="color:'+c+'"><th>#</th><th>Gear</th><th>N</th><th>Pre RPM (μ±σ)</th><th>Pre km/h</th><th>Pre TPS%</th><th>ΔTPS</th><th>Peak PW</th><th>Peak AE</th><th>RPM+</th><th>km/h+</th></tr>';
+  for(var i=0;i<clusters.length;i++){
+    var cl = clusters[i];
+    var sesColor = ses=='A' ? 'var(--c-a)' : 'var(--c-b)';
+    h += '<tr class="cluster-row" style="cursor:pointer;color:'+sesColor+';font-size:13px" onclick="toggleClusterSeries(this,'+i+')">';
+    h += '<td>'+(i+1)+'</td>';
+    h += '<td>'+cl.gear+'</td>';
+    h += '<td>'+cl.count+'</td>';
+    h += '<td>'+cl.mean_rpm.toFixed(0)+'\u00b1'+cl.rpm_std.toFixed(0)+'</td>';
+    h += '<td>'+cl.mean_spd.toFixed(1)+'\u00b1'+cl.spd_std.toFixed(1)+'</td>';
+    h += '<td>'+cl.mean_tps.toFixed(1)+'\u00b1'+cl.tps_std.toFixed(1)+'</td>';
+    h += '<td>'+cl.dtps_mean.toFixed(1)+'\u00b1'+cl.dtps_std.toFixed(1)+'</td>';
+    h += '<td>'+(cl.peak_pw_mean||0).toFixed(3)+'\u00b1'+(cl.peak_pw_std||0).toFixed(3)+'</td>';
+    h += '<td>'+(cl.peak_ae_mean||0).toFixed(1)+'\u00b1'+(cl.peak_ae_std||0).toFixed(1)+'</td>';
+    h += '<td>'+(cl.rpm_gain_mean||0).toFixed(0)+'\u00b1'+(cl.rpm_gain_std||0).toFixed(0)+'</td>';
+    h += '<td>'+(cl.spd_gain_mean||0).toFixed(1)+'\u00b1'+(cl.spd_gain_std||0).toFixed(1)+'</td>';
+    h += '</tr>';
+    h += '<tr class="cluster-detail" style="display:none"><td colspan="11"><canvas width="600" height="180"></canvas></td></tr>';
+  }
+  h += '</table>';
+  el.innerHTML = h;
+}
+
+function renderClusterMatches(data) {
+  var el = document.getElementById('cluster-matches');
+  if(!el)return;
+  var matches = data.cluster_matches || [];
+  var ca = data.clusters_a || [];
+  var cb = data.clusters_b || [];
+  if(!matches || !matches.length){ el.style.display='none'; return; }
+  el.style.display='block';
+  var h = '<div class="section-title">\ud83d\udd04 Matched Clusters (A \u2194 B)</div>';
+  h += '<table class="launch-table"><tr style="color:var(--c-text)"><th>Match</th><th>Gear</th>';
+  h += '<th style="color:var(--c-a)">A: RPM</th><th style="color:var(--c-a)">A: N</th><th style="color:var(--c-a)">A: Pk PW</th><th style="color:var(--c-a)">A: Pk AE</th>';
+  h += '<th style="color:var(--c-b)">B: RPM</th><th style="color:var(--c-b)">B: N</th><th style="color:var(--c-b)">B: Pk PW</th><th style="color:var(--c-b)">B: Pk AE</th>';
+  h += '<th>\u0394 PW</th><th>\u0394 AE</th></tr>';
+  for(var i=0;i<matches.length;i++){
+    var m = matches[i];
+    var aCl = ca[m[0]];
+    var bCl = cb[m[1]];
+    if(!aCl || !bCl) continue;
+    var dpw = ((bCl.peak_pw_mean||0) - (aCl.peak_pw_mean||0));
+    var dae = ((bCl.peak_ae_mean||0) - (aCl.peak_ae_mean||0));
+    var dpwStr = (dpw>=0?'+':'')+dpw.toFixed(3);
+    var daeStr = (dae>=0?'+':'')+dae.toFixed(1);
+    h += '<tr style="font-size:13px;cursor:pointer" onclick="showMatchedChart('+i+')">';
+    h += '<td>'+(i+1)+'</td>';
+    h += '<td>'+aCl.gear+'</td>';
+    h += '<td style="color:var(--c-a)">'+aCl.mean_rpm.toFixed(0)+'</td>';
+    h += '<td style="color:var(--c-a)">'+aCl.count+'</td>';
+    h += '<td style="color:var(--c-a)">'+(aCl.peak_pw_mean||0).toFixed(3)+'</td>';
+    h += '<td style="color:var(--c-a)">'+(aCl.peak_ae_mean||0).toFixed(1)+'</td>';
+    h += '<td style="color:var(--c-b)">'+bCl.mean_rpm.toFixed(0)+'</td>';
+    h += '<td style="color:var(--c-b)">'+bCl.count+'</td>';
+    h += '<td style="color:var(--c-b)">'+(bCl.peak_pw_mean||0).toFixed(3)+'</td>';
+    h += '<td style="color:var(--c-b)">'+(bCl.peak_ae_mean||0).toFixed(1)+'</td>';
+    h += '<td>'+(dpw>=0?'<span style="color:#4caf50">':'<span style="color:#f44336">')+dpwStr+'</span></td>';
+    h += '<td>'+(dae>=0?'<span style="color:#4caf50">':'<span style="color:#f44336">')+daeStr+'</span></td>';
+    h += '</tr>';
+    h += '<tr class="match-detail" style="display:none"><td colspan="12"><canvas width="620" height="200"></canvas></td></tr>';
+  }
+  h += '</table>';
+  el.innerHTML = h;
+}
+
+var _clusterChartCache = {};
+
+function toggleClusterSeries(tr, cIdx) {
+  var detail = tr.nextElementSibling;
+  var isOpen = detail.style.display !== 'none';
+  if(_expandedClusterRow && _expandedClusterRow !== detail){
+    _expandedClusterRow.style.display = 'none';
+  }
+  detail.style.display = isOpen ? 'none' : 'table-row';
+  _expandedClusterRow = isOpen ? null : detail;
+  if(!isOpen){
+    var canvas = detail.querySelector('canvas');
+    if(canvas){
+      var wrap = tr.closest('[id^="launch-"]');
+      var cacheKey = (wrap ? wrap.id : '') + '-' + cIdx;
+      if(!_clusterChartCache[cacheKey]){
+        drawClusterChart(canvas, cIdx);
+        _clusterChartCache[cacheKey] = true;
+      }
+    }
+  }
+}
+
+function drawClusterChart(canvas, cIdx) {
+  var wrap = canvas.closest('[id^="launch-"]');
+  var ses = wrap && wrap.id.indexOf('-b-') >= 0 ? 'B' : 'A';
+  var clusters = ses=='A' ? _data.clusters_a : _data.clusters_b;
+  if(!clusters || !clusters[cIdx]) return;
+  var cl = clusters[cIdx];
+  var ms = cl.mean_series || [];
+  var ss = cl.std_series || [];
+  if(!ms || !ms.length) return;
+
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var pad = {t: 20, b: 25, l: 45, r: 20};
+  var cw = W - pad.l - pad.r;
+  var ch = H - pad.t - pad.b;
+
+  var minT = ms[0].dt, maxT = ms[ms.length-1].dt;
+  var maxRpm = 0, maxTps = 0;
+  for(var i=0;i<ms.length;i++){
+    if(ms[i].rpm > maxRpm) maxRpm = ms[i].rpm;
+    if(ms[i].tps > maxTps) maxTps = ms[i].tps;
+    if(ss[i] && ss[i].rpm && ms[i].rpm + ss[i].rpm > maxRpm) maxRpm = ms[i].rpm + ss[i].rpm;
+  }
+  maxRpm = Math.ceil((maxRpm + 200) / 500) * 500;
+  maxTps = Math.min(100, Math.ceil((maxTps + 5) / 10) * 10);
+
+  function tx(t){ return pad.l + (t - minT) / (maxT - minT) * cw; }
+  function ry(r){ return pad.t + (1 - r / maxRpm) * ch; }
+  function ty(t){ return pad.t + (1 - t / maxTps) * ch; }
+
+  ctx.fillStyle = '#0c0c0c';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 0.5;
+  for(var r=0;r<=maxRpm;r+=1000){
+    var y = ry(r);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+    ctx.fillStyle = '#666'; ctx.font = '10px monospace';
+    ctx.textAlign = 'right'; ctx.fillText(r+'', pad.l-5, y+4);
+  }
+
+  ctx.fillStyle = '#666';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('TPS%', W-pad.r+2, pad.t+10);
+  for(var t=0;t<=maxTps;t+=20){
+    ctx.fillText(t+'%', W-pad.r+2, ty(t)+4);
+  }
+
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(tx(0), pad.t); ctx.lineTo(tx(0), pad.t+ch); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#666';
+  ctx.textAlign = 'center';
+  ctx.fillText('t=0 (tip-in)', tx(0), pad.t+ch+15);
+
+  ctx.fillStyle = '#666';
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'center';
+  for(var t=Math.ceil(minT);t<=maxT;t+=1){
+    ctx.fillText(t+'s', tx(t), pad.t+ch+14);
+  }
+
+  var sesColor = ses=='A' ? '#66aaff' : '#ff8866';
+
+  ctx.fillStyle = ses=='A' ? 'rgba(102,170,255,0.12)' : 'rgba(255,136,102,0.12)';
+  ctx.beginPath();
+  for(var i=0;i<ms.length;i++){
+    var x = tx(ms[i].dt);
+    var y = ry(ms[i].rpm + (ss[i] ? ss[i].rpm : 0));
+    i===0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  for(var i=ms.length-1;i>=0;i--){
+    var lowY = ry(ms[i].rpm - (ss[i] ? ss[i].rpm : 0));
+    ctx.lineTo(tx(ms[i].dt), lowY);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.strokeStyle = sesColor;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(var i=0;i<ms.length;i++){
+    var x = tx(ms[i].dt);
+    var y = ry(ms[i].rpm);
+    i===0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle = '#f4c542';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for(var i=0;i<ms.length;i++){
+    var x = tx(ms[i].dt);
+    var y = ty(ms[i].tps);
+    i===0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = sesColor;
+  ctx.fillRect(W-pad.r-85, pad.t+4, 10, 10);
+  ctx.fillStyle = '#ccc';
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('RPM \u03bc\u00b1\u03c3', W-pad.r-73, pad.t+13);
+  ctx.fillStyle = '#f4c542';
+  ctx.fillRect(W-pad.r-85, pad.t+18, 10, 10);
+  ctx.fillStyle = '#ccc';
+  ctx.fillText('TPS \u03bc', W-pad.r-73, pad.t+27);
+
+  ctx.fillStyle = '#888';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('Cluster #'+(cIdx+1)+' | Gear '+cl.gear+' | N='+cl.count+' | '+cl.mean_rpm.toFixed(0)+' RPM \u00b7 '+cl.mean_spd.toFixed(1)+' km/h', pad.l, pad.t-5);
+}
+
+function showMatchedChart(mIdx) {
+  var matches = _data.cluster_matches || [];
+  var ca = _data.clusters_a || [];
+  var cb = _data.clusters_b || [];
+  if(mIdx >= matches.length) return;
+  var m = matches[mIdx];
+  var aCl = ca[m[0]];
+  var bCl = cb[m[1]];
+  if(!aCl || !bCl) return;
+  var wrap = document.getElementById('cluster-matches');
+  var rows = wrap.querySelectorAll('.match-detail');
+  if(mIdx >= rows.length) return;
+  var detail = rows[mIdx];
+  var isOpen = detail.style.display !== 'none';
+  detail.style.display = isOpen ? 'none' : 'table-row';
+  if(!isOpen){
+    var canvas = detail.querySelector('canvas');
+    if(canvas) drawDualClusterChart(canvas, aCl, bCl);
+  }
+}
+
+function drawDualClusterChart(canvas, aCl, bCl) {
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var pad = {t: 25, b: 25, l: 45, r: 20};
+  var cw = W - pad.l - pad.r;
+  var ch = H - pad.t - pad.b;
+
+  var msA = aCl.mean_series || [];
+  var msB = bCl.mean_series || [];
+  if(!msA.length && !msB.length) return;
+
+  var aMin=msA[0]?msA[0].dt:0, aMax=msA[msA.length-1]?msA[msA.length-1].dt:0;
+  var bMin=msB[0]?msB[0].dt:0, bMax=msB[msB.length-1]?msB[msB.length-1].dt:0;
+  var minT = Math.min(aMin, bMin);
+  var maxT = Math.max(aMax, bMax);
+
+  var maxRpm = 0;
+  for(var i=0;i<msA.length;i++){ if(msA[i].rpm > maxRpm) maxRpm = msA[i].rpm; }
+  for(var i=0;i<msB.length;i++){ if(msB[i].rpm > maxRpm) maxRpm = msB[i].rpm; }
+  maxRpm = Math.ceil((maxRpm + 200) / 500) * 500;
+
+  function tx(t){ return pad.l + (t - minT) / (maxT - minT) * cw; }
+  function ry(r){ return pad.t + (1 - r / maxRpm) * ch; }
+
+  ctx.fillStyle = '#0c0c0c';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 0.5;
+  for(var r=0;r<=maxRpm;r+=1000){
+    var y = ry(r);
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W-pad.r, y); ctx.stroke();
+    ctx.fillStyle = '#666'; ctx.font = '10px monospace';
+    ctx.textAlign = 'right'; ctx.fillText(r+'', pad.l-5, y+4);
+  }
+
+  ctx.strokeStyle = '#444';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(tx(0), pad.t); ctx.lineTo(tx(0), pad.t+ch); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#666';
+  ctx.textAlign = 'center';
+  ctx.fillText('t=0', tx(0), pad.t+ch+15);
+
+  ctx.fillStyle = '#666';
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'center';
+  for(var t=Math.ceil(minT);t<=maxT;t+=1){
+    ctx.fillText(t+'s', tx(t), pad.t+ch+14);
+  }
+
+  ctx.fillStyle = 'rgba(102,170,255,0.10)';
+  if(msA.length){
+    ctx.beginPath();
+    for(var i=0;i<msA.length;i++){
+      var s = aCl.std_series && aCl.std_series[i] ? aCl.std_series[i].rpm || 0 : 0;
+      var x = tx(msA[i].dt), y = ry(msA[i].rpm + s);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    for(var i=msA.length-1;i>=0;i--){
+      var s = aCl.std_series && aCl.std_series[i] ? aCl.std_series[i].rpm || 0 : 0;
+      ctx.lineTo(tx(msA[i].dt), ry(msA[i].rpm - s));
+    }
+    ctx.closePath(); ctx.fill();
+  }
+
+  ctx.fillStyle = 'rgba(255,136,102,0.10)';
+  if(msB.length){
+    ctx.beginPath();
+    for(var i=0;i<msB.length;i++){
+      var s = bCl.std_series && bCl.std_series[i] ? bCl.std_series[i].rpm || 0 : 0;
+      var x = tx(msB[i].dt), y = ry(msB[i].rpm + s);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    for(var i=msB.length-1;i>=0;i--){
+      var s = bCl.std_series && bCl.std_series[i] ? bCl.std_series[i].rpm || 0 : 0;
+      ctx.lineTo(tx(msB[i].dt), ry(msB[i].rpm - s));
+    }
+    ctx.closePath(); ctx.fill();
+  }
+
+  ctx.strokeStyle = '#66aaff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(var i=0;i<msA.length;i++){
+    ctx.lineTo(tx(msA[i].dt), ry(msA[i].rpm));
+  }
+  ctx.stroke();
+
+  ctx.strokeStyle = '#ff8866';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(var i=0;i<msB.length;i++){
+    ctx.lineTo(tx(msB[i].dt), ry(msB[i].rpm));
+  }
+  ctx.stroke();
+
+  ctx.fillStyle = '#66aaff';
+  ctx.fillRect(W-pad.r-95, pad.t+4, 10, 10);
+  ctx.fillStyle = '#ccc';
+  ctx.font = '9px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('A (N='+aCl.count+')', W-pad.r-83, pad.t+13);
+
+  ctx.fillStyle = '#ff8866';
+  ctx.fillRect(W-pad.r-95, pad.t+18, 10, 10);
+  ctx.fillStyle = '#ccc';
+  ctx.fillText('B (N='+bCl.count+')', W-pad.r-83, pad.t+27);
+
+  ctx.fillStyle = '#888';
+  ctx.font = '10px monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('Matched Cluster | Gear '+aCl.gear+' | A: '+aCl.mean_rpm.toFixed(0)+'rpm '+aCl.mean_spd.toFixed(1)+'km/h | B: '+bCl.mean_rpm.toFixed(0)+'rpm '+bCl.mean_spd.toFixed(1)+'km/h', pad.l, pad.t-5);
+}
+
+function drawLaunchChart(canvas, series) {
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var pad = {t:12, r:8, b:18, l:36};
+  var pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+
+  // find ranges
+  var tMin = series[0].dt, tMax = series[series.length-1].dt;
+  var rpmMax = 0, tpsMax = 0;
+  series.forEach(function(s){ if(s.rpm>rpmMax) rpmMax=s.rpm; if(s.tps>tpsMax) tpsMax=s.tps; });
+  rpmMax = Math.ceil(rpmMax/500)*500 || 5000;
+  tpsMax = Math.ceil(tpsMax/10)*10 || 100;
+
+  function x(t){ return pad.l + (t-tMin)/(tMax-tMin)*pw; }
+  function yRpm(r){ return pad.t + ph - (r/rpmMax)*ph; }
+  function yTps(t){ return pad.t + ph - (t/tpsMax)*ph; }
+
+  // bg
+  ctx.fillStyle = '#0c0c0c';
+  ctx.fillRect(0,0,W,H);
+
+  // zero line (t=0)
+  ctx.strokeStyle = '#333';
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(x(0), pad.t); ctx.lineTo(x(0), pad.t+ph); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // labels
+  ctx.font = '9px monospace';
+  ctx.fillStyle = '#555';
+  ctx.textAlign = 'center';
+  [-3,-2,-1,0,1,2,3,4,5].forEach(function(s){
+    if(s>=tMin && s<=tMax){
+      ctx.fillText(s+'s', x(s), H-3);
+    }
+  });
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#66aaff';
+  for(var r=0; r<=rpmMax; r+=1000) ctx.fillText(r, pad.l-3, yRpm(r)+3);
+  ctx.fillStyle = '#ff8866';
+  for(var t=0; t<=tpsMax; t+=20) ctx.fillText(t+'%', pad.l-3, yTps(t)+3);
+
+  // RPM line
+  ctx.strokeStyle = '#66aaff';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  series.forEach(function(s,i){
+    var px = x(s.dt), py = yRpm(s.rpm);
+    i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // TPS line
+  ctx.strokeStyle = '#ff8866';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  series.forEach(function(s,i){
+    var px = x(s.dt), py = yTps(s.tps);
+    i===0 ? ctx.moveTo(px,py) : ctx.lineTo(px,py);
+  });
+  ctx.stroke();
+
+  // legend
+  ctx.font = '9px sans-serif';
+  ctx.fillStyle = '#66aaff'; ctx.fillText('RPM', W-60, 12);
+  ctx.fillStyle = '#ff8866'; ctx.fillText('TPS%', W-28, 12);
+}
+
 </script>
+
+<!-- Launch Events Section -->
+<div id="launch-section" style="display:none;margin-top:20px">
+  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px">
+    <h3 style="color:#ff9944;margin:0">&#9889; Launch Events</h3>
+    <span style="font-size:10px;color:#666">TPS tip-in detection</span>
+  </div>
+  <p style="font-size:10px;color:#666;margin:0 0 10px">
+    <b style="color:#88cc88">Type A</b> &mdash; Pull from stable cruise (tps_std &lt; 5) &mdash; cleanest for map comparison &nbsp;|&nbsp;
+    <b style="color:#cccc88">Type B</b> &mdash; Hard push from moderate accel (tps_std &lt; 20) &mdash; real-world riding
+  </p>
+
+  <div id="launch-a-wrap">
+    <h4 style="color:#88cc88;font-size:12px;margin:6px 0 3px">Type A &mdash; From Stable Cruise</h4>
+    <div id="launch-a-content" style="font-size:11px;color:#555">None detected</div>
+  </div>
+
+  <div id="launch-b-wrap" style="margin-top:10px">
+    <h4 style="color:#cccc88;font-size:12px;margin:6px 0 3px">Type B &mdash; From Moderate Acceleration</h4>
+    <div id="launch-b-content" style="font-size:11px;color:#555">None detected</div>
+  </div>
+</div>
+
 </body></html>

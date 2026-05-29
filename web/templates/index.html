@@ -211,6 +211,20 @@ table.veg td:active{filter:brightness(1.6)}
 .sheet-row{display:flex;justify-content:space-between;padding:5px 0;
            border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px}
 .sheet-key{color:var(--dim)}.sheet-val{color:#fff;font-weight:700}
+/* LAUNCH READY */
+.big-card.launch-clt{background:rgba(232,66,10,.1) !important}
+.big-card.launch-rpm{background:rgba(255,68,68,.1) !important}
+.big-card.launch-tps{background:rgba(61,158,255,.1) !important}
+.big-card.launch-ready{background:rgba(44,221,110,.15) !important;border-color:var(--green) !important}
+.big-card.launch-ready .big-num{color:var(--green) !important}
+.launch-bar{height:2px;margin:0 0 10px 0;border-radius:2px;background:var(--border);overflow:hidden;opacity:0;transition:opacity .3s}
+.launch-bar.active{opacity:1}
+.launch-bar-fill{height:100%;width:0%;transition:width .15s linear;border-radius:2px}
+.launch-bar-fill.accum{background:#4488aa}
+.launch-bar-fill.ready{background:var(--green);box-shadow:0 0 6px var(--green)}
+@keyframes launchBarPulse{0%,100%{opacity:1}50%{opacity:.2}}
+.launch-bar.blink .launch-bar-fill{animation:launchBarPulse .33s ease-in-out infinite}
+.hs.launch-gear{background:rgba(170,136,255,.12) !important}
 </style>
 <script>window.LOGGER_VERSION = "--LOGGER_VERSION--";</script>
 </head>
@@ -324,6 +338,16 @@ table.veg td:active{filter:brightness(1.6)}
         <span style="font-size:9px">grados</span>
       </div>
     </div>
+    <!-- RPM -->
+    <div class="big-card" id="cardRPM" style="border-top-color:#ff4444">
+      <div class="big-label">RPM</div>
+      <div class="big-num" style="color:#ff4444" id="bigRPM">--</div>
+      <div class="big-unit">rpm</div>
+    </div>
+  </div>
+  <!-- Launch progress bar -->
+  <div class="launch-bar" id="launchBar">
+    <div class="launch-bar-fill" id="launchBarFill"></div>
   </div>
 
   <div class="ind-row" id="indicators"></div>      <div class="grid-section">

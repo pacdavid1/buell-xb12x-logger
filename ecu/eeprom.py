@@ -66,13 +66,12 @@ def _validate_eeprom(eeprom_bytes):
         # Ride_Counter (offset 1): should be < 65535
         if eeprom_bytes[1] > 250:  # single byte, max 255 rides is reasonable
             return False
-        # KEngineRun (offset 6): 2-20 (100-1000 RPM range)
-        if not (2 <= eeprom_bytes[6] <= 20):
-            return False
-        # spark_load axis (offset 602, 10 bytes): all values 0-100
+        # KEngineRun (offset 6): DDFI2 stores ~232 here (engine run counter)
+        # Not range-checked since encoding varies by ECU type
+        # spark_load axis (offset 602, 10 bytes): all values 0-255 (TPS-based DDFI2)
         for i in range(10):
             v = eeprom_bytes[602 + i]
-            if v < 0 or v > 100:
+            if v < 0 or v > 255:
                 return False
         return True
     except (IndexError, TypeError):

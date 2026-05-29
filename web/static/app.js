@@ -358,7 +358,10 @@ function renderIndicators(ind) {
 
 // ── FETCH LOOP ────────────────────────────────────────────────────
 let _lastLiveOk = Date.now();
+let _fetchingLive = false;
 async function fetchLive() {
+  if (_fetchingLive) return;
+  _fetchingLive = true;
   document.title="LIVE";
   if(window._viewingHistory){
     try {
@@ -369,7 +372,7 @@ async function fetchLive() {
           updateHeader(_d);
         }
       }
-    } catch(e){}
+    } catch(e){ console.warn('fetchLive(viewHistory):', e); }
     return;
   }
   try {
@@ -379,6 +382,7 @@ async function fetchLive() {
     _lastLiveOk = Date.now();
     lastData = d;
     updateHeader(d);
+    launchReadyTick(d);
     renderObjectives(d.objectives);
     renderIndicators(d.indicators);
     if(d.network_mode) updateNetStatus(d.network_mode, d.ip);
@@ -400,8 +404,240 @@ async function fetchLive() {
         if(el) el.textContent = 'R'+String(d.ride_num||0).padStart(3,'0') + ' · ' + fmtTime(d.elapsed_s||0);
       }
     }
-  } catch(e){}
+  } catch(e){ console.warn('fetchLive:', e); }
+  finally { _fetchingLive = false; }
 }
+
+
+// -- LAUNCH READY STATE MACHINE ------------------------------------
+let launchState = 'INACTIVE';
+let launchBuffer = null;
+let steadySeconds = 0;
+let lastSampleElapsed = null;
+let readyTimer = null;
+let capturedLaunches = [];
+
+function createRingBuffer(durationSec, sampleRateHz) {
+  var maxLen = Math.ceil(durationSec * sampleRateHz) + 5;
+  var buf = [];
+  return {
+    push: function(sample) {
+      buf.push(sample);
+      while (buf.length > maxLen) buf.shift();
+    },
+    getAll: function() { return buf.slice(); },
+    getAvg: function(field) {
+      if (!buf.length) return 0;
+      var s = 0;
+      for (var i = 0; i < buf.length; i++) s += (buf[i][field] || 0);
+      return s / buf.length;
+    },
+    getStd: function(field) {
+      if (buf.length < 2) return 0;
+      var avg = this.getAvg(field);
+      var s = 0;
+      for (var i = 0; i < buf.length; i++) {
+        var d = (buf[i][field] || 0) - avg;
+        s += d * d;
+      }
+      return Math.sqrt(s / buf.length);
+    },
+    clear: function() { buf = []; },
+    length: function() { return buf.length; }
+  };
+}
+
+function checkBaseConditions(lv) {
+  return lv.CLT > 70
+      && lv.Gear >= 2
+      && lv.RPM > 2000
+      && lv.TPS_pct > 3
+      && lv.TPS_pct < 20;
+}
+
+function captureLaunch(sample, dtps) {
+  launchState = 'CAPTURED';
+  var evt = {
+    t: sample.t,
+    gear: sample.Gear,
+    pre_rpm: Math.round(launchBuffer.getAvg('RPM')),
+    pre_spd: Math.round(launchBuffer.getAvg('VS_KPH') * 10) / 10,
+    pre_tps: Math.round(launchBuffer.getAvg('TPS_pct') * 10) / 10,
+    pre_ae: Math.round(launchBuffer.getAvg('Accel_Corr') * 10) / 10,
+    tps_std: Math.round(launchBuffer.getStd('TPS_pct') * 10) / 10,
+    rpm_std: Math.round(launchBuffer.getStd('RPM')),
+    spd_std: Math.round(launchBuffer.getStd('VS_KPH') * 10) / 10,
+    dtps_trigger: Math.round(dtps * 10) / 10,
+    type: 'A'
+  };
+  capturedLaunches.push(evt);
+  if (capturedLaunches.length > 50) capturedLaunches.shift();
+  updateLaunchUI('CAPTURED', evt);
+  fetch('/ride/launch_event', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(evt)
+  }).catch(function(){});
+  setTimeout(function() {
+    launchState = 'INACTIVE';
+    steadySeconds = 0;
+    updateLaunchUI('INACTIVE');
+  }, 2000);
+}
+
+function updateLaunchUI(state, data) {
+  var cardCHT = document.querySelector('.big-card.hot');
+  var cardTPSEl = document.querySelector('.big-card.tps');
+  var cardRPM = document.getElementById('cardRPM');
+  var gearHs = document.getElementById('hGear');
+  var gearParent = gearHs ? gearHs.closest('.hs') : null;
+  var bar = document.getElementById('launchBar');
+  var fill = document.getElementById('launchBarFill');
+
+  if(cardCHT) { cardCHT.className = 'big-card hot'; }
+  if(cardTPSEl) { cardTPSEl.className = 'big-card tps'; }
+  if(cardRPM) { cardRPM.className = 'big-card'; cardRPM.style.borderTopColor = '#ff4444'; }
+  if(gearParent) { gearParent.className = 'hs'; }
+  if(bar) { bar.className = 'launch-bar'; bar.classList.remove('active', 'blink'); }
+  if(fill) { fill.className = 'launch-bar-fill'; fill.style.width = '0%'; }
+
+  switch (state) {
+    case 'INACTIVE':
+      break;
+
+    case 'ACCUMULATING':
+      if(cardCHT) cardCHT.classList.add('launch-clt');
+      if(cardTPSEl) cardTPSEl.classList.add('launch-tps');
+      if(cardRPM) cardRPM.classList.add('launch-rpm');
+      if(gearParent) gearParent.classList.add('launch-gear');
+      if(bar) bar.classList.add('active');
+      if(fill) {
+        fill.classList.add('accum');
+        var pct = Math.min((data.progress || 0) * 100, 100);
+        fill.style.width = pct + '%';
+      }
+      break;
+
+    case 'READY':
+      if(cardCHT) cardCHT.classList.add('launch-ready');
+      if(cardTPSEl) cardTPSEl.classList.add('launch-ready');
+      if(cardRPM) cardRPM.classList.add('launch-ready');
+      if(gearParent) gearParent.classList.add('launch-gear');
+      if(bar) { bar.classList.add('active', 'blink'); }
+      if(fill) {
+        fill.classList.add('ready');
+        fill.style.width = '100%';
+      }
+      break;
+
+    case 'CAPTURED':
+      if(cardCHT) cardCHT.classList.add('launch-ready');
+      if(cardTPSEl) cardTPSEl.classList.add('launch-ready');
+      if(cardRPM) cardRPM.classList.add('launch-ready');
+      if(gearParent) gearParent.classList.add('launch-gear');
+      if(bar) { bar.classList.add('active'); }
+      if(fill) {
+        fill.classList.add('ready');
+        fill.style.width = '100%';
+      }
+      break;
+  }
+}
+
+function launchReadyTick(d) {
+  var lv = d.live || {};
+  if (!d.ride_active || !lv.RPM) {
+    if (launchState !== 'INACTIVE') {
+      launchState = 'INACTIVE';
+      steadySeconds = 0;
+      lastSampleElapsed = null;
+      updateLaunchUI('INACTIVE');
+      if (readyTimer) { clearTimeout(readyTimer); readyTimer = null; }
+    }
+    return;
+  }
+
+  var now = d.elapsed_s;
+  var dt = lastSampleElapsed ? (now - lastSampleElapsed) : 0;
+  lastSampleElapsed = now;
+  if (dt <= 0 || dt > 2.0) dt = 0.5;
+
+  var sample = {
+    t: now,
+    RPM: lv.RPM,
+    TPS_pct: lv.TPS_pct,
+    VS_KPH: lv.VS_KPH,
+    CLT: lv.CLT,
+    Gear: lv.Gear,
+    Accel_Corr: lv.Accel_Corr,
+    WUE: lv.WUE
+  };
+
+  switch (launchState) {
+    case 'INACTIVE':
+      updateLaunchUI('INACTIVE');
+      if (checkBaseConditions(lv)) {
+        launchState = 'ACCUMULATING';
+        launchBuffer = createRingBuffer(3.0, 2.0);
+        steadySeconds = 0;
+        launchBuffer.push(sample);
+      }
+      break;
+
+    case 'ACCUMULATING':
+      launchBuffer.push(sample);
+      if (!checkBaseConditions(lv)) {
+        launchState = 'INACTIVE';
+        steadySeconds = 0;
+        updateLaunchUI('INACTIVE');
+        break;
+      }
+      var ts = launchBuffer.getStd('TPS_pct');
+      var rs = launchBuffer.getStd('RPM');
+      var ss = launchBuffer.getStd('VS_KPH');
+      if (ts < 5 && rs < 100 && ss < 3) {
+        steadySeconds += dt;
+        if (steadySeconds >= 3.0) {
+          launchState = 'READY';
+          readyTimer = setTimeout(function() {
+            if (launchState === 'READY') {
+              launchState = 'INACTIVE';
+              updateLaunchUI('INACTIVE');
+            }
+          }, 8000);
+          updateLaunchUI('READY');
+          break;
+        }
+      } else {
+        steadySeconds = 0;
+      }
+      updateLaunchUI('ACCUMULATING', {
+        progress: Math.min(steadySeconds / 3.0, 1.0),
+        seconds: steadySeconds,
+        ae: launchBuffer.getAvg('Accel_Corr')
+      });
+      break;
+
+    case 'READY':
+      var bufAll = launchBuffer.getAll();
+      if (bufAll.length >= 1) {
+        var dtps = sample.TPS_pct - bufAll[bufAll.length - 1].TPS_pct;
+        if (dtps > 15) {
+          clearTimeout(readyTimer);
+          readyTimer = null;
+          captureLaunch(sample, dtps);
+          break;
+        }
+      }
+      launchBuffer.push(sample);
+      updateLaunchUI('READY');
+      break;
+
+    case 'CAPTURED':
+      break;
+  }
+}
+
 setInterval(fetchLive, 500);
 setInterval(()=>{
   const frozen = (Date.now() - _lastLiveOk) > 5000;
@@ -1158,15 +1394,19 @@ async function viewSelectedRides(){
     </div>`);
 }
 
+let _pollingCobert = false;
 async function pollCobertGrid() {
   if (window._viewingHistory) return;
+  if (_pollingCobert) return;
+  _pollingCobert = true;
   try {
     const r = await fetch('/coverage.json?t='+Date.now());
     if (!r.ok) return;
     const d = await r.json();
     _cobertData = d;
     renderCobertGrid(d);
-  } catch(e) {}
+  } catch(e) { console.warn('pollCobertGrid:', e); }
+  finally { _pollingCobert = false; }
 }
 
 function exitHistory(){
