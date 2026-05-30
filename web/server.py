@@ -1169,16 +1169,35 @@ def _compare_sessions_cached(buell_dir, sa, sb):
     return result
 
 
-def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=15.0, min_rpm=1500):
-    """Detect throttle tip-in events, classify as Type A (cruise) or Type B (moderate accel)."""
+
+def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=8.0, min_rpm=1500):
+    """Detect WOT tip-in events from CSV rows.
+
+    Changes vs previous:
+    - min_dtps lowered 15.0->8.0 to capture smoother throttle openings
+    - gear taken from pre-window mode, not the exact launch sample
+    - discards event if gear=0 or gear changed during pre-window
+    - adds environmental metadata: pre_clt, pre_alt_m, pre_baro_hpa
+    - adds gear_stable flag
+    """
     if len(rows) < 30:
         return []
     launches = []
-    def _s(v):
-        n=len(v)
-        if n<2: return 0.0
-        m=sum(v)/n
-        return (sum((x-m)**2 for x in v)/n)**0.5
+
+    def _std(vals):
+        n = len(vals)
+        if n < 2: return 0.0
+        m = sum(vals) / n
+        return (sum((x - m) ** 2 for x in vals) / n) ** 0.5
+
+    def _mode_gear(samples):
+        counts = {}
+        for r in samples:
+            g = int(r.get('gear', 0))
+            if g > 0:
+                counts[g] = counts.get(g, 0) + 1
+        return max(counts, key=counts.get) if counts else 0
+
     i = 1
     while i < len(rows):
         dtps = rows[i]['tps'] - rows[i-1]['tps']
@@ -1187,62 +1206,90 @@ def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=15.0, min_rp
             pre = [r for r in rows if t0 - pre_window <= r['t'] <= t0 - 0.05]
             if len(pre) < 10:
                 i += 1; continue
+
             tail = pre[-min(20, len(pre)):]
-            rs = _s([r['rpm'] for r in tail])
-            ts = _s([r['tps'] for r in tail])
-            ss = _s([r['spd'] for r in tail])
+
+            # Gear: use mode of pre-window, not the exact launch sample
+            gear = _mode_gear(tail)
+            if gear == 0:
+                i += 1; continue
+
+            # Gear stability: discard if gear changed during pre-window
+            gear_vals = [int(r.get('gear', 0)) for r in tail if int(r.get('gear', 0)) > 0]
+            gear_stable = bool(gear_vals) and all(g == gear for g in gear_vals)
+            if not gear_stable:
+                i += 1; continue
+
+            rs = _std([r['rpm'] for r in tail])
+            ts = _std([r['tps'] for r in tail])
+            ss = _std([r['spd'] for r in tail])
+
             if ts < 5:
                 lt = 'A'
             elif ts < 20 and rs < 500 and ss < 15:
                 lt = 'B'
             else:
                 i += 1; continue
-            # Series: -pre to +post, sampled ~200ms
+
+            # Environmental metadata averaged over pre-window
+            clt_vals  = [r['clt']      for r in tail if r.get('clt')]
+            alt_vals  = [r['alt']      for r in tail if r.get('alt') is not None]
+            baro_vals = [r['baro_hpa'] for r in tail if r.get('baro_hpa')]
+            pre_clt  = round(sum(clt_vals)  / len(clt_vals),  1) if clt_vals  else None
+            pre_alt  = round(sum(alt_vals)  / len(alt_vals),  1) if alt_vals  else None
+            pre_baro = round(sum(baro_vals) / len(baro_vals), 1) if baro_vals else None
+
+            # Time series around the event
             t_start, t_end = t0 - pre_window, t0 + post_window
             series = []; last_t = -999
             for r in rows:
                 if r['t'] < t_start: continue
-                if r['t'] > t_end: break
+                if r['t'] > t_end:   break
                 if r['t'] - last_t >= 0.18:
                     series.append({
-                        'dt': round(r['t'] - t0, 2),
+                        'dt':  round(r['t'] - t0, 2),
                         'rpm': round(r['rpm'], 0),
                         'tps': round(r['tps'], 1),
                         'spd': round(r['spd'], 1),
                         'pw1': round(r['pw1'], 3),
                         'pw2': round(r.get('pw2') or r['pw1'], 3),
-                        'ae': round(r.get('ae', 100), 1),
+                        'ae':  round(r.get('ae', 100), 1),
                     })
                     last_t = r['t']
+
             post = [r for r in rows if t0 <= r['t'] <= t_end]
             launch = {
-                'type': lt, 't': round(t0, 1),
-                'gear': int(rows[i].get('gear', 0)),
-                'dtps_raw': round(dtps, 1),
-                'pre_rpm': round(sum(r['rpm'] for r in tail)/len(tail), 0),
-                'pre_spd': round(sum(r['spd'] for r in tail)/len(tail), 1),
-                'pre_tps': round(sum(r['tps'] for r in tail)/len(tail), 1),
-                'pre_rpm_std': round(rs, 0),
-                'pre_tps_std': round(ts, 1),
-                'pre_spd_std': round(ss, 1),
-                'series': series,
+                'type':         lt,
+                't':            round(t0, 1),
+                'gear':         gear,
+                'gear_stable':  gear_stable,
+                'dtps_raw':     round(dtps, 1),
+                'pre_rpm':      round(sum(r['rpm'] for r in tail) / len(tail), 0),
+                'pre_spd':      round(sum(r['spd'] for r in tail) / len(tail), 1),
+                'pre_tps':      round(sum(r['tps'] for r in tail) / len(tail), 1),
+                'pre_rpm_std':  round(rs, 0),
+                'pre_tps_std':  round(ts, 1),
+                'pre_spd_std':  round(ss, 1),
+                'pre_clt':      pre_clt,
+                'pre_alt_m':    pre_alt,
+                'pre_baro_hpa': pre_baro,
+                'series':       series,
             }
             if post:
-                launch['peak_rpm']  = round(max(r['rpm'] for r in post), 0)
-                launch['peak_spd']  = round(max(r['spd'] for r in post), 1)
-                launch['peak_pw']   = round(max((r['pw1']+(r.get('pw2') or r['pw1']))/2 for r in post), 3)
-                launch['peak_ae']   = round(max(r.get('ae', 100) for r in post), 1)
-                launch['rpm_gain']  = round(post[-1]['rpm'] - tail[-1]['rpm'], 0)
-                launch['spd_gain']  = round(post[-1]['spd'] - tail[-1]['spd'], 1)
+                launch['peak_rpm'] = round(max(r['rpm'] for r in post), 0)
+                launch['peak_spd'] = round(max(r['spd'] for r in post), 1)
+                launch['peak_pw']  = round(max((r['pw1']+(r.get('pw2') or r['pw1']))/2 for r in post), 3)
+                launch['peak_ae']  = round(max(r.get('ae', 100) for r in post), 1)
+                launch['rpm_gain'] = round(post[-1]['rpm'] - tail[-1]['rpm'], 0)
+                launch['spd_gain'] = round(post[-1]['spd'] - tail[-1]['spd'], 1)
             launches.append(launch)
-            # skip past post-window
+
             skip = t0 + post_window
             while i < len(rows) and rows[i]['t'] <= skip:
                 i += 1
             continue
         i += 1
     return launches
-
 
 
 def _s_std(vals):
@@ -1252,193 +1299,115 @@ def _s_std(vals):
     m = sum(vals) / n
     return (sum((x - m) ** 2 for x in vals) / (n - 1)) ** 0.5
 
-def cluster_launches(launches, rpm_tol=400, spd_tol=12, tps_tol=2.5):
-    """
-    Group similar launch events by initial conditions (RPM, speed, TPS, gear).
-    Uses normalized Euclidean distance with adaptive centroid updates.
-    Returns list of cluster dicts with statistical aggregations.
-    """
+def cluster_launches(launches, rpm_tol=250, tps_tol=2.5):
     if not launches:
         return []
 
+    def _assign(launches, clusters, rpm_tol, tps_tol):
+        assignments = []
+        for l in launches:
+            gear = l.get("gear", 0)
+            rpm  = l.get("pre_rpm", 0)
+            tps  = l.get("pre_tps", 0)
+            best_idx  = -1
+            best_dist = float("inf")
+            for i, c in enumerate(clusters):
+                if c["gear"] != gear: continue
+                dr   = abs(c["mean_rpm"] - rpm) / rpm_tol
+                dt   = abs(c["mean_tps"] - tps) / max(tps_tol, 0.1)
+                dist = (dr**2 + dt**2) ** 0.5
+                if dist < 1.0 and dist < best_dist:
+                    best_dist = dist
+                    best_idx  = i
+            assignments.append(best_idx)
+        return assignments
+
     clusters = []
-
     for l in launches:
-        gear = l.get('gear')
-        rpm = l.get('pre_rpm', 0)
-        spd = l.get('pre_spd', 0)
-        tps = l.get('pre_tps', 0)
-
-        best_idx = -1
-        best_dist = float('inf')
-
+        gear = l.get("gear", 0)
+        rpm  = l.get("pre_rpm", 0)
+        tps  = l.get("pre_tps", 0)
+        spd  = l.get("pre_spd", 0)
+        best_idx  = -1
+        best_dist = float("inf")
         for i, c in enumerate(clusters):
-            if c['gear'] != gear:
-                continue
-            dr = abs(c['mean_rpm'] - rpm) / rpm_tol
-            ds = abs(c['mean_spd'] - spd) / spd_tol
-            dt = abs(c['mean_tps'] - tps) / max(tps_tol, 0.1)
-            dist = dr + ds + dt
-            if dist < 1.5 and dist < best_dist:
+            if c["gear"] != gear: continue
+            dr   = abs(c["mean_rpm"] - rpm) / rpm_tol
+            dt   = abs(c["mean_tps"] - tps) / max(tps_tol, 0.1)
+            dist = (dr**2 + dt**2) ** 0.5
+            if dist < 1.0 and dist < best_dist:
                 best_dist = dist
-                best_idx = i
-
+                best_idx  = i
         if best_idx >= 0:
-            c = clusters[best_idx]
-            c['launches'].append(l)
-            c['count'] += 1
-            c['mean_rpm'] = sum(ll.get('pre_rpm',0) for ll in c['launches']) / c['count']
-            c['mean_spd'] = sum(ll.get('pre_spd',0) for ll in c['launches']) / c['count']
-            c['mean_tps'] = sum(ll.get('pre_tps',0) for ll in c['launches']) / c['count']
+            clusters[best_idx]["_items"].append(l)
         else:
-            newc = {
-                'id': len(clusters), 'gear': gear, 'count': 1,
-                'mean_rpm': rpm, 'mean_spd': spd, 'mean_tps': tps,
-                'launches': [l],
-            }
-            clusters.append(newc)
-
-    # Compute stats and mean series for each cluster
+            clusters.append({"gear":gear,"mean_rpm":rpm,"mean_tps":tps,"mean_spd":spd,"_items":[l]})
     for c in clusters:
-        ll = c['launches']
-        c['rpm_std'] = _s_std([x.get('pre_rpm',0) for x in ll])
-        c['spd_std'] = _s_std([x.get('pre_spd',0) for x in ll])
-        c['tps_std'] = _s_std([x.get('pre_tps',0) for x in ll])
-
-        # Peak metrics stats
-        pk_pw_vals = [x.get('peak_pw',0) for x in ll]
-        pk_ae_vals = [x.get('peak_ae',0) for x in ll]
-        rpm_g_vals = [x.get('rpm_gain',0) for x in ll]
-        spd_g_vals = [x.get('spd_gain',0) for x in ll]
-        dtps_vals = [x.get('dtps_raw',0) for x in ll]
-
-        c['peak_pw_mean'] = sum(pk_pw_vals) / len(pk_pw_vals)
-        c['peak_pw_std'] = _s_std(pk_pw_vals)
-        c['peak_ae_mean'] = sum(pk_ae_vals) / len(pk_ae_vals)
-        c['peak_ae_std'] = _s_std(pk_ae_vals)
-        c['rpm_gain_mean'] = sum(rpm_g_vals) / len(rpm_g_vals)
-        c['rpm_gain_std'] = _s_std(rpm_g_vals)
-        c['spd_gain_mean'] = sum(spd_g_vals) / len(spd_g_vals)
-        c['spd_gain_std'] = _s_std(spd_g_vals)
-        c['dtps_mean'] = sum(dtps_vals) / len(dtps_vals)
-        c['dtps_std'] = _s_std(dtps_vals)
-
-        # Build mean curve at common time points
-        dt_min = 0
-        dt_max = 0
-        for x in ll:
-            pts = x.get('series', [])
-            if pts:
-                t0 = pts[0]['dt']
-                t1 = pts[-1]['dt']
-                if t0 < dt_min: dt_min = t0
-                if t1 > dt_max: dt_max = t1
-
-        # Interpolate each launch to 0.25s intervals
-        time_points = []
-        t = dt_min
-        while t <= dt_max + 0.01:
-            time_points.append(round(t, 2))
-            t += 0.25
-
-        if len(time_points) > 1:
-            mean_rpm_curve = [0.0] * len(time_points)
-            mean_tps_curve = [0.0] * len(time_points)
-            mean_pw_curve = [0.0] * len(time_points)
-            mean_ae_curve = [0.0] * len(time_points)
-            mean_spd_curve = [0.0] * len(time_points)
-            all_rpm_curves = []
-            all_tps_curves = []
-            all_pw_curves = []
-            all_ae_curves = []
-            all_spd_curves = []
-
+        items = c["_items"]
+        c["mean_rpm"] = sum(x.get("pre_rpm",0) for x in items)/len(items)
+        c["mean_tps"] = sum(x.get("pre_tps",0) for x in items)/len(items)
+        c["mean_spd"] = sum(x.get("pre_spd",0) for x in items)/len(items)
+    assignments = _assign(launches, clusters, rpm_tol, tps_tol)
+    for c in clusters: c["_items"] = []
+    for l, idx in zip(launches, assignments):
+        if idx >= 0: clusters[idx]["_items"].append(l)
+        else: clusters.append({"gear":l.get("gear",0),"mean_rpm":l.get("pre_rpm",0),"mean_tps":l.get("pre_tps",0),"mean_spd":l.get("pre_spd",0),"_items":[l]})
+    clusters = [c for c in clusters if c["_items"]]
+    for c in clusters:
+        ll = c["_items"]; n = len(ll)
+        c["count"]    = n
+        c["mean_rpm"] = sum(x.get("pre_rpm",0) for x in ll)/n
+        c["mean_spd"] = sum(x.get("pre_spd",0) for x in ll)/n
+        c["mean_tps"] = sum(x.get("pre_tps",0) for x in ll)/n
+        c["rpm_std"]  = _s_std([x.get("pre_rpm",0) for x in ll])
+        c["spd_std"]  = _s_std([x.get("pre_spd",0) for x in ll])
+        c["tps_std"]  = _s_std([x.get("pre_tps",0) for x in ll])
+        clt_v  = [x["pre_clt"]      for x in ll if x.get("pre_clt")      is not None]
+        alt_v  = [x["pre_alt_m"]    for x in ll if x.get("pre_alt_m")    is not None]
+        baro_v = [x["pre_baro_hpa"] for x in ll if x.get("pre_baro_hpa") is not None]
+        c["pre_clt_mean"]  = round(sum(clt_v) /len(clt_v), 1)  if clt_v  else None
+        c["pre_alt_mean"]  = round(sum(alt_v) /len(alt_v), 1)  if alt_v  else None
+        c["pre_baro_mean"] = round(sum(baro_v)/len(baro_v),1) if baro_v else None
+        for key,src in [("peak_pw","peak_pw"),("peak_ae","peak_ae"),("rpm_gain","rpm_gain"),("spd_gain","spd_gain"),("dtps","dtps_raw")]:
+            vals = [x.get(src,0) for x in ll]
+            c[key+"_mean"] = round(sum(vals)/len(vals),3)
+            c[key+"_std"]  = round(_s_std(vals),3)
+        dt_min = min((x.get("series",[{}])[0].get("dt",0)  for x in ll if x.get("series")),default=0)
+        dt_max = max((x.get("series",[{}])[-1].get("dt",0) for x in ll if x.get("series")),default=0)
+        tpts=[]; t=dt_min
+        while t<=dt_max+0.01: tpts.append(round(t,2)); t+=0.25
+        if len(tpts)>1:
+            all_c={k:[] for k in ("rpm","tps","spd","pw1","ae")}
             for x in ll:
-                pts = x.get('series', [])
-                rpm_vals = []
-                tps_vals = []
-                pw_vals = []
-                ae_vals = []
-                spd_vals = []
-                for tp in time_points:
-                    # Find nearest point in series
-                    best = None
-                    best_dt = 999
-                    for p in pts:
-                        d = abs(p['dt'] - tp)
-                        if d < best_dt:
-                            best_dt = d
-                            best = p
-                    if best and best_dt < 0.15:
-                        rpm_vals.append(best.get('rpm', 0))
-                        tps_vals.append(best.get('tps', 0))
-                        pw_vals.append(best.get('pw1', 0) or best.get('pw2', 0) or 0)
-                        ae_vals.append(best.get('ae', 0))
-                        spd_vals.append(best.get('spd', 0))
-                    else:
-                        rpm_vals.append(None)
-                        tps_vals.append(None)
-                        pw_vals.append(None)
-                        ae_vals.append(None)
-                        spd_vals.append(None)
-
-                all_rpm_curves.append(rpm_vals)
-                all_tps_curves.append(tps_vals)
-                all_pw_curves.append(pw_vals)
-                all_ae_curves.append(ae_vals)
-                all_spd_curves.append(spd_vals)
-
-            for i in range(len(time_points)):
-                r_vals = [cv[i] for cv in all_rpm_curves if cv[i] is not None]
-                t_vals = [cv[i] for cv in all_tps_curves if cv[i] is not None]
-                p_vals = [cv[i] for cv in all_pw_curves if cv[i] is not None]
-                a_vals = [cv[i] for cv in all_ae_curves if cv[i] is not None]
-                s_vals = [cv[i] for cv in all_spd_curves if cv[i] is not None]
-                if r_vals:
-                    mean_rpm_curve[i] = sum(r_vals) / len(r_vals)
-                if t_vals:
-                    mean_tps_curve[i] = sum(t_vals) / len(t_vals)
-                if p_vals:
-                    mean_pw_curve[i] = sum(p_vals) / len(p_vals)
-                if a_vals:
-                    mean_ae_curve[i] = sum(a_vals) / len(a_vals)
-                    if s_vals:
-                        mean_spd_curve[i] = sum(s_vals) / len(s_vals)
-
-            # Std curves
-            std_rpm_curve = [0.0] * len(time_points)
-            std_tps_curve = [0.0] * len(time_points)
-            std_spd_curve = [0.0] * len(time_points)
-            for i in range(len(time_points)):
-                r_vals = [cv[i] for cv in all_rpm_curves if cv[i] is not None]
-                t_vals = [cv[i] for cv in all_tps_curves if cv[i] is not None]
-                s_vals = [cv[i] for cv in all_spd_curves if cv[i] is not None]
-                if r_vals:
-                    std_rpm_curve[i] = _s_std(r_vals)
-                if t_vals:
-                    std_tps_curve[i] = _s_std(t_vals)
-                if s_vals:
-                    std_spd_curve[i] = _s_std(s_vals)
-
-            c['mean_series'] = [{'dt': time_points[i], 'rpm': round(mean_rpm_curve[i], 1),
-                                 'tps': round(mean_tps_curve[i], 1), 'pw': round(mean_pw_curve[i], 3),
-                                 'ae': round(mean_ae_curve[i], 1), 'spd': round(mean_spd_curve[i], 1)} for i in range(len(time_points))]
-            c['std_series'] = [{'dt': time_points[i], 'rpm': round(std_rpm_curve[i], 1),
-                                'tps': round(std_tps_curve[i], 1), 'spd': round(std_spd_curve[i], 1)} for i in range(len(time_points))]
+                pts=x.get("series",[])
+                for k in all_c:
+                    curve=[]
+                    for tp in tpts:
+                        best,bd=None,999
+                        for p in pts:
+                            d=abs(p["dt"]-tp)
+                            if d<bd: bd,best=d,p
+                        curve.append(best.get(k) if best and bd<0.15 else None)
+                    all_c[k].append(curve)
+            ms,ss=[],[]
+            for idx in range(len(tpts)):
+                rm,rs={"dt":tpts[idx]},{"dt":tpts[idx]}
+                for k in ("rpm","tps","spd"):
+                    vals=[all_c[k][ci][idx] for ci in range(n) if all_c[k][ci][idx] is not None]
+                    rm[k]=round(sum(vals)/len(vals),1) if vals else None
+                    rs[k]=round(_s_std(vals),1) if len(vals)>1 else 0.0
+                pw_v=[all_c["pw1"][ci][idx] for ci in range(n) if all_c["pw1"][ci][idx] is not None]
+                rm["pw"]=round(sum(pw_v)/len(pw_v),3) if pw_v else None
+                ae_v=[all_c["ae"][ci][idx]  for ci in range(n) if all_c["ae"][ci][idx]  is not None]
+                rm["ae"]=round(sum(ae_v)/len(ae_v),1) if ae_v else None
+                ms.append(rm); ss.append(rs)
+            c["mean_series"]=ms; c["std_series"]=ss
         else:
-            c['mean_series'] = []
-            c['std_series'] = []
-
-        # Remove raw launches from cluster (keep in original arrays)
-        del c['launches']
-
-    # Sort clusters by gear, then count desc
-    clusters.sort(key=lambda c: (c['gear'] if c['gear'] else 99, -c['count']))
-    # Re-assign sequential IDs
-    for i, c in enumerate(clusters):
-        c['id'] = i
+            c["mean_series"]=[]; c["std_series"]=[]
+        del c["_items"]
+    clusters.sort(key=lambda c:(c["gear"] if c["gear"] else 99,-c["count"]))
+    for i,c in enumerate(clusters): c["id"]=i
     return clusters
-
 
 def match_clusters(clusters_a, clusters_b, rpm_tol=400, spd_tol=12, tps_tol=2.5):
     """

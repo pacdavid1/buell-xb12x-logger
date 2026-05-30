@@ -25,6 +25,20 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.58] -- 2026-05-30
+
+### Changed
+
+- web/server.py detect_launches(): min_dtps lowered 15.0->8.0 to capture smoother throttle openings; gear now taken from pre-window mode (not launch sample) and event discarded if gear=0 or changed during pre-window; adds environmental metadata: pre_clt, pre_alt_m, pre_baro_hpa; adds gear_stable flag
+- web/server.py cluster_launches(): speed removed as clustering dimension (follows from gear+RPM by physics); rpm_tol tightened 400->250; distance metric changed from sum to Euclidean; 2-pass k-means style (assign, recompute centroids, reassign); adds clt/alt/baro metadata aggregation to clusters
+- web/static/app.js checkBaseConditions(): added Gear > 0 requirement (gear must be confirmed before accumulating)
+- web/static/app.js ACCUMULATING state: added bufferGearStable() check -- resets to INACTIVE if gear changes during pre-window
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.57] — 2026-05-30
 
 ### Added

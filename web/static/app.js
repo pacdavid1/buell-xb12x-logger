@@ -437,10 +437,21 @@ function createRingBuffer(durationSec, sampleRateHz) {
 
 function checkBaseConditions(lv) {
   return lv.CLT > 70
+      && lv.Gear > 0
       && lv.Gear >= 2
       && lv.RPM > 2000
       && lv.TPS_pct > 3
       && lv.TPS_pct < 20;
+}
+
+function bufferGearStable(buf) {
+  var all = buf.getAll();
+  if (all.length < 2) return true;
+  var g0 = all[0].Gear;
+  for (var i = 1; i < all.length; i++) {
+    if (all[i].Gear !== g0) return false;
+  }
+  return g0 > 0;
 }
 
 function captureLaunch(sample, dtps) {
@@ -584,6 +595,11 @@ function launchReadyTick(d) {
       var ts = launchBuffer.getStd('TPS_pct');
       var rs = launchBuffer.getStd('RPM');
       var ss = launchBuffer.getStd('VS_KPH');
+      // Reset if gear changed during pre-window
+      if (!bufferGearStable(launchBuffer)) {
+        launchState = 'INACTIVE'; steadySeconds = 0;
+        updateLaunchUI('INACTIVE'); break;
+      }
       if (ts < 5 && rs < 100 && ss < 3) {
         steadySeconds += dt;
         if (steadySeconds >= 3.0) {
