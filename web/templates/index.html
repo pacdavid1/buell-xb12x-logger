@@ -40,12 +40,10 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 .hs-sm:last-child{border-right:none}
 .hs-sm .hs-label{font-family:var(--mono);font-size:6px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
 .hs-sm .hs-val{font-size:13px;font-weight:700;line-height:1.2}
-.hs{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;
-    padding:1px 4px;border-right:1px solid var(--border);min-width:48px;position:relative}
+.hs{width:50px;height:33px;display:flex;align-items:center;justify-content:center;
+    border-right:1px solid var(--border);flex-shrink:0;overflow:hidden}
 .hs:last-child{border-right:none}
-.hs-label{font-family:var(--mono);font-size:5px;color:var(--dim);letter-spacing:.1em;
-    text-transform:uppercase;position:absolute;top:1px;left:3px;opacity:0.6;line-height:1}
-.hs-val{font-size:36px;font-weight:900;line-height:1}
+.hs-val{font-size:30px;font-weight:900;line-height:1;text-align:center}
 .ac{color:var(--accent)} .gn{color:var(--green)} .bl{color:var(--blue)}
 .wh{color:#fff}          .yw{color:var(--accent2)}
 .pill{padding:3px 7px;font-family:var(--mono);font-size:8px;border:1px solid;
@@ -259,12 +257,12 @@ table.veg td:active{filter:brightness(1.6)}
   <!-- Row 1: bike params -->
   <div class="hdr-row">
     <div class="hdr-stats">
-      <div class="hs"><div class="hs-label">EGO</div><div class="hs-val gn" id="hEGO">--</div></div>
-      <div class="hs"><div class="hs-label">MAT</div><div class="hs-val bl" id="hMAT">--</div></div>
-      <div class="hs"><div class="hs-label">Batt</div><div class="hs-val yw" id="hBatt">--</div></div>
-      <div class="hs"><div class="hs-label">Marcha</div><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
-      <div class="hs"><div class="hs-label" id="hRideLabel">Ride</div><div class="hs-val wh" id="hRide">--</div></div>
-      <div class="hs"><div class="hs-label">Serial</div><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
+      <div class="hs"><div class="hs-val gn" id="hEGO">--</div></div>
+      <div class="hs"><div class="hs-val bl" id="hMAT">--</div></div>
+      <div class="hs"><div class="hs-val yw" id="hBatt">--</div></div>
+      <div class="hs"><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
+      <div class="hs"><div class="hs-val wh" id="hRide">--</div></div>
+      <div class="hs"><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
     </div>
     <div id="hPill" class="pill-dot off"></div>
   </div>

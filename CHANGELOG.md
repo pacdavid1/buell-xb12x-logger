@@ -25,6 +25,20 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.50] — 2026-05-30
+
+### Changed
+
+- web/templates/index.html: .hs containers now fixed 50x33px, flex centered — eliminates all vertical alignment inconsistencies between cells
+- web/templates/index.html: removed all .hs-label divs from header row 1 (EGO/MAT/Batt/Marcha/Ride/Serial) — no more label text taking space or causing misalignment
+- web/templates/index.html: .hs-val font-size set to 30px (fits 4-char values within 50px width)
+- web/static/app.js: removed hRideLabel references — ride display simplified to single hRide element (shows elapsed time when active, ride number when inactive)
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.49] — 2026-05-30
 
 ### Changed

@@ -252,13 +252,8 @@ function updateHeader(d) {
     gearEl.textContent = (g!=null && g>0) ? g+'ª' : (g===0 ? 'N' : '--');
   }
   // Ride: show number + timer when active
-  if(d.ride_active){
-    document.getElementById('hRideLabel').textContent = 'R'+String(d.ride_num||0).padStart(3,'0');
-    document.getElementById('hRide').textContent = fmtTime(d.elapsed_s||0);
-  } else {
-    document.getElementById('hRideLabel').textContent = 'Ride';
-    document.getElementById('hRide').textContent = d.ride_num ? 'R'+String(d.ride_num).padStart(3,'0') : '--';
-  }
+  const rideEl = document.getElementById('hRide');
+  if(rideEl) rideEl.textContent = d.ride_active ? fmtTime(d.elapsed_s||0) : (d.ride_num ? 'R'+String(d.ride_num).padStart(3,'0') : '--');
 
   const pill = document.getElementById('hPill');
   if(d.ride_active)     { pill.textContent=''; pill.className='pill-dot on'; }
