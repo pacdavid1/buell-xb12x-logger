@@ -25,6 +25,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.45] — 2026-05-30
+
+### Changed
+
+- web/templates/index.html: big-num font size increased 56px -> 72px for better readability on iPhone 12
+- web/templates/index.html: flavor mode buttons (Segundos/EGO/SWEET/TIPOUT/Confianza/O2 ADC/WOT) moved from above the VE grid to below it — they are not changed during a ride so they don't need to be prominent
+- web/templates/index.html: removed "Celdas" section label — no informational value
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.44] — 2026-05-30
 
 ### Fixed

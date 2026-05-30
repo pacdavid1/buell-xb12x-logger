@@ -76,7 +76,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 .big-card.tps{border-top-color:var(--blue)}
 .big-label{font-family:var(--mono);font-size:8px;color:var(--dim);
            letter-spacing:.15em;text-transform:uppercase;margin-bottom:2px}
-.big-num{font-size:56px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.big-num{font-size:72px;font-weight:900;line-height:1;letter-spacing:-.02em}
 .big-unit{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:2px}
 
 /* INDICADORES */
@@ -351,24 +351,21 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 
   <div class="ind-row" id="indicators"></div>      <div class="grid-section">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
-      <div class="ctrl-label" style="font-size:8px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase">Celdas</div>
-      <div class="btns" id="cobert-btns" style="display:flex;gap:3px;flex-wrap:wrap">
-        <button class="btn cobert-btn active" data-mode="seconds" onclick="setCobertMode('seconds')" style="font-size:8px;padding:3px 6px;border-color:var(--accent2);color:var(--accent2)">Segundos</button>
-        <button class="btn cobert-btn" data-mode="ego" onclick="setCobertMode('ego')" style="font-size:8px;padding:3px 6px">EGO</button>
-        <button class="btn cobert-btn" data-mode="SWEET" onclick="setCobertMode('SWEET')" style="font-size:8px;padding:3px 6px;color:#7df">SWEET</button>
-        <button class="btn cobert-btn" data-mode="TIPOUT" onclick="setCobertMode('TIPOUT')" style="font-size:8px;padding:3px 6px;color:#fa3">TIPOUT</button>
-        <button class="btn cobert-btn" data-mode="confidence" onclick="setCobertMode('confidence')" style="font-size:8px;padding:3px 6px;color:#fa0">Confianza</button>
-        <button class="btn cobert-btn" data-mode="o2_adc" onclick="setCobertMode('o2_adc')" style="font-size:8px;padding:3px 6px;color:#a8f">O2 ADC</button>
-        <button class="btn cobert-btn" data-mode="WOT" onclick="setCobertMode('WOT')" style="font-size:8px;padding:3px 6px;color:#f74">WOT</button>
-      </div>
-    </div>
     <div class="grid-wrap">
       <table class="veg" id="cobertGrid"></table>
     </div>
     <div id="cobert-legend" class="legend"></div>
     <div class="obj-row-compact" id="cobert-summary"></div>
     <div id="cobert-status" style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:2px">Conectando...</div>
+    <div class="btns" id="cobert-btns" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">
+      <button class="btn cobert-btn active" data-mode="seconds" onclick="setCobertMode('seconds')" style="font-size:8px;padding:3px 6px;border-color:var(--accent2);color:var(--accent2)">Segundos</button>
+      <button class="btn cobert-btn" data-mode="ego" onclick="setCobertMode('ego')" style="font-size:8px;padding:3px 6px">EGO</button>
+      <button class="btn cobert-btn" data-mode="SWEET" onclick="setCobertMode('SWEET')" style="font-size:8px;padding:3px 6px;color:#7df">SWEET</button>
+      <button class="btn cobert-btn" data-mode="TIPOUT" onclick="setCobertMode('TIPOUT')" style="font-size:8px;padding:3px 6px;color:#fa3">TIPOUT</button>
+      <button class="btn cobert-btn" data-mode="confidence" onclick="setCobertMode('confidence')" style="font-size:8px;padding:3px 6px;color:#fa0">Confianza</button>
+      <button class="btn cobert-btn" data-mode="o2_adc" onclick="setCobertMode('o2_adc')" style="font-size:8px;padding:3px 6px;color:#a8f">O2 ADC</button>
+      <button class="btn cobert-btn" data-mode="WOT" onclick="setCobertMode('WOT')" style="font-size:8px;padding:3px 6px;color:#f74">WOT</button>
+    </div>
   </div>
   <div class="obj-row-compact" id="objList"></div>
 </div>
