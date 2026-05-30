@@ -799,6 +799,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
     def _get_live(self):
         net = self.server_instance.network
+        _snap = self.server_instance.cell_tracker.snapshot() if self.server_instance.cell_tracker else (None, None)
         return {
 
             "ts":              time.time(),
@@ -813,8 +814,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "ecu_connected":   self.server_instance.ecu_connected,
             "ecu_lost_s":      self.server_instance.ecu_lost_s,
             "live":            self._get_live_data(),
-            "cells":           self.server_instance.cell_tracker.snapshot()[0] if self.server_instance.cell_tracker else {},
-            "active_cell":    self.server_instance.cell_tracker.snapshot()[1] if self.server_instance.cell_tracker else None,
+            "cells":           _snap[0] or {},
+            "active_cell":     _snap[1],
             "objectives":      [],
             "serial_stats":    self.server_instance.serial_stats,
             "bike_serial":     self.server_instance.bike_serial,

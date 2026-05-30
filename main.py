@@ -209,6 +209,7 @@ class BuellLogger:
                     self.logger.warning("GPS thread muerto — reiniciando...")
                     self._last_gps_restart = now_gps
                     try:
+                        self.gps.stop()
                         self.gps = GPSReader()
                         self.gps.start()
                         self.web.gps = self.gps # Mantener referencia actualizada
@@ -486,6 +487,8 @@ class BuellLogger:
                 self.logger.error(f"Heartbeat loop error: {e}")
                 time.sleep(1)
         
+        if self._ecu_thread and self._ecu_thread.is_alive():
+            self._ecu_thread.join(timeout=5.0)
         self.shutdown()
     
     def _check_threads(self):

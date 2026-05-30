@@ -25,6 +25,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.44] — 2026-05-30
+
+### Fixed
+
+- main.py: GPS watchdog now calls gps.stop() before replacing the dead thread — prevents two GPSReader threads running simultaneously
+- main.py: _ecu_thread.join(timeout=5s) added before shutdown() — eliminates race condition where both _ecu_loop and shutdown() tried to close the active ride simultaneously
+- web/server.py: _get_live() called cell_tracker.snapshot() twice per request — now called once and stored in _snap, halves lock acquisitions on the cell tracker
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.43] — 2026-05-30
 
 ### Removed
