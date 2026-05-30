@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.52] — 2026-05-30
+
+### Removed
+
+- web/static/app.js: close_reason removed from sessions ride list display — was showing internal strings like "RPM=0 por 5s" which are not useful to the user
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.51] — 2026-05-30
 
 ### Removed

@@ -1218,13 +1218,13 @@ async function loadSessions(){
         const dtcBadge=(r.dtc_events&&r.dtc_events.length)?`<span style="color:var(--accent);font-size:9px">⚠${r.dtc_events.length}</span>`:'';
         const noteBadge=r.has_note?'<span style="color:#7df;font-size:9px">📝</span>':'';
 const errBadge=r.has_errorlog?`<span style="color:#f90;font-size:9px;cursor:pointer;text-decoration:underline dotted rgba(255,153,0,0.4)" title="${r.errorlog_summary||'errores'} — clic para ver" onclick="event.stopPropagation();openErrorLog('${sk}',${r.ride_num})">⚠️${r.errorlog_events||''}</span>`:'';
-        const closeR=r.close_reason?` · ${r.close_reason}`:'';
+
         html+=`<div class="ride-item" style="gap:4px;opacity:${live?0.5:1};pointer-events:${live?'none':'auto'}">
           <div style="flex:1;min-width:0">
             <div class="ride-name" style="display:flex;align-items:center;gap:5px">
               ${r.filename.replace('_summary.json','')} ${dtcBadge} ${noteBadge} ${errBadge}
             </div>
-            <div class="ride-meta">${dur} · ${r.samples} muestras${closeR}</div>
+            <div class="ride-meta">${dur} · ${r.samples} muestras</div>
             ${r.has_note?`<div style="font-family:var(--mono);font-size:8px;color:#888;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.note_preview}</div>`:''}
           </div>
           <div style="display:flex;gap:4px;flex-shrink:0">
