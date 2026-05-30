@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.46] — 2026-05-30
+
+### Changed
+
+- web/templates/index.html: big-display changed from flex row to 2x2 CSS grid — each card now ~190px wide on iPhone 12 instead of ~90px, allowing 72px numbers to render correctly
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.45] — 2026-05-30
 
 ### Changed
