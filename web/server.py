@@ -1143,6 +1143,8 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
 def _fmtk(n):
     if n >= 1000: return f"{n/1000:.1f}k"
     return str(n)
+CACHE_VERSION = 3  # bump when detect_launches or cluster_launches schema changes
+
 def _compare_sessions_cached(buell_dir, sa, sb):
     import json as _json
     def _meta(sid):
@@ -1151,18 +1153,19 @@ def _compare_sessions_cached(buell_dir, sa, sb):
             with open(mp) as f: return json.load(f)
         return {}
     ma, mb = _meta(sa), _meta(sb)
-    fname = f"sessions_vs_{sa}-{_fmtk(ma.get('total_samples',0))}_{sb}-{_fmtk(mb.get('total_samples',0))}.json"
+    fname = f"sessions_vs_v{CACHE_VERSION}_{sa}-{_fmtk(ma.get('total_samples',0))}_{sb}-{_fmtk(mb.get('total_samples',0))}.json"
     cache_dir = buell_dir / 'sessions' / '_cache'
     cache_file = cache_dir / fname
     if cache_file.exists():
         try:
             cached = json.load(open(cache_file))
             # Accept cached data even without clusters_a (legacy caches)
-            if 'sa' in cached and 'sb' in cached and 'delta' in cached:
+            if 'sa' in cached and 'clusters_a' in cached and cached.get('_cache_version') == CACHE_VERSION:
                 return cached
         except Exception:
             pass
     result = _compare_sessions(buell_dir, sa, sb)
+    result["_cache_version"] = CACHE_VERSION
     cache_dir.mkdir(parents=True, exist_ok=True)
     with open(cache_file, 'w') as f:
         json.dump(result, f)

@@ -25,6 +25,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.59] -- 2026-05-30
+
+### Changed
+
+- web/templates/sessions_launch.html: complete rewrite (861->448 lines). New UX: auto-matched pairs shown as a list (no manual cluster selection), single click to compare, chart shows mean curves A and B with std shading, metric selector (RPM/Speed/PW), conditions table A vs B with deltas. Removed: cluster tables, mean/std tables, redundant chart toggles.
+- web/server.py: _compare_sessions_cached() versioned (CACHE_VERSION=3) -- cache invalidated when detect_launches or cluster_launches schema changes. Cache key now includes version prefix.
+- web/server.py: result stamped with _cache_version before saving, validated on load.
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.58] -- 2026-05-30
 
 ### Changed

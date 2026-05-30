@@ -2,861 +2,447 @@
 <html>
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Buell - Launch Analysis</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Launch Analysis — Buell</title>
 <style>
-:root{--bg:#0a0a0b;--p:#111114;--bd:#1e1e24;--ac:#e8420a;--a2:#f5a623;--bl:#3d9eff;--gn:#33ff99;--dm:#555;--tx:#c8c8cc;--rd:#ff4444;--mn:monospace}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;min-height:100dvh;overflow-x:hidden;display:flex;flex-direction:column}
-a{color:var(--bl);text-decoration:none}
-a:hover{color:var(--bl);text-decoration:underline}
-.hdr{background:var(--p);border-bottom:2px solid var(--ac);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;position:sticky;top:0;z-index:100}
-.hdr h1{font-size:16px;font-weight:900;color:#fff;font-family:var(--mn)}
-.hdr .nav{display:flex;gap:6px}
-.hdr .nav a{font-family:var(--mn);font-size:9px;color:var(--dm);text-decoration:none;border:1px solid var(--bd);padding:3px 6px;border-radius:2px}
-.hdr .nav a:hover{color:var(--bl);border-color:var(--bl)}
-.ctr{padding:12px 24px;max-width:1400px;margin:0 auto;width:100%;flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden;min-height:0}
-.ctr2{padding:8px 24px 24px;max-width:1400px;margin:0 auto;width:100%;flex:1;display:flex;flex-direction:column;gap:8px;overflow:hidden;min-height:0}
-.sel{background:var(--p);border:1px solid var(--bd);padding:10px 14px;border-radius:4px;flex-shrink:0;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
-.sel label{font-family:var(--mn);font-size:8px;color:var(--a2);text-transform:uppercase;letter-spacing:.08em;display:block}
-.sel select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:11px;padding:5px;border-radius:2px;min-width:180px;cursor:pointer}
-.sel select:focus{outline:none;border-color:var(--bl)}
-.sel .btn{font-family:var(--mn);font-size:9px;font-weight:700;background:var(--ac);color:#fff;border:none;padding:6px 14px;border-radius:2px;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;flex-shrink:0}
-.sel .btn:hover{filter:brightness(1.2)}
-.sel .btn:disabled{opacity:0.4;cursor:default}
-.st{font-family:var(--mn);font-size:9px;color:var(--dm);margin-top:4px}
-.st.err{color:var(--rd)}
-.st.ok{color:var(--gn)}
-
-/* Cluster Cards */
-.cluster-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
-.cluster-card{background:var(--p);border:1px solid var(--bd);border-radius:3px;overflow:hidden}
-.cluster-card h3{padding:8px 12px;font-size:11px;font-weight:700;font-family:var(--mn);background:var(--p);border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;color:var(--tx)}
-.cluster-card h3 .badge{font-size:10px;padding:2px 7px;border-radius:2px;background:var(--bg);color:var(--dm);font-family:var(--mn)}
-.cluster-card .body{padding:8px 12px}
-.cluster-card table{width:100%;border-collapse:collapse;font-family:var(--mn);font-size:10px}
-.cluster-card td,.cluster-card th{padding:2px 6px;text-align:left;border-bottom:1px solid rgba(255,255,255,.03);white-space:nowrap}
-.cluster-card th{color:var(--a2);font-weight:700;letter-spacing:.06em;font-size:9px}
-.cluster-card td{color:var(--tx)}
-.cluster-card td.num{font-family:var(--mn);text-align:right}
-
-/* Metrics Table */
-.metrics-table{flex-shrink:0}
-.metrics-table table{border-collapse:collapse;font-family:var(--mn);font-size:10px;width:100%;white-space:nowrap}
-.metrics-table th{padding:4px 8px;text-align:right;font-size:9px;color:var(--dm);font-weight:700;letter-spacing:.06em;border-bottom:1px solid var(--bd);background:var(--p)}
-.metrics-table th:first-child{text-align:left}
-.metrics-table td{padding:3px 8px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03);font-family:var(--mn);font-size:10px}
-.metrics-table td:first-child{text-align:left;color:var(--a2)}
-.metrics-table tr:hover td{background:rgba(255,255,255,.03)}
-
-/* Chart Container */
-.chart-wrap{background:var(--p);border:1px solid var(--bd);border-radius:4px;padding:12px;margin:8px 0;position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
-.chart-wrap canvas{width:100%;flex:1;display:block;min-height:300px}
-.chart-toggles{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;flex-shrink:0}
-.chart-toggles .tg{display:flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--bd);border-radius:3px;background:var(--bg);font-family:var(--mn);font-size:10px;cursor:pointer;user-select:none;color:var(--dm)}
-.chart-toggles .tg:hover{border-color:var(--ac)}
-.chart-toggles .tg .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
-.chart-toggles .tg.off{opacity:.3}
-.chart-toggles .tg.off .dot{background:var(--dm)!important}
-.chart-toggles .mode-tg{padding:4px 10px;border:1px solid var(--bd);border-radius:3px;background:var(--bg);font-family:var(--mn);font-size:10px;cursor:pointer;user-select:none;color:var(--dm)}
-.chart-toggles .mode-tg.active{background:var(--ac);color:#fff;border-color:var(--ac)}
-.chart-toggles .mode-tg:hover{border-color:var(--ac)}
-.cluster-select-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:4px;flex-shrink:0}
-.cluster-select-row label{font-family:var(--mn);font-size:8px;color:var(--a2);text-transform:uppercase}
-.cluster-select-row select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:3px 5px;border-radius:2px}
-
-/* Matches overlay section */
-.matches-section{background:var(--p);border:1px solid var(--bd);border-radius:3px;overflow:hidden;flex-shrink:0}
-.matches-section h3{padding:8px 12px;font-size:11px;font-weight:700;font-family:var(--mn);background:var(--p);border-bottom:1px solid var(--bd);color:var(--tx)}
-.matches-section .body{padding:8px 12px}
-.matches-section table{width:100%;border-collapse:collapse;font-family:var(--mn);font-size:10px}
-.matches-section th{padding:4px 8px;text-align:right;font-size:9px;color:var(--dm);font-weight:700;letter-spacing:.06em;border-bottom:1px solid var(--bd);background:var(--p)}
-.matches-section th:first-child{text-align:left}
-.matches-section td{padding:3px 8px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03);font-family:var(--mn);font-size:10px}
-.matches-section td:first-child{text-align:left;color:var(--a2)}
-.matches-section tr:hover td{background:rgba(255,255,255,.03)}
-.matches-section .cmp{cursor:pointer;color:var(--bl)}
-.matches-section .cmp:hover{color:var(--bl);text-decoration:underline}
-
-/* Loading */
-.loading{text-align:center;padding:40px;color:var(--dm);font-family:var(--mn);font-size:9px}
-.loading .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--bd);border-top-color:var(--bl);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:6px}
-@keyframes spin{to{transform:rotate(360deg)}}
-.pos{color:#ff6060}.neg{color:#60b0ff}.neu{color:var(--dm)}
-.n-badge{font-size:7px;color:var(--dm);font-family:var(--mn)}
-.no-data{padding:24px;text-align:center;color:var(--dm);font-family:var(--mn);font-size:10px}
-/* Make content area a flex column like sessions_vs */
-#content{display:none;flex-direction:column;gap:8px;overflow:hidden;min-height:0}
+:root{--bg:#0a0a0b;--p:#111114;--bd:#1e1e24;--ac:#e8420a;--a2:#f5a623;--bl:#3d9eff;--gn:#2cdd6e;--dm:#55555e;--tx:#c8c8cc;--rd:#ff4444;--mn:'Share Tech Mono',monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--tx);font-family:'Barlow Condensed',sans-serif;font-size:14px;min-height:100dvh;display:flex;flex-direction:column}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.hdr{background:var(--p);border-bottom:2px solid var(--ac);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.hdr-title{font-size:14px;font-weight:900;color:#fff;font-family:var(--mn);letter-spacing:.04em}
+.hdr-nav{display:flex;gap:6px}
+.hdr-nav a{font-family:var(--mn);font-size:9px;color:var(--dm);text-decoration:none;border:1px solid var(--bd);padding:3px 8px;border-radius:2px}
+.hdr-nav a:hover{color:var(--bl);border-color:var(--bl)}
+.body{flex:1;padding:10px 12px;display:flex;flex-direction:column;gap:8px;overflow-y:auto}
+.controls{background:var(--p);border:1px solid var(--bd);padding:10px 12px;border-radius:3px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.ctrl-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:120px}
+.ctrl-group label{font-family:var(--mn);font-size:7px;color:var(--a2);letter-spacing:.12em;text-transform:uppercase}
+.ctrl-group select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:11px;padding:5px 8px;border-radius:2px;width:100%;cursor:pointer}
+.btn-compare{font-family:var(--mn);font-size:11px;font-weight:700;background:var(--ac);color:#fff;border:none;padding:8px 18px;border-radius:2px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;align-self:flex-end}
+.btn-compare:hover{filter:brightness(1.15)}
+.btn-compare:disabled{opacity:.4;cursor:default}
+.status{font-family:var(--mn);font-size:9px;color:var(--dm);padding:2px 0;width:100%}
+.status.err{color:var(--rd)}.status.ok{color:var(--gn)}
+.section-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.15em;text-transform:uppercase;padding:2px 0}
+.pairs-list{display:flex;flex-direction:column;gap:4px}
+.pair-card{background:var(--p);border:1px solid var(--bd);border-left:3px solid transparent;border-radius:3px;padding:8px 10px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color .15s}
+.pair-card:hover{border-color:var(--bl)}
+.pair-card.active{border-left-color:var(--ac);border-color:var(--ac)}
+.pair-gear{font-family:var(--mn);font-size:24px;font-weight:900;color:var(--a2);min-width:30px;text-align:center}
+.pair-info{flex:1;min-width:0}
+.pair-cond{font-family:var(--mn);font-size:12px;color:#fff;font-weight:700}
+.pair-meta{font-family:var(--mn);font-size:9px;color:var(--dm);margin-top:2px}
+.pair-env{font-family:var(--mn);font-size:9px;color:var(--bl);white-space:nowrap;text-align:right}
+.no-pairs{font-family:var(--mn);font-size:10px;color:var(--dm);padding:20px;text-align:center;background:var(--p);border:1px solid var(--bd);border-radius:3px}
+.chart-section{background:var(--p);border:1px solid var(--bd);border-radius:3px;padding:10px 12px;display:none;flex-direction:column;gap:8px}
+.chart-section.visible{display:flex}
+.chart-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.chart-pair-label{font-family:var(--mn);font-size:9px;color:var(--dm)}
+.metric-pills{display:flex;gap:3px}
+.metric-pill{font-family:var(--mn);font-size:9px;background:var(--bg);color:var(--dm);border:1px solid var(--bd);padding:3px 10px;border-radius:2px;cursor:pointer}
+.metric-pill.active{background:var(--ac);color:#fff;border-color:var(--ac)}
+canvas#chart{width:100%;height:200px;display:block}
+.chart-legend{display:flex;gap:14px}
+.leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mn);font-size:9px;color:var(--dm)}
+.leg-line-a{width:18px;height:2px;background:#e8420a;display:inline-block;border-radius:1px}
+.leg-line-b{width:18px;height:0;border-top:2px dashed #3d9eff;display:inline-block}
+.cond-compare{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cond-box{background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:6px 10px}
+.cond-box-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.cond-row{display:flex;justify-content:space-between;font-family:var(--mn);font-size:10px;padding:1px 0}
+.cond-row .k{color:var(--dm)}.cond-row .v{color:#fff;font-weight:700}
+.delta-row{font-family:var(--mn);font-size:9px;color:var(--dm);padding:4px 8px;background:var(--bg);border:1px solid var(--bd);border-radius:2px}
+.delta-row .pos{color:var(--gn)}.delta-row .neg{color:var(--rd)}
 </style>
 </head>
 <body>
-
 <div class="hdr">
-  <h1>🏍️ Launch Analysis</h1>
-  <div class="nav">
-    <a href="/sessions_vs">Compare</a>
+  <div class="hdr-title">LAUNCH ANALYSIS</div>
+  <div class="hdr-nav">
     <a href="/">Dashboard</a>
-    <a href="/tuner">Tuner</a>
+    <a href="/sessions_vs">Sessions VS</a>
   </div>
 </div>
-
-<div class="ctr">
-  <div class="sel" id="selRow">
-    <label>Sesión A</label>
-    <select id="sA" onchange="maybeLoad()"></select>
-    <label>Sesión B</label>
-    <select id="sB" onchange="maybeLoad()"></select>
-    <button class="btn" id="btnLoad" onclick="loadData()">Cargar</button>
-    <div class="st" id="st"></div>
-  </div>
-</div>
-
-<div class="loading" id="loading">
-  <div class="spinner"></div>
-  <div>Selecciona dos sesiones y presiona Cargar</div>
-</div>
-
-<div id="content" style="display:none">
-<div class="ctr2">
-
-  <!-- Cluster Cards -->
-  <div class="cluster-grid" id="clusterGrid">
-    <div class="cluster-card" id="clusterA">
-      <h3>Sesión A <span class="badge" id="badgeA">—</span></h3>
-      <div class="body" id="clusterABody"></div>
+<div class="body">
+  <div class="controls">
+    <div class="ctrl-group">
+      <label>Session A (baseline)</label>
+      <select id="sA" onchange="maybeLoad()"></select>
     </div>
-    <div class="cluster-card" id="clusterB">
-      <h3>Sesión B <span class="badge" id="badgeB">—</span></h3>
-      <div class="body" id="clusterBBody"></div>
+    <div class="ctrl-group">
+      <label>Session B (compare)</label>
+      <select id="sB" onchange="maybeLoad()"></select>
     </div>
+    <button class="btn-compare" id="btnCompare" onclick="loadData()" disabled>Compare</button>
+    <div class="status" id="status">Select two sessions to compare launches.</div>
   </div>
 
-  <!-- Metrics Table -->
-  <div class="metrics-table" id="metricsTable">
-    <table>
-      <thead>
-        <tr>
-          <th>Métrica</th>
-          <th>Sesión A</th>
-          <th>Sesión B</th>
-          <th>Δ (B−A)</th>
-          <th>% Diff</th>
-        </tr>
-      </thead>
-      <tbody id="metricsBody"></tbody>
-    </table>
-  </div>
+  <div class="section-label" id="pairsLabel" style="display:none">Auto-matched launch conditions</div>
+  <div class="pairs-list" id="pairsList"></div>
 
-  <!-- Chart -->
-  <div class="chart-wrap" id="chartWrap">
-    <div class="chart-toggles" id="chartToggles"></div>
-    <div class="cluster-select-row" id="clusterSelectRow">
-      <label style="font-size:11px;color:var(--fg2)">Cluster A:</label>
-      <select id="chartClusterA" onchange="redrawChart()"></select>
-      <label style="font-size:11px;color:var(--fg2)">Cluster B (overlay):</label>
-      <select id="chartClusterB" onchange="redrawChart()">
-        <option value="">None</option>
-      </select>
+  <div class="chart-section" id="chartSection">
+    <div class="chart-top">
+      <div class="chart-pair-label" id="chartPairLabel"></div>
+      <div class="metric-pills">
+        <button class="metric-pill active" onclick="setMetric('rpm',this)">RPM</button>
+        <button class="metric-pill" onclick="setMetric('spd',this)">Speed km/h</button>
+        <button class="metric-pill" onclick="setMetric('pw',this)">Pulse Width</button>
+      </div>
     </div>
     <canvas id="chart"></canvas>
+    <div class="chart-legend">
+      <div class="leg-item"><span class="leg-line-a"></span><span id="legA">Session A</span></div>
+      <div class="leg-item"><span class="leg-line-b"></span><span id="legB">Session B</span></div>
+    </div>
+    <div class="cond-compare" id="condCompare"></div>
+    <div class="delta-row" id="deltaRow"></div>
   </div>
-
-  <!-- Matches Section -->
-  <div class="matches-section" id="matchesSection">
-    <h3>Clusters Apareados (A ↔ B)</h3>
-    <div class="body" id="matchesBody"></div>
-  </div>
-
-</div>
 </div>
 
 <script>
-let SESSIONS = {};
+// AI-AGENT: All comments, variable names, and strings must be written in English.
+var DATA = null;
+var SESSIONS = [];
+var currentMetric = 'rpm';
+var currentPairIdx = -1;
 
-// Fetch sessions from server
-async function initSessions() {
+async function init() {
   try {
     var r = await fetch('/tuner/sessions');
-    var data = await r.json();
-    SESSIONS = data.sessions || [];
-    populateSelects();
-  } catch(e) {
-    console.error('Failed to load sessions', e);
-  }
+    var d = await r.json();
+    SESSIONS = (d.sessions || []).sort(function(a,b){ return b.created.localeCompare(a.created); });
+    var sA = document.getElementById('sA');
+    var sB = document.getElementById('sB');
+    SESSIONS.forEach(function(s) {
+      var lbl = s.id + (s.version ? ' — ' + s.version.slice(0,20) : '') + (s.created ? ' (' + s.created + ')' : '');
+      [sA, sB].forEach(function(sel) {
+        var o = document.createElement('option');
+        o.value = s.id; o.textContent = lbl; sel.appendChild(o);
+      });
+    });
+    if (SESSIONS.length >= 2) {
+      sB.selectedIndex = 1;
+      document.getElementById('btnCompare').disabled = false;
+    }
+  } catch(e) { st('Failed to load sessions: ' + e, 'err'); }
 }
-
-// Populate session selectors
-function populateSelects() {
-  var sA = document.getElementById('sA');
-  var sB = document.getElementById('sB');
-  SESSIONS.sort(function(a,b){ return b.created.localeCompare(a.created); }).forEach(function(sess) {
-    var label = sess.id;
-    if (sess.version) label += ' \u2014 ' + sess.version;
-    else if (sess.created) label += ' \u2014 ' + sess.created;
-    var optA = document.createElement('option');
-    optA.value = sess.id;
-    optA.textContent = label;
-    sA.appendChild(optA);
-    var optB = document.createElement('option');
-    optB.value = sess.id;
-    optB.textContent = label;
-    sB.appendChild(optB);
-  });
-  // Select second-to-last and last
-  if (SESSIONS.length >= 2) {
-    sA.value = SESSIONS[1].id;
-    sB.value = SESSIONS[0].id;
-  }
-}
-function el(id) { return document.getElementById(id); }
-function st(msg, cls) {
-  var e = el('st');
-  e.textContent = msg;
-  e.className = 'st' + (cls ? ' ' + cls : '');
-}
-
-var DATA = null;
 
 function maybeLoad() {
-  if (el('sA').value && el('sB').value && el('sA').value != el('sB').value) {
-    loadData();
-  }
+  var a = document.getElementById('sA').value;
+  var b = document.getElementById('sB').value;
+  document.getElementById('btnCompare').disabled = (!a || !b || a === b);
+}
+
+function st(msg, cls) {
+  var el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' ' + cls : '');
 }
 
 async function loadData() {
-  var a = el('sA').value;
-  var b = el('sB').value;
-  if (!a || !b) { st('Selecciona ambas sesiones', 'err'); return; }
-  if (a == b) { st('Las sesiones deben ser diferentes', 'err'); return; }
-  
-  el('loading').style.display = 'block';
-  el('content').style.display = 'none';
-  el('btnLoad').disabled = true;
-  st('Cargando...');
-  
+  var a = document.getElementById('sA').value;
+  var b = document.getElementById('sB').value;
+  if (!a || !b || a === b) { st('Select two different sessions.', 'err'); return; }
+
+  // Clear cache for this pair so fresh cluster data is used
+  st('Computing launch analysis…');
+  document.getElementById('pairsLabel').style.display = 'none';
+  document.getElementById('pairsList').innerHTML = '';
+  document.getElementById('chartSection').classList.remove('visible');
+
   try {
-    var resp = await fetch('/sessions_launch/data?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b));
-    if (!resp.ok) { st('Error HTTP: ' + resp.status, 'err'); el('btnLoad').disabled = false; return; }
-    DATA = await resp.json();
-    if (DATA.error) {
-      st('Error: ' + DATA.error, 'err');
-      el('loading').style.display = 'block';
-      el('loading').innerHTML = '<div style="color:var(--rd);padding:20px">Error: ' + DATA.error + '</div>';
-      el('btnLoad').disabled = false;
-      return;
-    }
-    el('btnLoad').disabled = false;
-    st('OK: ' + (DATA.clusters_a ? DATA.clusters_a.length : 0) + ' clusters A, ' + (DATA.clusters_b ? DATA.clusters_b.length : 0) + ' clusters B', 'ok');
-    renderAnalysis();
-  } catch(e) {
-    el('btnLoad').disabled = false;
-    st('Error de red: ' + e.message, 'err');
-    el('loading').innerHTML = '<div style="color:var(--rd);padding:20px">Error: ' + e.message + '</div>';
-  }
+    var r = await fetch('/sessions_launch/data?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b) + '&t=' + Date.now());
+    if (!r.ok) { st('Server error ' + r.status, 'err'); return; }
+    DATA = await r.json();
+    if (DATA.error) { st('Error: ' + DATA.error, 'err'); return; }
+    renderPairs();
+    st((DATA.clusters_a || []).length + ' clusters in A · ' + (DATA.clusters_b || []).length + ' clusters in B', 'ok');
+  } catch(e) { st('Network error: ' + e, 'err'); }
 }
 
-// === RENDER ===
-function renderAnalysis() {
-  if (!DATA) return;
-  renderClusterCards();
-  renderMetrics();
-  setupChart();
-  renderMatches();
-  el('loading').style.display = 'none';
-  el('content').style.display = 'block';
+function gearLabel(g) {
+  return g ? 'G' + g : 'G?';
 }
 
-function renderClusterCards() {
+function renderPairs() {
+  var matches = DATA.cluster_matches || [];
   var ca = DATA.clusters_a || [];
   var cb = DATA.clusters_b || [];
-  
-  el('badgeA').textContent = ca.length + ' clusters';
-  el('badgeB').textContent = cb.length + ' clusters';
-  
-  el('clusterABody').innerHTML = buildClusterTable(ca, 'A');
-  el('clusterBBody').innerHTML = buildClusterTable(cb, 'B');
-}
+  var list = document.getElementById('pairsList');
+  list.innerHTML = '';
 
-function buildClusterTable(clusters, prefix) {
-  if (!clusters || !clusters.length) return '<div style="color:var(--fg2);padding:8px">Sin datos de launches</div>';
-  var h = '<table><tr><th>#</th><th>Gear</th><th>Count</th><th>Mean RPM</th><th>Mean Speed</th><th>Peak PW</th><th>Peak AE</th></tr>';
-  clusters.forEach(function(c, i) {
-    h += '<tr>' +
-      '<td>' + (i+1) + '</td>' +
-      '<td>' + (c.gear || '—') + '</td>' +
-      '<td>' + (c.count || '—') + '</td>' +
-      '<td class="num">' + (c.mean_rpm ? c.mean_rpm.toFixed(0) : '—') + '</td>' +
-      '<td class="num">' + (c.mean_spd ? c.mean_spd.toFixed(1) : '—') + '</td>' +
-      '<td class="num">' + (c.peak_pw_mean ? c.peak_pw_mean.toFixed(2) : '—') + '</td>' +
-      '<td class="num">' + (c.peak_ae_mean ? c.peak_ae_mean.toFixed(1) : '—') + '</td>' +
-      '</tr>';
-  });
-  return h + '</table>';
-}
+  // Sort matches by distance (best match first)
+  var sorted = matches.slice().sort(function(x,y){ return x[2] - y[2]; });
 
-function renderMetrics() {
-  var ca = DATA.clusters_a || [];
-  var cb = DATA.clusters_b || [];
-  if (!ca.length && !cb.length) {
-    el('metricsTable').style.display = 'none';
+  if (!sorted.length) {
+    var no = document.createElement('div');
+    no.className = 'no-pairs';
+    no.textContent = 'No matching launch conditions found between sessions. Try rides with similar gear and throttle patterns.';
+    list.appendChild(no);
+    document.getElementById('pairsLabel').style.display = 'block';
     return;
   }
-  el('metricsTable').style.display = '';
-  
-  // Aggregate metrics across all clusters (mean of means)
-  function agg(clusters, key) {
-    var vals = clusters.map(function(c) { return c[key]; }).filter(function(v) { return v != null && !isNaN(v); });
-    if (!vals.length) return null;
-    return vals.reduce(function(a,b) { return a+b; }, 0) / vals.length;
-  }
-  
-  var metrics = [
-    {label:'Mean RPM', key:'mean_rpm', unit:'', decimals:0},
-    {label:'Mean Speed', key:'mean_spd', unit:' km/h', decimals:1},
-    {label:'Mean TPS', key:'mean_tps', unit:'%', decimals:1},
-    {label:'Peak PW', key:'peak_pw_mean', unit:' ms', decimals:2},
-    {label:'Peak AE', key:'peak_ae_mean', unit:' ms', decimals:1},
-  ];
-  
-  var h = '';
-  metrics.forEach(function(m) {
-    var va = agg(ca, m.key);
-    var vb = agg(cb, m.key);
-    if (va == null && vb == null) return;
-    var va_s = va != null ? va.toFixed(m.decimals) + m.unit : '—';
-    var vb_s = vb != null ? vb.toFixed(m.decimals) + m.unit : '—';
-    var delta_s = (va != null && vb != null) ? (vb - va).toFixed(m.decimals) + m.unit : '—';
-    var pct_s = (va != null && vb != null && va != 0) ? (((vb - va) / va) * 100).toFixed(1) + '%' : '—';
-    if (va != null && vb != null) {
-      var d = vb - va;
-      delta_s = (d > 0 ? '+' : '') + d.toFixed(m.decimals) + m.unit;
-    }
-    h += '<tr><td>' + m.label + '</td><td>' + va_s + '</td><td>' + vb_s + '</td><td>' + delta_s + '</td><td>' + pct_s + '</td></tr>';
+
+  document.getElementById('pairsLabel').style.display = 'block';
+
+  sorted.forEach(function(m, idx) {
+    var aid = m[0], bid = m[1], dist = m[2];
+    var a = ca.find(function(c){ return c.id === aid; });
+    var b = cb.find(function(c){ return c.id === bid; });
+    if (!a || !b) return;
+
+    var card = document.createElement('div');
+    card.className = 'pair-card';
+    card.dataset.idx = idx;
+    card.onclick = function() { selectPair(idx, sorted); };
+
+    var envParts = [];
+    var cltA = a.pre_clt_mean, cltB = b.pre_clt_mean;
+    if (cltA != null) envParts.push(Math.round(cltA) + '°C');
+    var altA = a.pre_alt_mean;
+    if (altA != null) envParts.push(Math.round(altA) + 'm');
+
+    var matchQuality = dist < 0.3 ? '●' : dist < 0.6 ? '◔' : '○';
+    var matchColor   = dist < 0.3 ? 'var(--gn)' : dist < 0.6 ? 'var(--a2)' : 'var(--dm)';
+
+    card.innerHTML =
+      '<div class="pair-gear">' + gearLabel(a.gear) + '</div>' +
+      '<div class="pair-info">' +
+        '<div class="pair-cond">' +
+          Math.round(a.mean_rpm) + ' rpm · ' + a.mean_tps.toFixed(1) + '% TPS' +
+          ' · ' + a.mean_spd.toFixed(0) + ' km/h' +
+        '</div>' +
+        '<div class="pair-meta">' +
+          'A: ' + a.count + ' event' + (a.count !== 1 ? 's' : '') +
+          ' · B: ' + b.count + ' event' + (b.count !== 1 ? 's' : '') +
+          ' · <span style="color:' + matchColor + '">' + matchQuality + ' match ' + dist.toFixed(2) + '</span>' +
+        '</div>' +
+      '</div>' +
+      (envParts.length ? '<div class="pair-env">' + envParts.join(' · ') + '</div>' : '');
+
+    list.appendChild(card);
   });
-  
-  // Compute integrated metrics from mean_series if available
-  if (ca.length > 0 && ca[0].mean_series) {
-    computeIntegratedMetrics(ca, cb, function(rows) {
-      rows.forEach(function(r) {
-        h += '<tr><td>' + r.label + '</td><td>' + r.va + '</td><td>' + r.vb + '</td><td>' + r.delta + '</td><td>' + r.pct + '</td></tr>';
-      });
-      el('metricsBody').innerHTML = h;
-    });
-  } else {
-    el('metricsBody').innerHTML = h;
-  }
 }
 
-function computeIntegratedMetrics(ca, cb, callback) {
-  // For each session, compute integrated metrics from mean_series of first cluster
-  function calcFromSeries(clusters) {
-    if (!clusters || !clusters.length) return {};
-    var ms = clusters[0].mean_series;
-    if (!ms || !ms.length) return {};
-    var result = {};
-    
-    // Time to +1000 RPM
-    var baseRpm = ms[0].rpm;
-    var timeTo1000 = null;
-    for (var i = 1; i < ms.length; i++) {
-      if (ms[i].rpm - baseRpm >= 1000) {
-        // Linear interpolation
-        var prev = ms[i-1], curr = ms[i];
-        var gain = curr.rpm - baseRpm;
-        var prevGain = prev.rpm - baseRpm;
-        var frac = (1000 - prevGain) / (gain - prevGain);
-        timeTo1000 = prev.dt + frac * (curr.dt - prev.dt);
-        break;
-      }
-    }
-    result.timeTo1000rpm = timeTo1000;
-    
-    // Speed at t=2s and t=3s
-    if (ms.length >= 2) {
-      var spd2 = interpolateAtTime(ms, 2.0, 'spd');
-      var spd3 = interpolateAtTime(ms, 3.0, 'spd');
-      result.spdAt2s = spd2;
-      result.spdAt3s = spd3;
-    }
-    
-    // RPM at t=2s and t=3s
-    var rpm2 = interpolateAtTime(ms, 2.0, 'rpm');
-    var rpm3 = interpolateAtTime(ms, 3.0, 'rpm');
-    result.rpmAt2s = rpm2;
-    result.rpmAt3s = rpm3;
-    
-    // Area under RPM curve (trapezoidal) over first 3 seconds
-    var areaRpm = 0;
-    for (var i = 1; i < ms.length; i++) {
-      if (ms[i].dt > 3.0) break;
-      var prev = ms[i-1], curr = ms[i];
-      if (prev.rpm != null && curr.rpm != null && !isNaN(prev.rpm) && !isNaN(curr.rpm)) {
-        areaRpm += (prev.rpm + curr.rpm) / 2 * (curr.dt - prev.dt);
-      }
-    }
-    result.areaRpm = areaRpm;
-    
-    // Time to +20 km/h
-    var baseSpd = ms[0].spd || 0;
-    var timeTo20 = null;
-    for (var i = 1; i < ms.length; i++) {
-      if (ms[i].spd - baseSpd >= 20) {
-        var prev = ms[i-1], curr = ms[i];
-        var gain = curr.spd - baseSpd;
-        var prevGain = prev.spd - baseSpd;
-        var frac = (20 - prevGain) / (gain - prevGain);
-        timeTo20 = prev.dt + frac * (curr.dt - prev.dt);
-        break;
-      }
-    }
-    result.timeTo20kmh = timeTo20;
-    
-    return result;
-  }
-  
-  function interpolateAtTime(series, t, field) {
-    for (var i = 1; i < series.length; i++) {
-      if (series[i].dt >= t) {
-        var prev = series[i-1], curr = series[i];
-        if (prev[field] == null || curr[field] == null) return null;
-        if (curr.dt - prev.dt === 0) return prev[field];
-        var frac = (t - prev.dt) / (curr.dt - prev.dt);
-        return prev[field] + frac * (curr[field] - prev[field]);
-      }
-    }
-    return null;
-  }
-  
-  var ra = calcFromSeries(ca);
-  var rb = calcFromSeries(cb);
-  
-  var rows = [];
-  var intMetrics = [
-    {label:'Time to +1000 RPM', key:'timeTo1000rpm', unit:'s', decimals:3},
-    {label:'RPM @ 2s', key:'rpmAt2s', unit:'', decimals:0},
-    {label:'RPM @ 3s', key:'rpmAt3s', unit:'', decimals:0},
-    {label:'Speed @ 2s', key:'spdAt2s', unit:' km/h', decimals:1},
-    {label:'Speed @ 3s', key:'spdAt3s', unit:' km/h', decimals:1},
-    {label:'Area RPM·s (3s)', key:'areaRpm', unit:' RPM·s', decimals:0},
-    {label:'Time to +20 km/h', key:'timeTo20kmh', unit:' s', decimals:3},
-  ];
-  
-  intMetrics.forEach(function(m) {
-    var va = ra[m.key];
-    var vb = rb[m.key];
-    if (va == null && vb == null) return;
-    var va_s = va != null ? va.toFixed(m.decimals) + m.unit : '—';
-    var vb_s = vb != null ? vb.toFixed(m.decimals) + m.unit : '—';
-    var delta_s = '—';
-    var pct_s = '—';
-    if (va != null && vb != null) {
-      var d = vb - va;
-      delta_s = (d > 0 ? '+' : '') + d.toFixed(m.decimals) + m.unit;
-      if (va != 0) pct_s = ((d / va) * 100).toFixed(1) + '%';
-    }
-    rows.push({label:m.label, va:va_s, vb:vb_s, delta:delta_s, pct:pct_s});
-  });
-  
-  callback(rows);
-}
+function selectPair(idx, matches) {
+  // Highlight selected card
+  document.querySelectorAll('.pair-card').forEach(function(c){ c.classList.remove('active'); });
+  var cards = document.querySelectorAll('.pair-card');
+  if (cards[idx]) cards[idx].classList.add('active');
 
-// === CHART ===
-var CHART_INSTANCE = null;
-var COLORS = {rpm:'#58a6ff', tps:'#3fb950', pw:'#d29922', ae:'#f85149', spd:'#bc8cff'};
-var SERIES_LABELS = {rpm:'RPM', tps:'TPS (%)', pw:'PW (ms)', ae:'AE (ms)', spd:'Speed (km/h)'};
+  var sorted = matches || (DATA.cluster_matches || []).slice().sort(function(x,y){ return x[2]-y[2]; });
+  var m = sorted[idx];
+  if (!m) return;
 
-function setupChart() {
-  // Populate cluster selectors
-  var selA = el('chartClusterA');
-  var selB = el('chartClusterB');
-  selA.innerHTML = '';
-  selB.innerHTML = '<option value="">None</option>';
-  
   var ca = DATA.clusters_a || [];
-  ca.forEach(function(c, i) {
-    var opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = 'Cluster A#' + (i+1) + ' (Gear ' + (c.gear || '?') + ')';
-    selA.appendChild(opt);
-  });
-  
   var cb = DATA.clusters_b || [];
-  cb.forEach(function(c, i) {
-    var opt = document.createElement('option');
-    opt.value = i;
-    opt.textContent = 'Cluster B#' + (i+1) + ' (Gear ' + (c.gear || '?') + ')';
-    selB.appendChild(opt);
-  });
-  
-  if (ca.length > 0) selA.value = 0;
-  
-  // Build toggles
-  buildToggles();
-  
-  // Draw
-  redrawChart();
+  var a = ca.find(function(c){ return c.id === m[0]; });
+  var b = cb.find(function(c){ return c.id === m[1]; });
+  if (!a || !b) return;
+
+  currentPairIdx = idx;
+
+  var saId = document.getElementById('sA').value;
+  var sbId = document.getElementById('sB').value;
+  document.getElementById('legA').textContent = saId.slice(0,6);
+  document.getElementById('legB').textContent = sbId.slice(0,6);
+
+  document.getElementById('chartPairLabel').textContent =
+    gearLabel(a.gear) + ' · ~' + Math.round(a.mean_rpm) + ' rpm · ~' + a.mean_tps.toFixed(1) + '% TPS';
+
+  drawChart(a, b);
+  renderConditions(a, b);
+
+  document.getElementById('chartSection').classList.add('visible');
+  document.getElementById('chartSection').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-function buildToggles() {
-  var container = el('chartToggles');
-  container.innerHTML = '';
-  var series = ['rpm', 'tps', 'spd', 'ae', 'pw'];
-  series.forEach(function(s) {
-    var tg = document.createElement('span');
-    tg.className = 'tg';
-    tg.innerHTML = '<span class="dot" style="background:' + COLORS[s] + '"></span> ' + SERIES_LABELS[s];
-    tg.dataset.series = s;
-    tg.onclick = function() {
-      this.classList.toggle('off');
-      redrawChart();
-    };
-    container.appendChild(tg);
-  });
+function setMetric(m, btn) {
+  currentMetric = m;
+  document.querySelectorAll('.metric-pill').forEach(function(p){ p.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+
+  // Redraw with current pair
+  var sorted = (DATA.cluster_matches || []).slice().sort(function(x,y){ return x[2]-y[2]; });
+  var m2 = sorted[currentPairIdx];
+  if (!m2) return;
+  var a = (DATA.clusters_a||[]).find(function(c){ return c.id===m2[0]; });
+  var b = (DATA.clusters_b||[]).find(function(c){ return c.id===m2[1]; });
+  if (a && b) drawChart(a, b);
 }
 
-function redrawChart() {
-  var canvas = el('chart');
-  var ctx = canvas.getContext('2d');
+function drawChart(ca, cb) {
+  var canvas = document.getElementById('chart');
   var dpr = window.devicePixelRatio || 1;
-  var cssW = canvas.parentElement.clientWidth - 32;
-  var cssH = 400;
-  canvas.width = cssW * dpr;
-  canvas.height = cssH * dpr;
-  canvas.style.width = cssW + 'px';
-  canvas.style.height = cssH + 'px';
+  var W = canvas.offsetWidth || 320;
+  var H = 200;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  var ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
-
-  var W = cssW;
-  var H = cssH;
   ctx.clearRect(0, 0, W, H);
 
-  var idxA = parseInt(el('chartClusterA').value);
-  var idxB = el('chartClusterB').value;
+  var LM = 44, RM = 12, TM = 8, BM = 24;
+  var PW = W - LM - RM;
+  var PH = H - TM - BM;
 
-  var ca = DATA.clusters_a || [];
-  var cb = DATA.clusters_b || [];
+  var metric = currentMetric;
+  var aS = ca.mean_series || [];
+  var bS = cb.mean_series || [];
+  var aStd = ca.std_series  || [];
+  var bStd = cb.std_series  || [];
 
-  var seriesA = (ca[idxA] && ca[idxA].mean_series) || [];
-  var seriesB = (idxB && cb[parseInt(idxB)] && cb[parseInt(idxB)].mean_series) || [];
-
-  var allSeries = [seriesA];
-  if (seriesB.length) allSeries.push(seriesB);
-
-  // Determine active series from toggles
-  var active = {};
-  var toggles = el('chartToggles').querySelectorAll('.tg');
-  toggles.forEach(function(tg) {
-    active[tg.dataset.series] = !tg.classList.contains('off');
-  });
-
-  // Compute shared X bounds and per-series Y bounds
-  var minX = Infinity, maxX = -Infinity;
-  var ranges = {};
-  var seriesKeys = ['rpm', 'tps', 'spd', 'pw', 'ae'];
-  var seriesNames = {'rpm':'RPM', 'tps':'TPS%', 'spd':'SPD', 'pw':'PWms', 'ae':'AEms'};
-
-  allSeries.forEach(function(series) {
-    series.forEach(function(pt) {
-      if (pt.dt < minX) minX = pt.dt;
-      if (pt.dt > maxX) maxX = pt.dt;
-      seriesKeys.forEach(function(s) {
-        if (active[s] && pt[s] != null && !isNaN(pt[s])) {
-          if (!ranges[s]) ranges[s] = {min: Infinity, max: -Infinity};
-          if (pt[s] < ranges[s].min) ranges[s].min = pt[s];
-          if (pt[s] > ranges[s].max) ranges[s].max = pt[s];
-        }
-      });
-    });
-  });
-
-  if (minX == Infinity || !Object.keys(ranges).length) return;
-
-  // Add X padding
-  var padX = (maxX - minX) * 0.05 || 0.5;
-  minX -= padX; maxX += padX;
-
-  // Margins: left=50 (Y axis), right=80 (multi-axis labels)
-  var LM = 50, RM = 80;
-
-  function tx(v) { return (v - minX) / (maxX - minX) * (W - LM - RM) + LM; }
-
-  // Per-series Y ranges with 10% padding
-  var seriesRanges = {};
-  var primaryKey = null;
-  seriesKeys.forEach(function(s) {
-    if (ranges[s]) {
-      var pad = (ranges[s].max - ranges[s].min) * 0.1 || 1;
-      seriesRanges[s] = {min: ranges[s].min - pad, max: ranges[s].max + pad};
-      if (!primaryKey) primaryKey = s;
-    }
-  });
-
-  function ty(s, v) {
-    var r = seriesRanges[s];
-    if (!r) return H / 2;
-    return H - 30 - (v - r.min) / (r.max - r.min) * (H - 60);
+  function getVal(pt) {
+    if (!pt) return null;
+    if (metric === 'rpm') return pt.rpm;
+    if (metric === 'spd') return pt.spd;
+    if (metric === 'pw')  return pt.pw;
+    return null;
+  }
+  function getStd(pt) {
+    if (!pt) return 0;
+    if (metric === 'rpm') return pt.rpm || 0;
+    if (metric === 'spd') return pt.spd || 0;
+    return 0;
   }
 
-  // === MULTI-SERIES Y-AXIS GRID ===
-  // Determine active series keys
-  var rKeys = [];
-  seriesKeys.forEach(function(s) { if (active[s] && seriesRanges[s]) rKeys.push(s); });
-  // For each active series, draw horizontal grid lines at nice round values
-  rKeys.forEach(function(s) {
-    var r = seriesRanges[s];
-    if (!r) return;
-    // Compute nice round step
-    var span = r.max - r.min;
-    var roughStep = span / 4;
-    var mag = Math.pow(10, Math.floor(Math.log10(roughStep)));
-    var niceStep = mag;
-    if (roughStep / mag > 5) niceStep = mag * 5;
-    else if (roughStep / mag > 2) niceStep = mag * 2;
-    // Clamp to 2-8 ticks
-    while ((r.max - r.min) / niceStep > 8) niceStep *= 2;
-    while ((r.max - r.min) / niceStep < 2 && niceStep > 0.1) niceStep /= 2;
-    var niceMin = Math.floor(r.min / niceStep) * niceStep;
-    var niceMax = Math.ceil(r.max / niceStep) * niceStep;
-    // Find mid value for non-primary label
-    var midVal = (r.min + r.max) / 2;
-    var labelVal = null;
-    // Draw horizontal grid line for each nice value
-    for (var v = niceMin; v <= niceMax + niceStep * 0.01; v += niceStep) {
-      if (v < r.min || v > r.max) continue;
-      var y = ty(s, v);
-      // Grid line (subtle)
-      ctx.strokeStyle = COLORS[s];
-      ctx.globalAlpha = (s === primaryKey) ? 0.12 : 0.07;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(LM, y);
-      ctx.lineTo(W - RM, y);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-      // Primary series: label every tick on left
-      if (s === primaryKey) {
-        var fmt = v >= 1000 ? 0 : (v >= 10 ? 1 : (v >= 1 ? 2 : 3));
-        ctx.fillStyle = COLORS[s];
-        ctx.font = '10px monospace';
-        ctx.textAlign = 'right';
-        ctx.fillText(v.toFixed(fmt), LM - 6, y + 4);
-      } else if (labelVal === null || Math.abs(v - midVal) < Math.abs(labelVal - midVal)) {
-        labelVal = v;  // Track closest to mid for single label
-      }
-    }
-    // Non-primary: draw ONE label on the right (at the value closest to midpoint)
-    if (labelVal !== null) {
-      var y = ty(s, labelVal);
-      var fmt2 = labelVal >= 1000 ? 0 : (labelVal >= 10 ? 1 : (labelVal >= 1 ? 2 : 3));
-      ctx.fillStyle = COLORS[s];
-      ctx.font = '10px monospace';
-      ctx.textAlign = 'left';
-      ctx.fillText(labelVal.toFixed(fmt2) + ' ' + seriesNames[s], W - RM + 6, y + 4);
-    }
-  });
-  // Vertical grid (time)
-  ctx.strokeStyle = '#161b22';
+  var allVals = [];
+  aS.forEach(function(p){ var v=getVal(p); if(v!=null) allVals.push(v); });
+  bS.forEach(function(p){ var v=getVal(p); if(v!=null) allVals.push(v); });
+  if (!allVals.length) { ctx.fillStyle='var(--dm)'; ctx.fillText('No data',LM+PW/2-20,H/2); return; }
+
+  var allT = aS.map(function(p){return p.dt;}).concat(bS.map(function(p){return p.dt;}));
+  var minT = Math.min.apply(null, allT), maxT = Math.max.apply(null, allT);
+  var minV = Math.min.apply(null, allVals) * 0.95;
+  var maxV = Math.max.apply(null, allVals) * 1.05;
+  if (maxV === minV) { minV -= 1; maxV += 1; }
+
+  function tx(t) { return LM + (t - minT) / (maxT - minT) * PW; }
+  function ty(v) { return TM + PH - (v - minV) / (maxV - minV) * PH; }
+
+  // Background: pre-window shading
+  var x0 = tx(minT), x1 = tx(0);
+  ctx.fillStyle = 'rgba(255,255,255,0.025)';
+  ctx.fillRect(x0, TM, x1 - x0, PH);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
   ctx.lineWidth = 1;
-  for (var j = 0; j <= 6; j++) {
-    var xVal = minX + (maxX - minX) * j / 6;
-    var x = tx(xVal);
-    ctx.beginPath();
-    ctx.moveTo(x, 10);
-    ctx.lineTo(x, H - 30);
-    ctx.stroke();
-    ctx.fillStyle = '#8b949e';
-    ctx.font = '9px monospace';
-    ctx.textAlign = 'center';
-    ctx.fillText(xVal.toFixed(1) + 's', x, H - 16);
+  var nLines = 4;
+  for (var i = 0; i <= nLines; i++) {
+    var yv = minV + (maxV - minV) * i / nLines;
+    var yp = ty(yv);
+    ctx.beginPath(); ctx.moveTo(LM, yp); ctx.lineTo(LM + PW, yp); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.font = '8px monospace';
+    ctx.textAlign = 'right';
+    var lbl = metric === 'pw' ? yv.toFixed(2) : Math.round(yv).toString();
+    ctx.fillText(lbl, LM - 3, yp + 3);
   }
 
-  // X-axis label
-  ctx.fillStyle = '#8b949e';
-  ctx.font = '10px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('Time (s)', W / 2, H - 2);
-
-  // === DRAW SERIES A (solid) ===
-  seriesKeys.forEach(function(s) {
-    if (!active[s] || !seriesRanges[s] || seriesA.length < 2) return;
-    ctx.strokeStyle = COLORS[s];
-    ctx.lineWidth = s == 'rpm' ? 2.5 : (s == 'spd' ? 2 : 1.5);
-    ctx.setLineDash([]);
-    ctx.beginPath();
-    var started = false;
-    seriesA.forEach(function(pt) {
-      if (pt[s] == null || isNaN(pt[s])) { started = false; return; }
-      var x = tx(pt.dt), y = ty(s, pt[s]);
-      if (!started) { ctx.moveTo(x, y); started = true; }
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  });
-
-  // === DRAW SERIES B (dashed) ===
-  seriesKeys.forEach(function(s) {
-    if (!active[s] || !seriesRanges[s] || seriesB.length < 2) return;
-    ctx.strokeStyle = COLORS[s];
-    ctx.lineWidth = s == 'rpm' ? 2.5 : (s == 'spd' ? 2 : 1.5);
-    ctx.setLineDash([6, 4]);
-    ctx.beginPath();
-    var started = false;
-    seriesB.forEach(function(pt) {
-      if (pt[s] == null || isNaN(pt[s])) { started = false; return; }
-      var x = tx(pt.dt), y = ty(s, pt[s]);
-      if (!started) { ctx.moveTo(x, y); started = true; }
-      else ctx.lineTo(x, y);
-    });
-    ctx.stroke();
-  });
+  // Zero line (tip-in moment)
+  var x0line = tx(0);
+  ctx.strokeStyle = 'rgba(232,66,10,0.4)';
+  ctx.setLineDash([3,3]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0line, TM); ctx.lineTo(x0line, TM + PH); ctx.stroke();
   ctx.setLineDash([]);
 
-  // === RIGHT-SIDE MINI-AXES ===
-
-  // Draw mini axis for each series on the right
-  rKeys.forEach(function(s) {
-    var r = seriesRanges[s];
-    var yTop = ty(s, r.max);
-    var yBot = ty(s, r.min);
-
-    // Compute nice ticks for this series
-    var span = r.max - r.min;
-    var roughStep = span / 4;
-    var mag = Math.pow(10, Math.floor(Math.log10(roughStep)));
-    var niceStep = mag;
-    if (roughStep / mag > 5) niceStep = mag * 5;
-    else if (roughStep / mag > 2) niceStep = mag * 2;
-    while ((r.max - r.min) / niceStep > 8) niceStep *= 2;
-    while ((r.max - r.min) / niceStep < 2 && niceStep > 0.1) niceStep /= 2;
-    var niceMin = Math.floor(r.min / niceStep) * niceStep;
-    var niceMax = Math.ceil(r.max / niceStep) * niceStep;
-
-    // Axis line (thin, subtle)
-    ctx.strokeStyle = COLORS[s];
-    ctx.globalAlpha = 0.2;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(W - RM + 6, yTop);
-    ctx.lineTo(W - RM + 6, yBot);
-    ctx.stroke();
-
-    // Ticks and values at nice intervals
-    ctx.globalAlpha = 1;
-    for (var v = niceMin; v <= niceMax + niceStep * 0.01; v += niceStep) {
-      if (v < r.min || v > r.max) continue;
-      var y = ty(s, v);
-      var fmt = v >= 1000 ? 0 : (v >= 10 ? 1 : (v >= 1 ? 2 : 3));
-      var label = v.toFixed(fmt);
-      // Tick mark
-      ctx.strokeStyle = COLORS[s];
-      ctx.globalAlpha = 0.5;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(W - RM + 3, y);
-      ctx.lineTo(W - RM + 9, y);
-      ctx.stroke();
-      // Value label
-      ctx.fillStyle = COLORS[s];
-      ctx.globalAlpha = 0.8;
-      ctx.font = '9px monospace';
-      ctx.textAlign = 'left';
-      var shift = (v === r.max) ? -8 : ((v === r.min) ? 4 : -4);
-      ctx.fillText(label, W - RM + 14, y + shift);
+  // X axis labels
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.font = '8px monospace'; ctx.textAlign = 'center';
+  [-2, 0, 2, 4].forEach(function(t) {
+    if (t >= minT && t <= maxT) {
+      ctx.fillText(t + 's', tx(t), H - 6);
     }
-
-    // Series name at top (bold)
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = COLORS[s];
-    ctx.font = 'bold 10px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(seriesNames[s], W - RM + 14, yTop - 6);
-    ctx.globalAlpha = 1;
-  });
-  // === LEGEND (top-left corner) ===
-  var lx = LM + 6;
-  var lyPos = 12;
-
-  var legendItems = [];
-  if (seriesB.length) {
-    legendItems.push({label:'A', color:'#e6edf3', dash:[]});
-    legendItems.push({label:'B', color:'#e6edf3', dash:[6,4]});
-  }
-  seriesKeys.forEach(function(s) {
-    if (active[s]) legendItems.push({label:SERIES_LABELS[s], color:COLORS[s], dash:[]});
   });
 
-  ctx.fillStyle = 'rgba(13,17,23,0.88)';
-  ctx.fillRect(lx - 4, lyPos - 3, 128, legendItems.length * 16 + 6);
+  function drawCurveWithBand(series, stdSeries, color, dashed) {
+    if (!series.length) return;
+    var pts = series.map(function(p, i) {
+      return { t: p.dt, v: getVal(p), s: getStd(stdSeries[i] || {}) };
+    }).filter(function(p){ return p.v != null; });
+    if (!pts.length) return;
 
-  legendItems.forEach(function(item) {
-    // Line preview
-    ctx.strokeStyle = item.color;
-    ctx.lineWidth = 2;
-    ctx.setLineDash(item.dash);
+    // Std band
     ctx.beginPath();
-    ctx.moveTo(lx + 4, lyPos + 8);
-    ctx.lineTo(lx + 22, lyPos + 8);
+    pts.forEach(function(p, i) {
+      var x = tx(p.t), yHi = ty(p.v + p.s);
+      if (i === 0) ctx.moveTo(x, yHi); else ctx.lineTo(x, yHi);
+    });
+    for (var i = pts.length - 1; i >= 0; i--) {
+      ctx.lineTo(tx(pts[i].t), ty(pts[i].v - pts[i].s));
+    }
+    ctx.closePath();
+    ctx.fillStyle = color.replace(')', ',0.12)').replace('rgb', 'rgba').replace('#', 'rgba(').replace(/rgba\(([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2}),/, function(m,r,g,b){ return 'rgba('+parseInt(r,16)+','+parseInt(g,16)+','+parseInt(b,16)+','; });
+    // simpler: just use semi-transparent
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+
+    // Mean line
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    if (dashed) ctx.setLineDash([5, 3]);
+    pts.forEach(function(p, i) {
+      var x = tx(p.t), y = ty(p.v);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
     ctx.stroke();
     ctx.setLineDash([]);
+  }
 
-    // Label
-    ctx.fillStyle = item.color;
-    ctx.font = '10px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(item.label, lx + 28, lyPos + 12);
-    lyPos += 16;
-  });
+  drawCurveWithBand(aS, aStd, '#e8420a', false);
+  drawCurveWithBand(bS, bStd, '#3d9eff', true);
 }
 
-// === MATCHES ===
-function renderMatches() {
-  var matches = DATA.cluster_matches || [];
-  if (!matches.length) { el('matchesSection').style.display = 'none'; return; }
-  el('matchesSection').style.display = '';
-  
-  var h = '<table><tr><th>Pair</th><th>Gear</th><th>Score</th>';
-  h += '<th>A: RPM</th><th>A: Speed</th><th>A: Peak PW</th>';
-  h += '<th>B: RPM</th><th>B: Speed</th><th>B: Peak PW</th>';
-  h += '<th>Δ RPM</th><th>Δ Speed</th><th>Δ PW</th></tr>';
-  
-  matches.forEach(function(m, i) {
-    var ca = (DATA.clusters_a || [])[m.a_idx];
-    var cb = (DATA.clusters_b || [])[m.b_idx];
-    if (!ca || !cb) return;
-    
-    var da = ca.mean_rpm - cb.mean_rpm;
-    var ds = (ca.mean_spd || 0) - (cb.mean_spd || 0);
-    var dp = (ca.peak_pw_mean || 0) - (cb.peak_pw_mean || 0);
-    
-    h += '<tr>' +
-      '<td class="cmp" onclick="chartPair(' + i + ')">#' + (i+1) + '</td>' +
-      '<td>' + (ca.gear || '—') + '</td>' +
-      '<td>' + (m.score ? m.score.toFixed(3) : '—') + '</td>' +
-      '<td class="num">' + (ca.mean_rpm ? ca.mean_rpm.toFixed(0) : '—') + '</td>' +
-      '<td class="num">' + (ca.mean_spd ? ca.mean_spd.toFixed(1) : '—') + '</td>' +
-      '<td class="num">' + (ca.peak_pw_mean ? ca.peak_pw_mean.toFixed(2) : '—') + '</td>' +
-      '<td class="num">' + (cb.mean_rpm ? cb.mean_rpm.toFixed(0) : '—') + '</td>' +
-      '<td class="num">' + (cb.mean_spd ? cb.mean_spd.toFixed(1) : '—') + '</td>' +
-      '<td class="num">' + (cb.peak_pw_mean ? cb.peak_pw_mean.toFixed(2) : '—') + '</td>' +
-      '<td class="num" style="color:' + (da > 0 ? 'var(--gr)' : da < 0 ? 'var(--rd)' : '') + '">' + (da.toFixed(0)) + '</td>' +
-      '<td class="num" style="color:' + (ds > 0 ? 'var(--gr)' : ds < 0 ? 'var(--rd)' : '') + '">' + (ds.toFixed(1)) + '</td>' +
-      '<td class="num" style="color:' + (dp > 0 ? 'var(--gr)' : dp < 0 ? 'var(--rd)' : '') + '">' + (dp.toFixed(2)) + '</td>' +
-      '</tr>';
-  });
-  
-  el('matchesBody').innerHTML = h + '</table>';
+function renderConditions(ca, cb) {
+  var saId = document.getElementById('sA').value.slice(0,6);
+  var sbId = document.getElementById('sB').value.slice(0,6);
+
+  function condBox(cluster, label) {
+    var rows = [
+      ['RPM',   Math.round(cluster.mean_rpm) + ' ± ' + Math.round(cluster.rpm_std || 0)],
+      ['TPS',   cluster.mean_tps.toFixed(1) + '% ± ' + (cluster.tps_std||0).toFixed(1)],
+      ['Speed', cluster.mean_spd.toFixed(0) + ' km/h'],
+      ['Events', cluster.count],
+    ];
+    if (cluster.pre_clt_mean != null) rows.push(['CLT', Math.round(cluster.pre_clt_mean) + '°C']);
+    if (cluster.pre_alt_mean != null) rows.push(['Alt', Math.round(cluster.pre_alt_mean) + ' m']);
+    if (cluster.peak_pw_mean != null) rows.push(['Peak PW', cluster.peak_pw_mean.toFixed(3)]);
+    if (cluster.rpm_gain_mean != null) rows.push(['+RPM', Math.round(cluster.rpm_gain_mean)]);
+    if (cluster.spd_gain_mean != null) rows.push(['+Speed', cluster.spd_gain_mean.toFixed(1) + ' km/h']);
+
+    return '<div class="cond-box">' +
+      '<div class="cond-box-label">' + label + '</div>' +
+      rows.map(function(r){ return '<div class="cond-row"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>'; }).join('') +
+      '</div>';
+  }
+
+  document.getElementById('condCompare').innerHTML = condBox(ca, 'Session A — ' + saId) + condBox(cb, 'Session B — ' + sbId);
+
+  // Delta summary
+  var deltas = [];
+  if (ca.rpm_gain_mean != null && cb.rpm_gain_mean != null) {
+    var d = cb.rpm_gain_mean - ca.rpm_gain_mean;
+    deltas.push('ΔRPM gain: <span class="' + (d>0?'pos':'neg') + '">' + (d>0?'+':'') + Math.round(d) + ' rpm</span>');
+  }
+  if (ca.spd_gain_mean != null && cb.spd_gain_mean != null) {
+    var d2 = cb.spd_gain_mean - ca.spd_gain_mean;
+    deltas.push('ΔSpeed gain: <span class="' + (d2>0?'pos':'neg') + '">' + (d2>0?'+':'') + d2.toFixed(1) + ' km/h</span>');
+  }
+  if (ca.peak_pw_mean != null && cb.peak_pw_mean != null) {
+    var d3 = cb.peak_pw_mean - ca.peak_pw_mean;
+    deltas.push('ΔPeak PW: <span class="' + (d3>0?'pos':'neg') + '">' + (d3>0?'+':'') + d3.toFixed(3) + ' ms</span>');
+  }
+  document.getElementById('deltaRow').innerHTML = deltas.length ? 'B vs A: ' + deltas.join(' · ') : '';
 }
 
-function chartPair(idx) {
-  var matches = DATA.cluster_matches || [];
-  var m = matches[idx];
-  if (!m) return;
-  el('chartClusterA').value = m.a_idx;
-  if (m.b_idx != null) el('chartClusterB').value = m.b_idx;
-  redrawChart();
-  el('chartWrap').scrollIntoView({behavior:'smooth', block:'start'});
-}
-initSessions();
+init();
 </script>
 </body>
 </html>
