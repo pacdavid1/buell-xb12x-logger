@@ -407,6 +407,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                         fh.readline()  # skip CSV header
                     chunks.append(fh.read())
                 first = False
+            if not chunks:
+                self._json({'error': 'CSV file not found for this ride'}, 404)
+                return
             raw = b''.join(chunks)
             accept_enc = self.headers.get('Accept-Encoding', '')
             use_gzip = 'gzip' in accept_enc

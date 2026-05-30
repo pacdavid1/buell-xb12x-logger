@@ -2127,8 +2127,12 @@ async function loadGraphRide(directFile){
   document.getElementById('graphLegend').style.display='none';
   try{
     const resp = await fetch('/csv/'+csvName+'?t='+Date.now());
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    if(!resp.ok){
+      const detail = await resp.json().catch(()=>({error:'HTTP '+resp.status}));
+      throw new Error(detail.error || 'HTTP '+resp.status);
+    }
     const text = await resp.text();
+    if(!text.trim()){ status.textContent='Sin datos para este ride'; return; }
     const rows = parseCSVtoRows(text);
     const dur = Math.round(rows[rows.length-1]?.time_elapsed_s||0);
     status.textContent = `${rows.length} muestras · ${dur}s`;

@@ -25,6 +25,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.54] — 2026-05-30
+
+### Fixed
+
+- web/server.py: _handle_csv returned empty HTTP 200 when no CSV chunks were found (legacy rides with mismatched filenames) — now returns 404 with descriptive error message
+- web/static/app.js: loadGraphRide now reads error body from non-200 responses to show actual message instead of generic "HTTP 500". Guards against empty CSV text (shows "Sin datos" instead of crashing parseCSVtoRows)
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.53] — 2026-05-30
 
 ### Added
