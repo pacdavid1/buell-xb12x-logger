@@ -14,6 +14,7 @@ import subprocess
 import threading
 import mimetypes
 import time
+import zlib
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 import sys as _sys
