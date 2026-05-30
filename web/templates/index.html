@@ -239,6 +239,7 @@ table.veg td:active{filter:brightness(1.6)}
       <div class="nav-menu-drop" id="navDrop">
         <a href="/errorlog/viz" target="_blank" class="nav-tab" onclick="this.classList.add('active')">Errores</a>
             <a href="/sessions_vs" target="_blank">Sessions VS</a>
+        <a href="/sessions_launch" target="_blank">Launch</a>
         <a href="/tuner" target="_blank">Tuner Studio</a>
         <div style="border-top:1px solid var(--border);margin:4px 0"></div>
         <a href="#" class="nav-tab active" data-tab="ride" onclick="showTab('ride');trackUsage('tab_ride')">Ride</a>
@@ -251,7 +252,7 @@ table.veg td:active{filter:brightness(1.6)}
       </div>
     </div>
   </div>
-  <!-- Fila 1: parámetros de moto -->
+  <!-- Row 1: bike params -->
   <div class="hdr-row">
     <div class="hdr-stats">
       <div class="hs"><div class="hs-label">EGO</div><div class="hs-val gn" id="hEGO">--</div></div>
@@ -263,7 +264,7 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
     <div id="hPill" class="pill-dot off"></div>
   </div>
-  <!-- Fila 2: comunicación serial -->
+  <!-- Row 2: serial communication -->
   <div class="hdr-row">
     <div class="hdr-comms">
       <div class="hs-sm"><div class="hs-label">TTL%</div><div class="hs-val gn" id="hTTL">--</div></div>
@@ -275,7 +276,7 @@ table.veg td:active{filter:brightness(1.6)}
       <div class="hs-sm"><div class="hs-label">ERR</div><div class="hs-val gn" id="hErr" title="Eventos de error del ride actual">--</div></div>
     </div>
   </div>
-  <!-- Fila 3: sistema -->
+  <!-- Row 3: system -->
   <div class="hdr-row">
     <div class="hdr-comms">
       <div class="hs-sm"><div class="hs-label">系統</div><div class="hs-val" id="freezeIndicator" style="color:#2ecc71">正常</div></div>
@@ -380,7 +381,7 @@ table.veg td:active{filter:brightness(1.6)}
     <div class="cfg-title" style="margin:0;border:none;padding:0">Sesiones</div>
     <button class="btn" onclick="loadSessions()">Actualizar</button>
   </div>
-  <!-- Banner ride activo — aparece solo cuando hay ride en curso -->
+  <!-- Active ride banner — shown only during a ride -->
   <div id="liveRideBanner" style="display:none;background:rgba(44,221,110,.08);
        border:1px solid var(--green);border-radius:4px;padding:8px 10px;margin-bottom:10px;
        font-family:var(--mono);font-size:9px;color:var(--green)">
@@ -425,14 +426,14 @@ table.veg td:active{filter:brightness(1.6)}
     </select>
     <button class="btn p" onclick="loadGraphRide()">&#9654; Ver</button>
   </div>
-  <!-- Título del ride graficado — visible siempre arriba -->
+  <!-- Chart ride title — always visible on top -->
   <div id="graphRideTitle" style="font-family:var(--mono);font-size:11px;color:#7df;
        font-weight:700;letter-spacing:.08em;padding:6px 0 2px;
        border-bottom:1px solid rgba(125,223,255,0.2);margin-bottom:6px;display:none"></div>
   <div id="graphStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
        margin-bottom:6px;min-height:14px"></div>
 
-  <!-- Leyenda de marcadores -->
+  <!-- Markers legend -->
   <div id="graphLegend" style="display:none;font-family:var(--mono);font-size:8px;
        color:var(--dim);margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap">
     <span><span style="color:#f80">●</span> fl_hot</span>
@@ -443,15 +444,15 @@ table.veg td:active{filter:brightness(1.6)}
     <span><span style="color:#a8f">●</span> Cambio marcha</span>
   </div>
 
-  <!-- Scrollbar sincronizado -->
+  <!-- Synced scrollbar -->
   <div id="chartScrollbar"><div id="chartScrollbarInner"></div></div>
-  <!-- Charts — scroll sincronizado -->
+  <!-- Charts — synced scroll -->
   <div class="charts-scroll-outer" id="chartsOuter">
     <div class="charts-scroll-inner" id="chartsInner">
       <!-- Chart 1: RPM + KPH + CLT triple eje -->
       <div class="chart-wrap">
         <div class="chart-title">RPM · VELOCIDAD · TEMPERATURA</div>
-    <!-- Panel de valores para tuning -->
+    <!-- Tuning values panel -->
     <div id="tunePanel" style="position:fixed; right:10px; top:120px; width:140px; 
          background:rgba(10,10,10,0.95); border:1px solid #333; padding:12px; 
          font-family:monospace; z-index:1000; border-radius:4px;">
@@ -463,7 +464,7 @@ table.veg td:active{filter:brightness(1.6)}
         <div id="panelTime" style="color:#fff; font-size:14px; font-weight:bold;">--</div>
       </div>
       <div id="panelItems" style="display:flex; flex-direction:column; gap:6px;">
-        <!-- Se llenará dinámicamente -->
+        <!-- Filled dynamically -->
       </div>
     </div>
         <div class="chart-inner" style="height:120px"><canvas id="chartRPM"></canvas></div>
@@ -488,7 +489,7 @@ table.veg td:active{filter:brightness(1.6)}
         <div class="chart-title">VOLTAJE BATERÍA (V)</div>
         <div class="chart-inner" style="height:70px"><canvas id="chartBatt"></canvas></div>
       </div>
-      <!-- Chart 6: Flags / señales digitales -->
+      <!-- Chart 6: Flags / digital signals -->
       <div class="chart-wrap">
         <div class="chart-title">FLAGS · SEÑALES DIGITALES</div>
         <div class="chart-inner" style="height:130px"><canvas id="chartFlags"></canvas></div>
@@ -502,11 +503,13 @@ table.veg td:active{filter:brightness(1.6)}
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
     <div class="cfg-title" style="margin:0;border:none;padding:0">Mapas EEPROM</div>
     <button class="btn" onclick="loadMaps()">&#8635; Recargar</button>
+    <button class="btn" style="font-size:9px;padding:4px 8px" onclick="downloadEeprom()" id="btnDlEeprom" title="Download raw EEPROM binary">&#11015; EEPROM</button>
+    <button class="btn" style="font-size:9px;padding:4px 8px" onclick="downloadMsq()" id="btnDlMsq" title="Download suggested MSQ (if generated)">&#11015; MSQ</button>
   </div>
   <div id="veMapStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
        margin-bottom:8px;min-height:12px">Conecta la ECU para cargar los mapas</div>
 
-  <!-- Selector de mapa -->
+  <!-- Map selector -->
   <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
     <button class="btn" id="mapBtnFuelF" onclick="showMap('fuel_front')" style="font-size:9px;padding:4px 8px">Fuel Front</button>
     <button class="btn" id="mapBtnFuelR" onclick="showMap('fuel_rear')"  style="font-size:9px;padding:4px 8px">Fuel Rear</button>
@@ -514,14 +517,14 @@ table.veg td:active{filter:brightness(1.6)}
     <button class="btn" id="mapBtnSpkR" onclick="showMap('spark_rear')"  style="font-size:9px;padding:4px 8px">Spark Rear</button>
   </div>
 
-  <!-- Tabla del mapa -->
+  <!-- Map table -->
   <div id="mapContainer" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
     <div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:20px">
       Conecta la ECU · los mapas se leen del EEPROM al arrancar
     </div>
   </div>
 
-  <!-- Leyenda -->
+  <!-- Legend -->
   <div id="mapLegend" style="display:none;margin-top:10px;font-family:var(--mono);font-size:8px;color:var(--dim)">
     <span style="display:inline-block;width:12px;height:12px;background:#1a3a6a;margin-right:4px;vertical-align:middle"></span>bajo ·
     <span style="display:inline-block;width:12px;height:12px;background:#c85000;margin-right:4px;margin-left:8px;vertical-align:middle"></span>alto ·
@@ -575,7 +578,7 @@ table.veg td:active{filter:brightness(1.6)}
     <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px">Buell XB12X DDFI2 · Pi Zero 2W · CH343P</div>
   </div>
   
-  <!-- BOTÓN DE ACTUALIZACIÓN -->
+  <!-- UPDATE BUTTON -->
   <div class="cfg-section">
     <div class="cfg-title">Actualizar Logger</div>
     <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">
@@ -608,7 +611,7 @@ table.veg td:active{filter:brightness(1.6)}
 <!-- PANE NET -->
 <div class="pane content" id="pane-net">
 
-  <!-- Estado de red -->
+  <!-- Network status -->
   <div class="cfg-section">
     <div class="cfg-title">Red activa</div>
     <div class="net-status">
@@ -621,7 +624,7 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
   </div>
 
-  <!-- Redes guardadas -->
+  <!-- Saved networks -->
   <div class="cfg-section">
     <div class="cfg-title">Redes guardadas</div>
     <div id="savedList" style="margin-bottom:4px"></div>
@@ -635,7 +638,7 @@ table.veg td:active{filter:brightness(1.6)}
     <div id="scanList"></div>
   </div>
 
-  <!-- Agregar red nueva -->
+  <!-- Add new network -->
   <div class="cfg-section">
     <div class="cfg-title">Agregar red nueva</div>
     <input id="newSsid" placeholder="Nombre de red (SSID)"

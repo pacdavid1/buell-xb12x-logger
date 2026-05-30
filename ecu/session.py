@@ -455,7 +455,6 @@ class SessionManager:
                 "{:.2f}".format(v) if v is not None else "0.00" for v in row
             ) for row in table)
 
-        from datetime import datetime, timezone
         now   = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
         rides = ",".join(str(r) for r in report.get("rides_included", []))
         sl    = axes.get("spark_load", [])
@@ -562,7 +561,6 @@ class SessionManager:
 
     def recover_orphan_rides(self):
         """Busca rides con CSV pero sin summary.json y los reconstruye."""
-        import bisect
         recovered = 0
         if not self.sessions_dir.exists():
             return 0
@@ -601,7 +599,6 @@ class SessionManager:
 
     def _rebuild_summary(self, sdir, checksum, ride_num, csv_files):
         """Reconstruye summary.json desde CSVs."""
-        import bisect
         cells = {}
         total_samples = 0
         first_ts = None
@@ -671,7 +668,6 @@ class SessionManager:
         self._generate_consolidated()
 
 def cell_key(rpm, load):
-    import bisect
     ri = bisect.bisect_right(RPM_BINS, rpm) - 1
     li = bisect.bisect_right(LOAD_BINS, load) - 1
     ri = max(0, min(ri, len(RPM_BINS) - 1))
@@ -952,7 +948,6 @@ class RideErrorLog:
             return None
 
     def counts(self):
-        from collections import Counter
         c = Counter(e["type"] for e in self._events)
         return dict(c)
 

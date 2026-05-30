@@ -18,11 +18,9 @@ import time
 
 import serial
 
-from ecu.protocol import decode_rt_packet, RT_RESPONSE_SIZE, SOH, EOH, SOT, EOT, ACK, DROID_ID, STOCK_ECM_ID, CMD_GET
+from ecu.protocol import decode_rt_packet, RT_RESPONSE_SIZE, SOH, EOH, SOT, EOT, ACK, DROID_ID, STOCK_ECM_ID, CMD_GET, PDU_RT_DATA
 
 PDU_VERSION = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x56, 0x03, 0xE8])
-# PDU_RT_DATA importado localmente — no está en protocol.py
-PDU_RT_DATA = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x43, 0x03, 0xFD])
 
 BUEIB_PAGES = [
     (1,    0, 256),

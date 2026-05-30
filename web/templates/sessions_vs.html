@@ -185,7 +185,7 @@ function renderFlavors(id,meta){
   var html='<div style="font-family:var(--mn);font-size:8px;color:var(--a2);font-weight:700;margin-bottom:3px">'
     +meta.id+' <span style="color:var(--dm);font-weight:400">'+meta.version
     +' · '+meta.created+' · '+meta.rides+'r·'+(meta.samples>=1000?(meta.samples/1000).toFixed(1)+'k':meta.samples)+'</span></div>';
-  // barra apilada
+  // stacked bar
   html+='<div style="display:flex;height:6px;border-radius:2px;overflow:hidden;margin-bottom:4px">';
   for(var i=0;i<order.length;i++){
     var k=order[i],v=f[k]||0;
@@ -194,7 +194,7 @@ function renderFlavors(id,meta){
     html+='<div title="'+k+': '+v.toLocaleString()+' ('+Math.round(pct)+'%)" style="width:'+pct+'%;background:'+flavorColor(k)+';"></div>';
   }
   html+='</div>';
-  // leyenda inline
+  // inline legend
   html+='<div style="display:flex;flex-wrap:wrap;gap:4px 8px;">';
   for(var i=0;i<order.length;i++){
     var k=order[i],v=f[k]||0;

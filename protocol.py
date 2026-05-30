@@ -23,6 +23,7 @@ DROID_ID       = 0x00
 STOCK_ECM_ID   = 0x42
 CMD_GET        = 0x52
 RT_RESPONSE_SIZE = 107
+PDU_RT_DATA    = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x43, 0x03, 0xFD])
 
 # ── Variables RT: {nombre: (offset, nbytes, scale, val_offset)} ─
 RT_VARIABLES = {

@@ -5,13 +5,15 @@ v2.1.0 - Fix scan GET, redirect URL, switch status polling
 """
 
 import csv
+import io
 import json
 import logging
 import urllib.parse
 import re
+import subprocess
 import threading
+import mimetypes
 import time
-import zlib
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 import sys as _sys
@@ -88,6 +90,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/coverage.json': self._handle_coverage_json,
             '/rides': self._handle_rides,
             '/suggested_msq': self._handle_suggested_msq,
+            '/eeprom/download': self._handle_eeprom_download,
+            '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
             '/eeprom': self._handle_eeprom,
@@ -97,6 +101,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/gps_fix': self._handle_gps_fix,
             '/gps_track': self._handle_gps_track,
             '/ride_note': self._handle_ride_note,
+            '/sessions_launch': self._handle_sessions_launch,
+            '/sessions_launch/data': self._handle_sessions_launch_data,
         }
         handler = _routes.get(path)
         if handler:
@@ -122,9 +128,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._handle_wifi_redirect_url(path)
             return
 
-        if path == '/coverage/targets' and method == 'POST':
-            self._handle_coverage_targets(path)
-            return
 
         self._json({"error": "not found"}, 404)
 
@@ -152,6 +155,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/restart_logger': self._handle_post_restart_logger,
             '/reboot_pi': self._handle_post_reboot_pi,
             '/ride/launch_event': self._handle_ride_launch_event,
+            '/coverage/targets': self._handle_coverage_targets,
         }
         handler = _routes.get(path)
         if handler:
@@ -161,7 +165,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self._json({"error": "unknown endpoint"}, 404)
 
     def _handle_static(self, path=None):
-        import mimetypes
         path = self.path.lstrip("/")
         base = os.path.realpath(os.path.dirname(__file__))
         fpath = os.path.realpath(os.path.join(base, path))
@@ -190,7 +193,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({"error": "Faltan sesiones"}, 400); return
         try:
             data = _compare_sessions_cached(self.server_instance.buell_dir, sa, sb)
-            import json
             body = json.dumps(data, indent=2).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -249,6 +251,39 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({'error': str(e)}, 500)
         return
 
+
+    def _handle_sessions_launch(self, path=None):
+        """Serve the Launch Analysis page."""
+        try:
+            f = Path(__file__).parent / 'templates' / 'sessions_launch.html'
+            self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
+    def _handle_sessions_launch_data(self, path=None):
+        """Return cluster comparison data for Launch Analysis."""
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        a = params.get('a', [''])[0]
+        b = params.get('b', [''])[0]
+        if not a or not b:
+            self._json({'error': 'Faltan sesiones'}, 400); return
+        try:
+            data = _compare_sessions_cached(self.server_instance.buell_dir, a, b)
+            result = {}
+            if 'clusters_a' in data:
+                result['clusters_a'] = data['clusters_a']
+            if 'clusters_b' in data:
+                result['clusters_b'] = data['clusters_b']
+            if 'cluster_matches' in data:
+                result['cluster_matches'] = data['cluster_matches']
+            if 'error' in data:
+                result['error'] = data['error']
+            self._json(result)
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+        return
+
     def _handle_sessions_vs(self, path=None):
         try:
             f = Path(__file__).parent / 'templates' / 'sessions_vs.html'
@@ -293,15 +328,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(length)
             evt = json.loads(body)
-            evt['captured_utc'] = datetime.datetime.utcnow().isoformat() + 'Z'
             session_dir = self.server_instance.session.current_session_dir if self.server_instance.session else None
-            if session_dir:
+            if session_dir and isinstance(evt, dict):
+                evt['captured_utc'] = datetime.datetime.utcnow().isoformat() + 'Z'
                 log_path = session_dir / 'launch_events.jsonl'
                 with open(log_path, 'a') as f:
                     f.write(json.dumps(evt) + '\n')
             self._json({'ok': True})
         except Exception as e:
-            import logging
             logging.getLogger("WebServer").warning("launch_event save failed: %s" % e)
             self._json({'ok': False, 'error': str(e)})
 
@@ -310,7 +344,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         fmt = params.get("format", [None])[0]
         report = self.server_instance._get_coverage()
         if fmt == "csv":
-            import csv, io
             cells = report.get("cells", {})
             flavors = list(report.get("summary", {}).keys())
             buf = io.StringIO()
@@ -468,6 +501,55 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(msq_path.read_bytes())
         return
+
+    def _handle_eeprom_download(self, path=None):
+        """Serve raw eeprom.bin for a given session (or active session if none specified)."""
+        import urllib.parse, re
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        session = params.get('session', [None])[0]
+        if session and not re.match(r'^[A-Fa-f0-9]+$', session):
+            self._json({'error': 'invalid session id'}); return
+        if not session:
+            session = self.server_instance.session.current_checksum
+        if not session:
+            self._json({'error': 'no session specified and no active session'}); return
+        bin_path = self.server_instance.buell_dir / 'sessions' / session / 'eeprom.bin'
+        try:
+            data = bin_path.read_bytes()
+        except (OSError, IOError) as e:
+            self._json({'error': 'could not read eeprom.bin: ' + str(e)}); return
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/octet-stream')
+        self.send_header('Content-Disposition',
+            'attachment; filename="eeprom_' + session + '.bin"')
+        self.send_header('Content-Length', str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _handle_msq_download(self, path=None):
+        """Serve suggested MSQ for a given session (or active session if none specified)."""
+        import urllib.parse, re
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        session = params.get('session', [None])[0]
+        if session and not re.match(r'^[A-Fa-f0-9]+$', session):
+            self._json({'error': 'invalid session id'}); return
+        if not session:
+            session = self.server_instance.session.current_checksum
+        if not session:
+            self._json({'error': 'no session specified and no active session'}); return
+        msq_path = (self.server_instance.buell_dir / 'sessions' / session /
+                    ('suggested_' + session + '.msq'))
+        try:
+            data = msq_path.read_bytes()
+        except (OSError, IOError) as e:
+            self._json({'error': 'could not read msq file: ' + str(e)}); return
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/xml')
+        self.send_header('Content-Disposition',
+            'attachment; filename="suggested_' + session + '.msq"')
+        self.send_header('Content-Length', str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def _handle_maps(self, path=None):
         # Soporte para pedir mapa de una sesion especifica: /maps?session=XXXX
@@ -753,7 +835,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             return
         report = json.loads(report_path.read_text())
         if fmt == "csv":
-            import csv, io
             buf = io.StringIO()
             w = csv.writer(buf)
             w.writerow(["rpm", "load", "seconds", "count", "ego_sum", "clt_sum",
@@ -1259,10 +1340,12 @@ def cluster_launches(launches, rpm_tol=400, spd_tol=12, tps_tol=2.5):
             mean_tps_curve = [0.0] * len(time_points)
             mean_pw_curve = [0.0] * len(time_points)
             mean_ae_curve = [0.0] * len(time_points)
+            mean_spd_curve = [0.0] * len(time_points)
             all_rpm_curves = []
             all_tps_curves = []
             all_pw_curves = []
             all_ae_curves = []
+            all_spd_curves = []
 
             for x in ll:
                 pts = x.get('series', [])
@@ -1270,6 +1353,7 @@ def cluster_launches(launches, rpm_tol=400, spd_tol=12, tps_tol=2.5):
                 tps_vals = []
                 pw_vals = []
                 ae_vals = []
+                spd_vals = []
                 for tp in time_points:
                     # Find nearest point in series
                     best = None
@@ -1284,22 +1368,26 @@ def cluster_launches(launches, rpm_tol=400, spd_tol=12, tps_tol=2.5):
                         tps_vals.append(best.get('tps', 0))
                         pw_vals.append(best.get('pw1', 0) or best.get('pw2', 0) or 0)
                         ae_vals.append(best.get('ae', 0))
+                        spd_vals.append(best.get('spd', 0))
                     else:
                         rpm_vals.append(None)
                         tps_vals.append(None)
                         pw_vals.append(None)
                         ae_vals.append(None)
+                        spd_vals.append(None)
 
                 all_rpm_curves.append(rpm_vals)
                 all_tps_curves.append(tps_vals)
                 all_pw_curves.append(pw_vals)
                 all_ae_curves.append(ae_vals)
+                all_spd_curves.append(spd_vals)
 
             for i in range(len(time_points)):
                 r_vals = [cv[i] for cv in all_rpm_curves if cv[i] is not None]
                 t_vals = [cv[i] for cv in all_tps_curves if cv[i] is not None]
                 p_vals = [cv[i] for cv in all_pw_curves if cv[i] is not None]
                 a_vals = [cv[i] for cv in all_ae_curves if cv[i] is not None]
+                s_vals = [cv[i] for cv in all_spd_curves if cv[i] is not None]
                 if r_vals:
                     mean_rpm_curve[i] = sum(r_vals) / len(r_vals)
                 if t_vals:
@@ -1308,23 +1396,29 @@ def cluster_launches(launches, rpm_tol=400, spd_tol=12, tps_tol=2.5):
                     mean_pw_curve[i] = sum(p_vals) / len(p_vals)
                 if a_vals:
                     mean_ae_curve[i] = sum(a_vals) / len(a_vals)
+                    if s_vals:
+                        mean_spd_curve[i] = sum(s_vals) / len(s_vals)
 
             # Std curves
             std_rpm_curve = [0.0] * len(time_points)
             std_tps_curve = [0.0] * len(time_points)
+            std_spd_curve = [0.0] * len(time_points)
             for i in range(len(time_points)):
                 r_vals = [cv[i] for cv in all_rpm_curves if cv[i] is not None]
                 t_vals = [cv[i] for cv in all_tps_curves if cv[i] is not None]
+                s_vals = [cv[i] for cv in all_spd_curves if cv[i] is not None]
                 if r_vals:
                     std_rpm_curve[i] = _s_std(r_vals)
                 if t_vals:
                     std_tps_curve[i] = _s_std(t_vals)
+                if s_vals:
+                    std_spd_curve[i] = _s_std(s_vals)
 
             c['mean_series'] = [{'dt': time_points[i], 'rpm': round(mean_rpm_curve[i], 1),
                                  'tps': round(mean_tps_curve[i], 1), 'pw': round(mean_pw_curve[i], 3),
-                                 'ae': round(mean_ae_curve[i], 1)} for i in range(len(time_points))]
+                                 'ae': round(mean_ae_curve[i], 1), 'spd': round(mean_spd_curve[i], 1)} for i in range(len(time_points))]
             c['std_series'] = [{'dt': time_points[i], 'rpm': round(std_rpm_curve[i], 1),
-                                'tps': round(std_tps_curve[i], 1)} for i in range(len(time_points))]
+                                'tps': round(std_tps_curve[i], 1), 'spd': round(std_spd_curve[i], 1)} for i in range(len(time_points))]
         else:
             c['mean_series'] = []
             c['std_series'] = []
@@ -1402,16 +1496,27 @@ def _compare_sessions(buell_dir, sa, sb):
         rows = []
         sdir = buell_dir / 'sessions' / sid
         csv_files = sorted(sdir.glob('ride_*.csv'))
+        time_offset = 0.0
+        last_ride_num = -1
         for cp in csv_files:
             with open(cp) as f:
                 lines = [l for l in f if not l.startswith('#')]
             if not lines: continue
+            # Peek ride number from first data row (lines[0] is header)
+            if len(lines) < 2: continue
+            peek = list(csv.DictReader(lines[:2]))
+            if not peek: continue
+            ride_num = int(sf(peek[0].get('ride_num', 0)))
+            # Advance offset only when ride number changes (new ride, not continuation)
+            if last_ride_num != -1 and ride_num != last_ride_num and rows:
+                time_offset = rows[-1]['t'] + 0.001
+            last_ride_num = ride_num
             for r in csv.DictReader(lines):
                 try:
                     rpm = sf(r['RPM'])
                     if rpm < 100: continue
                     rows.append({
-                        't':    sf(r['time_elapsed_s']),
+                        't':    sf(r['time_elapsed_s']) + time_offset,
                         'rpm':  rpm,
                         'tps':  sf(r.get('TPS_pct') or r.get('TPD', 0)),
                         'clt':  sf(r['CLT']),

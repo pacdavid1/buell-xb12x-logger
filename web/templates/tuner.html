@@ -419,7 +419,7 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
       ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;ctx.stroke();
     }
   } else if(DM==='overlay'){
-    // BASE sólida heatmap + MOD translúcida
+    // Solid heatmap base + translucent MOD
     var bf=sortedFaces(bD);
     for(var f=0;f<bf.length;f++){
       var fc=bf[f];
@@ -464,7 +464,7 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
       ctx.fillStyle=d>0?'rgba(255,80,80,0.9)':'rgba(80,150,255,0.9)';ctx.fill();
     }
   } else if(DM==='wire'){
-    // BASE sólida heatmap + MOD wireframe
+    // Solid heatmap base + MOD wireframe
     var bf=sortedFaces(bD);
     for(var f=0;f<bf.length;f++){
       var fc=bf[f];

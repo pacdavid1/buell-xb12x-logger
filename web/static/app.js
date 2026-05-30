@@ -52,6 +52,7 @@ let _cobertData = null;
 
 function buildCobertGrid() {
   const t = document.getElementById('cobertGrid');
+  if (!t) return;
   let h = '<thead><tr><th class="rh">L\\R</th>';
   for (const r of RPM_BINS) h += '<th>'+(r===0?'0':r>=1000?(r/1000)+'k':r)+'</th>';
   h += '</tr></thead><tbody>';
@@ -186,7 +187,7 @@ function fmtTime(s){ return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padS
 
 function updateHeader(d) {
   const lv = d.live || {};
-  // Fila 2: serial stats
+  // Row 2: serial stats
   const ss = d.serial_stats || {};
   const ttlEl = document.getElementById('hTTL');
   const bpsEl = document.getElementById('hBPS');
@@ -262,7 +263,7 @@ function updateHeader(d) {
     const g = lv.Gear;
     gearEl.textContent = (g!=null && g>0) ? g+'ª' : (g===0 ? 'N' : '--');
   }
-  // Ride: muestra numero + timer cuando está activo
+  // Ride: show number + timer when active
   if(d.ride_active){
     document.getElementById('hRideLabel').textContent = 'R'+String(d.ride_num||0).padStart(3,'0');
     document.getElementById('hRide').textContent = fmtTime(d.elapsed_s||0);
@@ -276,7 +277,7 @@ function updateHeader(d) {
   else if(d.waiting)    { pill.textContent=''; pill.className='pill-dot yw'; }
   else                  { pill.textContent=''; pill.className='pill-dot off'; }
 
-  // Botón cerrar ride
+  // Close ride button
   const btnClose = document.getElementById('btnCloseRide');
   if(btnClose){
     btnClose.disabled = !d.ride_active;
@@ -301,7 +302,7 @@ function updateHeader(d) {
   const bkph = document.getElementById('bigKPH');
   if(bkph) bkph.textContent = lv.VS_KPH != null ? lv.VS_KPH.toFixed(0) : '--';
 
-  // Big TPS — muestra % (ya calibrado en Python) y grados
+  // Big TPS — show % (calibrated in Python) and degrees
   const tpsPct = lv.TPS_pct;
   const tpsDeg = lv.TPD;
   const bigTpsEl = document.getElementById('bigTPS');
@@ -322,7 +323,7 @@ function updateHeader(d) {
     document.getElementById('cfgVeStatus').textContent = 'Mapa VE: cargado del EEPROM';
 }
 
-// ── OBJETIVOS compactos ───────────────────────────────────────────
+// ── COMPACT OBJECTIVES ───────────────────────────────────────────
 function renderObjectives(objs) {
   const el = document.getElementById('objList');
   if(!objs?.length){ el.innerHTML=''; return; }
@@ -339,7 +340,7 @@ function renderObjectives(objs) {
   }).join('');
 }
 
-// ── INDICADORES ────────────────────────────────────────────────────
+// ── INDICATORS ────────────────────────────────────────────────────
 function renderIndicators(ind) {
   const el = document.getElementById('indicators');
   if(!ind || !Object.keys(ind).length){ el.innerHTML=''; return; }
@@ -387,7 +388,7 @@ async function fetchLive() {
     renderIndicators(d.indicators);
     if(d.network_mode) updateNetStatus(d.network_mode, d.ip);
     if(d.logger_version){ const el=document.getElementById('hdrVersion'); if(el) el.textContent=d.logger_version; }
-    // Banner ECU desconectada
+    // ECU disconnected banner
     const banner = document.getElementById('ecuLostBanner');
     if(banner){
       const lost = !d.ecu_connected && d.ride_active;
@@ -395,7 +396,7 @@ async function fetchLive() {
       banner.style.pointerEvents = lost ? 'auto' : 'none';
       if(lost) document.getElementById('ecuLostSecs').textContent = Math.round(d.ecu_lost_s||0);
     }
-    // Banner ride activo en Sesiones
+    // Active ride banner in Sessions
     const liveBanner = document.getElementById('liveRideBanner');
     if(liveBanner){
       liveBanner.style.display = d.ride_active ? 'block' : 'none';
@@ -477,8 +478,9 @@ function captureLaunch(sample, dtps) {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(evt)
-  }).catch(function(){});
-  setTimeout(function() {
+  }).catch(function(e){ console.warn('captureLaunch POST:', e); });
+  if (readyTimer) clearTimeout(readyTimer);
+  readyTimer = setTimeout(function() {
     launchState = 'INACTIVE';
     steadySeconds = 0;
     updateLaunchUI('INACTIVE');
@@ -652,7 +654,7 @@ setInterval(()=>{
   }
 }, 3000);
 
-// ── MAPAS EEPROM ──────────────────────────────────────────────────
+// ── EEPROM MAPS ──────────────────────────────────────────────────
 let _mapsData = null;
 let _activeMap = 'fuel_front';
 
@@ -688,7 +690,7 @@ function showMap(which){
   const table = _mapsData[which];
   if(!table){ return; }
 
-  // Ejes según tipo de mapa
+  // Axes by map type
   const isFuel  = which.startsWith('fuel');
   const unit    = isFuel ? '' : '°';
   const label   = {'fuel_front':'Fuel Front (VE)','fuel_rear':'Fuel Rear (VE)',
@@ -700,12 +702,12 @@ function showMap(which){
   const sortedRPM   = rawXAxis;
   const sortedTable = table;
 
-  // Min/max para heatmap (ignorar ceros estructurales para escala de color)
+  // Min/max for heatmap (ignore structural zeros for color scale)
   const allVals = sortedTable.flat().filter(v=>v>0);
   const vMin = allVals.length ? Math.min(...allVals) : 0;
   const vMax = allVals.length ? Math.max(...allVals) : 1;
 
-  // Highlight botón activo
+  // Highlight active button
   ['FuelF','FuelR','SpkF','SpkR'].forEach(k=>{
     const btn = document.getElementById('mapBtn'+k);
     if(btn) btn.style.borderColor = '';
@@ -714,12 +716,12 @@ function showMap(which){
   const activeBtn = document.getElementById('mapBtn'+btnMap[which]);
   if(activeBtn) activeBtn.style.borderColor = 'var(--accent2)';
 
-  // Construir tabla HTML
+  // Build HTML table
   const cellW = 40, cellH = 22;
   let html = `<div style="font-family:var(--mono);font-size:9px;color:#aaa;margin-bottom:6px">${label}</div>`;
   html += '<table style="border-collapse:collapse;font-family:monospace;font-size:9px">';
 
-  // Header fila — RPM real
+  // Header row — actual RPM
   html += '<tr><td style="padding:2px 4px;color:var(--dim);font-size:8px">TPS↓ RPM→</td>';
   for(const rpm of sortedRPM){
     const rpmLabel = rpm>=1000 ? (rpm/1000).toFixed(1)+'k' : rpm;
@@ -728,7 +730,7 @@ function showMap(which){
   }
   html += '</tr>';
 
-  // Filas — iterar de arriba hacia abajo (load alto arriba)
+  // Rows — iterate top to bottom (high load at top)
   const yReversed    = [...yAxis].reverse();
   const tableReversed= [...sortedTable].reverse();
   for(let ri=0; ri<tableReversed.length; ri++){
@@ -759,8 +761,8 @@ function showMap(which){
 }
 
 function tempColor(c){
-  // Interpolación lineal azul→blanco→rojo según °C
-  // Rango útil Buell XB: 90°C normal, >225°C alerta, >235°C crítico
+  // Linear interpolation blue→white→red by °C
+  // Buell XB range: 90°C normal, >225°C alert, >235°C critical
   const pts=[
     [300,[255,0,0]],[272,[255,165,0]],[244,[255,255,0]],
     [216,[255,255,150]],[188,[255,255,220]],[160,[255,255,255]],
@@ -781,7 +783,7 @@ function tempColor(c){
   return'rgb(255,255,255)';
 }
 function heatColor(t){
-  // Azul oscuro → naranja → rojo
+  // Dark blue → orange → red
   const stops = [
     [0.00, [10, 30, 80]],
     [0.35, [20, 80,160]],
@@ -800,7 +802,7 @@ function heatColor(t){
   return `rgb(${r},${g},${b})`;
 }
 
-// ── OBJETIVOS EDITOR ──────────────────────────────────────────────
+// ── OBJECTIVES EDITOR ──────────────────────────────────────────────
 async function loadObj() {
   try {
     const d = await (await fetch('/live.json?t='+Date.now())).json();
@@ -841,7 +843,7 @@ function parseMsq(xml,fname){
   }catch(err){alert('Error: '+err);}
 }
 
-// ── CERRAR RIDE ─────────────────────────────────────────────────────
+// ── CLOSE RIDE ─────────────────────────────────────────────────────
 async function closeRide(){
   trackUsage('btn_close_ride');
   try{
@@ -850,7 +852,7 @@ async function closeRide(){
     if(d.ok && d.session && d.ride_num){
       setTimeout(()=>{ openNoteModal(d.session, d.ride_num); }, 800);
     } else {
-      // El ride ya fue auto-cerrado (reconexión automática) — abrir notas del último ride
+      // Ride was auto-closed (auto-reconnect) — open notes of last ride
       setTimeout(async()=>{
         try{
           const lr = await (await fetch('/rides?t='+Date.now())).json();
@@ -859,14 +861,14 @@ async function closeRide(){
             const last = rides[rides.length-1];
             openNoteModal(last.session, last.ride_num);
           }
-        }catch(e){}
+        }catch(e){ console.warn('closeRide(fallback):', e); }
       }, 800);
     }
-  }catch(e){}
+  }catch(e){ console.warn("closeRide:", e); }
   setTimeout(fetchLive,1000);
 }
 
-// ── RED ────────────────────────────────────────────────────────────
+// ── NETWORK ────────────────────────────────────────────────────────
 async function switchNet(action){
   const lbl=document.getElementById('netLabel');
   if(lbl) lbl.textContent=action==='wifi'?'Buscando WiFi...':'Activando hotspot...';
@@ -940,7 +942,7 @@ function updateNetStatus(mode,ip){
 }
 
 async function loadNetPane(){
-  // Cargar redes guardadas
+  // Load saved networks
   const sv = await fetch('/wifi/saved').then(r=>r.json()).catch(()=>({saved:[]}));
   const el = document.getElementById('savedList');
   if(!el) return;
@@ -1027,7 +1029,7 @@ async function doAddWifi(){
   setTimeout(()=>{fetchLive();loadNetPane();}, 8000);
 }
 
-// ── RIDES (selección múltiple + sumatoria) ────────────────────────
+// ── RIDES (multi-select + summary) ──────────────────────────────────
 let ridesCache=[];
 let selectedRides=new Set();
 let _noteCtx={session:'',ride_num:0};
@@ -1037,7 +1039,7 @@ let _mapInstance = null;
 let _mapPolyline = null;
 
 async function loadMapPane() {
-  // Poblar selector con rides disponibles
+  // Populate selector with available rides
   const sel = document.getElementById('mapRideSelect');
   if (!sel) return;
   try {
@@ -1054,7 +1056,7 @@ async function loadMapPane() {
   } catch(e) {
     console.error('loadMapPane error', e);
   }
-  // Inicializar mapa si no existe
+  // Initialize map if not exists
   if (!_mapInstance) {
     _mapInstance = L.map('mapLeaflet').setView([32.5, -116.9], 13);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -1076,15 +1078,15 @@ async function loadMapTrack() {
       if(info) info.textContent = 'Sin datos GPS en este ride';
       return;
     }
-    // Quitar track anterior
+    // Remove previous track
     if (_mapPolyline) { _mapInstance.removeLayer(_mapPolyline); _mapPolyline = null; }
     const latlngs = d.points.map(p => [p.lat, p.lon]);
-    // Colorear por velocidad
+    // Color by speed
     function getSpeedColor(spd) {
-      if (spd <=  20) return '#0000FF'; // Azul
-      if (spd <=  60) return '#00FF00'; // Verde
-      if (spd <= 120) return '#FFFF00'; // Amarillo
-      if (spd <= 160) return '#FF0000'; // Rojo
+      if (spd <=  20) return '#0000FF'; // Blue
+      if (spd <=  60) return '#00FF00'; // Green
+      if (spd <= 120) return '#FFFF00'; // Yellow
+      if (spd <= 160) return '#FF0000'; // Red
       return '#FF00FF';                 // Magenta 160+
     }
     for (let i = 0; i < latlngs.length - 1; i++) {
@@ -1092,7 +1094,7 @@ async function loadMapTrack() {
         color: getGradientColor(d.points[i].spd), weight: 4, opacity: 0.85
       }).addTo(_mapInstance);
     }
-    // Marcador inicio y fin
+    // Start and end marker
     L.circleMarker(latlngs[0], {radius:7, color:'#00ff88', fillColor:'#00ff88', fillOpacity:1}).addTo(_mapInstance).bindPopup('Inicio');
     L.circleMarker(latlngs[latlngs.length-1], {radius:7, color:'#ff4444', fillColor:'#ff4444', fillOpacity:1}).addTo(_mapInstance).bindPopup('Fin');
     _mapInstance.fitBounds(latlngs);
@@ -1103,7 +1105,7 @@ async function loadMapTrack() {
     const altCanvas = document.getElementById('altitudeChart');
     if (altCanvas) {
       if (window._altChart) { window._altChart.destroy(); window._altChart = null; }
-      // Calcular distancia acumulada
+      // Calculate cumulative distance
       let distAcc = 0;
       const altLabels = [];
       const altData = [];
@@ -1309,11 +1311,11 @@ async function viewSingleRide(idx){
 function openRideGraph(idx){
   trackUsage('btn_graf_ride');
   const r=ridesCache[idx]; if(!r) return;
-  // Cargar mapa VE de la sesion a la que pertenece este ride
+  // Load VE map from the session this ride belongs to
   if(r.session) loadMaps(r.session);
   showTab('graph');
-  // Pasar filename directo — no depender de que el select esté populado
-  setTimeout(()=>{ loadGraphRide(r.filename); },120);
+  // Pass filename directly — don't depend on select being populated
+  setTimeout(()=>{ if(r.filename) loadGraphRide(r.filename); },120);
 }
 
 function openLiveRideGraph(){
@@ -1322,7 +1324,7 @@ function openLiveRideGraph(){
   setTimeout(()=>{ loadGraphRide(ridesCache[0].filename); },120);
 }
 
-// loadRidesList alias para compatibilidad con initGraphPane
+// loadRidesList alias for compatibility with initGraphPane
 function loadRidesList(){ return loadSessions(); }
 
 async function viewSelectedRides(){
@@ -1422,10 +1424,10 @@ function trackUsage(action){}
 
 
 
-// ── GRÁFICAS ──────────────────────────────────────────────────────
+// ── CHARTS ─────────────────────────────────────────────────────────
 
 // ═══════════════════════════════════════════════════════════════
-// GRÁFICAS — Chart.js con marcadores de eventos
+// CHARTS — Chart.js with event markers
 // ═══════════════════════════════════════════════════════════════
 
 const CHART_DEFAULTS = {
@@ -1468,7 +1470,7 @@ function markerSet(label, data, color, symbol='circle', r=4){
            borderWidth:1, showLine:false, order:-1 };
 }
 
-// ── PARSEAR CSV ──────────────────────────────────────────────
+// ── CSV PARSING ──────────────────────────────────────────────────
 function parseCSVtoRows(text){
   const lines = text.trim().split('\n').filter(l=>!l.startsWith('#'));
   const headers = lines[0].split(',').map(h=>h.trim());
@@ -1485,7 +1487,7 @@ function parseCSVtoRows(text){
   return rows;
 }
 
-// ── EXTRAER EVENTOS DE CAMBIO DE BIT ─────────────────────────
+// ── EXTRACT BIT CHANGE EVENTS ────────────────────────────────────
 function extractTransitions(rows, field, targetVal=1){
   const events=[]; let prev=null;
   for(const r of rows){
@@ -1498,7 +1500,7 @@ function extractTransitions(rows, field, targetVal=1){
 }
 
 
-// Detectar cambios de marcha por saltos de RPM con VSS estable
+// Detect gear changes by RPM jumps with stable VSS
 function detectGearChanges(rows){
   const events=[];
   for(let i=2;i<rows.length;i++){
@@ -1510,7 +1512,7 @@ function detectGearChanges(rows){
   return events;
 }
 
-// Detectar WOT (TPS > 80%)
+// Detect WOT (TPS > 80%)
 function detectWOT(rows){
   const ev=[]; let inWOT=false;
   for(const r of rows){
@@ -1520,7 +1522,7 @@ function detectWOT(rows){
   return ev;
 }
 
-// Detectar DTC nuevo (CDiag0-4 cambia a nonzero)
+// Detect new DTC (CDiag0-4 changes to nonzero)
 function detectDTC(rows){
   const ev=[]; let prev=0;
   for(const r of rows){
@@ -1531,7 +1533,7 @@ function detectDTC(rows){
   return ev;
 }
 
-// ── CREAR GRÁFICAS ────────────────────────────────────────────
+// ── BUILD CHARTS ────────────────────────────────────────────────────
 function buildCharts(rows){
   window._lastBuildRows = rows;
   destroyCharts();
@@ -1707,7 +1709,7 @@ function buildCharts(rows){
 
   function saveChartCfgs(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(chartCfgs)); }catch(e){} }
 
-  // Plugin de crosshair (línea vertical sincronizada)
+  // Crosshair plugin (synced vertical line)
   const crosshairPlugin = {
     id: 'crosshair',
     afterDraw: (chart) => {
@@ -1721,7 +1723,7 @@ function buildCharts(rows){
         ctx.lineTo(x, chart.chartArea.bottom);
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.setLineDash([3, 3]); // Línea punteada
+        ctx.setLineDash([3, 3]); // Dashed line
         ctx.stroke();
         ctx.restore();
       }
@@ -1753,7 +1755,7 @@ function buildCharts(rows){
         xAlign: 'left',
         caretPadding: 15,
         external: function(context) {
-          // Tooltip invisible, solo usamos los datos para el panel lateral
+          // Tooltip invisible, we only use data for the side panel
           const tooltip = context.tooltip;
           if (tooltip.dataPoints && tooltip.dataPoints.length > 0) {
             const t = tooltip.dataPoints[0].parsed.x;
@@ -1781,8 +1783,8 @@ function buildCharts(rows){
           }
         },
         callbacks: {
-          title: () => '',  // Vacío porque usamos el panel lateral
-          label: () => ''   // Vacío porque usamos el panel lateral
+          title: () => '',  // Empty, we use the side panel
+          label: () => ''   // Empty, we use the side panel
         }
       }
     },
@@ -1799,7 +1801,7 @@ function buildCharts(rows){
     }
   };
 
-  // Registrar plugin de crosshair globalmente (línea vertical)
+  // Register crosshair plugin globally (vertical line)
   if (typeof Chart !== 'undefined') {
     Chart.register({
       id: 'crosshair',
@@ -1839,7 +1841,7 @@ function buildCharts(rows){
       borderDash: sig.dash || [],
       pointRadius: 0,
       fill: false,
-      tension: 0,  // Líneas rectas entre puntos (más preciso para tuning)
+      tension: 0,  // Straight lines between points (more accurate for tuning)
       yAxisID: 'y_'+key,
     };
   }
@@ -2077,7 +2079,7 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
   document.body.appendChild(panel);
 }
 
-// ── CARGAR RIDES EN SELECTOR ──────────────────────────────────
+// ── LOAD RIDES IN SELECTOR ────────────────────────────────────────
 function initGraphPane(){
   if(!ridesCache || !ridesCache.length){
     loadRidesList().then(()=>_fillGraphSelect());
@@ -2100,7 +2102,7 @@ function _fillGraphSelect(){
 }
 
 function _rideDate(r){
-  // Usar opened_utc (inicio del ride) con fallback a closed_utc
+  // Use opened_utc (ride start) with fallback to closed_utc
   const iso = r.opened_utc || r.closed_utc || '';
   if(!iso) return '';
   try{
@@ -2114,20 +2116,20 @@ function _rideDate(r){
   }catch(e){ return ''; }
 }
 
-// ── CARGAR CSV Y RENDERIZAR ───────────────────────────────────
+// ── LOAD CSV AND RENDER ────────────────────────────────────────
 async function loadGraphRide(directFile){
   const sel   = document.getElementById('graphRideSelect');
   const fname = directFile || sel.value;
   const status= document.getElementById('graphStatus');
   if(!fname){ status.textContent='Selecciona un ride'; return; }
-  // Sincronizar el select si viene de openRideGraph
+  // Sync select if called from openRideGraph
   if(directFile && sel) sel.value = directFile;
 
   const csvName = fname.replace('_summary.json','.csv');
   const cleanName = fname.replace('_summary.json','').replace(/_/g,' ');
   const rideLabel = cleanName.toUpperCase();
 
-  // Buscar fecha en ridesCache
+  // Look up date in ridesCache
   const rideInfo = (ridesCache||[]).find(r=>r.filename===fname);
   const dateStr = rideInfo ? _rideDate(rideInfo) : '';
 
@@ -2165,7 +2167,7 @@ async function doKeepalive(){
 }
 
 
-// ── APAGADO ────────────────────────────────────────────────────────
+// ── SHUTDOWN ────────────────────────────────────────────────────────
 function confirmShutdown(){
   const modal = document.createElement('div');
   modal.id = 'shutdownModal';
@@ -2213,7 +2215,7 @@ async function loadEepromParams(){
     if(!data || data.error){ container.textContent = data?.error || 'Sin datos - Conecta la ECU'; return; }
     const params = Object.values(data);
     if(!params.length){ container.textContent = 'Sin datos'; return; }
-    // Agrupar por categoria usando remark como fallback
+    // Group by category using remark as fallback
     const groups = {};
     for(const p of params){
       const cat = p.remark ? p.remark.split(' ').slice(0,3).join(' ') : 'General';
@@ -2267,7 +2269,7 @@ async function loadEcu(){
   }catch(e){ document.getElementById('ecuVersion').textContent='Error: '+e.message; }
 }
 
-// VSS CALIBRACION
+// VSS CALIBRATION
 let vssCal={cpkm25:1368};
 async function doReconnect(){
   trackUsage('btn_reconnect_ecu');
@@ -2307,7 +2309,6 @@ async function gitPull() {
       status.textContent = '❌ Error: ' + (data.error || 'desconocido');
       status.style.color = 'var(--red)';
     }
-    if (data.output) console.log(data.output);
   } catch (e) {
     status.textContent = 'Error de red: ' + e;
     status.style.color = 'var(--red)';
@@ -2315,7 +2316,7 @@ async function gitPull() {
 }
 
 
-// cargar cal al arrancar (no solo al abrir tab)
+// Load cal on startup (not only on tab open)
 document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); setInterval(pollCobertGrid, 1000); });
 
 
@@ -2376,4 +2377,33 @@ function openErrorLog(session,ride_num){
 }
 function closeErrorLog(){
   document.getElementById('errorLogModal').style.display='none';
+}
+
+// ── EEPROM / MSQ Download ──
+function _dlFile(url, filename) {
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); }, 100);
+}
+function downloadEeprom(session) {
+  var url = '/eeprom/download' + (session ? '?session=' + session : '');
+  fetch(url).then(function(r){
+    if (!r.ok) { return r.json().then(function(d){ alert('Error: ' + (d.error || r.status)); }); }
+    return r.blob().then(function(b){
+      _dlFile(url, 'eeprom_' + (session || 'current') + '.bin');
+    });
+  }).catch(function(e){ alert('Download error: ' + e.message); });
+}
+function downloadMsq(session) {
+  var url = '/msq/download' + (session ? '?session=' + session : '');
+  fetch(url).then(function(r){
+    if (!r.ok) { return r.json().then(function(d){ alert('Error: ' + (d.error || r.status)); }); }
+    return r.blob().then(function(b){
+      _dlFile(url, 'suggested_' + (session || 'current') + '.msq');
+    });
+  }).catch(function(e){ alert('Download error: ' + e.message); });
 }
