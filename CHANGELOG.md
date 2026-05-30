@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.56] — 2026-05-30
+
+### Changed
+
+- web/templates/index.html: scrollbar styled to match dark theme — 3px wide, dark border color thumb, transparent track. Scrolling preserved. Works on Safari/Chrome (webkit) and Firefox (scrollbar-width/color).
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.55] — 2026-05-30
 
 ### Fixed

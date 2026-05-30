@@ -17,6 +17,13 @@
 body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;
      font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 
+/* Scrollbar — dark theme, thin, hidden track */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+*{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
 /* HEADER */
 .hdr{background:var(--panel);border-bottom:2px solid var(--accent);
      padding:4px 10px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
