@@ -25,6 +25,35 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.43] — 2026-05-30
+
+### Removed
+
+- web/templates/index.html: ERR indicator removed from live tab header — not useful in daily use
+- web/static/app.js: hErr JS block removed (ride_errors display logic)
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.6.42] — 2026-05-30
+
+### Fixed
+
+- ecu/connection.py: usb_power_cycle() and usb_reset() now use with open() — eliminates leaked file handles on USB recovery paths (Bug P2 from BACKLOG)
+- web/server.py: CSV multi-part download skipped only 1 line per part instead of 2 (comment + header), causing duplicate headers in concatenated output — now skips both lines for parts 2+
+- web/static/app.js: downloadEeprom() and downloadMsq() now use URL.createObjectURL(blob) + revokeObjectURL — fixes download on mobile browsers
+- web/templates/sessions_vs.html: download() rewritten with fetch + blob instead of bare anchor click — consistent with app.js approach
+
+### Removed
+
+- web/server.py: TIPIN removed from COVERAGE_TARGETS_DEFAULT, _set_coverage_targets validation set, and _get_coverage() flavor loop — TIPIN is not actionable for VE tuning (AE active during tip-in, map does not govern fuel)
+- web/templates/index.html: TIPIN button removed from coverage grid
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 
 ## [v2.6.41] — 2026-05-27
 
