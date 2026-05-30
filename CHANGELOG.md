@@ -25,6 +25,33 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.57] — 2026-05-30
+
+### Added
+
+- ecu/protocol.py: VSSCalibrator class — IIR auto-calibration of VSS_CPKM25 against GPS speed during stable cruise (no WOT, no decel, both > 10 km/h, GPS/VSS ratio within 20%). Alpha=0.02 (~50 samples per 1% correction). Saves learned value to /home/pi/buell/vss_cal.json when drift > 0.5%. Loads on startup.
+- ecu/protocol.py: module-level functions update_vss_calibration(), load_vss_calibration(), save_vss_calibration(), vss_changed_significantly() for use from main.py
+- main.py: loads vss_cal.json at startup before threads start
+- main.py: calls update_vss_calibration() in _ecu_loop after each GPS+VSS merge
+
+### Changed
+
+- ecu/protocol.py: GearFilter.detect() now accepts di_clutch and fl_decel parameters
+- ecu/protocol.py: GearFilter coasting detection — two guards: (1) ratio below CENTERS[5]*0.80 = physically impossible in any gear; (2) fl_decel=1 AND rpm < 1400 AND kph > 15 = near-idle decel with wheel spinning
+- ecu/protocol.py: GearFilter STD_THR tightened 1.5 -> 1.0, MIN_SAMPLES increased 8 -> 12 for higher accuracy
+- ecu/protocol.py: cliff detector now verifies new segment stability before accepting gear change
+- ecu/protocol.py: decode_rt_packet passes di_clutch and fl_decel to GearFilter.detect()
+- ecu/protocol.py: decode_rt_packet uses _vss_calibrator.get() instead of hardcoded VSS_CPKM25
+
+### Fixed
+
+- ecu/protocol.py: removed unused `final` import from typing
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.56] — 2026-05-30
 
 ### Changed

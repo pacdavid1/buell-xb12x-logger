@@ -10,8 +10,11 @@ Responsabilidades:
 """
 
 import collections
+import json
+import logging
 import statistics
-from typing import Any, final
+import threading
+from typing import Any
 
 import struct
 
@@ -98,20 +101,101 @@ CENTERS: list[float] = [0.0, 75.5, 53.8, 40.1, 33.3, 28.7]
 THRESHOLDS: list[float] = [(CENTERS[i] + CENTERS[i+1]) / 2 for i in range(1, 5)]
 
 
+
+
+class VSSCalibrator:
+    """IIR auto-calibration of VSS_CPKM25 against GPS speed.
+
+    Slowly converges the VSS calibration constant toward GPS-verified
+    values. Only updates during stable cruise (no WOT, no decel, both
+    GPS and VSS > MIN_SPEED, ratio error < MAX_RATIO_ERR).
+
+    VS_KPH is proportional to 1/VSS_CPKM25, so if GPS reads higher
+    than VSS, we decrease VSS_CPKM25 to raise the speed output.
+    """
+
+    ALPHA          = 0.02   # IIR rate — ~50 samples to shift 1%
+    MIN_SPEED      = 10.0   # km/h minimum for both GPS and VSS
+    MAX_RATIO_ERR  = 0.20   # reject if GPS/VSS differs by > 20%
+    SAVE_THRESHOLD = 0.005  # save to disk when value drifts > 0.5%
+
+    def __init__(self, initial: float = 1518.0) -> None:
+        self._value      = initial
+        self._last_saved = initial
+        self._updates    = 0
+        self._lock       = threading.Lock()
+        self._log        = logging.getLogger("VSSCal")
+
+    def get(self) -> float:
+        with self._lock:
+            return self._value
+
+    def update(self, gps_kph: float, vss_kph: float,
+               fl_decel: int = 0, fl_wot: int = 0) -> None:
+        if fl_decel or fl_wot:
+            return
+        if gps_kph < self.MIN_SPEED or vss_kph < self.MIN_SPEED:
+            return
+        ratio = gps_kph / vss_kph
+        if abs(ratio - 1.0) > self.MAX_RATIO_ERR:
+            return
+        # corrected_CPKM25 = current / ratio  (ratio>1 means VSS reads low → decrease CPKM25)
+        with self._lock:
+            corrected     = self._value / ratio
+            self._value   = self._value * (1.0 - self.ALPHA) + corrected * self.ALPHA
+            self._updates += 1
+
+    def changed_significantly(self) -> bool:
+        with self._lock:
+            return abs(self._value - self._last_saved) / self._last_saved > self.SAVE_THRESHOLD
+
+    def save(self, path: str) -> None:
+        with self._lock:
+            val     = self._value
+            updates = self._updates
+        try:
+            with open(path, "w") as f:
+                json.dump({"vss_cpkm25": round(val, 2), "updates": updates}, f)
+            with self._lock:
+                self._last_saved = val
+            self._log.info(f"VSS calibration saved: {val:.1f} ({updates} updates)")
+        except Exception as e:
+            self._log.warning(f"VSS calibration save failed: {e}")
+
+    def load(self, path: str) -> None:
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            val = float(data.get("vss_cpkm25", self._value))
+            if 800.0 < val < 3000.0:   # sanity bounds
+                with self._lock:
+                    self._value      = val
+                    self._last_saved = val
+                self._log.info(f"VSS calibration loaded: {val:.1f}")
+        except FileNotFoundError:
+            pass   # first run — use default
+        except Exception as e:
+            self._log.warning(f"VSS calibration load failed: {e}")
+
 class GearFilter:
 
     '''Statistical gear filter using sliding window + cliff detection.'''
 
-    WINDOW_S       = 3.0
-    MIN_S          = 1.5
-    OUTLIER_THR    = 3.0
-    STD_THR        = 1.5
-    MIN_SAMPLES    = 8
+    WINDOW_S       = 3.0   # seconds of history to keep
+    MIN_S          = 1.5   # minimum span before attempting detection
+    OUTLIER_THR    = 3.0   # median-deviation threshold for outlier rejection
+    STD_THR        = 1.0   # tighter: require more stable window (was 1.5)
+    MIN_SAMPLES    = 12    # more data before confirming gear (was 8)
 
     CLIFF_TIME_S   = 0.5
     CLIFF_DIFF_THR = 3.0
     CLIFF_MIN_OLD  = 4
     CLIFF_MIN_NEW  = 3
+
+    # Coasting detection — wheel freewheeling with clutch in
+    COAST_RPM_MAX   = 1400   # rpm: below this near-idle RPM during decel = likely clutch-in
+    COAST_KPH_MIN   = 15.0   # kph: wheel still spinning
+    COAST_RATIO_MIN = CENTERS[5] * 0.80  # ratio physically impossible in any gear (~22.9)
 
     # THRESHOLDS now defined at module level (must be outside class
     # due to Python 3 class-level list comprehension scoping rules)
@@ -120,16 +204,37 @@ class GearFilter:
         self.buffer = collections.deque()
         self.last_gear = 0
 
-    def detect(self, rpm, kph, elapsed_s, di_neutral):
-        if rpm < 800 or kph < 5.0 or di_neutral:
+    def detect(self, rpm, kph, elapsed_s, di_neutral,
+               di_clutch: int = 0, fl_decel: int = 0) -> int:
+
+        # Neutral switch or clutch pressed → definitive zero
+        if di_neutral or di_clutch:
             self.buffer.clear()
-            if di_neutral or kph < 5.0:
+            self.last_gear = 0
+            return 0
+
+        # Not moving or RPM too low
+        if rpm < 800 or kph < 5.0:
+            self.buffer.clear()
+            if kph < 5.0:
                 self.last_gear = 0
             return self.last_gear
 
         ratio = rpm / kph
+
+        # Coasting guard 1: ratio below physically possible minimum
+        # Wheel is spinning faster than engine can explain in any gear
+        if ratio < self.COAST_RATIO_MIN:
+            return self.last_gear
+
+        # Coasting guard 2: near-idle RPM while decelerating with speed
+        # Most likely clutch-in with engine returning to idle
+        if fl_decel and rpm < self.COAST_RPM_MAX and kph > self.COAST_KPH_MIN:
+            return self.last_gear
+
         self.buffer.append((elapsed_s, ratio))
 
+        # Evict samples outside the rolling window
         cutoff = elapsed_s - self.WINDOW_S
         while self.buffer and self.buffer[0][0] < cutoff:
             self.buffer.popleft()
@@ -140,20 +245,24 @@ class GearFilter:
         if span < self.MIN_S:
             return self.last_gear
 
-        # Cliff detector: compare old vs new averages
+        # Cliff detector: sudden ratio shift = gear change
         cliff_t = elapsed_s - self.CLIFF_TIME_S
-        old = [r for t, r in self.buffer if t < cliff_t]
-        new = [r for t, r in self.buffer if t >= cliff_t]
-        if len(old) >= self.CLIFF_MIN_OLD and len(new) >= self.CLIFF_MIN_NEW:
-            if abs(statistics.mean(new) - statistics.mean(old)) > self.CLIFF_DIFF_THR:
+        seg_old = [r for t, r in self.buffer if t <  cliff_t]
+        seg_new = [r for t, r in self.buffer if t >= cliff_t]
+        if len(seg_old) >= self.CLIFF_MIN_OLD and len(seg_new) >= self.CLIFF_MIN_NEW:
+            if abs(statistics.mean(seg_new) - statistics.mean(seg_old)) > self.CLIFF_DIFF_THR:
+                # Discard pre-shift data
                 self.buffer = collections.deque(
                     (t, r) for t, r in self.buffer if t >= cliff_t
                 )
+                # Only accept if new segment is already stable enough
                 if len(self.buffer) >= self.MIN_SAMPLES:
-                    return self._median_gear()
+                    new_vals = [r for _, r in self.buffer]
+                    if len(new_vals) > 1 and statistics.stdev(new_vals) <= self.STD_THR:
+                        return self._median_gear()
                 return self.last_gear
 
-        # Filter outliers
+        # Outlier filter: discard samples far from the median
         values = [r for _, r in self.buffer]
         if len(values) < self.MIN_SAMPLES:
             return self.last_gear
@@ -162,8 +271,8 @@ class GearFilter:
         if len(clean) < self.MIN_SAMPLES:
             return self.last_gear
 
-        # Stability check
-        if statistics.stdev(clean) > self.STD_THR:
+        # Stability gate: window must be tight before we trust it
+        if len(clean) > 1 and statistics.stdev(clean) > self.STD_THR:
             return self.last_gear
 
         self.last_gear = self._ratio_to_gear(statistics.median(clean))
@@ -184,7 +293,25 @@ class GearFilter:
         self.last_gear = 0
 
 
-_gear_filter = GearFilter()
+_gear_filter    = GearFilter()
+_vss_calibrator = VSSCalibrator(initial=VSS_CPKM25)
+
+
+def update_vss_calibration(gps_kph: float, vss_kph: float,
+                            fl_decel: int = 0, fl_wot: int = 0) -> None:
+    _vss_calibrator.update(gps_kph, vss_kph, fl_decel, fl_wot)
+
+
+def load_vss_calibration(path: str) -> None:
+    _vss_calibrator.load(path)
+
+
+def save_vss_calibration(path: str) -> None:
+    _vss_calibrator.save(path)
+
+
+def vss_changed_significantly() -> bool:
+    return _vss_calibrator.changed_significantly()
 
 
 def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any]:
@@ -258,19 +385,22 @@ def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any]:
 
     # ── VS_KPH ───────────────────────────────────────────────
     vss = result.get('VSS_Count') or 0
-    if vss > 0 and VSS_CPKM25 > 0:
-        result['VS_KPH'] = round((vss / 0.039) * 3600 / (VSS_CPKM25 / 25 * 1000), 1)
+    cpkm25 = _vss_calibrator.get()
+    if vss > 0 and cpkm25 > 0:
+        result['VS_KPH'] = round((vss / 0.039) * 3600 / (cpkm25 / 25 * 1000), 1)
     else:
         result['VS_KPH'] = 0.0
 
     # Gear — sliding window statistical detection
     kph = result['VS_KPH']
-    result['VSS_RPM_Ratio'] = kph / (result['RPM'] / 1000.0) if result.get('RPM', 0) > 0 else 0  # unchanged for CSV
+    result['VSS_RPM_Ratio'] = kph / (result['RPM'] / 1000.0) if result.get('RPM', 0) > 0 else 0
     result['Gear'] = _gear_filter.detect(
         rpm=result.get('RPM', 0),
         kph=kph,
         elapsed_s=result.get('Seconds', 0.0) + result.get('MilliSec', 0.0) / 1000.0,
         di_neutral=result.get('di_neutral', 0),
+        di_clutch=result.get('di_clutch', 0),
+        fl_decel=result.get('fl_decel', 0),
     )
 
     return result

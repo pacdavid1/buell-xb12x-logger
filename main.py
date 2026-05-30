@@ -22,6 +22,8 @@ from web.server import WebServer
 from ecu.connection import DDFI2Connection
 from ecu.eeprom import decode_eeprom_maps, decode_eeprom_params
 from ecu.eeprom_params import decode_params
+from ecu.protocol import (update_vss_calibration, load_vss_calibration,
+                          save_vss_calibration, vss_changed_significantly)
 from ecu.version_resolver import resolve_ecu
 from ecu.session import SessionManager, CellTracker, cell_key, RideErrorLog
 from gps.reader import GPSReader
@@ -378,6 +380,20 @@ class BuellLogger:
                 data['baro_temp_c'] = ss.get('baro_temp_c')
                 
                 data.update(self.gps.get_fix().as_dict())
+
+                # VSS auto-calibration against GPS
+                gps_spd = data.get('gps_speed_kmh') or 0
+                vss_spd = data.get('VS_KPH') or 0
+                if data.get('gps_valid') and gps_spd > 10 and vss_spd > 10:
+                    update_vss_calibration(
+                        gps_kph  = gps_spd,
+                        vss_kph  = vss_spd,
+                        fl_decel = data.get('fl_decel', 0),
+                        fl_wot   = data.get('fl_wot',   0),
+                    )
+                    if vss_changed_significantly():
+                        save_vss_calibration('/home/pi/buell/vss_cal.json')
+
                 self.session.write_sample(data, time.time())
                 
             self.tracker.update(data)
@@ -451,7 +467,10 @@ class BuellLogger:
             import traceback
             self.logger.warning(f"ECU no disponible: {e}\n{traceback.format_exc()}")
 
-        # 2. Iniciar hilos de fondo
+        # 2. Load VSS calibration from disk (auto-updated against GPS)
+        load_vss_calibration('/home/pi/buell/vss_cal.json')
+
+        # 3. Iniciar hilos de fondo
         self.gps.start()
         self._ecu_thread = threading.Thread(target=self._ecu_loop, daemon=True, name="ecu-rt")
         self._ecu_thread.start()
