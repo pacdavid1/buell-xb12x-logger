@@ -290,13 +290,17 @@ function updateHeader(d) {
   const bkph = document.getElementById('bigKPH');
   if(bkph) bkph.textContent = lv.VS_KPH != null ? lv.VS_KPH.toFixed(0) : '--';
 
+  // Big RPM
+  const brpm = document.getElementById('bigRPM');
+  if(brpm) brpm.textContent = lv.RPM != null ? Math.round(lv.RPM) : '--';
+
   // Big TPS — show % (calibrated in Python) and degrees
   const tpsPct = lv.TPS_pct;
   const tpsDeg = lv.TPD;
   const bigTpsEl = document.getElementById('bigTPS');
   const bigTpsPctEl = document.getElementById('bigTPSPct');
   if(tpsPct != null){
-    bigTpsEl.textContent = tpsPct.toFixed(0)+'%';
+    bigTpsEl.textContent = tpsPct.toFixed(0);
     bigTpsEl.style.color = tpsPct>80?'var(--accent)':tpsPct>50?'var(--accent2)':'var(--blue)';
     if(bigTpsPctEl) bigTpsPctEl.textContent = tpsDeg!=null ? tpsDeg.toFixed(1)+'°' : '';
   } else {

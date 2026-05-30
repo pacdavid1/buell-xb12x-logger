@@ -25,6 +25,24 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.47] — 2026-05-30
+
+### Changed
+
+- web/templates/index.html: big cards — removed CHT/KPH/TPS/RPM title labels and bottom unit text; units now shown inline to the right of the value (°C, km/h, %, rpm) saving vertical space
+- web/templates/index.html: big-card padding reduced 8px -> 5px to further reduce header height
+- web/templates/index.html: TPS degrees sub-display simplified, removed "grados" text label
+
+### Fixed
+
+- web/static/app.js: bigRPM element was never updated — RPM card always showed "--". Added missing update: Math.round(lv.RPM)
+- web/static/app.js: TPS value no longer includes "%" suffix (moved to inline HTML unit span)
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.46] — 2026-05-30
 
 ### Changed
