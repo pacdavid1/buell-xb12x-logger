@@ -246,18 +246,6 @@ function updateHeader(d) {
   { const _e=document.getElementById('hEGO'); const _v=lv.EGO_Corr!=null?lv.EGO_Corr.toFixed(0)+'%':'--'; if(_e.textContent!==_v)_e.textContent=_v; }
   { const _m=document.getElementById('hMAT'); const _v=lv.MAT!=null?lv.MAT.toFixed(0)+'`':'--'; if(_m.textContent!==_v)_m.textContent=_v; }
   { const _b=document.getElementById('hBatt'); const _v=lv.Batt_V!=null?lv.Batt_V.toFixed(1)+'V':'--'; if(_b.textContent!==_v)_b.textContent=_v; }
-  const errEl = document.getElementById('hErr');
-  if(errEl){
-    const re = d.ride_errors || {};
-    const total = re.total || 0;
-    const elapsedMin = (d.elapsed_s || 0) / 60;
-    const errPerMin = (d.ride_active && elapsedMin > 0.1) ? (total / elapsedMin) : 0;
-    errEl.textContent = d.ride_active ? total : '—';
-    errEl.className   = 'hs-val ' + (errPerMin > 5 ? 'ac' : errPerMin > 2 ? 'yw' : 'gn');
-    errEl.title = d.ride_active
-      ? `Dirty: ${re.dirty||0}  Timeout: ${re.timeout||0}  Serial: ${re.serial||0}  (${errPerMin.toFixed(1)}/min)`
-      : 'Sin ride activo';
-  }
   const gearEl = document.getElementById('hGear');
   if(gearEl){
     const g = lv.Gear;
