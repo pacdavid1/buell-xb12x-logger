@@ -386,6 +386,11 @@ async function fetchLive() {
         if(el) el.textContent = 'R'+String(d.ride_num||0).padStart(3,'0') + ' · ' + fmtTime(d.elapsed_s||0);
       }
     }
+    // Auto-refresh sessions when a ride ends
+    if(_prevRideActive && !d.ride_active) {
+      setTimeout(loadSessions, 1500);
+    }
+    _prevRideActive = !!d.ride_active;
   } catch(e){ console.warn('fetchLive:', e); }
   finally { _fetchingLive = false; }
 }
@@ -393,6 +398,7 @@ async function fetchLive() {
 
 // -- LAUNCH READY STATE MACHINE ------------------------------------
 let launchState = 'INACTIVE';
+let _prevRideActive = false;
 let launchBuffer = null;
 let steadySeconds = 0;
 let lastSampleElapsed = null;

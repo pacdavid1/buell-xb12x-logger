@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.53] — 2026-05-30
+
+### Added
+
+- web/static/app.js: sessions list auto-refreshes 1.5s after a ride ends — detected via ride_active transition true->false in fetchLive(). No full page reload needed.
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.52] — 2026-05-30
 
 ### Removed
