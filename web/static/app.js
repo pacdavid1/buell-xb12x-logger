@@ -2387,14 +2387,17 @@ function _dlFile(url, filename) {
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
-  setTimeout(function(){ document.body.removeChild(a); }, 100);
+  setTimeout(function(){
+    document.body.removeChild(a);
+    if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+  }, 100);
 }
 function downloadEeprom(session) {
   var url = '/eeprom/download' + (session ? '?session=' + session : '');
   fetch(url).then(function(r){
     if (!r.ok) { return r.json().then(function(d){ alert('Error: ' + (d.error || r.status)); }); }
     return r.blob().then(function(b){
-      _dlFile(url, 'eeprom_' + (session || 'current') + '.bin');
+      _dlFile(URL.createObjectURL(b), 'eeprom_' + (session || 'current') + '.bin');
     });
   }).catch(function(e){ alert('Download error: ' + e.message); });
 }
@@ -2403,7 +2406,7 @@ function downloadMsq(session) {
   fetch(url).then(function(r){
     if (!r.ok) { return r.json().then(function(d){ alert('Error: ' + (d.error || r.status)); }); }
     return r.blob().then(function(b){
-      _dlFile(url, 'suggested_' + (session || 'current') + '.msq');
+      _dlFile(URL.createObjectURL(b), 'suggested_' + (session || 'current') + '.msq');
     });
   }).catch(function(e){ alert('Download error: ' + e.message); });
 }

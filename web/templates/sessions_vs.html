@@ -346,10 +346,19 @@ document.querySelector('#dtTable thead').addEventListener('click',function(e){
 
 function download(){
   var a=document.getElementById('sA').value,b=document.getElementById('sB').value;
-  var l=document.createElement('a');
-  l.href='/sessions_vs/download?a='+a+'&b='+b;
-  l.download='sessions_vs_'+a+'_'+b+'.json';
-  l.click();
+  var url='/sessions_vs/download?a='+a+'&b='+b;
+  fetch(url).then(function(r){
+    if(!r.ok){ return r.json().then(function(d){ st('Download error: '+(d.error||r.status)); }); }
+    return r.blob().then(function(blob){
+      var l=document.createElement('a');
+      l.href=URL.createObjectURL(blob);
+      l.download='sessions_vs_'+a+'_'+b+'.json';
+      l.style.display='none';
+      document.body.appendChild(l);
+      l.click();
+      setTimeout(function(){ document.body.removeChild(l); URL.revokeObjectURL(l.href); },100);
+    });
+  }).catch(function(e){ st('Network error: '+e.message); });
 }
 document.getElementById('sA').onchange=onSelect;
 document.getElementById('sB').onchange=onSelect;

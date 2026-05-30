@@ -402,7 +402,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 csv_path = sdir / f'{csv_stem}{suffix}.csv'
                 if not csv_path.exists(): continue
                 with open(csv_path, 'rb') as fh:
-                    if not first: fh.readline()
+                    if not first:
+                        fh.readline()  # skip comment line
+                        fh.readline()  # skip CSV header
                     chunks.append(fh.read())
                 first = False
             raw = b''.join(chunks)
@@ -867,14 +869,13 @@ class WebServer:
     # Targets de coverage por flavor (segundos validos requeridos)
     COVERAGE_TARGETS_DEFAULT = {
         "SWEET":  30.0,
-        "TIPIN":  15.0,
         "TIPOUT": 15.0,
         "WOT":    10.0,
         "BITTER":  0.0,
     }
 
     def _set_coverage_targets(self, body):
-        flavors = {"SWEET", "TIPIN", "TIPOUT", "WOT", "BITTER"}
+        flavors = {"SWEET", "TIPOUT", "WOT", "BITTER"}
         for k, v in body.items():
             if k in flavors:
                 self._coverage_targets[k] = float(v)
@@ -885,7 +886,7 @@ class WebServer:
             return {"error": "tracker no disponible", "cells": {}, "summary": {}}
         snap, active = self.cell_tracker.snapshot()
         targets = self._coverage_targets
-        flavors = [f for f in ("SWEET", "TIPIN", "TIPOUT", "WOT") if targets.get(f, 0) > 0]
+        flavors = [f for f in ("SWEET", "TIPOUT", "WOT") if targets.get(f, 0) > 0]
         cells_out = {}
         summary = {f: {"done": 0, "total": 0, "pct": 0.0} for f in flavors}
         for key, c in snap.items():
