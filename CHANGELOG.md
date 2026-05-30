@@ -25,6 +25,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.51] — 2026-05-30
+
+### Removed
+
+- web/templates/index.html: 騎行終 close-ride button removed from header row 3
+- web/static/app.js: btnCloseRide control block removed (disabled/opacity logic). closeRide() function retained.
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.50] — 2026-05-30
 
 ### Changed

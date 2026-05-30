@@ -260,13 +260,7 @@ function updateHeader(d) {
   else if(d.waiting)    { pill.textContent=''; pill.className='pill-dot yw'; }
   else                  { pill.textContent=''; pill.className='pill-dot off'; }
 
-  // Close ride button
-  const btnClose = document.getElementById('btnCloseRide');
-  if(btnClose){
-    btnClose.disabled = !d.ride_active;
-    btnClose.style.opacity = d.ride_active ? '1' : '0.25';
-    btnClose.style.cursor = d.ride_active ? 'pointer' : 'default';
-  }
+
 
   // EGO color
   const egoEl = document.getElementById('hEGO');
