@@ -25,6 +25,22 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.48] — 2026-05-30
+
+### Changed
+
+- web/templates/index.html: .hs-label now absolutely positioned (5px, top-left overlay) — value takes full cell height, font-size 28px -> 36px with same row height
+- web/static/app.js: VE grid Load column (10-255) moved from left side to right side of the grid
+
+### Fixed
+
+- web/static/app.js: buildCobertGrid had incorrect closing brace placement during grid restructure — corrected
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.47] — 2026-05-30
 
 ### Changed

@@ -53,16 +53,16 @@ let _cobertData = null;
 function buildCobertGrid() {
   const t = document.getElementById('cobertGrid');
   if (!t) return;
-  let h = '<thead><tr><th class="rh">L\\R</th>';
+  let h = '<thead><tr>';
   for (const r of RPM_BINS) h += '<th>'+(r===0?'0':r>=1000?(r/1000)+'k':r)+'</th>';
-  h += '</tr></thead><tbody>';
+  h += '<th class="rh">L</th></tr></thead><tbody>';
   for (let li = LOAD_BINS.length-1; li >= 0; li--) {
-    h += '<tr><th class="rh">'+LOAD_BINS[li]+'</th>';
+    h += '<tr>';
     for (let ri = 0; ri < RPM_BINS.length; ri++) {
       const k = RPM_BINS[ri]+'_'+LOAD_BINS[li];
       h += '<td id="gc_'+k+'" class="c0"><div class="cv" id="gs_'+k+'"></div></td>';
     }
-    h += '</tr>';
+    h += '<th class="rh">'+LOAD_BINS[li]+'</th></tr>';
   }
   h += '</tbody>';
   t.innerHTML = h;

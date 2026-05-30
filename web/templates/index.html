@@ -40,11 +40,12 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 .hs-sm:last-child{border-right:none}
 .hs-sm .hs-label{font-family:var(--mono);font-size:6px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
 .hs-sm .hs-val{font-size:13px;font-weight:700;line-height:1.2}
-.hs{display:flex;flex-direction:column;align-items:center;padding:2px 8px;
-    border-right:1px solid var(--border);min-width:50px}
+.hs{display:flex;flex-direction:column;justify-content:center;align-items:center;
+    padding:1px 4px;border-right:1px solid var(--border);min-width:48px;position:relative}
 .hs:last-child{border-right:none}
-.hs-label{font-family:var(--mono);font-size:7px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
-.hs-val{font-size:28px;font-weight:900;line-height:1.1}
+.hs-label{font-family:var(--mono);font-size:5px;color:var(--dim);letter-spacing:.1em;
+    text-transform:uppercase;position:absolute;top:1px;left:3px;opacity:0.6;line-height:1}
+.hs-val{font-size:36px;font-weight:900;line-height:1}
 .ac{color:var(--accent)} .gn{color:var(--green)} .bl{color:var(--blue)}
 .wh{color:#fff}          .yw{color:var(--accent2)}
 .pill{padding:3px 7px;font-family:var(--mono);font-size:8px;border:1px solid;
