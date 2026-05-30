@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.49] — 2026-05-30
+
+### Changed
+
+- web/templates/index.html: .hs cells now bottom-aligned (justify-content:flex-end) — all header values share the same visual baseline regardless of content size
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.48] — 2026-05-30
 
 ### Changed
