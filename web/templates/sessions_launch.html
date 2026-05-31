@@ -47,7 +47,7 @@ body{background:var(--bg);color:var(--tx);font-family:'Barlow Condensed',sans-se
 .mtog.active{border-color:var(--mc,#fff);color:var(--mc,#fff);background:color-mix(in srgb,var(--mc,#fff) 10%,transparent)}
 .mtog-dot{width:7px;height:7px;border-radius:50%;background:var(--mc,#888);flex-shrink:0}
 .mtog:not(.active) .mtog-dot{background:var(--dm)}
-canvas#chart{width:100%;height:240px;display:block}
+canvas#chart{width:100%;display:block}
 /* Session legend */
 .sess-legend{display:flex;gap:14px}
 .sleg{display:flex;align-items:center;gap:5px;font-family:var(--mn);font-size:9px;color:var(--dm)}
@@ -118,9 +118,19 @@ var METRICS = {
   pw:  { label:'PW ms', color:'#f5a623', field:'pw',  fmt:function(v){ return v.toFixed(2); } },
   tps: { label:'TPS %', color:'#2cdd6e', field:'tps', fmt:function(v){ return v.toFixed(1); } },
   ae:  { label:'AE %',  color:'#c084fc', field:'ae',  fmt:function(v){ return v.toFixed(1); } },
+  alt: { label:'Alt m', color:'#84cc16', field:'alt', fmt:function(v){ return Math.round(v); } },
 };
 // Default active metrics
 var activeMetrics = ['rpm', 'spd', 'pw'];
+
+// Responsive chart height: taller on desktop, compact on mobile
+function chartHeight() {
+  var w = window.innerWidth || 390;
+  var h = window.innerHeight || 700;
+  if (w >= 1200) return Math.min(Math.round(h * 0.52), 520);
+  if (w >= 768)  return Math.min(Math.round(h * 0.44), 380);
+  return 240;
+}
 
 // ── Init ─────────────────────────────────────────────────────────
 async function init() {
@@ -274,7 +284,8 @@ function drawChart(ca, cb) {
   var canvas = document.getElementById('chart');
   var dpr = window.devicePixelRatio || 1;
   var W = canvas.offsetWidth || 340;
-  var H = 240;
+  var H = chartHeight();
+  canvas.style.height = H + 'px';
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   canvas.style.width  = W + 'px';
@@ -489,6 +500,15 @@ function renderConditions(ca, cb) {
 }
 
 init();
+
+// Redraw chart on resize (debounced)
+var _resizeTimer = null;
+window.addEventListener('resize', function() {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function() {
+    if (currentPairA && currentPairB) drawChart(currentPairA, currentPairB);
+  }, 150);
+});
 </script>
 </body>
 </html>

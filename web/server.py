@@ -1143,7 +1143,7 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
 def _fmtk(n):
     if n >= 1000: return f"{n/1000:.1f}k"
     return str(n)
-CACHE_VERSION = 3  # bump when detect_launches or cluster_launches schema changes
+CACHE_VERSION = 4  # bump when detect_launches or cluster_launches schema changes
 
 def _compare_sessions_cached(buell_dir, sa, sb):
     import json as _json
@@ -1257,6 +1257,7 @@ def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=8.0, min_rpm
                         'pw1': round(r['pw1'], 3),
                         'pw2': round(r.get('pw2') or r['pw1'], 3),
                         'ae':  round(r.get('ae', 100), 1),
+                        'alt': round(r['alt'], 1) if r.get('alt') is not None else None,
                     })
                     last_t = r['t']
 
@@ -1380,7 +1381,7 @@ def cluster_launches(launches, rpm_tol=250, tps_tol=2.5):
         tpts=[]; t=dt_min
         while t<=dt_max+0.01: tpts.append(round(t,2)); t+=0.25
         if len(tpts)>1:
-            all_c={k:[] for k in ("rpm","tps","spd","pw1","ae")}
+            all_c={k:[] for k in ("rpm","tps","spd","pw1","ae","alt")}
             for x in ll:
                 pts=x.get("series",[])
                 for k in all_c:
@@ -1403,6 +1404,9 @@ def cluster_launches(launches, rpm_tol=250, tps_tol=2.5):
                 rm["pw"]=round(sum(pw_v)/len(pw_v),3) if pw_v else None
                 ae_v=[all_c["ae"][ci][idx]  for ci in range(n) if all_c["ae"][ci][idx]  is not None]
                 rm["ae"]=round(sum(ae_v)/len(ae_v),1) if ae_v else None
+                alt_v=[all_c["alt"][ci][idx] for ci in range(n) if all_c["alt"][ci][idx] is not None]
+                rm["alt"]=round(sum(alt_v)/len(alt_v),1) if alt_v else None
+                rs["alt"]=round(_s_std(alt_v),1) if len(alt_v)>1 else 0.0
                 ms.append(rm); ss.append(rs)
             c["mean_series"]=ms; c["std_series"]=ss
         else:

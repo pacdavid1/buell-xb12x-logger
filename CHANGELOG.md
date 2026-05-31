@@ -25,6 +25,24 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.61] -- 2026-05-30
+
+### Added
+
+- web/server.py detect_launches(): GPS altitude (alt) added to event time series
+- web/server.py cluster_launches(): alt added to mean_series and std_series fields
+- web/templates/sessions_launch.html: Alt m metric added to chart (color #84cc16) for GPS altitude profile -- allows comparing slope/gradient between sessions
+- web/templates/sessions_launch.html: chart height now responsive -- 240px mobile, up to 52% viewport height on desktop (max 520px), redraws on window resize
+
+### Changed
+
+- web/server.py: CACHE_VERSION bumped 3->4 (alt field added to schema)
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.60] -- 2026-05-30
 
 ### Changed
