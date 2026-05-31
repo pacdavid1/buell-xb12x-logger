@@ -720,7 +720,8 @@ function updateEditToolbar(){
 
 function stageChange(mapKey, ri, ci, origVal, newVal){
   const diff = Math.abs(newVal - origVal);
-  const pct  = diff / Math.max(Math.abs(origVal), 0.01) * 100;
+  // percentage is undefined from zero — skip pct gate, allow any change
+  const pct  = origVal !== 0 ? diff / Math.abs(origVal) * 100 : 0;
   if(pct > 50){
     // Hard block above 50% — likely a typo
     alert('Change of ' + pct.toFixed(1) + '% blocked (limit: 50%).\n'
