@@ -719,11 +719,20 @@ function updateEditToolbar(){
 }
 
 function stageChange(mapKey, ri, ci, origVal, newVal){
-  const pct = Math.abs(newVal - origVal) / Math.max(origVal, 1) * 100;
-  if(pct > 15){
-    alert('Safety gate: change of ' + pct.toFixed(1) + '% exceeds ±15% limit.\nMax allowed: ' +
-          Math.round(origVal * 0.15) + ' units');
+  const diff = Math.abs(newVal - origVal);
+  const pct  = diff / Math.max(Math.abs(origVal), 0.01) * 100;
+  if(pct > 50){
+    // Hard block above 50% — likely a typo
+    alert('Change of ' + pct.toFixed(1) + '% blocked (limit: 50%).\n'
+        + 'Original: ' + origVal + '  →  New: ' + newVal);
     return false;
+  }
+  if(pct > 15){
+    // Soft warning: ask for confirmation
+    const ok = confirm('Warning: ' + pct.toFixed(1) + '% change ('
+      + origVal + ' → ' + newVal + ').\n'
+      + 'Recommended limit is ±15%. Proceed anyway?');
+    if(!ok) return false;
   }
   if(!_staged[mapKey]) _staged[mapKey] = {};
   _staged[mapKey][ri + '_' + ci] = { orig: origVal, val: newVal };
@@ -881,7 +890,7 @@ function showMap(which){
     html += `<td style="padding:2px 4px;color:var(--dim);font-size:8px;white-space:nowrap">${loadVal}%</td>`;
     for(let ci=0; ci<row.length; ci++){
       const val = row[ci];
-      if(val === 0 || val === null){
+      if(val === null){
         html += `<td style="background:#1a1a22;color:#333;padding:1px 2px;text-align:center;
                  min-width:${cellW}px;height:${cellH}px;border:1px solid rgba(255,255,255,0.04);
                  font-size:7px" title="sin datos">·</td>`;
