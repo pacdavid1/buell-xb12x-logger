@@ -124,3 +124,63 @@
 - [ ] **app.js setInterval without clearInterval** (lines ~641, 642, 2319): timers keep running in history-viewing mode — should pause polling when not in live ride view
 - [ ] **app.js getElementById without null checks** (~30+ instances): if HTML changes, silent crashes — add guards or use a safe `el()` wrapper
 - [ ] **app.js global namespace pollution**: `lastData`, `_fetchingLive`, `_lastLiveOk`, `SESSIONS`, `DATA` are unnamespaced globals — risk of collision if scripts grow — consider wrapping in an `App` object
+
+---
+
+## FASE 4 — Data-driven tune recommendation pipeline
+
+**Goal:** after collecting enough rides across sessions, automatically recommend
+VE/spark map updates based on observed engine response vs expected ECU output.
+
+### Context
+- Sessions VS and Launch Analysis already match conditions (gear, RPM, TPS, speed)
+  and compare outcomes (spd_gain, rpm_gain, peak_pw, AE%).
+- The MSQ download gives the baseline map for any session (via /eeprom/msq).
+- The missing link: connecting observed differences in outcome → specific map cells
+  that should change.
+
+### Backlog items
+
+#### 4.1 — Minimum data threshold per cell
+- [ ] Define minimum sample count per (RPM bin, TPS bin) cell before it can be
+  used as a recommendation source (suggested: ≥30 valid samples across ≥3 rides)
+- [ ] Surface coverage per cell in Sessions VS view (already partially in VE grid)
+
+#### 4.2 — Cell-level outcome correlation
+- [ ] For cells with enough data: correlate mean(AE%) with injector correction demand
+  (AE > 0 sustained = lean condition in that cell → VE should go up)
+- [ ] Flag cells where EGO correction consistently trends one direction
+  (persistent lean/rich bias across multiple sessions = map needs adjustment)
+
+#### 4.3 — Launch outcome → map cell attribution
+- [ ] When a Launch Analysis pair shows B faster than A with lower PW (efficiency win):
+  identify which (RPM, TPS) cells were active during the launch window
+- [ ] Weight the evidence: cells visited more during the pull get stronger signal
+
+#### 4.4 — Recommendation report
+- [ ] Generate a recommendation JSON per session: { cell_key: { current_ve, suggested_ve,
+  confidence, evidence_count, direction } }
+- [ ] Confidence tiers: LOW (<30 samples), MEDIUM (30-100), HIGH (>100)
+- [ ] Only recommend changes within ±15% of current value per iteration (safety limit)
+
+#### 4.5 — MSQ export with recommendations applied
+- [ ] _generate_suggested_msq() currently only fires when tuning report has suggestions
+  Fix: always generate from eeprom_decoded.json, apply suggestions if present,
+  write even if 0 cells changed (baseline export)
+- [ ] Version the MSQ with session + ride count in bibliography field
+
+#### 4.6 — UI: recommendation overlay on VE heatmap
+- [ ] In VE tab: overlay arrows (↑↓) on cells with pending recommendations
+  colored by confidence tier
+- [ ] Click cell → show evidence: how many rides, mean AE correction, EGO trend
+
+### Dependencies
+- Requires sufficient data variety: same bike, multiple rides, stable CLT (>80°C)
+- Launch Analysis pairs are the highest-quality signal (controlled conditions)
+- Sessions VS SWEET/ECO cells are the bulk signal (cruising fuel efficiency)
+
+### Notes
+- Do NOT mix data from different bikes (serial #235 vs #651) — already enforced
+  in Sessions VS via bike_serial check
+- CLT must be comparable between sessions for valid efficiency comparisons
+  (see Eff score caveat in v2.6.64)

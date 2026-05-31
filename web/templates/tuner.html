@@ -64,11 +64,11 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <div class="cd">
 <h2>Comparador de Sesiones</h2>
 <div class="ct">
-<div class="cg"><label>Base</label><select id="sB"><option value="">--</option></select></div>
+<div class="cg"><label>Base</label><select id="sB"><option value="">--</option></select><button class="vb" style="margin-top:3px;font-size:8px;padding:2px 7px" onclick="dlMsq('sB')" title="Download Base session EEPROM as MSQ">&#11015; MSQ</button></div>
 <div style="display:flex;align-items:flex-end;padding-bottom:4px">
 <span class="vb" onclick="swapSessions()" style="font-size:14px;padding:4px 8px" title="Intercambiar Base &#x2194; Mod">&#x21C4;</span>
 </div>
-<div class="cg"><label>Modificada</label><select id="sM"><option value="">--</option></select></div>
+<div class="cg"><label>Modificada</label><select id="sM"><option value="">--</option></select><button class="vb" style="margin-top:3px;font-size:8px;padding:2px 7px" onclick="dlMsq('sM')" title="Download Mod session EEPROM as MSQ">&#11015; MSQ</button></div>
 </div>
 <div id="st">Cargando sesiones...</div>
 </div>
@@ -118,6 +118,22 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 </div>
 <script>
 var mB=null,mM=null,mMerge=null,mergeMode='BALANCE',cur='fuel_front';
+
+function dlMsq(selId) {
+  var sid = document.getElementById(selId).value;
+  if (!sid) { alert('Select a session first'); return; }
+  var url = '/eeprom/msq?session=' + encodeURIComponent(sid);
+  fetch(url).then(function(r) {
+    if (!r.ok) { return r.json().then(function(d){ alert('Error: '+(d.error||r.status)); }); }
+    var cd = r.headers.get('Content-Disposition') || '';
+    var m  = cd.match(/filename="([^"]+)"/);
+    var fname = m ? m[1] : 'eeprom_' + sid + '.msq';
+    return r.blob().then(function(b) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(b); a.download = fname; a.click();
+    });
+  }).catch(function(e){ alert('Download error: ' + e.message); });
+}
 var AX={fuel_front:['fuel_rpm','fuel_load'],fuel_rear:['fuel_rpm','fuel_load'],spark_front:['spark_rpm','spark_load'],spark_rear:['spark_rpm','spark_load']};
 var SC={fuel_front:0.50,fuel_rear:0.50,spark_front:0.30,spark_rear:0.30,delta:0.08};
 var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},delta:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},mod:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0}};
@@ -130,7 +146,7 @@ function setMergeMode(m){mergeMode=m;var all=document.querySelectorAll('.mc-m');
 
 async function init(){
   try{
-    var r=await fetch('/tuner/sessions');var d=await r.json();
+    var r=await fetch('/tuner/sessions');if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
     if(!d.sessions||!d.sessions.length){st('No hay sesiones con mapas');return}
   var o='<option value="">--</option>';
     for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];var sm=s.samples>=1000?(s.samples/1000).toFixed(1)+'k':s.samples;o+='<option value="'+s.id+'">'+s.id+' (S'+(s.serial||'?')+') '+s.created+' '+s.rides+'r·'+sm+'</option>'}
@@ -143,7 +159,7 @@ async function load(t){
   var id=document.getElementById(t==='base'?'sB':'sM').value;if(!id)return;
   st('Cargando '+id+'...');
   try{
-    var r=await fetch('/tuner/maps?session='+id);var d=await r.json();
+    var r=await fetch('/tuner/maps?session='+id);if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
     if(!d||!d.fuel_front){st('Error: '+(d&&d.error||'sin mapa'));return}
     if(t==='base')mB=d;else mM=d;mMerge=null;
     document.getElementById('mcGo').disabled=!(mB&&mM);
@@ -507,8 +523,7 @@ async function loadMerge(){
   st('Calculando merge '+mergeMode+'...');
   document.getElementById('mcGo').disabled=true;
   try{
-    var r=await fetch('/tuner/merge?a='+a+'&b='+b+'&mode='+mergeMode);
-    var d=await r.json();
+    var r=await fetch('/tuner/merge?a='+a+'&b='+b+'&mode='+mergeMode);if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
     if(d.error){st('Merge: '+d.error);mMerge=null;render();return}
     mMerge=d;
     document.getElementById('mcDl').disabled=false;

@@ -2436,8 +2436,9 @@ function downloadMsq(session) {
   var url = '/eeprom/msq' + (sid ? '?session=' + sid : '');
   fetch(url).then(function(r){
     if (!r.ok) { return r.json().then(function(d){ alert('Error: ' + (d.error || r.status)); }); }
-    return r.blob().then(function(b){
-      _dlFile(URL.createObjectURL(b), 'eeprom_' + (sid || 'current') + '.msq');
-    });
+    var cd = r.headers.get('Content-Disposition') || '';
+    var m  = cd.match(/filename="([^"]+)"/);
+    var fname = m ? m[1] : 'eeprom_' + (sid || 'unknown') + '.msq';
+    return r.blob().then(function(b){ _dlFile(URL.createObjectURL(b), fname); });
   }).catch(function(e){ alert('Download error: ' + e.message); });
 }

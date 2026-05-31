@@ -25,6 +25,24 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.67] -- 2026-05-30
+
+### Fixed
+
+- web/static/app.js: downloadMsq() now reads filename from Content-Disposition header
+  so downloaded file is named eeprom_CHECKSUM.msq instead of eeprom_current.msq
+
+### Added
+
+- web/templates/tuner.html: MSQ download buttons next to Base and Modificada selectors
+  dlMsq('sB') / dlMsq('sM') call /eeprom/msq?session=X for the selected session
+- BACKLOG.md: FASE 4 -- data-driven tune recommendation pipeline documented
+  covers cell coverage thresholds, AE/EGO correlation, launch attribution,
+  recommendation report, MSQ export and VE heatmap overlay
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.66] -- 2026-05-30
 
 ### Added
