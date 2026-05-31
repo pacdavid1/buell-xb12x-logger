@@ -253,3 +253,83 @@ Safety rules (to implement):
 | 2026-05-31 | Pi eeprom.bin vs EcmSpy XPR  | Byte-identical for session 1E447A ✓ |
 | 2026-05-31 | CMD_SET 0x57 write test      | ECU ACK confirmed ✓                 |
 | 2026-05-31 | Write payload format         | No length field — [CMD, off, page, data…] ✓ |
+
+
+---
+
+## 11. EEPROM Safe Write Zones
+
+**Critical finding — 2026-05-31**
+
+Not all EEPROM bytes are safe to overwrite during a tune burn.
+The first region (offsets 0–669) contains live ECU state and factory
+calibration data that must never be modified by the tuning workflow.
+
+### Offset map by function
+
+| Range   | Contents                            | Writable by tuner |
+|---------|-------------------------------------|-------------------|
+| 0–3     | Stored Error Bytes 0–3 (DTCs)       | **NO** — ECU writes these |
+| 4       | Number of Rides since Error Set     | **NO** — ECU counter |
+| 5       | Calibration ID                      | **NO** — factory value |
+| 6–7     | AFV Rear (adaptive fuel value)      | **NO** — ECU learns this |
+| 8       | System Configuration                | **NO** — factory |
+| 9       | ECM Manufacturing Year              | **NO** — factory |
+| 10–11   | ECM Manufacturing Day               | **NO** — factory |
+| 12–13   | ECM Manufacturing Number (serial)   | **NO** — factory |
+| 14–601  | Calibration parameters              | **NO** — factory |
+| 602–669 | Timing + Fuel axis bins             | **NO** — axes are fixed |
+| **670–869**  | **Timing Front + Rear (10×10 each)** | **YES** |
+| **870–1205** | **Fuel Front + Rear (12×13 each)**   | **YES** |
+
+### Safe write range
+
+```python
+BURN_SAFE_START = 670   # Timing Front map begins
+BURN_SAFE_END   = 1205  # Last byte of Fuel Rear map (inclusive)
+```
+
+Any burn implementation must only write bytes within this range.
+
+### How this was discovered
+
+During the write protocol test (2026-05-31), the payload was accidentally
+constructed with an extra length byte:
+
+```python
+# WRONG — includes len(data) as a data byte
+payload = bytes([0x57, offset, page, len(data)]) + bytes(data)
+```
+
+This wrote `0x04` (the length value) to offset 0, which is
+`Stored Error Byte 1`. The ECU accepted the write (ACK) and stored
+the value persistently — confirmed stable across 10 consecutive reads.
+
+Fixed by writing the correct value back:
+
+```python
+# CORRECT — no length byte, data goes directly after page
+payload = bytes([0x57, offset, page]) + bytes(data)
+```
+
+### EcmSpy BurnDiffs — why it avoids this problem
+
+EcmSpy reads the current EEPROM fresh before every burn, then
+only writes bytes that differ between current and desired.
+Since the DTC/config bytes (0–669) in the user's MSQ are sourced
+from the same ECU read, they are never in the diff and never written.
+
+The Pi burn implementation must do the same:
+1. Read current EEPROM
+2. Build desired EEPROM from MSQ (proposed maps only — safe range)
+3. Diff: only flag bytes in range 670–1205 that changed
+4. Write only those bytes
+5. Read back and verify
+
+### Update to Test History
+
+| Date       | Test                              | Result                                      |
+|------------|-----------------------------------|---------------------------------------------|
+| 2026-05-31 | DTC byte accidental write         | byte[0] changed 0x00→0x04, restored OK ✓   |
+| 2026-05-31 | Safe write zone identified        | Only offsets 670–1205 writable by tuner ✓   |
+| 2026-05-31 | Dynamic byte check (10 reads)     | byte[0] stable — not a runtime counter ✓   |

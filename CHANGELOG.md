@@ -25,6 +25,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.70] -- 2026-05-31
+
+### Added
+
+- docs/10_DDFI2_PROTOCOL.md: section 11 -- EEPROM safe write zones
+  offsets 0-669 are DTC/factory/config (never write), 670-1205 are maps (safe)
+  documents how accidental DTC write was discovered and corrected
+  explains why EcmSpy BurnDiffs avoids the problem and how Pi must replicate it
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.69] -- 2026-05-31
 
 ### Added
