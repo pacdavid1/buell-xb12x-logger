@@ -35,18 +35,25 @@ body{background:var(--bg);color:var(--tx);font-family:'Barlow Condensed',sans-se
 .pair-meta{font-family:var(--mn);font-size:9px;color:var(--dm);margin-top:2px}
 .pair-env{font-family:var(--mn);font-size:9px;color:var(--bl);white-space:nowrap;text-align:right}
 .no-pairs{font-family:var(--mn);font-size:10px;color:var(--dm);padding:20px;text-align:center;background:var(--p);border:1px solid var(--bd);border-radius:3px}
+/* Chart section */
 .chart-section{background:var(--p);border:1px solid var(--bd);border-radius:3px;padding:10px 12px;display:none;flex-direction:column;gap:8px}
 .chart-section.visible{display:flex}
-.chart-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.chart-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px}
 .chart-pair-label{font-family:var(--mn);font-size:9px;color:var(--dm)}
-.metric-pills{display:flex;gap:3px}
-.metric-pill{font-family:var(--mn);font-size:9px;background:var(--bg);color:var(--dm);border:1px solid var(--bd);padding:3px 10px;border-radius:2px;cursor:pointer}
-.metric-pill.active{background:var(--ac);color:#fff;border-color:var(--ac)}
-canvas#chart{width:100%;height:200px;display:block}
-.chart-legend{display:flex;gap:14px}
-.leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mn);font-size:9px;color:var(--dm)}
-.leg-line-a{width:18px;height:2px;background:#e8420a;display:inline-block;border-radius:1px}
-.leg-line-b{width:18px;height:0;border-top:2px dashed #3d9eff;display:inline-block}
+/* Metric toggles */
+.metric-toggles{display:flex;gap:4px;flex-wrap:wrap}
+.mtog{display:flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--bd);border-radius:2px;background:var(--bg);font-family:var(--mn);font-size:9px;color:var(--dm);cursor:pointer;transition:all .15s}
+.mtog:hover{border-color:var(--mc,#fff);color:var(--mc,#fff)}
+.mtog.active{border-color:var(--mc,#fff);color:var(--mc,#fff);background:color-mix(in srgb,var(--mc,#fff) 10%,transparent)}
+.mtog-dot{width:7px;height:7px;border-radius:50%;background:var(--mc,#888);flex-shrink:0}
+.mtog:not(.active) .mtog-dot{background:var(--dm)}
+canvas#chart{width:100%;height:240px;display:block}
+/* Session legend */
+.sess-legend{display:flex;gap:14px}
+.sleg{display:flex;align-items:center;gap:5px;font-family:var(--mn);font-size:9px;color:var(--dm)}
+.sleg-a{width:20px;height:2px;background:#ccc;display:inline-block;border-radius:1px}
+.sleg-b{width:20px;height:0;border-top:2px dashed #ccc;display:inline-block}
+/* Conditions */
 .cond-compare{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .cond-box{background:var(--bg);border:1px solid var(--bd);border-radius:2px;padding:6px 10px}
 .cond-box-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
@@ -84,16 +91,12 @@ canvas#chart{width:100%;height:200px;display:block}
   <div class="chart-section" id="chartSection">
     <div class="chart-top">
       <div class="chart-pair-label" id="chartPairLabel"></div>
-      <div class="metric-pills">
-        <button class="metric-pill active" onclick="setMetric('rpm',this)">RPM</button>
-        <button class="metric-pill" onclick="setMetric('spd',this)">Speed km/h</button>
-        <button class="metric-pill" onclick="setMetric('pw',this)">Pulse Width</button>
-      </div>
+      <div class="metric-toggles" id="metricToggles"></div>
     </div>
     <canvas id="chart"></canvas>
-    <div class="chart-legend">
-      <div class="leg-item"><span class="leg-line-a"></span><span id="legA">Session A</span></div>
-      <div class="leg-item"><span class="leg-line-b"></span><span id="legB">Session B</span></div>
+    <div class="sess-legend">
+      <div class="sleg"><span class="sleg-a"></span><span id="legA">Session A</span></div>
+      <div class="sleg"><span class="sleg-b"></span><span id="legB">Session B (dashed)</span></div>
     </div>
     <div class="cond-compare" id="condCompare"></div>
     <div class="delta-row" id="deltaRow"></div>
@@ -101,12 +104,25 @@ canvas#chart{width:100%;height:200px;display:block}
 </div>
 
 <script>
-// AI-AGENT: All comments, variable names, and strings must be written in English.
+// AI-AGENT: All comments and variable names must be written in English.
 var DATA = null;
 var SESSIONS = [];
-var currentMetric = 'rpm';
 var currentPairIdx = -1;
+var currentPairA = null;
+var currentPairB = null;
 
+// Metric definitions: key -> {label, color, field, fmt}
+var METRICS = {
+  rpm: { label:'RPM',   color:'#ff4444', field:'rpm', fmt:function(v){ return Math.round(v); } },
+  spd: { label:'km/h',  color:'#3d9eff', field:'spd', fmt:function(v){ return v.toFixed(0); } },
+  pw:  { label:'PW ms', color:'#f5a623', field:'pw',  fmt:function(v){ return v.toFixed(2); } },
+  tps: { label:'TPS %', color:'#2cdd6e', field:'tps', fmt:function(v){ return v.toFixed(1); } },
+  ae:  { label:'AE %',  color:'#c084fc', field:'ae',  fmt:function(v){ return v.toFixed(1); } },
+};
+// Default active metrics
+var activeMetrics = ['rpm', 'spd', 'pw'];
+
+// ── Init ─────────────────────────────────────────────────────────
 async function init() {
   try {
     var r = await fetch('/tuner/sessions');
@@ -116,15 +132,12 @@ async function init() {
     var sB = document.getElementById('sB');
     SESSIONS.forEach(function(s) {
       var lbl = s.id + (s.version ? ' — ' + s.version.slice(0,20) : '') + (s.created ? ' (' + s.created + ')' : '');
-      [sA, sB].forEach(function(sel) {
+      [sA,sB].forEach(function(sel){
         var o = document.createElement('option');
         o.value = s.id; o.textContent = lbl; sel.appendChild(o);
       });
     });
-    if (SESSIONS.length >= 2) {
-      sB.selectedIndex = 1;
-      document.getElementById('btnCompare').disabled = false;
-    }
+    if (SESSIONS.length >= 2) { sB.selectedIndex = 1; document.getElementById('btnCompare').disabled = false; }
   } catch(e) { st('Failed to load sessions: ' + e, 'err'); }
 }
 
@@ -140,12 +153,11 @@ function st(msg, cls) {
   el.className = 'status' + (cls ? ' ' + cls : '');
 }
 
+// ── Load & render pairs ──────────────────────────────────────────
 async function loadData() {
   var a = document.getElementById('sA').value;
   var b = document.getElementById('sB').value;
   if (!a || !b || a === b) { st('Select two different sessions.', 'err'); return; }
-
-  // Clear cache for this pair so fresh cluster data is used
   st('Computing launch analysis…');
   document.getElementById('pairsLabel').style.display = 'none';
   document.getElementById('pairsList').innerHTML = '';
@@ -157,126 +169,112 @@ async function loadData() {
     DATA = await r.json();
     if (DATA.error) { st('Error: ' + DATA.error, 'err'); return; }
     renderPairs();
-    st((DATA.clusters_a || []).length + ' clusters in A · ' + (DATA.clusters_b || []).length + ' clusters in B', 'ok');
+    st((DATA.clusters_a||[]).length + ' clusters A · ' + (DATA.clusters_b||[]).length + ' clusters B · ' + (DATA.cluster_matches||[]).length + ' matched', 'ok');
   } catch(e) { st('Network error: ' + e, 'err'); }
 }
 
-function gearLabel(g) {
-  return g ? 'G' + g : 'G?';
-}
+function gearLabel(g) { return g ? 'G' + g : 'G?'; }
 
 function renderPairs() {
-  var matches = DATA.cluster_matches || [];
+  var matches = (DATA.cluster_matches || []).slice().sort(function(x,y){ return x[2]-y[2]; });
   var ca = DATA.clusters_a || [];
   var cb = DATA.clusters_b || [];
   var list = document.getElementById('pairsList');
   list.innerHTML = '';
 
-  // Sort matches by distance (best match first)
-  var sorted = matches.slice().sort(function(x,y){ return x[2] - y[2]; });
-
-  if (!sorted.length) {
+  if (!matches.length) {
     var no = document.createElement('div');
     no.className = 'no-pairs';
-    no.textContent = 'No matching launch conditions found between sessions. Try rides with similar gear and throttle patterns.';
+    no.textContent = 'No matching conditions found. Try sessions with similar gear and throttle patterns.';
     list.appendChild(no);
     document.getElementById('pairsLabel').style.display = 'block';
     return;
   }
 
   document.getElementById('pairsLabel').style.display = 'block';
-
-  sorted.forEach(function(m, idx) {
-    var aid = m[0], bid = m[1], dist = m[2];
-    var a = ca.find(function(c){ return c.id === aid; });
-    var b = cb.find(function(c){ return c.id === bid; });
+  matches.forEach(function(m, idx) {
+    var a = ca.find(function(c){ return c.id === m[0]; });
+    var b = cb.find(function(c){ return c.id === m[1]; });
     if (!a || !b) return;
+
+    var dist = m[2];
+    var qCol = dist < 0.3 ? 'var(--gn)' : dist < 0.7 ? 'var(--a2)' : 'var(--dm)';
+    var qMark = dist < 0.3 ? '●' : dist < 0.7 ? '◑' : '○';
+
+    var envParts = [];
+    if (a.pre_clt_mean != null) envParts.push(Math.round(a.pre_clt_mean) + '°C');
+    if (a.pre_alt_mean != null) envParts.push(Math.round(a.pre_alt_mean) + 'm');
 
     var card = document.createElement('div');
     card.className = 'pair-card';
-    card.dataset.idx = idx;
-    card.onclick = function() { selectPair(idx, sorted); };
-
-    var envParts = [];
-    var cltA = a.pre_clt_mean, cltB = b.pre_clt_mean;
-    if (cltA != null) envParts.push(Math.round(cltA) + '°C');
-    var altA = a.pre_alt_mean;
-    if (altA != null) envParts.push(Math.round(altA) + 'm');
-
-    var matchQuality = dist < 0.3 ? '●' : dist < 0.6 ? '◔' : '○';
-    var matchColor   = dist < 0.3 ? 'var(--gn)' : dist < 0.6 ? 'var(--a2)' : 'var(--dm)';
-
+    card.onclick = (function(i, ma, mb){ return function(){ selectPair(i, ma, mb, matches); }; })(idx, a, b);
     card.innerHTML =
       '<div class="pair-gear">' + gearLabel(a.gear) + '</div>' +
       '<div class="pair-info">' +
-        '<div class="pair-cond">' +
-          Math.round(a.mean_rpm) + ' rpm · ' + a.mean_tps.toFixed(1) + '% TPS' +
-          ' · ' + a.mean_spd.toFixed(0) + ' km/h' +
-        '</div>' +
-        '<div class="pair-meta">' +
-          'A: ' + a.count + ' event' + (a.count !== 1 ? 's' : '') +
-          ' · B: ' + b.count + ' event' + (b.count !== 1 ? 's' : '') +
-          ' · <span style="color:' + matchColor + '">' + matchQuality + ' match ' + dist.toFixed(2) + '</span>' +
-        '</div>' +
+        '<div class="pair-cond">' + Math.round(a.mean_rpm) + ' rpm · ' + a.mean_tps.toFixed(1) + '% TPS · ' + a.mean_spd.toFixed(0) + ' km/h</div>' +
+        '<div class="pair-meta">A: ' + a.count + ' · B: ' + b.count + ' · <span style="color:' + qCol + '">' + qMark + ' ' + dist.toFixed(2) + '</span></div>' +
       '</div>' +
       (envParts.length ? '<div class="pair-env">' + envParts.join(' · ') + '</div>' : '');
-
     list.appendChild(card);
   });
 }
 
-function selectPair(idx, matches) {
-  // Highlight selected card
-  document.querySelectorAll('.pair-card').forEach(function(c){ c.classList.remove('active'); });
-  var cards = document.querySelectorAll('.pair-card');
-  if (cards[idx]) cards[idx].classList.add('active');
-
-  var sorted = matches || (DATA.cluster_matches || []).slice().sort(function(x,y){ return x[2]-y[2]; });
-  var m = sorted[idx];
-  if (!m) return;
-
-  var ca = DATA.clusters_a || [];
-  var cb = DATA.clusters_b || [];
-  var a = ca.find(function(c){ return c.id === m[0]; });
-  var b = cb.find(function(c){ return c.id === m[1]; });
-  if (!a || !b) return;
-
+// ── Select pair & draw ───────────────────────────────────────────
+function selectPair(idx, a, b, matches) {
+  document.querySelectorAll('.pair-card').forEach(function(c,i){ c.classList.toggle('active', i===idx); });
   currentPairIdx = idx;
+  currentPairA = a;
+  currentPairB = b;
 
   var saId = document.getElementById('sA').value;
   var sbId = document.getElementById('sB').value;
-  document.getElementById('legA').textContent = saId.slice(0,6);
-  document.getElementById('legB').textContent = sbId.slice(0,6);
+  document.getElementById('legA').textContent = 'Session A — ' + saId.slice(0,6);
+  document.getElementById('legB').textContent = 'Session B — ' + sbId.slice(0,6) + ' (dashed)';
+  document.getElementById('chartPairLabel').textContent = gearLabel(a.gear) + ' · ~' + Math.round(a.mean_rpm) + ' rpm · ~' + a.mean_tps.toFixed(1) + '% TPS';
 
-  document.getElementById('chartPairLabel').textContent =
-    gearLabel(a.gear) + ' · ~' + Math.round(a.mean_rpm) + ' rpm · ~' + a.mean_tps.toFixed(1) + '% TPS';
-
+  buildToggles();
   drawChart(a, b);
   renderConditions(a, b);
 
   document.getElementById('chartSection').classList.add('visible');
-  document.getElementById('chartSection').scrollIntoView({behavior:'smooth',block:'nearest'});
+  document.getElementById('chartSection').scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
-function setMetric(m, btn) {
-  currentMetric = m;
-  document.querySelectorAll('.metric-pill').forEach(function(p){ p.classList.remove('active'); });
-  if (btn) btn.classList.add('active');
-
-  // Redraw with current pair
-  var sorted = (DATA.cluster_matches || []).slice().sort(function(x,y){ return x[2]-y[2]; });
-  var m2 = sorted[currentPairIdx];
-  if (!m2) return;
-  var a = (DATA.clusters_a||[]).find(function(c){ return c.id===m2[0]; });
-  var b = (DATA.clusters_b||[]).find(function(c){ return c.id===m2[1]; });
-  if (a && b) drawChart(a, b);
+// ── Metric toggles ───────────────────────────────────────────────
+function buildToggles() {
+  var container = document.getElementById('metricToggles');
+  container.innerHTML = '';
+  Object.keys(METRICS).forEach(function(k) {
+    var m = METRICS[k];
+    var isActive = activeMetrics.indexOf(k) >= 0;
+    var btn = document.createElement('button');
+    btn.className = 'mtog' + (isActive ? ' active' : '');
+    btn.style.setProperty('--mc', m.color);
+    btn.dataset.key = k;
+    btn.innerHTML = '<span class="mtog-dot"></span>' + m.label;
+    btn.onclick = function(){ toggleMetric(k); };
+    container.appendChild(btn);
+  });
 }
 
+function toggleMetric(k) {
+  var idx = activeMetrics.indexOf(k);
+  if (idx >= 0) {
+    if (activeMetrics.length <= 1) return; // keep at least one
+    activeMetrics.splice(idx, 1);
+  } else {
+    activeMetrics.push(k);
+  }
+  buildToggles();
+  if (currentPairA && currentPairB) drawChart(currentPairA, currentPairB);
+}
+
+// ── Multi-axis distributed chart ─────────────────────────────────
 function drawChart(ca, cb) {
   var canvas = document.getElementById('chart');
   var dpr = window.devicePixelRatio || 1;
-  var W = canvas.offsetWidth || 320;
-  var H = 200;
+  var W = canvas.offsetWidth || 340;
+  var H = 240;
   canvas.width  = W * dpr;
   canvas.height = H * dpr;
   canvas.style.width  = W + 'px';
@@ -285,161 +283,209 @@ function drawChart(ca, cb) {
   ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
-  var LM = 44, RM = 12, TM = 8, BM = 24;
+  var active = activeMetrics.filter(function(k){ return METRICS[k]; });
+  var N = active.length;
+  if (!N) return;
+
+  var TM = 16, BM = 20, LM = 6, RM = 6;
   var PW = W - LM - RM;
   var PH = H - TM - BM;
 
-  var metric = currentMetric;
-  var aS = ca.mean_series || [];
-  var bS = cb.mean_series || [];
-  var aStd = ca.std_series  || [];
-  var bStd = cb.std_series  || [];
+  // Compute Y scale per metric from both sessions
+  var scales = {};
+  active.forEach(function(k) {
+    var field = METRICS[k].field;
+    var vals = [];
+    [ca.mean_series, ca.std_series, cb.mean_series, cb.std_series].forEach(function(arr) {
+      (arr || []).forEach(function(p) {
+        var v = p ? p[field] : null;
+        if (v != null) vals.push(v);
+      });
+    });
+    if (!vals.length) { scales[k] = {min:0, max:1}; return; }
+    var mn = Math.min.apply(null, vals);
+    var mx = Math.max.apply(null, vals);
+    var pad = Math.max((mx - mn) * 0.15, 0.5);
+    scales[k] = {min: mn - pad, max: mx + pad};
+  });
 
-  function getVal(pt) {
-    if (!pt) return null;
-    if (metric === 'rpm') return pt.rpm;
-    if (metric === 'spd') return pt.spd;
-    if (metric === 'pw')  return pt.pw;
-    return null;
-  }
-  function getStd(pt) {
-    if (!pt) return 0;
-    if (metric === 'rpm') return pt.rpm || 0;
-    if (metric === 'spd') return pt.spd || 0;
-    return 0;
-  }
-
-  var allVals = [];
-  aS.forEach(function(p){ var v=getVal(p); if(v!=null) allVals.push(v); });
-  bS.forEach(function(p){ var v=getVal(p); if(v!=null) allVals.push(v); });
-  if (!allVals.length) { ctx.fillStyle='var(--dm)'; ctx.fillText('No data',LM+PW/2-20,H/2); return; }
-
-  var allT = aS.map(function(p){return p.dt;}).concat(bS.map(function(p){return p.dt;}));
-  var minT = Math.min.apply(null, allT), maxT = Math.max.apply(null, allT);
-  var minV = Math.min.apply(null, allVals) * 0.95;
-  var maxV = Math.max.apply(null, allVals) * 1.05;
-  if (maxV === minV) { minV -= 1; maxV += 1; }
+  // Time range
+  var allT = [];
+  [ca.mean_series, cb.mean_series].forEach(function(s){
+    (s||[]).forEach(function(p){ if(p && p.dt != null) allT.push(p.dt); });
+  });
+  if (!allT.length) return;
+  var minT = Math.min.apply(null, allT);
+  var maxT = Math.max.apply(null, allT);
+  if (maxT === minT) { maxT += 1; }
 
   function tx(t) { return LM + (t - minT) / (maxT - minT) * PW; }
-  function ty(v) { return TM + PH - (v - minV) / (maxV - minV) * PH; }
-
-  // Background: pre-window shading
-  var x0 = tx(minT), x1 = tx(0);
-  ctx.fillStyle = 'rgba(255,255,255,0.025)';
-  ctx.fillRect(x0, TM, x1 - x0, PH);
-
-  // Grid lines
-  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-  ctx.lineWidth = 1;
-  var nLines = 4;
-  for (var i = 0; i <= nLines; i++) {
-    var yv = minV + (maxV - minV) * i / nLines;
-    var yp = ty(yv);
-    ctx.beginPath(); ctx.moveTo(LM, yp); ctx.lineTo(LM + PW, yp); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    ctx.font = '8px monospace';
-    ctx.textAlign = 'right';
-    var lbl = metric === 'pw' ? yv.toFixed(2) : Math.round(yv).toString();
-    ctx.fillText(lbl, LM - 3, yp + 3);
+  function ty(k, v) {
+    var s = scales[k];
+    return TM + PH - (v - s.min) / (s.max - s.min) * PH;
   }
 
-  // Zero line (tip-in moment)
-  var x0line = tx(0);
+  // Pre-window shading (dt < 0)
+  ctx.fillStyle = 'rgba(255,255,255,0.02)';
+  ctx.fillRect(tx(minT), TM, tx(0) - tx(minT), PH);
+
+  // Horizontal grid (faint)
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (var g = 0; g <= 4; g++) {
+    var yg = TM + PH * g / 4;
+    ctx.beginPath(); ctx.moveTo(LM, yg); ctx.lineTo(LM + PW, yg); ctx.stroke();
+  }
+
+  // X axis time ticks
+  ctx.font = '7px monospace'; ctx.textAlign = 'center';
+  [-3,-2,-1,0,1,2,3,4,5].forEach(function(t) {
+    if (t < minT - 0.1 || t > maxT + 0.1) return;
+    var x = tx(t);
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x, TM); ctx.lineTo(x, TM + PH); ctx.stroke();
+    ctx.fillStyle = t === 0 ? 'rgba(232,66,10,0.7)' : 'rgba(255,255,255,0.25)';
+    ctx.fillText(t + 's', x, H - 5);
+  });
+
+  // Tip-in marker
+  var x0 = tx(0);
   ctx.strokeStyle = 'rgba(232,66,10,0.4)';
   ctx.setLineDash([3,3]); ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(x0line, TM); ctx.lineTo(x0line, TM + PH); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x0, TM); ctx.lineTo(x0, TM + PH); ctx.stroke();
   ctx.setLineDash([]);
 
-  // X axis labels
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.font = '8px monospace'; ctx.textAlign = 'center';
-  [-2, 0, 2, 4].forEach(function(t) {
-    if (t >= minT && t <= maxT) {
-      ctx.fillText(t + 's', tx(t), H - 6);
+  // ── Distributed Y axes ────────────────────────────────────────
+  // Each metric gets section width PW/N; axis drawn at left edge of section
+  active.forEach(function(k, i) {
+    var m = METRICS[k];
+    var s = scales[k];
+    var axX = LM + (i / N) * PW;        // left edge of this section
+    var sW  = PW / N;                    // section width
+
+    // Subtle axis line
+    ctx.strokeStyle = m.color;
+    ctx.globalAlpha = 0.18;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(axX, TM); ctx.lineTo(axX, TM + PH); ctx.stroke();
+    ctx.globalAlpha = 1.0;
+
+    // Metric label at top of axis
+    ctx.fillStyle = m.color;
+    ctx.globalAlpha = 0.85;
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(m.label, axX + 2, TM + 8);
+    ctx.globalAlpha = 1.0;
+
+    // Tick labels (4 ticks, avoid crowding by checking section width)
+    var nTicks = sW < 55 ? 3 : 4;
+    for (var t = 0; t <= nTicks; t++) {
+      var v = s.min + (s.max - s.min) * t / nTicks;
+      var yp = TM + PH - (v - s.min) / (s.max - s.min) * PH;
+
+      // Tick mark on axis
+      ctx.strokeStyle = m.color;
+      ctx.globalAlpha = 0.45;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(axX - 3, yp); ctx.lineTo(axX + 3, yp); ctx.stroke();
+      ctx.globalAlpha = 1.0;
+
+      // Value label (right of axis line, within section)
+      ctx.fillStyle = m.color;
+      ctx.globalAlpha = 0.65;
+      ctx.font = '6px monospace';
+      ctx.textAlign = 'left';
+      ctx.fillText(m.fmt(v), axX + 4, yp + 2);
+      ctx.globalAlpha = 1.0;
     }
   });
 
-  function drawCurveWithBand(series, stdSeries, color, dashed) {
-    if (!series.length) return;
-    var pts = series.map(function(p, i) {
-      return { t: p.dt, v: getVal(p), s: getStd(stdSeries[i] || {}) };
-    }).filter(function(p){ return p.v != null; });
+  // ── Draw curves ───────────────────────────────────────────────
+  function drawSeriesCurve(series, stdSeries, metricKey, dashed) {
+    var field = METRICS[metricKey].field;
+    var color = METRICS[metricKey].color;
+    var pts = [];
+    (series || []).forEach(function(p, i) {
+      if (!p || p[field] == null) return;
+      var stdPt = stdSeries && stdSeries[i] ? stdSeries[i] : {};
+      pts.push({ t: p.dt, v: p[field], s: stdPt[field] || 0 });
+    });
     if (!pts.length) return;
 
     // Std band
+    ctx.globalAlpha = 0.10;
+    ctx.fillStyle = color;
     ctx.beginPath();
     pts.forEach(function(p, i) {
-      var x = tx(p.t), yHi = ty(p.v + p.s);
-      if (i === 0) ctx.moveTo(x, yHi); else ctx.lineTo(x, yHi);
+      var x = tx(p.t), y = ty(metricKey, p.v + p.s);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     for (var i = pts.length - 1; i >= 0; i--) {
-      ctx.lineTo(tx(pts[i].t), ty(pts[i].v - pts[i].s));
+      ctx.lineTo(tx(pts[i].t), ty(metricKey, pts[i].v - pts[i].s));
     }
-    ctx.closePath();
-    ctx.fillStyle = color.replace(')', ',0.12)').replace('rgb', 'rgba').replace('#', 'rgba(').replace(/rgba\(([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2}),/, function(m,r,g,b){ return 'rgba('+parseInt(r,16)+','+parseInt(g,16)+','+parseInt(b,16)+','; });
-    // simpler: just use semi-transparent
-    ctx.globalAlpha = 0.15;
-    ctx.fillStyle = color;
-    ctx.fill();
+    ctx.closePath(); ctx.fill();
     ctx.globalAlpha = 1.0;
 
     // Mean line
-    ctx.beginPath();
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    if (dashed) ctx.setLineDash([5, 3]);
+    ctx.lineWidth = dashed ? 1.5 : 2.0;
+    ctx.globalAlpha = dashed ? 0.75 : 1.0;
+    if (dashed) ctx.setLineDash([5,3]);
+    ctx.beginPath();
     pts.forEach(function(p, i) {
-      var x = tx(p.t), y = ty(p.v);
+      var x = tx(p.t), y = ty(metricKey, p.v);
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.stroke();
     ctx.setLineDash([]);
+    ctx.globalAlpha = 1.0;
   }
 
-  drawCurveWithBand(aS, aStd, '#e8420a', false);
-  drawCurveWithBand(bS, bStd, '#3d9eff', true);
+  active.forEach(function(k) {
+    drawSeriesCurve(ca.mean_series, ca.std_series, k, false); // A: solid
+    drawSeriesCurve(cb.mean_series, cb.std_series, k, true);  // B: dashed
+  });
 }
 
+// ── Conditions comparison ────────────────────────────────────────
 function renderConditions(ca, cb) {
   var saId = document.getElementById('sA').value.slice(0,6);
   var sbId = document.getElementById('sB').value.slice(0,6);
 
-  function condBox(cluster, label) {
+  function condBox(c, label) {
     var rows = [
-      ['RPM',   Math.round(cluster.mean_rpm) + ' ± ' + Math.round(cluster.rpm_std || 0)],
-      ['TPS',   cluster.mean_tps.toFixed(1) + '% ± ' + (cluster.tps_std||0).toFixed(1)],
-      ['Speed', cluster.mean_spd.toFixed(0) + ' km/h'],
-      ['Events', cluster.count],
+      ['Gear',    gearLabel(c.gear)],
+      ['RPM',     Math.round(c.mean_rpm) + ' ±' + Math.round(c.rpm_std||0)],
+      ['TPS',     c.mean_tps.toFixed(1) + '% ±' + (c.tps_std||0).toFixed(1)],
+      ['Speed',   c.mean_spd.toFixed(0) + ' km/h'],
+      ['Events',  c.count],
     ];
-    if (cluster.pre_clt_mean != null) rows.push(['CLT', Math.round(cluster.pre_clt_mean) + '°C']);
-    if (cluster.pre_alt_mean != null) rows.push(['Alt', Math.round(cluster.pre_alt_mean) + ' m']);
-    if (cluster.peak_pw_mean != null) rows.push(['Peak PW', cluster.peak_pw_mean.toFixed(3)]);
-    if (cluster.rpm_gain_mean != null) rows.push(['+RPM', Math.round(cluster.rpm_gain_mean)]);
-    if (cluster.spd_gain_mean != null) rows.push(['+Speed', cluster.spd_gain_mean.toFixed(1) + ' km/h']);
-
-    return '<div class="cond-box">' +
-      '<div class="cond-box-label">' + label + '</div>' +
+    if (c.pre_clt_mean  != null) rows.push(['CLT',  Math.round(c.pre_clt_mean)  + '°C']);
+    if (c.pre_alt_mean  != null) rows.push(['Alt',  Math.round(c.pre_alt_mean)  + ' m']);
+    if (c.peak_pw_mean  != null) rows.push(['PW pk', c.peak_pw_mean.toFixed(3) + ' ms']);
+    if (c.rpm_gain_mean != null) rows.push(['+RPM', '+' + Math.round(c.rpm_gain_mean)]);
+    if (c.spd_gain_mean != null) rows.push(['+Spd', '+' + c.spd_gain_mean.toFixed(1) + ' km/h']);
+    return '<div class="cond-box"><div class="cond-box-label">' + label + '</div>' +
       rows.map(function(r){ return '<div class="cond-row"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>'; }).join('') +
       '</div>';
   }
 
-  document.getElementById('condCompare').innerHTML = condBox(ca, 'Session A — ' + saId) + condBox(cb, 'Session B — ' + sbId);
+  document.getElementById('condCompare').innerHTML = condBox(ca, 'A — ' + saId) + condBox(cb, 'B — ' + sbId);
 
-  // Delta summary
-  var deltas = [];
-  if (ca.rpm_gain_mean != null && cb.rpm_gain_mean != null) {
-    var d = cb.rpm_gain_mean - ca.rpm_gain_mean;
-    deltas.push('ΔRPM gain: <span class="' + (d>0?'pos':'neg') + '">' + (d>0?'+':'') + Math.round(d) + ' rpm</span>');
+  // Delta row (B minus A)
+  var d = [];
+  function delta(label, va, vb, fmt, higherIsBetter) {
+    if (va == null || vb == null) return;
+    var diff = vb - va;
+    var cls = (diff > 0) === higherIsBetter ? 'pos' : 'neg';
+    d.push(label + ': <span class="' + cls + '">' + (diff > 0 ? '+' : '') + fmt(diff) + '</span>');
   }
-  if (ca.spd_gain_mean != null && cb.spd_gain_mean != null) {
-    var d2 = cb.spd_gain_mean - ca.spd_gain_mean;
-    deltas.push('ΔSpeed gain: <span class="' + (d2>0?'pos':'neg') + '">' + (d2>0?'+':'') + d2.toFixed(1) + ' km/h</span>');
-  }
-  if (ca.peak_pw_mean != null && cb.peak_pw_mean != null) {
-    var d3 = cb.peak_pw_mean - ca.peak_pw_mean;
-    deltas.push('ΔPeak PW: <span class="' + (d3>0?'pos':'neg') + '">' + (d3>0?'+':'') + d3.toFixed(3) + ' ms</span>');
-  }
-  document.getElementById('deltaRow').innerHTML = deltas.length ? 'B vs A: ' + deltas.join(' · ') : '';
+  delta('ΔRPM gain',  ca.rpm_gain_mean,  cb.rpm_gain_mean,  function(v){ return Math.round(v); }, true);
+  delta('ΔSpd gain',  ca.spd_gain_mean,  cb.spd_gain_mean,  function(v){ return v.toFixed(1)+'km/h'; }, true);
+  delta('ΔPeak PW',   ca.peak_pw_mean,   cb.peak_pw_mean,   function(v){ return v.toFixed(3)+'ms'; }, true);
+  document.getElementById('deltaRow').innerHTML = d.length ? 'B vs A — ' + d.join(' · ') : '';
 }
 
 init();

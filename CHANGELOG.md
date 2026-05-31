@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.60] -- 2026-05-30
+
+### Changed
+
+- web/templates/sessions_launch.html: chart redesigned with distributed multi-axis system. All 5 metrics (RPM, km/h, PW ms, TPS%, AE%) shown simultaneously in one chart. Each active metric gets its own Y axis positioned at equal intervals horizontally within the plot area -- axis line is subtle (18% opacity), ticks and labels in the metric color. Toggle buttons to enable/disable each metric independently (minimum 1 active). Session A = solid line, Session B = dashed line, same color per metric. Std band shown as fill.
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
+
 ## [v2.6.59] -- 2026-05-30
 
 ### Changed
