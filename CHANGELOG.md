@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.68] -- 2026-05-30
+
+### Fixed
+
+- web/server.py _handle_eeprom_msq(): fallback to eeprom.bin when eeprom_decoded.json
+  is absent -- only 1 of 22 sessions had eeprom_decoded.json, all others failed with 500
+  now decodes eeprom.bin on-the-fly via decode_eeprom_maps() for any session
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.67] -- 2026-05-30
 
 ### Fixed

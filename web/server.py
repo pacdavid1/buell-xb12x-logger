@@ -552,14 +552,23 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 self._json({'error': 'no eeprom_decoded.json found in any session'}); return
             session = decoded_files[-1].parent.name
         decoded_path = buell_dir / 'sessions' / session / 'eeprom_decoded.json'
-        if not decoded_path.exists():
-            self._json({'error': 'eeprom_decoded.json not found for ' + session}); return
-        try:
-            with open(decoded_path) as f:
-                eeprom = json.load(f)
-        except Exception as e:
-            self._json({'error': 'could not read eeprom_decoded.json: ' + str(e)}); return
-        msq_xml = _eeprom_to_msq(eeprom, session)
+        bin_path     = buell_dir / 'sessions' / session / 'eeprom.bin'
+        eeprom_maps  = None
+        if decoded_path.exists():
+            try:
+                with open(decoded_path) as f:
+                    eeprom_maps = json.load(f).get('maps', {})
+            except Exception as e:
+                self._json({'error': 'could not read eeprom_decoded.json: ' + str(e)}); return
+        elif bin_path.exists():
+            try:
+                from ecu.eeprom import decode_eeprom_maps
+                eeprom_maps = decode_eeprom_maps(bin_path.read_bytes())
+            except Exception as e:
+                self._json({'error': 'could not decode eeprom.bin: ' + str(e)}); return
+        else:
+            self._json({'error': 'no eeprom data found for session ' + session}); return
+        msq_xml = _eeprom_to_msq({'maps': eeprom_maps}, session)
         data    = msq_xml.encode('utf-8')
         fname   = 'eeprom_' + session + '.msq'
         self.send_response(200)
