@@ -92,6 +92,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/rides': self._handle_rides,
             '/suggested_msq': self._handle_suggested_msq,
             '/eeprom/download': self._handle_eeprom_download,
+            '/eeprom/msq':      self._handle_eeprom_msq,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
@@ -528,6 +529,42 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Type', 'application/octet-stream')
         self.send_header('Content-Disposition',
             'attachment; filename="eeprom_' + session + '.bin"')
+        self.send_header('Content-Length', str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _handle_eeprom_msq(self, path=None):
+        """Generate MSQ from eeprom_decoded.json for a session (no tuning modifications)."""
+        import urllib.parse, re
+        params  = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        session = params.get('session', [None])[0]
+        if session and not re.match(r'^[A-Fa-f0-9]+$', session):
+            self._json({'error': 'invalid session id'}); return
+        buell_dir = self.server_instance.buell_dir
+        if not session:
+            cs = getattr(self.server_instance.session, 'current_checksum', None)
+            session = cs
+        if not session:
+            decoded_files = sorted(
+                (buell_dir / 'sessions').glob('*/eeprom_decoded.json'),
+                key=lambda p: p.stat().st_mtime)
+            if not decoded_files:
+                self._json({'error': 'no eeprom_decoded.json found in any session'}); return
+            session = decoded_files[-1].parent.name
+        decoded_path = buell_dir / 'sessions' / session / 'eeprom_decoded.json'
+        if not decoded_path.exists():
+            self._json({'error': 'eeprom_decoded.json not found for ' + session}); return
+        try:
+            with open(decoded_path) as f:
+                eeprom = json.load(f)
+        except Exception as e:
+            self._json({'error': 'could not read eeprom_decoded.json: ' + str(e)}); return
+        msq_xml = _eeprom_to_msq(eeprom, session)
+        data    = msq_xml.encode('utf-8')
+        fname   = 'eeprom_' + session + '.msq'
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/xml')
+        self.send_header('Content-Disposition', 'attachment; filename="' + fname + '"')
         self.send_header('Content-Length', str(len(data)))
         self.end_headers()
         self.wfile.write(data)
@@ -1149,6 +1186,72 @@ def _fmtk(n):
     return str(n)
 CACHE_VERSION = 4  # bump when detect_launches or cluster_launches schema changes
 _cache_lock = threading.Lock()
+
+def _eeprom_to_msq(eeprom, session=''):
+    """Serialize eeprom_decoded.json dict to MSQ XML (EcmSpy format, no modifications)."""
+    from datetime import datetime, timezone
+    maps       = eeprom.get('maps', {})
+    axes       = maps.get('axes', {})
+    fuel_front = maps.get('fuel_front', [])
+    fuel_rear  = maps.get('fuel_rear',  [])
+    spark_front= maps.get('spark_front',[])
+    spark_rear = maps.get('spark_rear', [])
+    fuel_load  = axes.get('fuel_load', [])
+    fuel_rpm   = axes.get('fuel_rpm',  [])
+    sl         = axes.get('spark_load',[])
+    sr         = axes.get('spark_rpm', [])
+
+    def ax1b(v): return '\n'.join('      '+str(x) for x in v)
+    def ax2b(v): return '\n'.join('    '+str(x)   for x in v)
+    def mapfuel(t):
+        return '\n'.join('      '+' '.join(str(int(c)) if c is not None else '0' for c in row) for row in t)
+    def mapspark(t):
+        return '\n'.join('      '+' '.join('{:.2f}'.format(c) if c is not None else '0.00' for c in row) for row in t)
+
+    now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S')
+    nfl = len(fuel_load); nfr = len(fuel_rpm)
+    nsl = len(sl);        nsr = len(sr)
+    nff_c = len(fuel_front[0]) if fuel_front else 0
+    nfr_c = len(fuel_rear[0])  if fuel_rear  else 0
+    nsf_c = len(spark_front[0])if spark_front else 0
+    nsr_c = len(spark_rear[0]) if spark_rear  else 0
+
+    lines = [
+        '<?xml version="1.0"?>',
+        '<msq xmlns="http://www.ecmspy.com/">',
+        '  <bibliography author="BuellLogger/'+now+' session='+session+'" writeDate="'+now+'" />',
+        '  <versionInfo fileFormat="4" nPages="1" signature="BUEIB" />',
+        '  <page number="0">',
+        '    <constant name="z_factor">4.00</constant>',
+        '    <constant name="tpsBins1" rows="'+str(nfl)+'" units="TPS">',
+        ax1b(fuel_load),'</constant>',
+        '    <constant name="rpmBins1" rows="'+str(nfr)+'" units="RPM">',
+        ax2b(fuel_rpm),'</constant>',
+        '    <constant name="veBins1" rows="'+str(len(fuel_front))+'" cols="'+str(nff_c)+'" units="fuel">',
+        mapfuel(fuel_front),'','</constant>',
+        '    <constant name="tpsBins2" rows="'+str(nfl)+'" units="TPS">',
+        ax1b(fuel_load),'</constant>',
+        '    <constant name="rpmBins2" rows="'+str(nfr)+'" units="RPM">',
+        ax2b(fuel_rpm),'</constant>',
+        '    <constant name="veBins2" rows="'+str(len(fuel_rear))+'" cols="'+str(nfr_c)+'" units="fuel">',
+        mapfuel(fuel_rear),'','</constant>',
+        '    <constant name="tpsBins3" rows="'+str(nsl)+'" units="TPS">',
+        ax1b(sl),'</constant>',
+        '    <constant name="rpmBins3" rows="'+str(nsr)+'" units="RPM">',
+        ax2b(sr),'</constant>',
+        '    <constant name="advTable1" rows="'+str(len(spark_front))+'" cols="'+str(nsf_c)+'" units="deg BTDC">',
+        mapspark(spark_front),'','</constant>',
+        '    <constant name="tpsBins4" rows="'+str(nsl)+'" units="TPS">',
+        ax1b(sl),'</constant>',
+        '    <constant name="rpmBins4" rows="'+str(nsr)+'" units="RPM">',
+        ax2b(sr),'</constant>',
+        '    <constant name="advTable2" rows="'+str(len(spark_rear))+'" cols="'+str(nsr_c)+'" units="deg BTDC">',
+        mapspark(spark_rear),'','</constant>',
+        '  </page>',
+        '</msq>',
+    ]
+    return '\n'.join(lines)
+
 
 def _compare_sessions_cached(buell_dir, sa, sb):
     import json as _json

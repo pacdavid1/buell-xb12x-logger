@@ -1,5 +1,9 @@
 
 
+function $id(id) { const e = document.getElementById(id); if(!e) console.warn('Missing element:', id); return e; }
+function escapeHtml(s) { if(typeof s !== 'string') return s; return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+
 function getGradientColor(speed) {
   const min = 0, max = 200;
   const ratio = Math.min(Math.max(speed, min), max) / max;
@@ -51,7 +55,7 @@ let _cobertMode = 'seconds';
 let _cobertData = null;
 
 function buildCobertGrid() {
-  const t = document.getElementById('cobertGrid');
+  const t = $id('cobertGrid');
   if (!t) return;
   let h = '<thead><tr>';
   for (const r of RPM_BINS) h += '<th>'+(r===0?'0':r>=1000?(r/1000)+'k':r)+'</th>';
@@ -97,7 +101,7 @@ function setCobertMode(mode) {
 }
 
 function renderCobertLegend() {
-  const el = document.getElementById('cobert-legend');
+  const el = $id('cobert-legend');
   if(!el) return;
   const m = _cobertMode;
   if (m === 'seconds') {
@@ -123,7 +127,7 @@ function renderCobertLegend() {
       +'<div class="leg"><div class="leg-dot" style="background:rgba(80,80,255,.9)"></div>>110</div>';
   } else {
     const tgt = (_cobertData&&_cobertData.targets&&_cobertData.targets[m]) || '?';
-    el.innerHTML = '<div class="leg" style="color:var(--dim)">'+m+' target: '+tgt+'s &middot; conf&ge;80% para converger</div>';
+    el.innerHTML = '<div class="leg" style="color:var(--dim)">'+escapeHtml(m)+' target: '+escapeHtml(tgt)+'s &middot; conf&ge;80% para converger</div>';
   }
 }
 function renderCobertGrid(d) {
@@ -175,7 +179,7 @@ function renderCobertGrid(d) {
       sv.textContent = txt;
     }
   }
-  const st = document.getElementById('cobert-status');
+  const st = $id('cobert-status');
   if (st) st.textContent = populated + ' / ' + (RPM_BINS.length * LOAD_BINS.length) + ' celdas con datos';
 }
 
@@ -189,51 +193,51 @@ function updateHeader(d) {
   const lv = d.live || {};
   // Row 2: serial stats
   const ss = d.serial_stats || {};
-  const ttlEl = document.getElementById('hTTL');
-  const bpsEl = document.getElementById('hBPS');
+  const ttlEl = $id('hTTL');
+  const bpsEl = $id('hBPS');
   if(ttlEl){
     const pct = ss.pct || 0;
     ttlEl.textContent = pct ? pct.toFixed(0)+'%' : '--';
     ttlEl.className = 'hs-val ' + (pct > 97 || pct < 50 ? 'ac' : pct < 85 ? 'yw' : 'gn');
   }
   if(bpsEl) bpsEl.textContent = ss.bps ? ss.bps+'B/s' : '--';
-  const bufEl = document.getElementById('hBuf');
+  const bufEl = $id('hBuf');
   if(bufEl){
     const bp = ss.buf_pct || 0;
     bufEl.textContent = bp.toFixed(0)+'%';
     bufEl.className = 'hs-val ' + (bp > 50 ? 'ac' : bp > 20 ? 'yw' : 'gn');
   }
-  const memEl = document.getElementById('hMem');
+  const memEl = $id('hMem');
   if(memEl){
     const mp = ss.mem_pct || 0;
     memEl.textContent = mp.toFixed(0)+'%';
     memEl.className = 'hs-val ' + (mp > 80 ? 'ac' : mp > 60 ? 'yw' : 'gn');
   }
-  const cpuEl = document.getElementById('hCpu');
+  const cpuEl = $id('hCpu');
   if(cpuEl){
     const cp = ss.cpu_pct || 0;
     cpuEl.textContent = cp.toFixed(0)+'%';
     cpuEl.className = 'hs-val ' + (cp > 80 ? 'ac' : cp > 60 ? 'yw' : 'gn');
   }
-  const tempEl = document.getElementById('hTemp');
+  const tempEl = $id('hTemp');
   if(tempEl){
     const tp = ss.cpu_temp || 0;
     tempEl.textContent = tp.toFixed(1)+'°';
     tempEl.className = 'hs-val ' + (tp > 75 ? 'ac' : tp > 60 ? 'yw' : 'gn');
   }
-  const baroEl = document.getElementById('hBaro');
+  const baroEl = $id('hBaro');
   if(baroEl){
     const bp = ss.baro_hPa || 0;
     baroEl.textContent = bp ? bp.toFixed(0) : '--';
     baroEl.className = 'hs-val gn';
   }
-  const baroTempEl = document.getElementById('hBaroTemp');
+  const baroTempEl = $id('hBaroTemp');
   if(baroTempEl){
     const bt = ss.baro_temp_c || 0;
     baroTempEl.textContent = bt ? bt.toFixed(1) : '--';
     baroTempEl.className = 'hs-val gn';
   }
-  const satEl = document.getElementById('hSat');
+  const satEl = $id('hSat');
   if(satEl){
     const sat = lv.gps_satellites != null ? lv.gps_satellites : 0;
     const fix = lv.gps_valid === true || lv.gps_valid === 'True';
@@ -241,21 +245,21 @@ function updateHeader(d) {
     const _sc = 'hs-val ' + (fix ? 'gn' : sat > 0 ? 'yw' : 'ac');
     if(satEl.className !== _sc) satEl.className = _sc;
   }
-  const serialEl = document.getElementById('hSerial');
+  const serialEl = $id('hSerial');
   if(serialEl) serialEl.textContent = d.bike_serial ? '#'+d.bike_serial : '--';
-  { const _e=document.getElementById('hEGO'); const _v=lv.EGO_Corr!=null?lv.EGO_Corr.toFixed(0)+'%':'--'; if(_e.textContent!==_v)_e.textContent=_v; }
-  { const _m=document.getElementById('hMAT'); const _v=lv.MAT!=null?lv.MAT.toFixed(0)+'`':'--'; if(_m.textContent!==_v)_m.textContent=_v; }
-  { const _b=document.getElementById('hBatt'); const _v=lv.Batt_V!=null?lv.Batt_V.toFixed(1)+'V':'--'; if(_b.textContent!==_v)_b.textContent=_v; }
-  const gearEl = document.getElementById('hGear');
+  { const _e=$id('hEGO'); const _v=lv.EGO_Corr!=null?lv.EGO_Corr.toFixed(0)+'%':'--'; if(_e.textContent!==_v)_e.textContent=_v; }
+  { const _m=$id('hMAT'); const _v=lv.MAT!=null?lv.MAT.toFixed(0)+'`':'--'; if(_m.textContent!==_v)_m.textContent=_v; }
+  { const _b=$id('hBatt'); const _v=lv.Batt_V!=null?lv.Batt_V.toFixed(1)+'V':'--'; if(_b.textContent!==_v)_b.textContent=_v; }
+  const gearEl = $id('hGear');
   if(gearEl){
     const g = lv.Gear;
     gearEl.textContent = (g!=null && g>0) ? g+'ª' : (g===0 ? 'N' : '--');
   }
   // Ride: show number + timer when active
-  const rideEl = document.getElementById('hRide');
+  const rideEl = $id('hRide');
   if(rideEl) rideEl.textContent = d.ride_active ? fmtTime(d.elapsed_s||0) : (d.ride_num ? 'R'+String(d.ride_num).padStart(3,'0') : '--');
 
-  const pill = document.getElementById('hPill');
+  const pill = $id('hPill');
   if(d.ride_active)     { pill.textContent=''; pill.className='pill-dot on'; }
   else if(d.waiting)    { pill.textContent=''; pill.className='pill-dot yw'; }
   else                  { pill.textContent=''; pill.className='pill-dot off'; }
@@ -263,12 +267,12 @@ function updateHeader(d) {
 
 
   // EGO color
-  const egoEl = document.getElementById('hEGO');
+  const egoEl = $id('hEGO');
   if(lv.EGO_Corr != null)
     egoEl.className = 'hs-val '+(lv.EGO_Corr>106?'ac':lv.EGO_Corr<94?'bl':'gn');
 
   // Big CHT
-  const bcht = document.getElementById('bigCHT');
+  const bcht = $id('bigCHT');
   if(lv.CLT != null){
     bcht.textContent = lv.CLT.toFixed(0);
     bcht.className = 'big-num';
@@ -276,18 +280,18 @@ function updateHeader(d) {
   } else { bcht.textContent='--'; bcht.className='big-num ac'; }
 
   // Big KPH
-  const bkph = document.getElementById('bigKPH');
+  const bkph = $id('bigKPH');
   if(bkph) bkph.textContent = lv.VS_KPH != null ? lv.VS_KPH.toFixed(0) : '--';
 
   // Big RPM
-  const brpm = document.getElementById('bigRPM');
+  const brpm = $id('bigRPM');
   if(brpm) brpm.textContent = lv.RPM != null ? Math.round(lv.RPM) : '--';
 
   // Big TPS — show % (calibrated in Python) and degrees
   const tpsPct = lv.TPS_pct;
   const tpsDeg = lv.TPD;
-  const bigTpsEl = document.getElementById('bigTPS');
-  const bigTpsPctEl = document.getElementById('bigTPSPct');
+  const bigTpsEl = $id('bigTPS');
+  const bigTpsPctEl = $id('bigTPSPct');
   if(tpsPct != null){
     bigTpsEl.textContent = tpsPct.toFixed(0);
     bigTpsEl.style.color = tpsPct>80?'var(--accent)':tpsPct>50?'var(--accent2)':'var(--blue)';
@@ -298,15 +302,15 @@ function updateHeader(d) {
   }
 
   // Config
-  document.getElementById('cfgRide').textContent =
+  $id('cfgRide').textContent =
     d.ride_active ? `Ride R${d.ride_num} activo -- ${fmtTime(d.elapsed_s||0)}` : 'Standby -- esperando motor';
   if(d.ve_loaded)
-    document.getElementById('cfgVeStatus').textContent = 'Mapa VE: cargado del EEPROM';
+    $id('cfgVeStatus').textContent = 'Mapa VE: cargado del EEPROM';
 }
 
 // ── COMPACT OBJECTIVES ───────────────────────────────────────────
 function renderObjectives(objs) {
-  const el = document.getElementById('objList');
+  const el = $id('objList');
   if(!objs?.length){ el.innerHTML=''; return; }
   el.innerHTML = objs.map(o => {
     const pct = Math.min(100, Math.round(o.pct));
@@ -323,7 +327,7 @@ function renderObjectives(objs) {
 
 // ── INDICATORS ────────────────────────────────────────────────────
 function renderIndicators(ind) {
-  const el = document.getElementById('indicators');
+  const el = $id('indicators');
   if(!ind || !Object.keys(ind).length){ el.innerHTML=''; return; }
   let html='';
   if(ind.max_cht){
@@ -368,21 +372,21 @@ async function fetchLive() {
     renderObjectives(d.objectives);
     renderIndicators(d.indicators);
     if(d.network_mode) updateNetStatus(d.network_mode, d.ip);
-    if(d.logger_version){ const el=document.getElementById('hdrVersion'); if(el) el.textContent=d.logger_version; }
+    if(d.logger_version){ const el=$id('hdrVersion'); if(el) el.textContent=d.logger_version; }
     // ECU disconnected banner
-    const banner = document.getElementById('ecuLostBanner');
+    const banner = $id('ecuLostBanner');
     if(banner){
       const lost = !d.ecu_connected && d.ride_active;
       banner.style.display = lost ? 'block' : 'none';
       banner.style.pointerEvents = lost ? 'auto' : 'none';
-      if(lost) document.getElementById('ecuLostSecs').textContent = Math.round(d.ecu_lost_s||0);
+      if(lost) $id('ecuLostSecs').textContent = Math.round(d.ecu_lost_s||0);
     }
     // Active ride banner in Sessions
-    const liveBanner = document.getElementById('liveRideBanner');
+    const liveBanner = $id('liveRideBanner');
     if(liveBanner){
       liveBanner.style.display = d.ride_active ? 'block' : 'none';
       if(d.ride_active){
-        const el = document.getElementById('liveRideNum');
+        const el = $id('liveRideNum');
         if(el) el.textContent = 'R'+String(d.ride_num||0).padStart(3,'0') + ' · ' + fmtTime(d.elapsed_s||0);
       }
     }
@@ -488,11 +492,11 @@ function captureLaunch(sample, dtps) {
 function updateLaunchUI(state, data) {
   var cardCHT = document.querySelector('.big-card.hot');
   var cardTPSEl = document.querySelector('.big-card.tps');
-  var cardRPM = document.getElementById('cardRPM');
-  var gearHs = document.getElementById('hGear');
+  var cardRPM = $id('cardRPM');
+  var gearHs = $id('hGear');
   var gearParent = gearHs ? gearHs.closest('.hs') : null;
-  var bar = document.getElementById('launchBar');
-  var fill = document.getElementById('launchBarFill');
+  var bar = $id('launchBar');
+  var fill = $id('launchBarFill');
 
   if(cardCHT) { cardCHT.className = 'big-card hot'; }
   if(cardTPSEl) { cardTPSEl.className = 'big-card tps'; }
@@ -643,11 +647,11 @@ function launchReadyTick(d) {
   }
 }
 
-setInterval(fetchLive, 500);
-setInterval(()=>{
+_liveInterval = setInterval(fetchLive, 500);
+_freezeInterval = setInterval(()=>{
   const frozen = (Date.now() - _lastLiveOk) > 5000;
   const tabs = document.querySelector('.tabs');
-  const ind = document.getElementById('freezeIndicator');
+  const ind = $id('freezeIndicator');
   if(frozen){
     if(tabs) tabs.style.borderBottom = '2px solid #e74c3c';
     if(ind){ ind.textContent='凍結'; ind.style.color='#e74c3c'; }
@@ -659,10 +663,11 @@ setInterval(()=>{
 
 // ── EEPROM MAPS ──────────────────────────────────────────────────
 let _mapsData = null;
+let _mapsSession = null;
 let _activeMap = 'fuel_front';
 
 async function loadMaps(sessionId){
-  const status = document.getElementById('veMapStatus');
+  const status = $id('veMapStatus');
   if(status) status.textContent = 'Leyendo EEPROM...';
   try{
     let url = '/maps?t='+Date.now();
@@ -678,8 +683,9 @@ async function loadMaps(sessionId){
       if(status) status.textContent = 'Sin mapas — conecta la ECU primero';
       return;
     }
+    _mapsSession = sessionId || null;
     if(status) status.textContent = 'Mapas leídos del EEPROM ✓';
-    document.getElementById('mapLegend').style.display='block';
+    $id('mapLegend').style.display='block';
     showMap(_activeMap);
   }catch(e){
     if(status) status.textContent = 'Error: '+e;
@@ -759,7 +765,7 @@ function showMap(which){
   }
   html += '</table>';
 
-  const container = document.getElementById('mapContainer');
+  const container = $id('mapContainer');
   if(container) container.innerHTML = html;
 }
 
@@ -808,13 +814,13 @@ function heatColor(t){
 // ── OBJECTIVES EDITOR ──────────────────────────────────────────────
 async function loadObj() {
   try {
-    const d = await (await fetch('/live.json?t='+Date.now())).json();
-    document.getElementById('objJson').value = JSON.stringify(d.raw_objectives||{}, null, 2);
-  } catch(e){ document.getElementById('objJson').value='{}'; }
+    const _vr = await fetch('/live.json?t='+Date.now()); if(!_vr.ok) return; const d = await _vr.json();
+    $id('objJson').value = JSON.stringify(d.raw_objectives||{}, null, 2);
+  } catch(e){ $id('objJson').value='{}'; }
 }
 async function saveObj() {
   try {
-    const v = JSON.parse(document.getElementById('objJson').value);
+    const v = JSON.parse($id('objJson').value);
     await fetch('/obj',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)});
     showTab('ride');
   } catch(e){ alert('JSON invalido: '+e); }
@@ -841,8 +847,8 @@ function parseMsq(xml,fname){
     const parse=s=>{const nums=s.trim().split(/\s+/).map(Number);const rows=[];for(let i=0;i<nums.length;i+=13)rows.push(nums.slice(i,i+13));return rows;};
     fetch('/ve',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({front:parse(front),rear:rear?parse(rear):parse(front),source:'msq',filename:fname})});
-    document.getElementById('msqDrop').textContent='Cargado: '+fname;
-    document.getElementById('msqDrop').className='msq-drop loaded';
+    $id('msqDrop').textContent='Cargado: '+fname;
+    $id('msqDrop').className='msq-drop loaded';
   }catch(err){alert('Error: '+err);}
 }
 
@@ -858,7 +864,7 @@ async function closeRide(){
       // Ride was auto-closed (auto-reconnect) — open notes of last ride
       setTimeout(async()=>{
         try{
-          const lr = await (await fetch('/rides?t='+Date.now())).json();
+          const _lr = await fetch('/rides?t='+Date.now()); if(!_lr.ok) throw new Error('HTTP '+_lr.status); const lr = await _lr.json();
           const rides = lr.rides || [];
           if(rides.length){
             const last = rides[rides.length-1];
@@ -873,20 +879,20 @@ async function closeRide(){
 
 // ── NETWORK ────────────────────────────────────────────────────────
 async function switchNet(action){
-  const lbl=document.getElementById('netLabel');
+  const lbl=$id('netLabel');
   if(lbl) lbl.textContent=action==='wifi'?'Buscando WiFi...':'Activando hotspot...';
   let redirectUrl=null;
   try{
     const r=await fetch('/wifi/redirect_url?action='+action);
     const d=await r.json();
     redirectUrl=d.url;
-  }catch(e){}
+  }catch(e){ console.warn("closeRide redirectUrl:", e); }
   if(redirectUrl) window.open(redirectUrl,'_blank');
   try{
     await fetch('/network',{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({action})});
-  }catch(e){}
+  }catch(e){ console.warn('network switch:', e); }
   _showSwitchModal(action,redirectUrl);
   _pollSwitchStatus(action,redirectUrl);
 }
@@ -897,18 +903,18 @@ function _showSwitchModal(action,url){
   const urlLine=url
     ?'<br><br>Dashboard en:<br><b style="color:var(--green)">'+url+'</b>'
     :'<br><br>Espera a que la Pi confirme la nueva IP.';
-  const el=document.getElementById('switchModal');
+  const el=$id('switchModal');
   if(el){el.innerHTML=msg+urlLine;el.style.display='block';}
 }
 function _hideSwitchModal(){
-  const el=document.getElementById('switchModal');
+  const el=$id('switchModal');
   if(el) el.style.display='none';
 }
 async function _pollSwitchStatus(action,redirectUrl){
   for(let i=0;i<20;i++){
     await new Promise(r=>setTimeout(r,2000));
     try{
-      const d=await fetch('/wifi/status').then(r=>r.json());
+      const d=await fetch('/wifi/status').then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).catch(()=>({}));
       const st=d.switch_status||{};
       if(st.stage==='connected'||st.stage==='fallback'||st.stage==='failed'){
         _hideSwitchModal();
@@ -920,19 +926,19 @@ async function _pollSwitchStatus(action,redirectUrl){
         loadNetPane();
         return;
       }
-    }catch(e){}
+    }catch(e){ console.warn("_pollSwitchStatus fallback:", e); }
   }
   _hideSwitchModal();
 }
 function updateNetStatus(mode,ip){
-  const label=document.getElementById('netLabel');
-  const dot=document.getElementById('netDot');
+  const label=$id('netLabel');
+  const dot=$id('netDot');
   if(!label) return;
-  document.getElementById('btnWifi')?.classList.toggle('on',mode==='wifi');
-  document.getElementById('btnHotspot')?.classList.toggle('on',mode==='hotspot');
+  $id('btnWifi')?.classList.toggle('on',mode==='wifi');
+  $id('btnHotspot')?.classList.toggle('on',mode==='hotspot');
   if(mode==='wifi'){
     const url='http://'+(ip||'')+':8080';
-    label.innerHTML='WiFi — <a href="'+url+'" target="_blank" style="color:var(--green);text-decoration:underline;">'+( ip||'conectado')+'</a>';
+    label.innerHTML='WiFi — <a href="'+escapeHtml(url)+'" target="_blank" style="color:var(--green);text-decoration:underline;">'+escapeHtml(ip||'conectado')+'</a>';
     dot.style.background='var(--green)';dot.style.animation='';
   }else if(mode==='hotspot'){
     const url='http://10.42.0.1:8080';
@@ -947,7 +953,7 @@ function updateNetStatus(mode,ip){
 async function loadNetPane(){
   // Load saved networks
   const sv = await fetch('/wifi/saved').then(r=>r.json()).catch(()=>({saved:[]}));
-  const el = document.getElementById('savedList');
+  const el = $id('savedList');
   if(!el) return;
   if(!sv.saved.length){
     el.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--dim)">Sin redes guardadas</div>';
@@ -992,7 +998,7 @@ async function doWifiScan(e){
   const savedSsids = new Set(sv.saved.map(s=>s.ssid));
   const r = await fetch('/wifi/scan').then(r=>r.json()).catch(()=>({networks:[]}));
   btn.textContent='📶 Buscar redes'; btn.disabled=false;
-  const el=document.getElementById('scanList');
+  const el=$id('scanList');
   if(!r.networks.length){
     el.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--dim)">No se encontraron redes</div>';
     return;
@@ -1014,21 +1020,21 @@ async function doWifiScan(e){
 }
 
 function prefillWifi(ssid){
-  document.getElementById('newSsid').value=ssid;
-  document.getElementById('newPass').value='';
-  document.getElementById('newPass').focus();
+  $id('newSsid').value=ssid;
+  $id('newPass').value='';
+  $id('newPass').focus();
 }
 
 async function doAddWifi(){
-  const ssid=document.getElementById('newSsid').value.trim();
-  const pass=document.getElementById('newPass').value;
+  const ssid=$id('newSsid').value.trim();
+  const pass=$id('newPass').value;
   if(!ssid||!pass){alert('Falta SSID o contraseña');return;}
   if(!confirm(`¿Conectar a "${ssid}"?\nEl hotspot se apagará.`)) return;
   await fetch('/wifi/add',{method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({ssid,password:pass})});
-  document.getElementById('newSsid').value='';
-  document.getElementById('newPass').value='';
+  $id('newSsid').value='';
+  $id('newPass').value='';
   setTimeout(()=>{fetchLive();loadNetPane();}, 8000);
 }
 
@@ -1043,10 +1049,10 @@ let _mapPolyline = null;
 
 async function loadMapPane() {
   // Populate selector with available rides
-  const sel = document.getElementById('mapRideSelect');
+  const sel = $id('mapRideSelect');
   if (!sel) return;
   try {
-    const d = await (await fetch('/rides?t=' + Date.now())).json();
+    const _md = await fetch('/rides?t=' + Date.now()); if(!_md.ok) throw new Error('HTTP '+_md.status); const d = await _md.json();
     const rides = (d.rides || []).slice().sort((a,b) => new Date(b.opened_utc||0) - new Date(a.opened_utc||0));
     sel.innerHTML = '<option value="">-- Selecciona un ride --</option>';
     for (const r of rides) {
@@ -1070,13 +1076,13 @@ async function loadMapPane() {
 }
 
 async function loadMapTrack() {
-  const sel = document.getElementById('mapRideSelect');
-  const info = document.getElementById('mapInfo');
+  const sel = $id('mapRideSelect');
+  const info = $id('mapInfo');
   if (!sel || !sel.value) { if(info) info.textContent = 'Selecciona un ride'; return; }
   const {session, ride} = JSON.parse(sel.value);
   if(info) info.textContent = 'Cargando...';
   try {
-    const d = await (await fetch(`/gps_track?session=${session}&ride=${ride}&t=${Date.now()}`)).json();
+    const _gt = await fetch(`/gps_track?session=${session}&ride=${ride}&t=${Date.now()}`); if(!_gt.ok) throw new Error('HTTP '+_gt.status); const d = await _gt.json();
     if (!d.ok || !d.points || d.points.length === 0) {
       if(info) info.textContent = 'Sin datos GPS en este ride';
       return;
@@ -1105,7 +1111,7 @@ async function loadMapTrack() {
     const dist = d.points.reduce((acc,p,i)=> i===0 ? 0 : acc + Math.hypot(p.lat-d.points[i-1].lat, p.lon-d.points[i-1].lon)*111.32, 0).toFixed(2);
     if(info) info.textContent = `${d.count} puntos · Vel max ${maxSpd2} km/h · ~${dist} km`;
     // ── Perfil de altitud ──────────────────────────────────────────
-    const altCanvas = document.getElementById('altitudeChart');
+    const altCanvas = $id('altitudeChart');
     if (altCanvas) {
       if (window._altChart) { window._altChart.destroy(); window._altChart = null; }
       // Calculate cumulative distance
@@ -1204,10 +1210,10 @@ async function loadMapTrack() {
 // ────────────────────────────────────────────────────────────────────
 
 async function loadSessions(){
-  const el=document.getElementById('ridesList'); if(!el) return;
+  const el=$id('ridesList'); if(!el) return;
   el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:20px;text-align:center">Cargando...</div>';
   try{
-    const d=await(await fetch('/rides?t='+Date.now())).json();
+    const _sd=await fetch('/rides?t='+Date.now()); if(!_sd.ok) throw new Error('HTTP '+_sd.status); const d=await _sd.json();
     const rides=(d.rides||[]);
     ridesCache=rides.slice().reverse();
     if(!ridesCache.length){
@@ -1264,7 +1270,7 @@ const errBadge=r.has_errorlog?`<span style="color:#f90;font-size:9px;cursor:poin
     }
     el.innerHTML=html;
   }catch(e){
-    el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:20px">Error: '+e+'</div>';
+    el.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:20px">Error: '+escapeHtml(e)+'</div>';
   }
 }
 
@@ -1275,34 +1281,34 @@ function toggleSession(id){
 
 function openNoteModal(session,ride_num){
   _noteCtx={session,ride_num};
-  document.getElementById('noteModalTitle').textContent=`NOTA — ${session} ride_${String(ride_num).padStart(3,'0')}`;
-  document.getElementById('noteText').value='';
-  document.getElementById('noteStatus').textContent='Cargando...';
-  document.getElementById('noteModal').style.display='flex';
+  $id('noteModalTitle').textContent=`NOTA — ${session} ride_${String(ride_num).padStart(3,'0')}`;
+  $id('noteText').value='';
+  $id('noteStatus').textContent='Cargando...';
+  $id('noteModal').style.display='flex';
   fetch(`/ride_note?session=${encodeURIComponent(session)}&ride=${ride_num}&t=${Date.now()}`)
     .then(r=>r.json()).then(d=>{
-      document.getElementById('noteText').value=d.note||'';
-      document.getElementById('noteStatus').textContent='';
-    }).catch(()=>{ document.getElementById('noteStatus').textContent=''; });
+      $id('noteText').value=d.note||'';
+      $id('noteStatus').textContent='';
+    }).catch(()=>{ $id('noteStatus').textContent=''; });
 }
 
 function closeNoteModal(){
-  document.getElementById('noteModal').style.display='none';
+  $id('noteModal').style.display='none';
   loadSessions();
 }
 
 async function saveNote(){
-  const text=document.getElementById('noteText').value;
+  const text=$id('noteText').value;
   trackUsage('btn_guardar_nota');
-  document.getElementById('noteStatus').textContent='Guardando...';
+  $id('noteStatus').textContent='Guardando...';
   try{
     const r=await fetch('/ride_note',{method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({session:_noteCtx.session,ride_num:_noteCtx.ride_num,note:text})});
     const d=await r.json();
-    document.getElementById('noteStatus').textContent=d.ok?'✓ Guardado':'Error al guardar';
-    if(d.ok) setTimeout(()=>{ document.getElementById('noteStatus').textContent=''; },1500);
-  }catch(e){ document.getElementById('noteStatus').textContent='Error: '+e; }
+    $id('noteStatus').textContent=d.ok?'✓ Guardado':'Error al guardar';
+    if(d.ok) setTimeout(()=>{ $id('noteStatus').textContent=''; },1500);
+  }catch(e){ $id('noteStatus').textContent='Error: '+e; }
 }
 
 async function viewSingleRide(idx){
@@ -1391,8 +1397,11 @@ async function viewSelectedRides(){
             ride_num:null,elapsed_s:0,active_cell:null};
   renderObjectives(objectives);
   window._viewingHistory=true;
+  if(_liveInterval) clearInterval(_liveInterval);
+  if(_freezeInterval) clearInterval(_freezeInterval);
+  if(_cobertInterval) clearInterval(_cobertInterval);
   showTab('ride');
-  document.getElementById('objList').insertAdjacentHTML('afterbegin',
+  $id('objList').insertAdjacentHTML('afterbegin',
     `<div style="background:rgba(232,66,10,.12);border:1px solid var(--accent);padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9px;color:var(--accent);width:100%">
       <span>${rideLabel}</span>
       <span onclick="exitHistory()" style="cursor:pointer;padding:2px 8px;border:1px solid var(--accent)">LIVE</span>
@@ -1416,6 +1425,20 @@ async function pollCobertGrid() {
 
 function exitHistory(){
   window._viewingHistory=false;
+  // Restart live polling intervals (they were stopped in viewSelectedRides)
+  _liveInterval = setInterval(fetchLive, 500);
+  _freezeInterval = setInterval(()=>{
+    const frozen = (Date.now() - _lastLiveOk) > 5000;
+    const tabs = document.querySelector('.tabs');
+    const ind = $id('freezeIndicator');
+    if(frozen){
+      if(tabs) tabs.style.borderBottom = '2px solid #e74c3c';
+      if(ind){ ind.textContent='凍結'; ind.style.color='#e74c3c'; }
+    } else {
+      if(tabs) tabs.style.borderBottom = '';
+      if(ind){ ind.textContent='正常'; ind.style.color='#2ecc71'; }
+    }
+  }, 3000);
   fetchLive();
 }
 
@@ -1453,7 +1476,7 @@ const CHART_DEFAULTS = {
 let _charts = {};
 
 function destroyCharts(){
-  for(const ch of Object.values(_charts)) try{ ch.destroy(); }catch(e){}
+  for(const ch of Object.values(_charts)) try{ ch.destroy(); }catch(e){ console.warn("destroy chart:", e); }
   _charts={};
 }
 
@@ -1549,22 +1572,22 @@ function buildCharts(rows){
 
   // Dynamic width — 4px/s, max 16000px, no Y-axis padding
   const PX_PER_SEC = 4;
-  const outerW = document.getElementById('chartsOuter')?.clientWidth || 360;
+  const outerW = $id('chartsOuter')?.clientWidth || 360;
   const dataW  = Math.min(Math.max(outerW, Math.ceil(durS * PX_PER_SEC)), 16000);
   const totalW = dataW;
 
-  document.getElementById('chartsInner').style.width = totalW + 'px';
+  $id('chartsInner').style.width = totalW + 'px';
   document.querySelectorAll('#chartsInner .chart-inner').forEach(d => {
     d.style.width = totalW + 'px';
   });
 
   // Scrollbar proxy
-  const sb  = document.getElementById('chartScrollbar');
-  const sbi = document.getElementById('chartScrollbarInner');
+  const sb  = $id('chartScrollbar');
+  const sbi = $id('chartScrollbarInner');
   if(sbi) sbi.style.width = totalW + 'px';
 
   // Sync scroll — attach once per buildCharts call
-  const outer = document.getElementById('chartsOuter');
+  const outer = $id('chartsOuter');
   if(sb && outer){
     const _sb  = sb._buellScrollHandler;
     const _out = outer._buellScrollHandler;
@@ -1710,7 +1733,7 @@ function buildCharts(rows){
     if(!chartCfgs[i]) chartCfgs[i] = {id:def.id, keys:[...def.keys]};
   });
 
-  function saveChartCfgs(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(chartCfgs)); }catch(e){} }
+  function saveChartCfgs(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(chartCfgs)); }catch(e){ console.warn("saveChartCfgs:", e); } }
 
   // Crosshair plugin (synced vertical line)
   const crosshairPlugin = {
@@ -1762,8 +1785,8 @@ function buildCharts(rows){
           const tooltip = context.tooltip;
           if (tooltip.dataPoints && tooltip.dataPoints.length > 0) {
             const t = tooltip.dataPoints[0].parsed.x;
-            const panelTime = document.getElementById('panelTime');
-            const panelItems = document.getElementById('panelItems');
+            const panelTime = $id('panelTime');
+            const panelItems = $id('panelItems');
             
             if (panelTime) panelTime.textContent = t.toFixed(2) + 's';
             
@@ -1911,13 +1934,13 @@ function buildCharts(rows){
     else wrap.appendChild(btn);
   });
 
-  document.getElementById('graphLegend').style.display='flex';
+  $id('graphLegend').style.display='flex';
 }
 
 // ── Chart signal selector panel ───────────────────────────────
 function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs){
   // Remove existing panel
-  const existing = document.getElementById('chartCfgPanel');
+  const existing = $id('chartCfgPanel');
   if(existing){ existing.remove(); if(existing._forChart===ci) return; }
 
   const ALL_SIGNALS_KEYS = [
@@ -2001,7 +2024,7 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
     const chartKeys = ['rpm','fuel','tps','spk','batt','flags'];
     const chartIds  = ['chartRPM','chartFuel','chartTPS','chartSPK','chartBatt','chartFlags'];
     const ck = chartKeys[ci];
-    if(_charts[ck]) try{ _charts[ck].destroy(); }catch(e){}
+    if(_charts[ck]) try{ _charts[ck].destroy(); }catch(e){ console.warn("destroy chart["+ck+"]:", e); }
     const canvas = document.getElementById(chartIds[ci]);
     if(canvas){
       const SIG_MAP2 = {};
@@ -2091,7 +2114,7 @@ function initGraphPane(){
   _fillGraphSelect();
 }
 function _fillGraphSelect(){
-  const sel = document.getElementById('graphRideSelect');
+  const sel = $id('graphRideSelect');
   if(!ridesCache || !ridesCache.length){
     sel.innerHTML='<option value="">Sin rides guardados</option>';
     return;
@@ -2121,9 +2144,9 @@ function _rideDate(r){
 
 // ── LOAD CSV AND RENDER ────────────────────────────────────────
 async function loadGraphRide(directFile){
-  const sel   = document.getElementById('graphRideSelect');
+  const sel   = $id('graphRideSelect');
   const fname = directFile || sel.value;
-  const status= document.getElementById('graphStatus');
+  const status= $id('graphStatus');
   if(!fname){ status.textContent='Selecciona un ride'; return; }
   // Sync select if called from openRideGraph
   if(directFile && sel) sel.value = directFile;
@@ -2137,10 +2160,10 @@ async function loadGraphRide(directFile){
   const dateStr = rideInfo ? _rideDate(rideInfo) : '';
 
   status.textContent='Cargando...';
-  const titleEl = document.getElementById('graphRideTitle');
+  const titleEl = $id('graphRideTitle');
   if(titleEl){ titleEl.textContent=''; titleEl.style.display='none'; }
   destroyCharts();
-  document.getElementById('graphLegend').style.display='none';
+  $id('graphLegend').style.display='none';
   try{
     const resp = await fetch('/csv/'+csvName+'?t='+Date.now());
     if(!resp.ok){
@@ -2154,7 +2177,7 @@ async function loadGraphRide(directFile){
     status.textContent = `${rows.length} muestras · ${dur}s`;
     if(titleEl){
       const datePart = dateStr ? `  <span style="color:#888;font-size:10px">${dateStr}</span>` : '';
-      titleEl.innerHTML = '▶ ' + rideLabel + datePart;
+      titleEl.innerHTML = '▶ ' + escapeHtml(rideLabel) + escapeHtml(datePart);
       titleEl.style.display='block';
     }
     buildCharts(rows);
@@ -2170,7 +2193,7 @@ async function doKeepalive(){
     await fetch('/keepalive',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     const btn=document.querySelector('.btn.g');
     if(btn){const o=btn.textContent;btn.textContent='5 min activos';setTimeout(()=>btn.textContent=o,2500);}
-  }catch(e){}
+  }catch(e){ console.warn("doKeepalive:", e); }
 }
 
 
@@ -2187,7 +2210,7 @@ function confirmShutdown(){
         <span style="font-size:9px;color:var(--dim)">Asegúrate de estar detenido.</span>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn" style="flex:1;padding:10px" onclick="document.getElementById('shutdownModal').remove()">取消</button>
+        <button class="btn" style="flex:1;padding:10px" onclick="$id('shutdownModal').remove()">取消</button>
         <button class="btn-danger" style="flex:1;margin:0;padding:10px" onclick="doShutdown()">關閉</button>
       </div>
     </div>`;
@@ -2195,9 +2218,9 @@ function confirmShutdown(){
 }
 async function doShutdown(){
   trackUsage('btn_poweroff');
-  const m = document.getElementById('shutdownModal');
+  const m = $id('shutdownModal');
   if(m) m.remove();
-  try{await fetch('/shutdown',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(e){}
+  try{await fetch('/shutdown',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}catch(e){ console.warn("doShutdown:", e); }
   document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100dvh;font-family:var(--mono);font-size:12px;color:var(--dim);background:#0a0a0b">Apagando Pi...</div>';
 }
 
@@ -2205,15 +2228,15 @@ async function doShutdown(){
 let ecuPanelOpen = true;
 function toggleEcu(){
   ecuPanelOpen = !ecuPanelOpen;
-  document.getElementById('ecuPanel').style.display = ecuPanelOpen ? '' : 'none';
-  document.getElementById('ecuToggleIcon').innerHTML = ecuPanelOpen ? '&#9660;' : '&#9654;';
+  $id('ecuPanel').style.display = ecuPanelOpen ? '' : 'none';
+  $id('ecuToggleIcon').innerHTML = ecuPanelOpen ? '&#9660;' : '&#9654;';
 }
 function ecuRow(label, val, units, color){
   const c = color || '#ccc';
   return `<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;padding:3px 0;border-bottom:1px solid #1e1e1e"><span style="color:var(--dim)">${label}</span><span style="color:${c};font-weight:600">${val} <span style="color:var(--dim);font-weight:400">${units}</span></span></div>`;
 }
 async function loadEepromParams(){
-  const container = document.getElementById('eepromParamsTable');
+  const container = $id('eepromParamsTable');
   if(!container) return;
   container.textContent = 'Cargando...';
   try {
@@ -2247,11 +2270,11 @@ async function loadEepromParams(){
 
 async function loadEcu(){
   try{
-    const d = await (await fetch('/eeprom?t='+Date.now())).json();
+    const _ed = await fetch('/eeprom?t='+Date.now()); if(!_ed.ok) throw new Error('HTTP '+_ed.status); const d = await _ed.json();
     if(!d || Object.keys(d).length===0){
-      document.getElementById('ecuVersion').textContent='No disponible (llave ON y reiniciar)'; return;
+      $id('ecuVersion').textContent='No disponible (llave ON y reiniciar)'; return;
     }
-    document.getElementById('ecuVersion').textContent='OK';
+    $id('ecuVersion').textContent='OK';
     const tempMap=[['Fan ON','KTemp_Fan_On','#ccc'],['Fan OFF','KTemp_Fan_Off','#ccc'],
       ['CEL ON','KTemp_CEL_Flash_Hi','#fa0'],['Soft limit','KTemp_Soft_Hi','#ff0'],
       ['Hard limit','KTemp_Hard_Hi','#fa0'],['Kill limit','KTemp_Kill_Hi','#f55'],
@@ -2259,21 +2282,21 @@ async function loadEcu(){
       ['TPS min soft','KTemp_TP_Soft','#8af'],['TPS min hard','KTemp_TP_Hard','#8af']];
     let h='';
     for(const [lbl,k,col] of tempMap){if(d[k]) h+=ecuRow(lbl,d[k].val.toFixed(0),d[k].units,col);}
-    document.getElementById('ecuTempRows').innerHTML=h;
+    $id('ecuTempRows').innerHTML=h;
     const rpmMap=[['Soft trigger','KRPM_Soft_Hi','#ff0'],['Soft release','KRPM_Soft_Lo','#ff0'],
       ['Hard trigger','KRPM_Hard_Hi','#fa0'],['Hard release','KRPM_Hard_Lo','#fa0'],
       ['Kill trigger','KRPM_Kill_Hi','#f55'],['Kill release','KRPM_Kill_Lo','#f55']];
     h='';
     for(const [lbl,k,col] of rpmMap){if(d[k]) h+=ecuRow(lbl,d[k].val.toFixed(0),d[k].units,col);}
-    document.getElementById('ecuRpmRows').innerHTML=h;
+    $id('ecuRpmRows').innerHTML=h;
     const egoMap=[['O2 target','KO2_Midpoint','#6ef'],['O2 rich','KO2_Rich','#f88'],
       ['O2 lean','KO2_Lean','#8f8'],['CL min RPM','KO2_Min_RPM','#8af'],
       ['EGO max','KFBFuel_Max','#6ef'],['EGO min','KFBFuel_Min','#6ef'],
       ['AFV max','KLFuel_Max','#6ef'],['AFV min','KLFuel_Min','#6ef']];
     h='';
     for(const [lbl,k,col] of egoMap){if(d[k]) h+=ecuRow(lbl,d[k].val.toFixed(3),d[k].units,col);}
-    document.getElementById('ecuEgoRows').innerHTML=h;
-  }catch(e){ document.getElementById('ecuVersion').textContent='Error: '+e.message; }
+    $id('ecuEgoRows').innerHTML=h;
+  }catch(e){ $id('ecuVersion').textContent='Error: '+e.message; }
 }
 
 // VSS CALIBRATION
@@ -2299,7 +2322,7 @@ async function doRestartLogger(){
 
 
 async function gitPull() {
-  const status = document.getElementById('gitPullStatus');
+  const status = $id('gitPullStatus');
   status.textContent = 'Ejecutando git pull...';
   status.style.color = 'var(--dim)';
   try {
@@ -2324,18 +2347,18 @@ async function gitPull() {
 
 
 // Load cal on startup (not only on tab open)
-document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); setInterval(pollCobertGrid, 1000); });
+document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); _cobertInterval = setInterval(pollCobertGrid, 1000); });
 
 
 // ── Error Log Viewer ──
 function openErrorLog(session,ride_num){
-  document.getElementById('errLogModalTitle').textContent=`ERROR LOG — ${session} ride_${String(ride_num).padStart(3,'0')}`;
-  document.getElementById('errLogContent').innerHTML='Cargando...';
-  document.getElementById('errorLogModal').style.display='flex';
+  $id('errLogModalTitle').textContent=`ERROR LOG — ${session} ride_${String(ride_num).padStart(3,'0')}`;
+  $id('errLogContent').innerHTML='Cargando...';
+  $id('errorLogModal').style.display='flex';
   fetch(`/errorlog/${session}/${String(ride_num).padStart(3,'0')}?t=${Date.now()}`)
     .then(r=>r.json()).then(d=>{
       if(!d.events || d.events.length===0){
-        document.getElementById('errLogContent').innerHTML='<div style="color:var(--dim);padding:12px">No se encontraron eventos de error para este ride.</div>';
+        $id('errLogContent').innerHTML='<div style="color:var(--dim);padding:12px">No se encontraron eventos de error para este ride.</div>';
         return;
       }
       // Summary table
@@ -2377,13 +2400,13 @@ function openErrorLog(session,ride_num){
         html+=ctxHtml;
         html+=`</div>`;
       }
-      document.getElementById('errLogContent').innerHTML=html;
+      $id('errLogContent').innerHTML=html;
     }).catch(function(e){
-      document.getElementById('errLogContent').innerHTML='<div style="color:#f66;padding:12px">Error al cargar: '+e.message+'</div>';
+      $id('errLogContent').innerHTML='<div style="color:#f66;padding:12px">Error al cargar: '+e.message+'</div>';
     });
 }
 function closeErrorLog(){
-  document.getElementById('errorLogModal').style.display='none';
+  $id('errorLogModal').style.display='none';
 }
 
 // ── EEPROM / MSQ Download ──
@@ -2409,11 +2432,12 @@ function downloadEeprom(session) {
   }).catch(function(e){ alert('Download error: ' + e.message); });
 }
 function downloadMsq(session) {
-  var url = '/msq/download' + (session ? '?session=' + session : '');
+  var sid = session || _mapsSession || '';
+  var url = '/eeprom/msq' + (sid ? '?session=' + sid : '');
   fetch(url).then(function(r){
     if (!r.ok) { return r.json().then(function(d){ alert('Error: ' + (d.error || r.status)); }); }
     return r.blob().then(function(b){
-      _dlFile(URL.createObjectURL(b), 'suggested_' + (session || 'current') + '.msq');
+      _dlFile(URL.createObjectURL(b), 'eeprom_' + (sid || 'current') + '.msq');
     });
   }).catch(function(e){ alert('Download error: ' + e.message); });
 }

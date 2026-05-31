@@ -25,6 +25,26 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.66] -- 2026-05-30
+
+### Added
+
+- web/server.py: _eeprom_to_msq() module-level helper -- serializes eeprom_decoded.json
+  to MSQ XML (EcmSpy format) without applying any tuning modifications
+- web/server.py: GET /eeprom/msq?session=X endpoint -- generates and serves MSQ from
+  eeprom_decoded.json; defaults to active session or most recent if no session param
+
+### Fixed
+
+- web/static/app.js: downloadMsq() now calls /eeprom/msq instead of /msq/download
+  previous endpoint required suggested_SESSION.msq which almost never existed
+- web/static/app.js: _mapsSession tracks which session is loaded in VE tab
+  so MSQ download uses the correct session without needing an explicit param
+- web/templates/index.html: MSQ button tooltip corrected
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.65] -- 2026-05-30
 
 ### Fixed
