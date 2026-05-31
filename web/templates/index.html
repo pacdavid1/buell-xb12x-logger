@@ -506,6 +506,7 @@ table.veg td:active{filter:brightness(1.6)}
     <button class="btn" onclick="loadMaps()">&#8635; Recargar</button>
     <button class="btn" style="font-size:9px;padding:4px 8px" onclick="downloadEeprom()" id="btnDlEeprom" title="Download raw EEPROM binary">&#11015; EEPROM</button>
     <button class="btn" style="font-size:9px;padding:4px 8px" onclick="downloadMsq()" id="btnDlMsq" title="Download current EEPROM as MSQ (EcmSpy compatible)">&#11015; MSQ</button>
+    <button class="btn" id="btnEditMode" style="font-size:9px;padding:4px 8px" onclick="toggleEditMode()">&#9998; Edit</button>
   </div>
   <div id="veMapStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
        margin-bottom:8px;min-height:12px">Conecta la ECU para cargar los mapas</div>
@@ -518,6 +519,15 @@ table.veg td:active{filter:brightness(1.6)}
     <button class="btn" id="mapBtnSpkR" onclick="showMap('spark_rear')"  style="font-size:9px;padding:4px 8px">Spark Rear</button>
   </div>
 
+  <!-- Edit toolbar -->
+  <div id="editToolbar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:3px;margin-bottom:8px;font-family:var(--mono);font-size:9px">
+    <span style="color:var(--accent2);font-weight:700">&#9998; EDIT MODE</span>
+    <span id="editCount" style="color:var(--dim)">0 cells staged</span>
+    <span style="flex:1"></span>
+    <span id="editRange" style="color:var(--dim);font-size:8px">safety gate: ±15%</span>
+    <button class="btn" id="btnBurnEcu" onclick="burnStaged()" disabled style="font-size:9px;padding:4px 10px;background:var(--ac);color:#fff;border-color:var(--ac)">&#128293; Burn to ECU</button>
+    <button class="btn" onclick="discardChanges()" style="font-size:9px;padding:4px 10px">&#10005; Discard</button>
+  </div>
   <!-- Map table -->
   <div id="mapContainer" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
     <div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:20px">

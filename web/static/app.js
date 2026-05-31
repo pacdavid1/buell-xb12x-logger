@@ -665,6 +665,8 @@ _freezeInterval = setInterval(()=>{
 let _mapsData = null;
 let _mapsSession = null;
 let _activeMap = 'fuel_front';
+let _editMode  = false;
+let _staged    = {};  // { mapKey: { 'ri_ci': { orig, val } } }
 
 async function loadMaps(sessionId){
   const status = $id('veMapStatus');
@@ -690,6 +692,136 @@ async function loadMaps(sessionId){
   }catch(e){
     if(status) status.textContent = 'Error: '+e;
   }
+}
+
+// ── Edit mode & staging ──────────────────────────────────────────────────
+function toggleEditMode(){
+  _editMode = !_editMode;
+  const btn = $id('btnEditMode');
+  if(btn){ btn.style.borderColor = _editMode ? 'var(--accent2)' : '';
+           btn.style.color       = _editMode ? 'var(--accent2)' : ''; }
+  const tb = $id('editToolbar');
+  if(tb) tb.style.display = _editMode ? 'flex' : 'none';
+  if(!_editMode){ _staged = {}; updateEditToolbar(); }
+  if(_mapsData) showMap(_activeMap);
+}
+
+function stagedCount(){
+  return Object.values(_staged).reduce((s,m)=>s+Object.keys(m).length, 0);
+}
+
+function updateEditToolbar(){
+  const n = stagedCount();
+  const el = $id('editCount');
+  if(el) el.textContent = n + (n===1?' cell staged':' cells staged');
+  const btn = $id('btnBurnEcu');
+  if(btn) btn.disabled = (n === 0);
+}
+
+function stageChange(mapKey, ri, ci, origVal, newVal){
+  const pct = Math.abs(newVal - origVal) / Math.max(origVal, 1) * 100;
+  if(pct > 15){
+    alert('Safety gate: change of ' + pct.toFixed(1) + '% exceeds ±15% limit.\nMax allowed: ' +
+          Math.round(origVal * 0.15) + ' units');
+    return false;
+  }
+  if(!_staged[mapKey]) _staged[mapKey] = {};
+  _staged[mapKey][ri + '_' + ci] = { orig: origVal, val: newVal };
+  updateEditToolbar();
+  showMap(_activeMap);
+  return true;
+}
+
+function discardChanges(){
+  _staged = {};
+  updateEditToolbar();
+  if(_mapsData) showMap(_activeMap);
+}
+
+function editCell(mapKey, ri, ci, origVal, cellEl){
+  // Remove any existing input overlay
+  const old = document.getElementById('_cellInput');
+  if(old) old.remove();
+
+  const inp = document.createElement('input');
+  inp.id = '_cellInput';
+  inp.type = 'number';
+  inp.value = (_staged[mapKey] && _staged[mapKey][ri+'_'+ci])
+              ? _staged[mapKey][ri+'_'+ci].val : origVal;
+  inp.style.cssText = ('position:absolute;z-index:999;width:54px;height:24px;'
+    + 'background:#222;color:#fff;border:2px solid var(--accent2);'
+    + 'font-family:var(--mono);font-size:11px;text-align:center;border-radius:2px;'
+    + 'box-shadow:0 2px 8px rgba(0,0,0,0.8)');
+  const rect = cellEl.getBoundingClientRect();
+  const cont = $id('mapContainer');
+  const cr   = cont ? cont.getBoundingClientRect() : {left:0,top:0};
+  inp.style.left = (rect.left - cr.left + cont.scrollLeft) + 'px';
+  inp.style.top  = (rect.top  - cr.top  + cont.scrollTop)  + 'px';
+  if(cont) cont.style.position = 'relative';
+  if(cont) cont.appendChild(inp);
+  inp.focus(); inp.select();
+  inp.onkeydown = function(e){
+    if(e.key === 'Enter'){
+      const v = parseFloat(inp.value);
+      if(!isNaN(v) && v >= 0 && v <= 255){
+        stageChange(mapKey, ri, ci, origVal, Math.round(v));
+      }
+      inp.remove();
+    } else if(e.key === 'Escape'){
+      inp.remove();
+    }
+  };
+  inp.onblur = function(){ setTimeout(()=>{ if(document.getElementById('_cellInput')===inp) inp.remove(); }, 150); };
+}
+
+function burnStaged(){
+  const n = stagedCount();
+  if(n === 0) return;
+  if(!confirm('Burn ' + n + ' cell change' + (n>1?'s':'') + ' to ECU?\n\nA backup will be saved automatically.')) return;
+
+  // Build full proposed map tables from _mapsData + staged changes
+  const maps = {};
+  ['fuel_front','fuel_rear','spark_front','spark_rear'].forEach(function(mk){
+    if(!_mapsData || !_mapsData[mk]) return;
+    if(!_staged[mk] || Object.keys(_staged[mk]).length === 0) return;
+    // Deep-copy the table
+    const tbl = _mapsData[mk].map(function(row){ return row.slice(); });
+    Object.entries(_staged[mk]).forEach(function([key, s]){
+      const parts = key.split('_');
+      const ri = parseInt(parts[0]), ci = parseInt(parts[1]);
+      tbl[ri][ci] = s.val;
+    });
+    maps[mk] = tbl;
+  });
+
+  const btn = $id('btnBurnEcu');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Burning…'; }
+
+  fetch('/eeprom/burn', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({maps: maps})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if(d.error){
+      alert('Burn failed: ' + d.error);
+    } else {
+      const msg = ('Burn complete!\n'
+        + 'Written: ' + d.written + ' bytes\n'
+        + 'Verified: ' + (d.verified ? '✓ OK' : '✗ FAILED') + '\n'
+        + 'Backup: ' + (d.backup || '—'));
+      alert(msg);
+      if(d.verified){
+        // Reload maps from ECU to reflect new state
+        _staged = {};
+        updateEditToolbar();
+        loadMaps(_mapsSession);
+      }
+    }
+  }).catch(function(e){
+    alert('Network error: ' + e.message);
+  }).finally(function(){
+    if(btn){ btn.disabled = (stagedCount()===0); btn.textContent = '\uD83D\uDD25 Burn to ECU'; }
+  });
 }
 
 function showMap(which){
@@ -749,16 +881,28 @@ function showMap(which){
     html += `<td style="padding:2px 4px;color:var(--dim);font-size:8px;white-space:nowrap">${loadVal}%</td>`;
     for(const val of row){
       if(val === 0 || val === null){
-        // Empty cell — structural zero or out-of-range region
         html += `<td style="background:#1a1a22;color:#333;padding:1px 2px;text-align:center;
                  min-width:${cellW}px;height:${cellH}px;border:1px solid rgba(255,255,255,0.04);
                  font-size:7px" title="sin datos">·</td>`;
       } else {
-        const t  = (val - vMin) / (vMax - vMin || 1);
-        const bg = heatColor(t);
-        const fg = t > 0.55 ? '#000' : '#fff';
-        html += `<td style="background:${bg};color:${fg};padding:1px 2px;text-align:center;
-                 min-width:${cellW}px;height:${cellH}px;border:1px solid rgba(255,255,255,0.06)">${val.toFixed(isFuel?0:1)}${unit}</td>`;
+        // Check if this cell is staged (use orig row index = numRows-1-ri)
+        const origRi = sortedTable.length - 1 - ri;
+        const stageKey = origRi + '_' + ci;
+        const stageMap = _staged[which] && _staged[which][stageKey];
+        const dispVal  = stageMap ? stageMap.val : val;
+        const isStaged = !!stageMap;
+        const t  = (dispVal - vMin) / (vMax - vMin || 1);
+        const bg = isStaged ? 'rgba(245,166,35,0.55)' : heatColor(t);
+        const fg = isStaged ? '#000' : (t > 0.55 ? '#000' : '#fff');
+        const border = isStaged ? '2px solid #f5a623' : '1px solid rgba(255,255,255,0.06)';
+        const cursor = _editMode ? 'cursor:pointer' : '';
+        const clickH = _editMode
+          ? `onclick="editCell('${which}',${origRi},${ci},${val},this)"`
+          : '';
+        const sub = isStaged ? `<div style="font-size:6px;opacity:0.7">${val.toFixed(isFuel?0:1)}</div>` : '';
+        html += `<td ${clickH} style="background:${bg};color:${fg};padding:1px 2px;text-align:center;
+                 min-width:${cellW}px;height:${cellH}px;border:${border};${cursor};position:relative">
+                 ${dispVal.toFixed(isFuel?0:1)}${unit}${sub}</td>`;
       }
     }
     html += '</tr>';

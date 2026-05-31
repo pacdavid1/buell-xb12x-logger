@@ -25,6 +25,33 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.72] -- 2026-05-31
+
+### Added
+
+- ecu/eeprom.py: encode_eeprom_maps(eeprom_bytes, maps) -- inverse of decode_eeprom_maps
+  writes fuel (scale 1.0, stride cols+1) and spark (scale 0.25, dense) back to EEPROM bytes
+  round-trip lossless confirmed for full safe zone (670-1205)
+- main.py: pending_burn hook in ECU loop -- executes write_full_eeprom() between RT reads
+  only fires when no ride is active, queues result back to server via queue.Queue
+- web/server.py: POST /eeprom/burn endpoint
+  accepts {maps: {fuel_front, fuel_rear, spark_front, spark_rear}}
+  saves eeprom_backup_TIMESTAMP.bin before burn, returns {written, verified, backup}
+- web/templates/index.html: Edit mode toggle button + staged changes toolbar in VE tab
+- web/static/app.js: full staging system for map cell edits
+  editCell() floating input, stageChange() with +-15%% safety gate,
+  burnStaged() POST to /eeprom/burn, discardChanges(), updateEditToolbar()
+  staged cells shown in yellow with original value as subscript
+
+### Fixed
+
+- ecu/eeprom.py: _validate_eeprom() had wrong offset assumptions (offset 4 as
+  Manufacturing Day when it is Rides-since-Error). Now checks serial (12-13),
+  year (9), system config (8), fuel axis (632). Maps now load from session files.
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.71] -- 2026-05-31
 
 ### Added

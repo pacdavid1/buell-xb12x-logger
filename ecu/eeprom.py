@@ -53,26 +53,24 @@ BUEIB_PARAMS = {
 
 def _validate_eeprom(eeprom_bytes):
     """Sanity-check EEPROM bytes against known ranges.
-    Returns True if data looks valid, False if likely corrupted."""
+    Returns True if data looks valid, False if likely corrupted.
+    Offsets verified against BUEIB.xml 2026-05-31."""
     if not eeprom_bytes or len(eeprom_bytes) < 600:
         return False
     try:
-        # KMFG_Year (offset 3): 0-99
-        if not (0 <= eeprom_bytes[3] <= 99):
+        # Serial number (offset 12-13, uint16 LE): must be non-zero
+        serial = int.from_bytes(eeprom_bytes[12:14], "little")
+        if serial == 0:
             return False
-        # KMFG_Day (offset 4): 1-366
-        if not (1 <= eeprom_bytes[4] <= 366):
+        # ECM Manufacturing Year (offset 9): 0-99
+        if not (0 <= eeprom_bytes[9] <= 99):
             return False
-        # Ride_Counter (offset 1): should be < 65535
-        if eeprom_bytes[1] > 250:  # single byte, max 255 rides is reasonable
+        # System Configuration (offset 8): non-zero for a programmed ECU
+        if eeprom_bytes[8] == 0:
             return False
-        # KEngineRun (offset 6): DDFI2 stores ~232 here (engine run counter)
-        # Not range-checked since encoding varies by ECU type
-        # spark_load axis (offset 602, 10 bytes): all values 0-255 (TPS-based DDFI2)
-        for i in range(10):
-            v = eeprom_bytes[602 + i]
-            if v < 0 or v > 255:
-                return False
+        # Fuel map axes (offset 632, 12 load bins): all > 0
+        if any(eeprom_bytes[632 + i] == 0 for i in range(12)):
+            return False
         return True
     except (IndexError, TypeError):
         return False
@@ -156,3 +154,34 @@ def decode_eeprom_maps(eeprom_bytes):
         }
     except Exception as e:
         return {"error": str(e)}
+
+
+def encode_eeprom_maps(eeprom_bytes, maps):
+    """Apply decoded map tables back into EEPROM bytes.
+    Inverse of decode_eeprom_maps(). Only modifies safe zone (670-1205).
+    Returns modified copy of eeprom_bytes as bytes.
+    maps keys: fuel_front, fuel_rear, spark_front, spark_rear (all optional).
+    """
+    result = bytearray(eeprom_bytes)
+
+    def write_fuel_map(off, rows, cols, table):
+        # table[r][c] ascending RPM; EEPROM stores descending with (cols+1) stride
+        for r in range(min(rows, len(table))):
+            row_desc = list(reversed(table[r]))
+            row_off  = off + r * (cols + 1)
+            for c in range(min(cols, len(row_desc))):
+                result[row_off + c] = max(0, min(255, int(round(row_desc[c]))))
+            # separator byte at row_off + cols is NOT touched
+
+    def write_spark_map(off, rows, cols, table):
+        # table[r][c] ascending RPM, values in degrees; raw = val * 4
+        for r in range(min(rows, len(table))):
+            row_desc = list(reversed(table[r]))
+            for c in range(min(cols, len(row_desc))):
+                result[off + r * cols + c] = max(0, min(255, int(round(row_desc[c] * 4))))
+
+    if maps.get('fuel_front'):  write_fuel_map(870,  12, 13, maps['fuel_front'])
+    if maps.get('fuel_rear'):   write_fuel_map(1038, 12, 13, maps['fuel_rear'])
+    if maps.get('spark_front'): write_spark_map(670, 10, 10, maps['spark_front'])
+    if maps.get('spark_rear'):  write_spark_map(770, 10, 10, maps['spark_rear'])
+    return bytes(result)

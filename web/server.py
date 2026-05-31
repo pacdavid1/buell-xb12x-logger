@@ -93,6 +93,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/suggested_msq': self._handle_suggested_msq,
             '/eeprom/download': self._handle_eeprom_download,
             '/eeprom/msq':      self._handle_eeprom_msq,
+            '/eeprom/burn':     self._handle_eeprom_burn,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
@@ -577,6 +578,72 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Length', str(len(data)))
         self.end_headers()
         self.wfile.write(data)
+
+    def _handle_eeprom_burn(self, path=None):
+        """Burn proposed map changes to ECU EEPROM.
+        POST body: { maps: { fuel_front?: [[...]], fuel_rear?: [...],
+                              spark_front?: [...], spark_rear?: [...] } }
+        Only allowed when no ride is active. Saves backup before burn.
+        """
+        import queue as _queue, re as _re, urllib.parse as _up
+        if self.command != 'POST':
+            self._json({'error': 'POST required'}); return
+        if getattr(self.server_instance, 'ride_active', False):
+            self._json({'error': 'cannot burn while ride is active'}); return
+
+        length = int(self.headers.get('Content-Length', 0))
+        try:
+            body = json.loads(self.rfile.read(length))
+        except Exception:
+            self._json({'error': 'invalid JSON body'}); return
+
+        maps = body.get('maps', {})
+        if not maps:
+            self._json({'error': 'no maps provided'}); return
+
+        # Load current EEPROM from active session or most recent
+        buell_dir = self.server_instance.buell_dir
+        cs = getattr(self.server_instance.session, 'current_checksum', None)
+        if not cs:
+            bins = sorted((buell_dir/'sessions').glob('*/eeprom.bin'),
+                          key=lambda p: p.stat().st_mtime)
+            if not bins:
+                self._json({'error': 'no eeprom.bin found'}); return
+            eeprom_path = bins[-1]
+        else:
+            eeprom_path = buell_dir / 'sessions' / cs / 'eeprom.bin'
+        if not eeprom_path.exists():
+            self._json({'error': 'eeprom.bin not found for session ' + str(cs)}); return
+
+        current_bin = eeprom_path.read_bytes()
+
+        # Apply proposed maps into EEPROM bytes
+        from ecu.eeprom import encode_eeprom_maps
+        try:
+            proposed = encode_eeprom_maps(current_bin, maps)
+        except Exception as e:
+            self._json({'error': 'encode failed: ' + str(e)}); return
+
+        # Save backup before burn
+        import time as _time
+        ts = _time.strftime('%Y%m%d_%H%M%S')
+        backup_path = eeprom_path.parent / ('eeprom_backup_' + ts + '.bin')
+        backup_path.write_bytes(current_bin)
+
+        # Queue burn request to ECU loop
+        result_q = _queue.Queue()
+        main_app = getattr(self.server_instance, '_main_app', None)
+        if main_app is None:
+            self._json({'error': 'main app not available'}); return
+        main_app.pending_burn = (proposed, result_q)
+        try:
+            result = result_q.get(timeout=30)
+        except _queue.Empty:
+            main_app.pending_burn = None
+            self._json({'error': 'burn timeout (30s)'}); return
+
+        result['backup'] = backup_path.name
+        self._json(result)
 
     def _handle_msq_download(self, path=None):
         """Serve suggested MSQ for a given session (or active session if none specified)."""

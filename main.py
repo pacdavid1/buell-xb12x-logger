@@ -86,6 +86,7 @@ class BuellLogger:
         
         self._running = False
         self._shutting_down = False
+        self.pending_burn    = None  # (proposed_bytes, result_queue)
         self._poweroff_requested = False
         self._ecu_thread = None
         self._sysmon_thread = None
@@ -276,6 +277,17 @@ class BuellLogger:
                         self.ecu.usb_power_cycle()
                     time.sleep(ECU_RETRY_INTERVAL + random.uniform(0, 1.5))
                     continue
+
+            # ── Pending burn (only when engine off) ──────────────────
+            if not ride_active and self.pending_burn is not None:
+                proposed, result_q = self.pending_burn
+                self.pending_burn = None
+                try:
+                    burn_result = self.ecu.write_full_eeprom(proposed)
+                except Exception as _be:
+                    burn_result = {'written': 0, 'verified': False,
+                                   'diffs_found': 0, 'errors': [str(_be)]}
+                result_q.put(burn_result)
 
             # ── Leer frame RT ──────────────────────────────────────────
             elapsed_s = time.monotonic() - self.session.ride_start_time if (ride_active and self.session.ride_start_time) else 0.0
@@ -483,6 +495,7 @@ class BuellLogger:
         
         # 4. Iniciar servidor web
         self.logger.info("Iniciando servidor web...")
+        self.web._main_app = self
         self.web.start()
         
         # 5. Loop principal
