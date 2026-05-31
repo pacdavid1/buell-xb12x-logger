@@ -25,6 +25,20 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.69] -- 2026-05-31
+
+### Added
+
+- docs/10_DDFI2_PROTOCOL.md: complete protocol reference for DDFI2 serial + EEPROM burn
+  covers PDU frame structure, CMD_GET (0x52) read, CMD_SET (0x57) write (confirmed today),
+  EEPROM page layout, XPR file format, MSQ format, EcmSpy BurnDiffs strategy,
+  planned Pi burn workflow, and test history with dates and outcomes
+- tools/ecm_bridge.py: TCP-serial bridge for protocol monitoring (EcmSpy MITM)
+- tools/test_write.py: DDFI2 write protocol validation script
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.68] -- 2026-05-30
 
 ### Fixed
