@@ -1148,6 +1148,7 @@ def _fmtk(n):
     if n >= 1000: return f"{n/1000:.1f}k"
     return str(n)
 CACHE_VERSION = 4  # bump when detect_launches or cluster_launches schema changes
+_cache_lock = threading.Lock()
 
 def _compare_sessions_cached(buell_dir, sa, sb):
     import json as _json

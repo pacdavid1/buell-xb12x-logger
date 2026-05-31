@@ -25,6 +25,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.65] -- 2026-05-30
+
+### Fixed
+
+- web/server.py: _cache_lock = threading.Lock() was missing at module level
+  caused NameError on every /sessions_launch/data request -> 500 error
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.64] -- 2026-05-30
 
 ### Changed
