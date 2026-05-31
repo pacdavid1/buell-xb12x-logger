@@ -25,6 +25,21 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.62] -- 2026-05-30
+
+### Changed
+
+- web/templates/sessions_launch.html: layout redesign — chart is now the protagonist
+  - body fills viewport (height:100dvh, overflow:hidden); chart-area flex:1 takes all remaining space
+  - pairs list replaced by horizontal scrollable chip strip above the chart
+  - metric toggles moved to compact toolbar above the canvas
+  - canvas sizing bug fixed: chart-area shown before drawChart() so canvas.offsetWidth is not 0
+  - std deviation bands removed; A series solid 2.5px, B series dashed 1.8px at 72% alpha
+  - Y-axis reduced to label + min/max only (no tick clutter)
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.61] -- 2026-05-30
 
 ### Added
