@@ -755,7 +755,9 @@ function editCell(mapKey, ri, ci, origVal, cellEl){
 
   const inp = document.createElement('input');
   inp.id = '_cellInput';
-  inp.type = 'number';
+  inp.type = 'text';
+  inp.inputMode = 'numeric';
+  inp.pattern = '[0-9]*';
   inp.value = (_staged[mapKey] && _staged[mapKey][ri+'_'+ci])
               ? _staged[mapKey][ri+'_'+ci].val : origVal;
   inp.style.cssText = ('position:absolute;z-index:999;width:54px;height:24px;'

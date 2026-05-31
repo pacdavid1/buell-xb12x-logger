@@ -93,7 +93,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/suggested_msq': self._handle_suggested_msq,
             '/eeprom/download': self._handle_eeprom_download,
             '/eeprom/msq':      self._handle_eeprom_msq,
-            '/eeprom/burn':     self._handle_eeprom_burn,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
@@ -159,6 +158,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/reboot_pi': self._handle_post_reboot_pi,
             '/ride/launch_event': self._handle_ride_launch_event,
             '/coverage/targets': self._handle_coverage_targets,
+            '/eeprom/burn':       self._handle_eeprom_burn,
         }
         handler = _routes.get(path)
         if handler:
@@ -579,24 +579,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
-    def _handle_eeprom_burn(self, path=None):
+    def _handle_eeprom_burn(self, path=None, payload=None):
         """Burn proposed map changes to ECU EEPROM.
-        POST body: { maps: { fuel_front?: [[...]], fuel_rear?: [...],
-                              spark_front?: [...], spark_rear?: [...] } }
+        POST body: { maps: { fuel_front?, fuel_rear?, spark_front?, spark_rear? } }
         Only allowed when no ride is active. Saves backup before burn.
         """
-        import queue as _queue, re as _re, urllib.parse as _up
-        if self.command != 'POST':
-            self._json({'error': 'POST required'}); return
+        import queue as _queue
         if getattr(self.server_instance, 'ride_active', False):
             self._json({'error': 'cannot burn while ride is active'}); return
 
-        length = int(self.headers.get('Content-Length', 0))
-        try:
-            body = json.loads(self.rfile.read(length))
-        except Exception:
-            self._json({'error': 'invalid JSON body'}); return
-
+        body = payload or {}
         maps = body.get('maps', {})
         if not maps:
             self._json({'error': 'no maps provided'}); return
