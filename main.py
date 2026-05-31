@@ -250,9 +250,7 @@ class BuellLogger:
                         self.session.open_session(ecu_version, blob)
                         time.sleep(SESSION_OPEN_DELAY)
                         
-                        if not (self.session.current_session_dir / 'eeprom.bin').exists():
-                            self.session.save_eeprom(blob)
-                            
+                        self.session.save_eeprom(blob)
                         self._update_web_ecu_state(blob, ecu_version)
                         self.logger.info(f"Session opened from reconnect: {self.session.current_checksum}")
                         consecutive_errors = 0
@@ -287,6 +285,17 @@ class BuellLogger:
                 except Exception as _be:
                     burn_result = {'written': 0, 'verified': False,
                                    'diffs_found': 0, 'errors': [str(_be)]}
+                if burn_result.get('verified'):
+                    try:
+                        ver  = self.ecu.get_version() or ecu_version or 'post-burn'
+                        blob = self._load_eeprom_blob(ver)
+                        if blob:
+                            self.session.open_session(ver, blob)
+                            self.session.save_eeprom(blob)
+                            self._update_web_ecu_state(blob, ver)
+                            self.logger.info('Post-burn EEPROM reload OK — session: ' + str(self.session.current_checksum))
+                    except Exception as _re:
+                        self.logger.warning('Post-burn EEPROM reload failed: ' + str(_re))
                 result_q.put(burn_result)
 
             # ── Leer frame RT ──────────────────────────────────────────
@@ -465,9 +474,8 @@ class BuellLogger:
                 blob = self._load_eeprom_blob(ver)
                 if blob:
                     self.session.open_session(ver, blob)
-                    if not (self.session.current_session_dir / 'eeprom.bin').exists():
-                        self.session.save_eeprom(blob)
-                        self.logger.info("EEPROM saved to session")
+                    self.session.save_eeprom(blob)
+                    self.logger.info("EEPROM saved to session")
                     
                     self._update_web_ecu_state(blob, ver)
                     self.logger.info(f"EEPROM ready — {len(self.web.eeprom_params)} params | Serial={self.web.bike_serial} | ECU={self.web.ecu_identity.get('name','?')} ({self.web.ecu_identity.get('ddfi','?')})")

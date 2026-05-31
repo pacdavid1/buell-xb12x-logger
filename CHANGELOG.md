@@ -25,6 +25,28 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.73] — 2026-05-31
+
+### Fixed
+
+- web/static/app.js: stale data bug — burn now sends only staged cell changes
+  instead of full map tables; server applies changes to current EEPROM from disk,
+  eliminating collateral writes from stale _mapsData
+- web/static/app.js: removed 50%/15% hard block and confirm gates in stageChange;
+  any value accepted without blocking (enables small absolute changes like 1°→2°)
+- web/static/app.js: post-burn auto-reload of VE map — 1.5s delay after verified burn
+  then loadMaps() is called automatically, shows 'Actualizando mapa...' status
+- web/server.py: POST /eeprom/burn now accepts {changes:[{map,ri,ci,val}]} format
+  in addition to {maps:{...}} for cell-level burns without full table
+- web/server.py: removed BURN_RECV debug logging (was temporary diagnostic)
+- main.py: post-burn EEPROM reload — after successful write_full_eeprom, ECU loop
+  re-reads EEPROM, updates session and web state immediately without service restart
+- ecu/session.py / main.py: eeprom.bin always saved on session open (not only on
+  first create), so /maps always serves current ECU state after reconnect
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.72] -- 2026-05-31
 
 ### Added

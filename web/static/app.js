@@ -719,22 +719,6 @@ function updateEditToolbar(){
 }
 
 function stageChange(mapKey, ri, ci, origVal, newVal){
-  const diff = Math.abs(newVal - origVal);
-  // percentage is undefined from zero — skip pct gate, allow any change
-  const pct  = origVal !== 0 ? diff / Math.abs(origVal) * 100 : 0;
-  if(pct > 50){
-    // Hard block above 50% — likely a typo
-    alert('Change of ' + pct.toFixed(1) + '% blocked (limit: 50%).\n'
-        + 'Original: ' + origVal + '  →  New: ' + newVal);
-    return false;
-  }
-  if(pct > 15){
-    // Soft warning: ask for confirmation
-    const ok = confirm('Warning: ' + pct.toFixed(1) + '% change ('
-      + origVal + ' → ' + newVal + ').\n'
-      + 'Recommended limit is ±15%. Proceed anyway?');
-    if(!ok) return false;
-  }
   if(!_staged[mapKey]) _staged[mapKey] = {};
   _staged[mapKey][ri + '_' + ci] = { orig: origVal, val: newVal };
   updateEditToolbar();
@@ -791,19 +775,13 @@ function burnStaged(){
   if(n === 0) return;
   if(!confirm('Burn ' + n + ' cell change' + (n>1?'s':'') + ' to ECU?\n\nA backup will be saved automatically.')) return;
 
-  // Build full proposed map tables from _mapsData + staged changes
-  const maps = {};
-  ['fuel_front','fuel_rear','spark_front','spark_rear'].forEach(function(mk){
-    if(!_mapsData || !_mapsData[mk]) return;
-    if(!_staged[mk] || Object.keys(_staged[mk]).length === 0) return;
-    // Deep-copy the table
-    const tbl = _mapsData[mk].map(function(row){ return row.slice(); });
-    Object.entries(_staged[mk]).forEach(function([key, s]){
+  // Send only staged cell changes — server applies them to current EEPROM
+  const changes = [];
+  Object.entries(_staged).forEach(function([mk, cells]){
+    Object.entries(cells).forEach(function([key, s]){
       const parts = key.split('_');
-      const ri = parseInt(parts[0]), ci = parseInt(parts[1]);
-      tbl[ri][ci] = s.val;
+      changes.push({map: mk, ri: parseInt(parts[0]), ci: parseInt(parts[1]), val: s.val});
     });
-    maps[mk] = tbl;
   });
 
   const btn = $id('btnBurnEcu');
@@ -812,7 +790,7 @@ function burnStaged(){
   fetch('/eeprom/burn', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({maps: maps})
+    body: JSON.stringify({changes: changes})
   }).then(function(r){ return r.json(); }).then(function(d){
     if(d.error){
       alert('Burn failed: ' + d.error);
@@ -823,10 +801,11 @@ function burnStaged(){
         + 'Backup: ' + (d.backup || '—'));
       alert(msg);
       if(d.verified){
-        // Reload maps from ECU to reflect new state
         _staged = {};
         updateEditToolbar();
-        loadMaps(_mapsSession);
+        const veStatus = document.getElementById('veMapStatus');
+        if(veStatus) veStatus.textContent = 'Actualizando mapa...';
+        setTimeout(function(){ loadMaps(_mapsSession); }, 1500);
       }
     }
   }).catch(function(e){

@@ -95,6 +95,10 @@ def decode_params(blob, version_string):
 
         if size == 2:
             raw = blob[blob_i] | (blob[blob_i + 1] << 8)
+            if raw > 32767:
+                raw -= 65536
+        elif size == 4:
+            raw = blob[blob_i] | (blob[blob_i + 1] << 8) | (blob[blob_i + 2] << 16) | (blob[blob_i + 3] << 24)
         else:
             raw = blob[blob_i]
 

@@ -86,33 +86,34 @@ class NetworkManager:
                 s = json.loads(STATE_FILE.read_text())
                 if s.get("last_wifi_ip"):
                     return s["last_wifi_ip"]
-        except Exception:
-            pass
+        except Exception as e:
+            self.logger.warning(f"get_wifi_ip: {e}")
         return None
 
     def _save_state(self, mode, ip, extra=None):
-        try:
-            state = {}
-            if STATE_FILE.exists():
-                state = json.loads(STATE_FILE.read_text())
-            state["mode"]            = mode
-            state["ip"]              = ip
-            state["last_switch_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-            if mode == "wifi":
-                state["last_wifi_ip"] = ip
-            if extra:
-                state.update(extra)
-            STATE_FILE.write_text(json.dumps(state, indent=2))
-        except Exception as e:
-            self.logger.warning(f"No se pudo guardar state: {e}")
+        with self._state_lock:
+            try:
+                state = {}
+                if STATE_FILE.exists():
+                    state = json.loads(STATE_FILE.read_text())
+                state["mode"]            = mode
+                state["ip"]              = ip
+                state["last_switch_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                if mode == "wifi":
+                    state["last_wifi_ip"] = ip
+                if extra:
+                    state.update(extra)
+                STATE_FILE.write_text(json.dumps(state, indent=2))
+            except Exception as e:
+                self.logger.warning(f"No se pudo guardar state: {e}")
 
     def load_state(self):
         try:
             with self._state_lock:
                 if STATE_FILE.exists():
                     return json.loads(STATE_FILE.read_text())
-        except Exception:
-            pass
+        except Exception as e:
+            self.logger.warning(f"load_state: {e}")
         return {}
 
     def get_redirect_url(self, target_action, port=8080):

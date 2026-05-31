@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+# set -e is NOT used here because git commands can fail in non-repo dirs
 
 echo "================ PI SNAPSHOT ================"
 date

@@ -89,7 +89,11 @@ def decode_eeprom_params(eeprom_bytes):
     for varname, (offset, scale, translate, units, desc) in BUEIB_PARAMS.items():
         if offset >= len(eeprom_bytes):
             continue
-        raw = eeprom_bytes[offset]
+        # Ride_Counter is a 2-byte counter; others are 1 byte
+        if varname == "Ride_Counter" and offset + 1 < len(eeprom_bytes):
+            raw = int.from_bytes(eeprom_bytes[offset:offset+2], "little")
+        else:
+            raw = eeprom_bytes[offset]
         val = round(raw * scale + translate, 3)
         result[varname] = {"val": val, "raw": raw, "units": units, "desc": desc}
     return result

@@ -124,11 +124,13 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
   </div>
 </div>
 <script>
+function escapeHtml(s){if(typeof s==='undefined'||s===null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 var _data=null,_curFlavor='SWEET',_curMode='SPORT',MIN_N=10;
 
 async function init(){
   try{
     var r=await fetch('/tuner/sessions');
+    if(!r.ok)throw Error('HTTP '+r.status);
     var d=await r.json();
     if(!d.sessions||!d.sessions.length){st('No hay sesiones');return}
     var o='<option value="">-- seleccionar --</option>';
@@ -138,7 +140,7 @@ async function init(){
       var sm=s.samples>=1000?(s.samples/1000).toFixed(1)+'k':s.samples;
       o+='<option value="'+s.id+'">'+s.id+bike+' — '+s.created+' ('+s.rides+'r·'+sm+')</option>';
     }
-    document.getElementById('sA').innerHTML=o;
+    document.getElementById('sA').innerHTML=escapeHtml(o);
     document.getElementById('sB').innerHTML=o;
     st(d.sessions.length+' sesiones disponibles');
   }catch(e){st('Error: '+e.message)}
@@ -165,6 +167,7 @@ async function compare(){
   document.getElementById('dtWrap').style.display='none';
   try{
     var r=await fetch('/sessions_vs/compare?a='+a+'&b='+b);
+    if(!r.ok)throw Error('HTTP '+r.status);
     _data=await r.json();
     if(_data.error){st('Error: '+_data.error);document.getElementById('btnCmp').disabled=false;return}
     render();
@@ -347,7 +350,7 @@ document.querySelector('#dtTable thead').addEventListener('click',function(e){
 function download(){
   var a=document.getElementById('sA').value,b=document.getElementById('sB').value;
   var url='/sessions_vs/download?a='+a+'&b='+b;
-  fetch(url).then(function(r){
+  fetch(url).then(function(r){if(!r.ok)throw Error('HTTP '+r.status);
     if(!r.ok){ return r.json().then(function(d){ st('Download error: '+(d.error||r.status)); }); }
     return r.blob().then(function(blob){
       var l=document.createElement('a');

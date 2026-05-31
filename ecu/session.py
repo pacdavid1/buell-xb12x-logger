@@ -281,7 +281,7 @@ class SessionManager:
         # Merge cells del ride nuevo en el agregado
         for k, v in cells.items():
             a = agg.setdefault(k, {
-                "seconds":0.0, "ego_sum":0.0, "count":0, "o2_adc_sum":0.0, "o2_adc_sum":0.0,
+                "seconds":0.0, "ego_sum":0.0, "count":0, "o2_adc_sum":0.0,
                 "valid_seconds":0.0, "valid_ego_sum":0.0, "valid_count":0,
                 "clt_sum":0.0, "wue_sum":0.0, "afv_sum":0.0, "inv_reasons":{}
             })
@@ -342,7 +342,7 @@ class SessionManager:
                 "valid_ego_avg": v_ego,
                 "clt_avg":       clt_avg,
                 "afv_avg":       afv_avg,
-                    "o2_adc_avg":     round(a["o2_adc_sum"] / n, 1) if n else None,
+                    "o2_adc_avg":     round(v["o2_adc_sum"] / n, 1) if n else None,
                 "inv_reasons":   a["inv_reasons"],
                 "suggestion":    suggestion,
             }
@@ -828,7 +828,7 @@ class CellTracker:
                     "clt_avg":        clt_a,
                     "wue_avg":        wue_a,
                     "afv_avg":        afv_a,
-                    "o2_adc_avg":     round(a["o2_adc_sum"] / n, 1) if n else None,
+                    "o2_adc_avg":     round(v["o2_adc_sum"] / n, 1) if n else None,
                     "inv_reasons":    dict(v["inv_reasons"]),
                 "flavor_counts":  {f: round(s, 1) for f, s in v.get("flavor_counts", {}).items()},
                 }

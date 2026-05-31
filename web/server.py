@@ -590,8 +590,9 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
         body = payload or {}
         maps = body.get('maps', {})
-        if not maps:
-            self._json({'error': 'no maps provided'}); return
+        changes = body.get('changes', [])
+        if not maps and not changes:
+            self._json({'error': 'no maps or changes provided'}); return
 
         # Load current EEPROM from active session or most recent
         buell_dir = self.server_instance.buell_dir
@@ -609,9 +610,18 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
         current_bin = eeprom_path.read_bytes()
 
-        # Apply proposed maps into EEPROM bytes
-        from ecu.eeprom import encode_eeprom_maps
+        # Apply staged cell changes to current EEPROM
+        from ecu.eeprom import encode_eeprom_maps, decode_eeprom_maps
         try:
+            if changes:
+                current_maps = decode_eeprom_maps(current_bin)
+                for ch in changes:
+                    mk = ch.get('map'); ri = int(ch.get('ri',0)); ci = int(ch.get('ci',0)); val = float(ch.get('val',0))
+                    if mk not in current_maps or not isinstance(current_maps[mk], list): continue
+                    if ri >= len(current_maps[mk]) or ci >= len(current_maps[mk][ri]): continue
+                    if mk not in maps:
+                        maps[mk] = [row[:] for row in current_maps[mk]]
+                    maps[mk][ri][ci] = val
             proposed = encode_eeprom_maps(current_bin, maps)
         except Exception as e:
             self._json({'error': 'encode failed: ' + str(e)}); return

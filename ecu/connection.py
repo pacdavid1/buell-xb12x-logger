@@ -104,20 +104,27 @@ class DDFI2Connection:
         try:
             if self.ser and self.ser.is_open:
                 self.ser.close()
-        except Exception:
-            pass
+        except Exception as e:
+            self.logger.warning(f"disconnect: {e}")
 
     def usb_power_cycle(self) -> bool:
         """Power cycle del hub USB via sysfs autosuspend.
         Mas efectivo que authorized toggle cuando dwc2 queda hung."""
         try:
-            hub = '/sys/bus/usb/devices/usb1'
-            with open(f'{hub}/power/autosuspend_delay_ms', 'w') as f: f.write('0')
-            time.sleep(1.0)
-            with open(f'{hub}/power/level', 'w') as f: f.write('on')
-            time.sleep(2.0)
-            self.logger.info("USB power cycle completado")
-            return True
+            # Find the USB root hub dynamically instead of hardcoding usb1
+            hubs = [p for p in glob.glob('/sys/bus/usb/devices/usb*')
+                    if os.path.basename(p).startswith('usb') and p[-1].isdigit()][:5]
+            hub = hubs[0] if hubs else '/sys/bus/usb/devices/usb1'
+            for h in [hub]:  # try primary hub
+                try:
+                    with open(f'{h}/power/autosuspend_delay_ms', 'w') as f: f.write('0')
+                    time.sleep(1.0)
+                    with open(f'{h}/power/level', 'w') as f: f.write('on')
+                    self.logger.info(f"USB power cycle completado en {h}")
+                    return True
+                except Exception:
+                    continue
+            return False
         except Exception as e:
             self.logger.warning(f"USB power cycle falló: {e}")
             return False
@@ -150,11 +157,15 @@ class DDFI2Connection:
             return False
 
     def _send(self, pdu: bytes) -> None:
+        if not self.ser:
+            raise RuntimeError("Serial port not connected")
         self.ser.reset_input_buffer()
         self.ser.write(pdu)
         self.ser.flush()
 
     def _read_exact(self, n: int, timeout_s: float = 1.0) -> bytes:
+        if not self.ser:
+            raise RuntimeError("Serial port not connected")
         buf = bytearray()
         deadline = time.monotonic() + timeout_s
         while len(buf) < n:
@@ -193,6 +204,8 @@ class DDFI2Connection:
         return None
 
     def _sync_to_soh(self, timeout_s: float = 0.5) -> bool:
+        if not self.ser:
+            return False
         """Descarta basura del buffer hasta encontrar SOH (0x01)."""
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
