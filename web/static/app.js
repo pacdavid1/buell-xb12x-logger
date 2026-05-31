@@ -879,7 +879,8 @@ function showMap(which){
     const loadVal = yReversed[ri] !== undefined ? yReversed[ri] : ri;
     html += '<tr>';
     html += `<td style="padding:2px 4px;color:var(--dim);font-size:8px;white-space:nowrap">${loadVal}%</td>`;
-    for(const val of row){
+    for(let ci=0; ci<row.length; ci++){
+      const val = row[ci];
       if(val === 0 || val === null){
         html += `<td style="background:#1a1a22;color:#333;padding:1px 2px;text-align:center;
                  min-width:${cellW}px;height:${cellH}px;border:1px solid rgba(255,255,255,0.04);
