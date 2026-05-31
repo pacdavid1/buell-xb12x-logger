@@ -25,6 +25,25 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.71] -- 2026-05-31
+
+### Added
+
+- ecu/connection.py: CMD_SET = 0x57 constant (confirmed write command)
+- ecu/connection.py: write_eeprom_page(page_nr, offset, data) -> bool
+  payload format [CMD_SET, offset, page, data...] no length field
+- ecu/connection.py: write_full_eeprom(proposed, safe_start=670, safe_end=1205)
+  BurnDiffs approach: read current -> diff in safe zone -> write chunks -> verify
+  groups consecutive diffs into chunks (max 16 bytes, gap <= 4 bytes merged)
+  never touches offsets 0-669 (DTC/factory/config area)
+- BACKLOG.md: FASE 5 -- VE subtab as full EcmSpy replacement
+  5.1 fuel/spark map editor with staged changes + burn button
+  5.2 full configuration parameters editor (238 named params from BUEIB.xml)
+  5.3 AI-assisted parameter suggestions via structured JSON export
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.70] -- 2026-05-31
 
 ### Added

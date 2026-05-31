@@ -31,6 +31,7 @@ ACK: int      = 0x06
 DROID_ID: int  = 0x00
 STOCK_ECM_ID: int = 0x42
 CMD_GET: int   = 0x52
+CMD_SET: int   = 0x57  # confirmed 2026-05-31: write EEPROM page
 RT_RESPONSE_SIZE: int = 107
 
 PDU_VERSION = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x56, 0x03, 0xE8])
@@ -271,3 +272,122 @@ class DDFI2Connection:
         except Exception as e:
             self.logger.error(f"read_full_eeprom: {e}")
             return None
+
+    def write_eeprom_page(self, page_nr: int, offset: int, data: bytes) -> bool:
+        """Write data bytes to ECU EEPROM at page/offset. Returns True on ACK.
+        Payload format: [CMD_SET, offset, page, data...] — no length field.
+        """
+        try:
+            payload = bytes([CMD_SET, offset & 0xFF, page_nr & 0xFF]) + bytes(data)
+            self._send(build_pdu(payload))
+            h = self._read_exact(6, 2.0)
+            if h[0] != SOH:
+                return False
+            rest = self._read_exact(h[3] - 1 + 2, 2.0)
+            return (h + rest)[6] == ACK
+        except Exception as e:
+            self.logger.error(f"write_eeprom_page page={page_nr} offset={offset}: {e}")
+            return False
+
+    def write_full_eeprom(self, proposed: bytes,
+                          safe_start: int = 670,
+                          safe_end:   int = 1205) -> dict:
+        """Burn proposed EEPROM to ECU using BurnDiffs approach.
+
+        Only writes bytes that differ from the current ECU state, and only
+        within safe_start..safe_end (fuel + spark maps). Never touches the
+        DTC / factory-config area (offsets 0-669).
+
+        Returns dict: {written, verified, diffs_found, errors}
+        """
+        if len(proposed) != 1206:
+            return {'written': 0, 'verified': False, 'diffs_found': 0,
+                    'errors': [f'proposed length {len(proposed)} != 1206']}
+
+        # Read current EEPROM before any write
+        current = self.read_full_eeprom()
+        if current is None:
+            return {'written': 0, 'verified': False, 'diffs_found': 0,
+                    'errors': ['pre-burn read failed']}
+
+        # Collect absolute offsets that differ within safe zone
+        diffs = [i for i in range(safe_start, safe_end + 1)
+                 if proposed[i] != current[i]]
+
+        if not diffs:
+            self.logger.info("write_full_eeprom: no changes in safe zone — nothing to write")
+            return {'written': 0, 'verified': True, 'diffs_found': 0, 'errors': []}
+
+        self.logger.info(
+            f"write_full_eeprom: {len(diffs)} bytes differ in range {safe_start}-{safe_end}")
+
+        # Map absolute offset → (page_nr, page_offset)
+        def abs_to_page(abs_off):
+            for pnr, start, length in BUEIB_PAGES:
+                if start <= abs_off < start + length:
+                    return pnr, abs_off - start
+            return None, None
+
+        # Group consecutive diffs into chunks (max 16 bytes, same page)
+        # Spans of up to 4 unchanged bytes between diffs are merged into one
+        # chunk to reduce the number of write PDUs.
+        errors  = []
+        written = 0
+        i = 0
+        while i < len(diffs):
+            abs_off  = diffs[i]
+            page_nr, page_off = abs_to_page(abs_off)
+            if page_nr is None:
+                errors.append(f'offset {abs_off} not mapped to any page')
+                i += 1
+                continue
+
+            # Extend chunk: keep adding while same page, gap <= 4, total <= 16
+            chunk_end = abs_off
+            j = i + 1
+            while j < len(diffs) and (chunk_end - abs_off + 1) < 16:
+                next_abs = diffs[j]
+                next_page, _ = abs_to_page(next_abs)
+                if next_page != page_nr:
+                    break
+                if next_abs - chunk_end > 4:  # gap too large — new chunk
+                    break
+                chunk_end = next_abs
+                j += 1
+
+            # Write proposed bytes from abs_off to chunk_end (inclusive)
+            chunk_len  = chunk_end - abs_off + 1
+            chunk_data = proposed[abs_off:chunk_end + 1]
+            ok = self.write_eeprom_page(page_nr, page_off, chunk_data)
+            if ok:
+                written += chunk_len
+                self.logger.debug(
+                    f"  wrote {chunk_len}B at page={page_nr} off={page_off}")
+            else:
+                errors.append(
+                    f'write failed page={page_nr} offset={page_off} len={chunk_len}')
+                self.logger.error(errors[-1])
+
+            # Advance past all diffs within this chunk
+            i = j if j > i + 1 else i + 1
+            while i < len(diffs) and diffs[i] <= chunk_end:
+                i += 1
+
+        # Verify: read back and compare safe zone
+        verify = self.read_full_eeprom()
+        verified = (verify is not None and
+                    all(verify[k] == proposed[k]
+                        for k in range(safe_start, safe_end + 1)))
+
+        if verified:
+            self.logger.info(
+                f"write_full_eeprom: verified OK ({written} bytes written)")
+        else:
+            self.logger.error("write_full_eeprom: verification FAILED")
+
+        return {
+            'written':     written,
+            'verified':    verified,
+            'diffs_found': len(diffs),
+            'errors':      errors,
+        }

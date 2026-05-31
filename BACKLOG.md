@@ -184,3 +184,84 @@ VE/spark map updates based on observed engine response vs expected ECU output.
   in Sessions VS via bike_serial check
 - CLT must be comparable between sessions for valid efficiency comparisons
   (see Eff score caveat in v2.6.64)
+
+---
+
+## FASE 5 — VE Subtab as Full EEPROM Editor (EcmSpy replacement)
+
+**Goal:** replace EcmSpy entirely for day-to-day tuning. Edit any named EEPROM
+parameter directly from the dashboard (phone or browser), burn to ECU via Pi.
+
+### Context
+
+The VE subtab already reads and displays the decoded EEPROM (fuel maps, spark maps,
+named parameters). The BUEIB.xml covers 99% of the EEPROM (1204/1206 bytes,
+238 named parameters). `write_full_eeprom()` is implemented and tested.
+The missing piece is the UI layer and parameter-level burn controls.
+
+### Phase 5.1 — Fuel + Spark map editor (safe zone only)
+
+The 4 maps (Fuel Front, Fuel Rear, Spark Front, Spark Rear) are the primary
+tuning targets. These live in the safe write zone (offsets 670–1205).
+
+- [ ] Make each VE heatmap cell editable (click → input field → enter new value)
+- [ ] "Stage" changes locally (highlight modified cells in yellow/orange)
+- [ ] Show a diff summary: N cells changed, max delta ±X%
+- [ ] Safety gate: reject changes > ±15% of current value per cell
+- [ ] "Burn to ECU" button → calls write_full_eeprom() → shows progress + result
+- [ ] "Discard changes" button → revert staged cells to current ECU values
+- [ ] Auto-backup: save current EEPROM as XPR before any burn
+
+Endpoint needed:
+- POST /eeprom/burn { session: X, maps: { fuel_front: [[...]], ... } }
+  → decodes proposed maps → builds full 1206-byte blob → calls write_full_eeprom()
+
+### Phase 5.2 — Configuration parameters editor
+
+Beyond fuel/spark maps, the BUEIB.xml defines 238 named parameters including:
+EGO correction thresholds, AFV limits, closed-loop RPM window, startup enrichment,
+idle spark, WOT spark reduction, fuel cut region, and more.
+
+- [ ] Expose all named eeoffsets from BUEIB.xml in a new "Config" section of VE tab
+- [ ] Group by category (Fuel, Spark, Idle, Closed Loop, Temperature, etc.)
+- [ ] Each parameter: current value, units, editable input
+- [ ] Burn config parameters with same safety gate + backup workflow as Phase 5.1
+- [ ] Note: config params live in offsets 0–669 — expand safe_start dynamically
+      based on which params the user edits (never touch DTC/serial/factory bytes)
+
+### Phase 5.3 — AI-assisted parameter suggestions
+
+Generating tuning suggestions for the 200+ configuration parameters is too complex
+for deterministic algorithms. The right approach: export a structured JSON snapshot
+that a language model can interpret and suggest changes for.
+
+- [ ] Export endpoint: GET /eeprom/ai_context?session=X
+  Returns JSON with:
+  - Current EEPROM values for all 238 named parameters (with units + description)
+  - Recent session statistics (avg CLT, RPM histogram, load distribution, EGO history)
+  - Current VE/spark maps vs sessions-derived suggestions
+  - Known constraints (safe ranges from XML, bike serial, ECU version)
+
+- [ ] The JSON is designed to be pasted into a Claude/GPT prompt for parameter review
+- [ ] Suggestions come back as human-readable text, user applies them manually
+  (not auto-applied — the human stays in the loop for configuration changes)
+
+### Why this replaces EcmSpy
+
+| Workflow today         | Workflow after Phase 5.1        |
+|------------------------|---------------------------------|
+| Pi logs session        | Pi logs session                 |
+| Analyze in dashboard   | Analyze in dashboard            |
+| Open EcmSpy on laptop  | Stay in dashboard (phone OK)    |
+| Load EEPROM via USB    | Already loaded from Pi          |
+| Edit maps manually     | Edit cells directly in VE tab   |
+| Save MSQ               | Stage changes                   |
+| Burn to ECU via USB    | Burn to ECU via Pi (WiFi)       |
+| Reconnect Pi           | Already connected                |
+
+### Dependencies
+
+- write_full_eeprom() ✅ implemented (ecu/connection.py v2.6.71)
+- BUEIB.xml parameter map ✅ 99% coverage confirmed
+- GET /eeprom/msq ✅ already generates MSQ from current EEPROM
+- Safe write zone documented ✅ (docs/10_DDFI2_PROTOCOL.md section 11)
