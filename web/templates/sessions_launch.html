@@ -139,8 +139,7 @@ var activeMetrics = ['rpm', 'spd', 'pw'];
 // ── Init ─────────────────────────────────────────────────────────
 async function init() {
   try {
-    var r = await fetch('/tuner/sessions');
-    var d = await r.json();
+    var r = await fetch('/tuner/sessions');if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
     SESSIONS = (d.sessions || []).sort(function(a,b){ return b.created.localeCompare(a.created); });
     var sA = document.getElementById('sA');
     var sB = document.getElementById('sB');
@@ -243,7 +242,7 @@ function renderPairs() {
     chip.innerHTML =
       '<span class="pair-chip-gear">' + gearLabel(a.gear) + '</span>' +
       '<span class="pair-chip-cond">' + Math.round(a.mean_rpm) + ' rpm · ' + a.mean_tps.toFixed(1) + '% TPS</span>' +
-      '<span class="pair-chip-score" style="color:' + qCol + '">' + qMark + ' ' + dist.toFixed(2) + '</span>' +
+      '<span class="pair-chip-score" style="color:' + qCol + '">' + qMark + ' sim ' + dist.toFixed(2) + '</span>' +
       (envParts.length ? '<span class="pair-chip-env">' + envParts.join(' · ') + '</span>' : '');
 
     strip.appendChild(chip);
@@ -476,8 +475,10 @@ function renderConditions(ca, cb) {
     if (c.pre_clt_mean  != null) rows.push(['CLT',    Math.round(c.pre_clt_mean)  + '°C']);
     if (c.pre_alt_mean  != null) rows.push(['Alt',    Math.round(c.pre_alt_mean)  + ' m']);
     if (c.peak_pw_mean  != null) rows.push(['PW pk',  c.peak_pw_mean.toFixed(3)   + ' ms']);
-    if (c.rpm_gain_mean != null) rows.push(['+RPM',  '+' + Math.round(c.rpm_gain_mean)]);
-    if (c.spd_gain_mean != null) rows.push(['+Spd',  '+' + c.spd_gain_mean.toFixed(1) + ' km/h']);
+    if (c.rpm_gain_mean != null) rows.push(['+RPM',  '+' + Math.round(c.rpm_gain_mean)
+      + (c.rpm_gain_std > 0 ? ' ±' + Math.round(c.rpm_gain_std) : '')]);
+    if (c.spd_gain_mean != null) rows.push(['+Spd',  '+' + c.spd_gain_mean.toFixed(1)
+      + (c.spd_gain_std > 0 ? ' ±' + c.spd_gain_std.toFixed(1) : '') + ' km/h']);
     return '<div class="cond-box"><div class="cond-box-label">' + label + '</div>' +
       rows.map(function(r){
         return '<div class="cond-row"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>';
@@ -497,6 +498,17 @@ function renderConditions(ca, cb) {
   delta('ΔRPM gain', ca.rpm_gain_mean, cb.rpm_gain_mean, function(v){ return Math.round(v); }, true);
   delta('ΔSpd gain', ca.spd_gain_mean, cb.spd_gain_mean, function(v){ return v.toFixed(1)+'km/h'; }, true);
   delta('ΔPeak PW',  ca.peak_pw_mean,  cb.peak_pw_mean,  function(v){ return v.toFixed(3)+'ms'; }, true);
+  // Efficiency: speed gained per ms of peak PW (km/h · ms⁻¹). Valid when CLT is comparable between sessions.
+  if (ca.spd_gain_mean != null && ca.peak_pw_mean > 0.01 &&
+      cb.spd_gain_mean != null && cb.peak_pw_mean > 0.01) {
+    var effA = ca.spd_gain_mean / ca.peak_pw_mean;
+    var effB = cb.spd_gain_mean / cb.peak_pw_mean;
+    var dEff = effB - effA;
+    var pct  = (dEff / Math.abs(effA) * 100);
+    var cls  = dEff > 0 ? 'pos' : 'neg';
+    d.push('Eff(spd/PW): A=' + effA.toFixed(2) + ' B=' + effB.toFixed(2)
+      + ' → <span class="' + cls + '">' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%</span>');
+  }
   document.getElementById('deltaRow').innerHTML = d.length ? 'B vs A — ' + d.join(' · ') : '';
 }
 

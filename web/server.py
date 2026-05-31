@@ -166,7 +166,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self._json({"error": "unknown endpoint"}, 404)
 
     def _handle_static(self, path=None):
-        path = self.path.lstrip("/")
+        path = self.path.split("?", 1)[0].removeprefix("/")
         base = os.path.realpath(os.path.dirname(__file__))
         fpath = os.path.realpath(os.path.join(base, path))
         if os.path.commonpath([base, fpath]) == base and os.path.isfile(fpath):
@@ -747,7 +747,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
         output = result.stdout.strip() + result.stderr.strip()
         ok = result.returncode == 0
         if ok:
-            subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
+            # Only restart logger if there are actual changes
+            if 'Already up to date' not in output and 'up-to-date' not in output:
+                subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
+            else:
+                output = 'Already up to date'
         self._json({"ok": ok, "output": output})
         return
 
@@ -1158,7 +1162,11 @@ def _compare_sessions_cached(buell_dir, sa, sb):
     cache_file = cache_dir / fname
     if cache_file.exists():
         try:
-            cached = json.load(open(cache_file))
+            with _cache_lock:
+                if not cache_file.exists():
+                    raise FileNotFoundError
+                with open(cache_file) as _cf:
+                    cached = json.load(_cf)
             # Accept cached data even without clusters_a (legacy caches)
             if 'sa' in cached and 'clusters_a' in cached and cached.get('_cache_version') == CACHE_VERSION:
                 return cached
@@ -1167,8 +1175,9 @@ def _compare_sessions_cached(buell_dir, sa, sb):
     result = _compare_sessions(buell_dir, sa, sb)
     result["_cache_version"] = CACHE_VERSION
     cache_dir.mkdir(parents=True, exist_ok=True)
-    with open(cache_file, 'w') as f:
-        json.dump(result, f)
+    with _cache_lock:
+        with open(cache_file, 'w') as f:
+            json.dump(result, f)
     return result
 
 
@@ -1304,6 +1313,9 @@ def _s_std(vals):
     return (sum((x - m) ** 2 for x in vals) / (n - 1)) ** 0.5
 
 def cluster_launches(launches, rpm_tol=250, tps_tol=2.5):
+    # IMPORTANT: clustering uses pre-launch conditions only (rpm, tps, gear, spd).
+    # Outcome metrics (rpm_gain, spd_gain, peak_pw, mean_series) are intentionally
+    # excluded to avoid bias — we group by initial conditions, then compare results.
     if not launches:
         return []
 
@@ -1434,11 +1446,11 @@ def match_clusters(clusters_a, clusters_b, rpm_tol=400, spd_tol=12, tps_tol=2.5)
             dr = abs(ca['mean_rpm'] - cb['mean_rpm']) / rpm_tol
             ds = abs(ca['mean_spd'] - cb['mean_spd']) / spd_tol
             dt = abs(ca['mean_tps'] - cb['mean_tps']) / max(tps_tol, 0.1)
-            d = dr + ds + dt
+            d = (dr**2 + ds**2 + dt**2) ** 0.5  # Euclidean, same geometry as cluster_launches
             if d < best_d:
                 best_d = d
                 best_b = j
-        if best_b is not None and best_d < 2.0:
+        if best_b is not None and best_d < 1.5:
             matches.append((ca['id'], clusters_b[best_b]['id'], round(best_d, 2)))
             used_b.add(best_b)
     return matches

@@ -25,6 +25,25 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.64] -- 2026-05-30
+
+### Changed
+
+- web/server.py match_clusters(): distance formula unified to Euclidean (was Manhattan dr+ds+dt)
+  matching now uses (dr**2+ds**2+dt**2)**0.5 < 1.5, same geometry as cluster_launches
+- web/server.py cluster_launches(): added comment documenting intentional no-leakage design
+  outcome metrics excluded from clustering to avoid grouping bias
+- web/templates/sessions_launch.html: similarity score labeled 'sim X.XX' in pair chips
+  to distinguish condition similarity from performance score
+- web/templates/sessions_launch.html: efficiency score added to delta row
+  Eff(spd/PW) = spd_gain / peak_pw in km/h per ms, with % delta B vs A
+  note: valid when CLT is comparable between sessions
+- web/templates/sessions_launch.html: +RPM and +Spd in conditions box now show sigma
+  showing repeatability of the launch outcome across events in the cluster
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.63] -- 2026-05-30
 
 ### Changed
