@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.63] -- 2026-05-30
+
+### Changed
+
+- web/templates/sessions_launch.html: session selectors now use <optgroup> grouped by bike serial
+  - sessions sorted by date within each group, label shows id + date + ride count
+  - groups sorted numerically by serial (#235, #651); unknown serials last
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.62] -- 2026-05-30
 
 ### Changed

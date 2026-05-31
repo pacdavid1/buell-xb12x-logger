@@ -144,11 +144,28 @@ async function init() {
     SESSIONS = (d.sessions || []).sort(function(a,b){ return b.created.localeCompare(a.created); });
     var sA = document.getElementById('sA');
     var sB = document.getElementById('sB');
+    var groups = {};
     SESSIONS.forEach(function(s) {
-      var lbl = s.id + (s.version ? ' — ' + s.version.slice(0,20) : '') + (s.created ? ' (' + s.created + ')' : '');
-      [sA,sB].forEach(function(sel){
-        var o = document.createElement('option');
-        o.value = s.id; o.textContent = lbl; sel.appendChild(o);
+      var key = s.serial != null ? '#' + s.serial : 'Unknown';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(s);
+    });
+    var keys = Object.keys(groups).sort(function(a, b) {
+      var na = parseInt(a.replace('#','')), nb = parseInt(b.replace('#',''));
+      if (isNaN(na)) return 1; if (isNaN(nb)) return -1;
+      return na - nb;
+    });
+    [sA, sB].forEach(function(sel) {
+      keys.forEach(function(key) {
+        var grp = document.createElement('optgroup');
+        grp.label = 'Moto ' + key;
+        groups[key].forEach(function(s) {
+          var o = document.createElement('option');
+          o.value = s.id;
+          o.textContent = s.id + (s.created ? '  (' + s.created + ')' : '') + '  ' + (s.rides || 0) + 'r';
+          grp.appendChild(o);
+        });
+        sel.appendChild(grp);
       });
     });
     if (SESSIONS.length >= 2) { sB.selectedIndex = 1; document.getElementById('btnCompare').disabled = false; }
