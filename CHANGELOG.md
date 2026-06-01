@@ -25,6 +25,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.75] — 2026-05-31
+
+### Fixed
+- web/templates/sessions_vs.html: Session A dropdown was empty due to escapeHtml()
+  applied to innerHTML — HTML option tags were being escaped to literal text instead
+  of rendered as options. Session B was unaffected. One-line fix.
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.74] — 2026-05-31
 
 ### Added

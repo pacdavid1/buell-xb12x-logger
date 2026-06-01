@@ -266,6 +266,54 @@ that a language model can interpret and suggest changes for.
 - GET /eeprom/msq ✅ already generates MSQ from current EEPROM
 - Safe write zone documented ✅ (docs/10_DDFI2_PROTOCOL.md section 11)
 
+
+## FASE 6 — Propuesta de mapa desde Sessions VS
+
+### Contexto
+Sessions VS ya genera 62+ filas de delta (dpw_eff, dspk por bin RPM/TPS) comparando dos sesiones.
+El gap es proyectar ese delta a las celdas reales del EEPROM y generar una sesión PROP_* que
+aparece en VE para revisar y quemar. Sin WB — el tuning es relativo entre sesiones, no absoluto.
+
+### 6.1 — Mapeador bin compare → celda EEPROM
+- [ ] Función que toma dpw_eff por bin (RPM 400wide × TPS 5wide) y lo proyecta a celdas EEPROM
+  usando los ejes reales (fuel_rpm, fuel_load, spark_rpm, spark_load)
+  Método: nearest-neighbor o bilinear inverse — asignar cada bin a la celda EEPROM más cercana
+- [ ] Solo proyectar celdas con na >= min_samples (configurable, default 30)
+- [ ] Resultado: dict {(ri, ci): dpw_eff} por mapa (fuel_front, fuel_rear, spark_front, spark_rear)
+
+### 6.2 — Cálculo de propuesta VE
+- [ ] Convertir dpw_eff a delta VE: factor = pw_eff_a / pw_eff_b (sesión elegida como referencia)
+  new_VE[ri][ci] = current_VE[ri][ci] * factor  (limitado a ±15% por iteración)
+- [ ] Sin WB: la propuesta es relativa (no corrige a AFR objetivo, blendea entre sesiones)
+- [ ] Opción: tomar valores directamente de sesión A o B, o blend configurable (alpha A + (1-alpha) B)
+- [ ] Celdas sin cobertura: sin cambio (mantener valor actual)
+
+### 6.3 — Suavizado del delta (no del valor)
+- [ ] Suavizar el DELTA, no el valor total — evita mover celdas que no se tocaron
+  delta[ri][ci] = staged_change  (0 para celdas no modificadas)
+  delta_smooth = laplacian(delta, lambda=0.25, iterations=2, radius=1)
+  new_VE = current_VE + delta_smooth
+- [ ] Celdas ancla: marcadas como NO mover aunque sean vecinas de celdas modificadas
+- [ ] Radio configurable: 1 celda (solo vecinas directas) o 2 celdas
+- [ ] Versión sin suavizar disponible siempre — logear con escalones, suavizar después
+- [ ] Protección: ignorar deltas < 0.5 unidades para evitar ruido
+
+### 6.4 — Generación de sesión PROP_*
+- [ ] POST /eeprom/propose — recibe {session_a, session_b, params}
+  Genera EEPROM propuesto, lo guarda como sessions/PROP_YYYYMMDD_HHMMSS/eeprom.bin
+  Aparece automáticamente en lista Revert de VE (más reciente = arriba)
+- [ ] La sesión PROP_* es editable normalmente en VE antes de quemar
+- [ ] Botón "Generar propuesta" en Sessions VS (después del compare)
+- [ ] Botón "Auto-tune" = generate + smoothing en un solo click
+
+### 6.5 — Piggy WB (cuando tengamos sensor)
+- [ ] Hardware: interceptar señal NB del O2, inyectar voltaje simulado desde WB
+  14.7 AFR = 0.5V, lean = 0.3V, rich = 0.7V, rango 0-1V
+- [ ] Tabla AFR objetivo por RPM/TPS (configurable en dashboard)
+- [ ] Pi lee WB real, compara con target, calcula voltaje NB a inyectar a la DDFI2
+- [ ] Con piggy activo: EGO correction real → propuesta VE basada en AFR absoluto
+- [ ] Sin piggy: open loop, propuesta relativa entre sesiones (FASE 6.1-6.4)
+
 ## Mantenimiento / Limpieza de código
 
 ### Código muerto Python (confirmado — 0 referencias en todo el codebase)

@@ -140,7 +140,7 @@ async function init(){
       var sm=s.samples>=1000?(s.samples/1000).toFixed(1)+'k':s.samples;
       o+='<option value="'+s.id+'">'+s.id+bike+' — '+s.created+' ('+s.rides+'r·'+sm+')</option>';
     }
-    document.getElementById('sA').innerHTML=escapeHtml(o);
+    document.getElementById('sA').innerHTML=o;
     document.getElementById('sB').innerHTML=o;
     st(d.sessions.length+' sesiones disponibles');
   }catch(e){st('Error: '+e.message)}
