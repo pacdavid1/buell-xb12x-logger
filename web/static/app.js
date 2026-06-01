@@ -45,7 +45,7 @@ function showTab(id) {
   document.querySelectorAll('.pane').forEach(p => p.classList.remove('active'));
   document.getElementById('pane-'+id).classList.add('active');
   if(id==="cfg")     { loadObj(); loadEcu(); loadEepromParams(); }
-  if(id==='ve')      { setTimeout(loadEepromParams, 0); }
+  if(id==='ve')      { setTimeout(loadEepromParams, 0); setTimeout(loadEepromSessions, 0); }
   if(id==='rides')   loadRidesList();
   if(id==='graph')   initGraphPane();
 }
@@ -2371,6 +2371,53 @@ function ecuRow(label, val, units, color){
   const c = color || '#ccc';
   return `<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;padding:3px 0;border-bottom:1px solid #1e1e1e"><span style="color:var(--dim)">${label}</span><span style="color:${c};font-weight:600">${val} <span style="color:var(--dim);font-weight:400">${units}</span></span></div>`;
 }
+
+async function loadEepromSessions(){
+  const el = document.getElementById('revertSessionsList');
+  if(!el) return;
+  el.textContent = 'Cargando...';
+  try {
+    const r = await fetch('/eeprom/sessions-list');
+    const sessions = await r.json();
+    if(!sessions.length){ el.textContent = 'No hay sesiones disponibles'; return; }
+    let html = '<table style="width:100%;border-collapse:collapse">';
+    sessions.forEach(function(s){
+      const isCurrent = s.current;
+      const rideLabel = s.rides > 0 ? s.rides + ' ride' + (s.rides>1?'s':'') : 'sin rides';
+      const bg = isCurrent ? 'rgba(46,204,113,0.08)' : '';
+      const badge = isCurrent ? ' <span style="color:#2ecc71;font-size:8px">[ACTIVO]</span>' : '';
+      const btn = isCurrent ? '' :
+        '<button class="btn" style="font-size:8px;padding:2px 6px" onclick="revertToSession(\'' + s.id + '\')">&#8635; Revert</button>';
+      html += '<tr style="border-bottom:1px solid #2a2a35;background:' + bg + '">' +
+        '<td style="padding:4px 6px;color:#fff">' + s.id + badge + '</td>' +
+        '<td style="padding:4px 6px;color:#666">' + s.date + '</td>' +
+        '<td style="padding:4px 6px;color:#666">' + rideLabel + '</td>' +
+        '<td style="padding:4px 2px;text-align:right">' + btn + '</td></tr>';
+    });
+    html += '</table>';
+    el.innerHTML = html;
+  } catch(e){ el.textContent = 'Error: ' + e.message; }
+}
+
+async function revertToSession(sessionId){
+  if(!confirm('Revertir EEPROM a sesion ' + sessionId + '?\n\nSe hara backup del estado actual antes de escribir.')) return;
+  const el = document.getElementById('revertSessionsList');
+  if(el) el.innerHTML = '<span style="color:#f5a623">Aplicando revert...</span>';
+  try {
+    const r = await fetch('/eeprom/revert', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({session: sessionId})
+    });
+    const d = await r.json();
+    if(d.error){ alert('Revert failed: ' + d.error); loadEepromSessions(); return; }
+    const veStatus = document.getElementById('veMapStatus');
+    if(veStatus) veStatus.textContent = 'Actualizando mapa...';
+    alert('Revert complete!\nWritten: ' + d.written + ' bytes\nVerified: ' + (d.verified ? 'OK' : 'FAILED') + '\nRestored to: ' + d.reverted_to);
+    setTimeout(function(){ loadMaps(_mapsSession); loadEepromSessions(); }, 1500);
+  } catch(e){ alert('Network error: ' + e.message); loadEepromSessions(); }
+}
+
 async function loadEepromParams(){
   const container = $id('eepromParamsTable');
   if(!container) return;

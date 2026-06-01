@@ -47,10 +47,10 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 .hs-sm:last-child{border-right:none}
 .hs-sm .hs-label{font-family:var(--mono);font-size:6px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
 .hs-sm .hs-val{font-size:13px;font-weight:700;line-height:1.2}
-.hs{width:50px;height:33px;display:flex;align-items:center;justify-content:center;
+.hs{width:60px;height:33px;display:flex;align-items:center;justify-content:center;
     border-right:1px solid var(--border);flex-shrink:0;overflow:hidden}
 .hs:last-child{border-right:none}
-.hs-val{font-size:30px;font-weight:900;line-height:1;text-align:center}
+.hs-val{font-size:20px;font-weight:900;line-height:1;text-align:center}
 .ac{color:var(--accent)} .gn{color:var(--green)} .bl{color:var(--blue)}
 .wh{color:#fff}          .yw{color:var(--accent2)}
 .pill{padding:3px 7px;font-family:var(--mono);font-size:8px;border:1px solid;
@@ -561,6 +561,17 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
     <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
       173 parametros leidos desde la ECU - Solo lectura por ahora
+
+  <!-- Revert EEPROM section -->
+  <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-family:var(--mono);font-size:10px;color:var(--dim);font-weight:700">&#8635; REVERT EEPROM</span>
+      <button class="btn" style="font-size:9px;padding:3px 8px" onclick="loadEepromSessions()">&#8635; Refresh</button>
+    </div>
+    <div id="revertSessionsList" style="font-family:var(--mono);font-size:9px;color:var(--dim);max-height:200px;overflow-y:auto">
+      Cargando sesiones...
+    </div>
+  </div>
 <div id="eepromParamsTable" style="margin-top:8px; max-height:50vh; overflow-y:auto; padding-right:4px;"></div>
     </div>
   </div>

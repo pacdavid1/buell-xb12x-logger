@@ -128,34 +128,6 @@ class DDFI2Connection:
         except Exception as e:
             self.logger.warning(f"USB power cycle falló: {e}")
             return False
-
-    def usb_reset(self) -> bool:
-        """Fuerza reset USB del FT232RL via sysfs (authorized toggle).
-        Usar cuando DTR toggle no alcanza y el chip queda hung.
-        Retorna True si el device fue reseteado, False si no se encontró."""
-        KNOWN_ADAPTERS = [
-            ('0403', '6001', 'FT232RL'),
-            ('1a86', '55d3', 'CH343P'),
-        ]
-        try:
-            for path in glob.glob('/sys/bus/usb/devices/*/idVendor'):
-                with open(path) as f: vendor = f.read().strip()
-                with open(path.replace('idVendor', 'idProduct')) as f: product = f.read().strip()
-                match = next((n for v,p,n in KNOWN_ADAPTERS if v==vendor and p==product), None)
-                if match:
-                    auth = path.replace('idVendor', 'authorized')
-                    with open(auth, 'w') as f: f.write('0')
-                    time.sleep(0.8)
-                    with open(auth, 'w') as f: f.write('1')
-                    time.sleep(2.0)
-                    self.logger.info(f"USB reset {match} completado via sysfs")
-                    return True
-            self.logger.warning("USB reset: ningún adaptador conocido encontrado en sysfs")
-            return False
-        except Exception as e:
-            self.logger.warning(f"USB reset falló: {e}")
-            return False
-
     def _send(self, pdu: bytes) -> None:
         if not self.ser:
             raise RuntimeError("Serial port not connected")

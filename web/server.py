@@ -92,6 +92,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/rides': self._handle_rides,
             '/suggested_msq': self._handle_suggested_msq,
             '/eeprom/download': self._handle_eeprom_download,
+            '/eeprom/sessions-list': self._handle_eeprom_sessions_list,
             '/eeprom/msq':      self._handle_eeprom_msq,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
@@ -159,6 +160,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/ride/launch_event': self._handle_ride_launch_event,
             '/coverage/targets': self._handle_coverage_targets,
             '/eeprom/burn':       self._handle_eeprom_burn,
+            '/eeprom/revert':     self._handle_eeprom_revert,
         }
         handler = _routes.get(path)
         if handler:
@@ -499,7 +501,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         cs = self.server_instance.session.current_checksum
         if not cs:
             self._json({"error": "sin sesion activa"}); return
-        msq_path = Path('/home/pi/buell/sessions') / cs / ('suggested_' + cs + '.msq')
+        msq_path = self.server_instance.buell_dir / 'sessions' / cs / ('suggested_' + cs + '.msq')
         if not msq_path.exists():
             self._json({"error": "sin MSQ generado aun"}); return
         self.send_response(200)
@@ -578,6 +580,72 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Length', str(len(data)))
         self.end_headers()
         self.wfile.write(data)
+
+
+    def _handle_eeprom_sessions_list(self, path=None):
+        """Return list of sessions that have an eeprom.bin, sorted newest first."""
+        import datetime
+        buell_dir = self.server_instance.buell_dir
+        current_cs = getattr(self.server_instance.session, 'current_checksum', None)
+        rows = []
+        for sid in (buell_dir / 'sessions').iterdir():
+            eeprom_file = sid / 'eeprom.bin'
+            if not eeprom_file.exists(): continue
+            meta_file = sid / 'session_metadata.json'
+            rides = 0
+            if meta_file.exists():
+                try:
+                    import json as _json
+                    meta = _json.loads(meta_file.read_text())
+                    rides = meta.get('total_rides', 0)
+                except Exception: pass
+            mtime = eeprom_file.stat().st_mtime
+            rows.append({
+                'id':      sid.name,
+                'mtime':   mtime,
+                'date':    datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M'),
+                'rides':   rides,
+                'current': sid.name == current_cs,
+            })
+        rows.sort(key=lambda r: r['mtime'], reverse=True)
+        self._json(rows)
+
+    def _handle_eeprom_revert(self, path=None, payload=None):
+        """Revert ECU EEPROM to a previous session's eeprom.bin."""
+        import queue as _queue
+        body      = payload or {}
+        target_id = body.get('session', '').strip()
+        import re as _re
+        if not target_id or not _re.match(r'^[A-Fa-f0-9]{6}$', target_id):
+            self._json({'error': 'invalid session id'}); return
+        if getattr(self.server_instance, 'ride_active', False):
+            self._json({'error': 'cannot revert while ride is active'}); return
+        buell_dir   = self.server_instance.buell_dir
+        target_path = buell_dir / 'sessions' / target_id / 'eeprom.bin'
+        if not target_path.exists():
+            self._json({'error': 'eeprom.bin not found for session ' + target_id}); return
+        proposed = target_path.read_bytes()
+        import time as _time
+        cs  = getattr(self.server_instance.session, 'current_checksum', None)
+        if cs:
+            backup_dir  = buell_dir / 'sessions' / cs
+            backup_path = backup_dir / ('eeprom_backup_revert_' + _time.strftime('%Y%m%d_%H%M%S') + '.bin')
+            try:
+                current_eeprom = (backup_dir / 'eeprom.bin').read_bytes()
+                backup_path.write_bytes(current_eeprom)
+            except Exception: pass
+        result_q = _queue.Queue()
+        main_app = getattr(self.server_instance, '_main_app', None)
+        if main_app is None:
+            self._json({'error': 'main app not available'}); return
+        main_app.pending_burn = (proposed, result_q)
+        try:
+            result = result_q.get(timeout=90)
+        except _queue.Empty:
+            main_app.pending_burn = None
+            self._json({'error': 'revert timeout (90s) — ECU may be busy'}); return
+        result['reverted_to'] = target_id
+        self._json(result)
 
     def _handle_eeprom_burn(self, path=None, payload=None):
         """Burn proposed map changes to ECU EEPROM.
@@ -692,7 +760,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         maps = self.server_instance.eeprom_maps
         if not maps or not maps.get('fuel_front'):
             try:
-                sessions_dir = Path('/home/pi/buell/sessions')
+                sessions_dir = self.server_instance.buell_dir / 'sessions'
                 bins = sorted(sessions_dir.glob('*/eeprom.bin'),
                               key=lambda p: p.stat().st_mtime)
                 if bins:
@@ -707,7 +775,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         params = self.server_instance.eeprom_params
         if not params:
             try:
-                sessions_dir = Path('/home/pi/buell/sessions')
+                sessions_dir = self.server_instance.buell_dir / 'sessions'
                 bins = sorted(sessions_dir.glob('*/eeprom.bin'), key=lambda p: p.stat().st_mtime)
                 if bins:
                     blob = bins[-1].read_bytes()

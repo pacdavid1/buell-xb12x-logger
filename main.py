@@ -20,12 +20,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 from network.manager import NetworkManager
 from web.server import WebServer
 from ecu.connection import DDFI2Connection
-from ecu.eeprom import decode_eeprom_maps, decode_eeprom_params
+from ecu.eeprom import decode_eeprom_maps
 from ecu.eeprom_params import decode_params
 from ecu.protocol import (update_vss_calibration, load_vss_calibration,
                           save_vss_calibration, vss_changed_significantly)
 from ecu.version_resolver import resolve_ecu
-from ecu.session import SessionManager, CellTracker, cell_key, RideErrorLog
+from ecu.session import SessionManager, CellTracker, RideErrorLog
 from gps.reader import GPSReader
 try:
     import smbus2 as _smbus2
@@ -285,18 +285,16 @@ class BuellLogger:
                 except Exception as _be:
                     burn_result = {'written': 0, 'verified': False,
                                    'diffs_found': 0, 'errors': [str(_be)]}
+                result_q.put(burn_result)  # respond to HTTP immediately
                 if burn_result.get('verified'):
                     try:
-                        ver  = self.ecu.get_version() or ecu_version or 'post-burn'
-                        blob = self._load_eeprom_blob(ver)
-                        if blob:
-                            self.session.open_session(ver, blob)
-                            self.session.save_eeprom(blob)
-                            self._update_web_ecu_state(blob, ver)
-                            self.logger.info('Post-burn EEPROM reload OK — session: ' + str(self.session.current_checksum))
+                        ver = ecu_version or 'post-burn'
+                        self.session.open_session(ver, proposed)
+                        self.session.save_eeprom(proposed)
+                        self._update_web_ecu_state(proposed, ver)
+                        self.logger.info('Post-burn EEPROM reload OK — session: ' + str(self.session.current_checksum))
                     except Exception as _re:
                         self.logger.warning('Post-burn EEPROM reload failed: ' + str(_re))
-                result_q.put(burn_result)
 
             # ── Leer frame RT ──────────────────────────────────────────
             elapsed_s = time.monotonic() - self.session.ride_start_time if (ride_active and self.session.ride_start_time) else 0.0

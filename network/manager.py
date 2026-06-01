@@ -393,12 +393,3 @@ class NetworkManager:
 
     def stop_monitor(self):
         self._monitor_active = False
-
-    def ssh_active(self):
-        ok, out = self._run(["ss", "-tn", "state", "established", "sport", "=", ":22"])
-        if not ok:
-            return False
-        return any(
-            line.strip() and not line.startswith("Recv")
-            for line in out.splitlines()
-        )

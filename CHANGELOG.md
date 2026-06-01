@@ -25,6 +25,30 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.74] — 2026-05-31
+
+### Added
+
+- web/server.py: GET /eeprom/sessions-list — returns sessions with eeprom.bin sorted by date,
+  with ride count and current session indicator
+- web/server.py: POST /eeprom/revert — burns a previous session's eeprom.bin to ECU,
+  saves backup before write, returns {written, verified, reverted_to}
+- web/static/app.js: loadEepromSessions() + revertToSession() — UI in VE tab to list
+  all sessions and revert to any previous EEPROM with one click
+- web/templates/index.html: Revert EEPROM section in VE tab with session list and refresh button
+
+### Fixed
+
+- main.py: post-burn session reload now uses verified `proposed` bytes instead of re-reading
+  EEPROM from ECU — eliminates a 3rd serial read that was delaying the ECU loop by 26s
+- main.py: result_q.put() moved before post-burn reload so HTTP handler responds immediately
+  instead of timing out while waiting for session consolidation
+- web/server.py: revert timeout increased from 30s to 90s for sessions with many differing bytes
+- web/server.py: accept {changes:[{map,ri,ci,val}]} AND {maps:{...}} in burn endpoint
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.73] — 2026-05-31
 
 ### Fixed

@@ -96,18 +96,6 @@ class SessionManager:
             f.write(blob)
         tmp.replace(eeprom_file)
         self.logger.info(f"EEPROM guardada: {eeprom_file.name} ({len(blob)} bytes)")
-
-    def load_eeprom(self):
-        """Carga eeprom.bin de la sesión actual. Retorna bytes o None."""
-        if not self.current_session_dir:
-            return None
-        eeprom_file = self.current_session_dir / "eeprom.bin"
-        if not eeprom_file.exists():
-            return None
-        with open(eeprom_file, "rb") as f:
-            return f.read()
-
-
     def start_ride(self):
         if not self.current_session_dir:
             raise RuntimeError("Sin sesión activa")
@@ -950,10 +938,6 @@ class RideErrorLog:
     def counts(self):
         c = Counter(e["type"] for e in self._events)
         return dict(c)
-
-    def has_events(self):
-        return len(self._events) > 0
-
     def clear(self):
         self._events = []
         self._last_data = {}
