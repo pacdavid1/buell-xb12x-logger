@@ -407,3 +407,109 @@ aparece en VE para revisar y quemar. Sin WB — el tuning es relativo entre sesi
 - [ ] Endpoint o script de limpieza: borrar sesiones sin rides y sin eeprom_backup_*.bin
   Solo conservar sesiones que tienen al menos 1 ride o son la sesión activa
 
+
+## FASE 7 — Sensores y Telemetria
+- [ ] Comparacion AHT20_temp vs BMP280_temp: AHT20 tiene su propio sensor de temperatura
+  ademas del BMP280. Evaluar que tan consistentes son entre si y si vale la pena
+  incluir ambas temperaturas en el dashboard y CSV. Posible uso: deteccion de
+  deriva termica entre sensores o redundancia.
+
+
+# Backlog: UPS-Lite v1.3 — Power Management Features
+
+## 1. Gradiente de color bateria (BAT% y BATV) — HECHO (2026-06-02)
+El indicador BAT% en el dashboard ya cambia de color rojo->verde segun SOC.
+Usa interpolacion HSL: hue 0 (rojo, 0%) a 120 (verde, 100%).
+BATV tambien: 3.0V (rojo) a 4.2V (verde).
+
+## 2. Limitar carga al 80%% para cuidar vida util de la bateria
+
+### Problema
+El CW2015 (0x62) es solo un fuel gauge (monitoreo). NO controla la carga.
+El cargador del UPS-Lite es un chip separado (TP4056 o similar) que:
+- No tiene interfaz I2C
+- No se puede programar por SW
+- Solo tiene pin CE (enable) para habilitar/deshabilitar carga
+
+### Solucion posible (requiere HW)
+1. Agregar MOSFET controlado por GPIO entre cargador y bateria
+2. Script: leer CW2015, cuando SOC >= 80%%, togglear GPIO para desconectar cargador
+3. Cuando SOC < 70%%, reconectar
+
+### Esfuerzo: HW bajo (1 MOSFET + 1 resistor), SW bajo (20 lineas Python)
+### Prioridad: MEDIA
+
+---
+
+## 3. Corte de energia a sensores al apagar la Pi
+
+### Problema
+Al hacer sudo shutdown -h now, el UPS-Lite v1.3 sigue alimentando los pines GPIO
+porque es pasivo (pass-through). Los sensores (BMP280, AHT20, GPS) siguen
+consumiendo bateria.
+
+### Solucion (requiere HW)
+Poner MOSFET de canal P entre salida 5V del UPS y los sensores:
+- Gate controlado por GPIO de la Pi
+- Script pre-shutdown: GPIO LOW -> corta alimentacion a sensores
+- Script de arranque (rc.local): GPIO HIGH -> enciende sensores
+
+### Diagrama
+  UPS-Lite 5V -> [MOSFET P-Ch] -> Sensores (5V)
+                     |
+                  GPIO (control)
+
+### Esfuerzo: HW bajo, SW bajo (systemd + rc.local)
+### Prioridad: ALTA (ahorro de bateria)
+
+---
+
+## 4. Auto Power-On al conectar fuente externa
+
+### Problema
+El UPS-Lite v1.3 tiene pads para detectar alimentacion externa en GPIO4,
+pero solo detecta, no enciende automaticamente la Pi.
+
+### Solucion posible
+1. Puentear pads del UPS-Lite para habilitar deteccion en GPIO4
+2. Configurar Wake-on-GPIO en la Pi (dtoverlay)
+3. Conectar GPIO4 al pin RUN de la Pi para despertarla desde shutdown
+
+### Alternativa: cambiar a UPS-Lite v3 o Mausberry que tienen esto nativo
+
+### Esfuerzo: HW medio (puentear + cable a RUN), SW bajo
+### Prioridad: BAJA (la bateria dura horas apagada)
+
+---
+
+## 5. Voltajes de referencia (LiPo 1S)
+
+SOC  | Descanso | Cargando
+100%% | 4.20V    | 4.20V
+90%%  | 4.10V    | 4.15V
+80%%  | 4.00V    | 4.08V
+70%%  | 3.90V    | 3.98V
+60%%  | 3.80V    | 3.88V
+50%%  | 3.75V    | 3.80V
+40%%  | 3.70V    | 3.75V
+30%%  | 3.65V    | 3.70V
+20%%  | 3.58V    | 3.63V
+10%%  | 3.45V    | 3.50V
+0%%   | 3.00V    | --
+Corte HW | 2.70V | --
+
+Nota: El CW2015 ya tiene modelo interno para SOC. Usar SOC en vez de voltaje
+para el indicador de bateria (la curva voltaje-SOC no es lineal).
+
+---
+
+## 6. Monitoreo de corriente (futuro)
+CW2015 puede reportar corriente (reg 0x06) pero el UPS-Lite no tiene shunt.
+Para medir consumo real, agregar INA219 por I2C.
+### Prioridad: BAJA
+
+---
+
+## Nota: CW2015 se autocalibra solo
+Tras 2-3 ciclos completos de carga/descarga, el chip ajusta su modelo interno.
+No necesita learning cycle manual.

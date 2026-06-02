@@ -34,6 +34,20 @@ try:
 except ImportError:
     _BMP280_OK = False
 
+# AHT20 (humedad + temperatura)
+try:
+    from sensors.aht20 import AHT20 as _AHT20
+    _AHT20_OK = True
+except ImportError:
+    _AHT20_OK = False
+
+# CW2015 (bateria UPS-Lite)
+try:
+    from sensors.cw2015 import CW2015 as _CW2015
+    _CW2015_OK = True
+except ImportError:
+    _CW2015_OK = False
+
 # ── Constantes de configuración (Adiós a los "números mágicos") ───────────
 TARGET_HZ = 8.0
 INTERVAL = 1.0 / TARGET_HZ
@@ -99,13 +113,36 @@ class BuellLogger:
         self.tracker = CellTracker()
         self.gps = GPSReader()
         self._bmp280 = None
-        if _BMP280_OK:
+        self._aht20 = None
+        self._cw2015 = None
+        self._smbus = None
+        if _BMP280_OK or _AHT20_OK or _CW2015_OK:
             try:
-                _bus = _smbus2.SMBus(2)
-                self._bmp280 = _BMP280(i2c_dev=_bus, i2c_addr=0x77)
-                self.logger.info("BMP280 inicializado OK (0x77)")
+                self._smbus = _smbus2.SMBus(2)
+                if _BMP280_OK:
+                    self._bmp280 = _BMP280(i2c_dev=self._smbus, i2c_addr=0x77)
+                    self.logger.info("BMP280 inicializado OK (0x77)")
             except Exception as e:
                 self.logger.warning(f"BMP280 no disponible: {e}")
+        self._cw2015 = None
+        if _AHT20_OK and self._smbus:
+            try:
+                _aht = _AHT20(i2c_dev=self._smbus)
+                if _aht.begin():
+                    self._aht20 = _aht
+                    self.logger.info("AHT20 inicializado OK (0x38)")
+                else:
+                    self.logger.warning("AHT20 no respondio a begin()")
+            except Exception as e:
+                self.logger.warning(f"AHT20 no disponible: {e}")
+        self._ups_bus = None
+        if _CW2015_OK:
+            try:
+                self._ups_bus = _smbus2.SMBus(1)
+                self._cw2015 = _CW2015(i2c_dev=self._ups_bus)
+                self.logger.info("CW2015 (UPS-Lite) inicializado OK en i2c-1 (0x62)")
+            except Exception as e:
+                self.logger.warning(f"CW2015 no disponible: {e}")
         self.error_log = RideErrorLog()
 
         # Inyección de dependencias para el servidor web
@@ -197,6 +234,30 @@ class BuellLogger:
                 except Exception:
                     stats['baro_hPa']   = None
                     stats['baro_temp_c']= None
+
+            if self._aht20:
+                try:
+                    _hum, _tmp = self._aht20.read()
+                    stats['humidity_pct'] = _hum
+                except Exception:
+                    stats['humidity_pct'] = None
+            if self._cw2015:
+                try:
+                    _bat = self._cw2015.read_all()
+                    stats['bat_voltage'] = _bat.get('bat_voltage')
+                    stats['bat_soc'] = _bat.get('bat_soc')
+                except Exception:
+                    stats['bat_voltage'] = None
+                    stats['bat_soc'] = None
+
+            # Low battery watchdog: graceful shutdown before hardware cut (2.7V)
+            _soc = stats.get('bat_soc')
+            _v = stats.get('bat_voltage')
+            if (_soc is not None and _soc < 30.0) or (_v is not None and _v < 3.50):
+                self.logger.warning(f"BATERIA CRITICA: {_v:.2f}V / {_soc:.0f}%% - apagando sistema...")
+                self._poweroff_requested = True
+                self._running = False
+                return
             # Merge — no reemplazar!
             with self.web._data_lock:
                 existing = self.web.serial_stats if self.web.serial_stats else {}
@@ -397,6 +458,9 @@ class BuellLogger:
                 data['mem_pct']     = ss.get('mem_pct', 0)
                 data['baro_hPa']    = ss.get('baro_hPa')
                 data['baro_temp_c'] = ss.get('baro_temp_c')
+                data['humidity_pct'] = ss.get('humidity_pct')
+                data['bat_voltage'] = ss.get('bat_voltage')
+                data['bat_soc'] = ss.get('bat_soc')
                 
                 data.update(self.gps.get_fix().as_dict())
 

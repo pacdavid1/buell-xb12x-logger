@@ -1132,7 +1132,7 @@ class WebServer:
         self.elapsed_s        = 0.0
         self.eeprom_maps      = {}
         self.eeprom_params    = {}
-        self.serial_stats     = {'bps': 0, 'pct': 0.0, 'tx': 0, 'rx': 0, 'buf_in': 0, 'buf_pct': 0.0, 'cpu_pct': 0.0, 'cpu_temp': 0.0, 'mem_pct': 0.0}
+        self.serial_stats     = {'bps': 0, 'pct': 0.0, 'tx': 0, 'rx': 0, 'buf_in': 0, 'buf_pct': 0.0, 'cpu_pct': 0.0, 'cpu_temp': 0.0, 'mem_pct': 0.0, 'humidity_pct': None, 'bat_voltage': None, 'bat_soc': None}
         self.bike_serial      = None
         self.ecu_identity     = {}   # {name, dbfile, ddfi, remark}
         self.cell_tracker     = None

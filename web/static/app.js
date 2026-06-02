@@ -237,6 +237,36 @@ function updateHeader(d) {
     baroTempEl.textContent = bt ? bt.toFixed(1) : '--';
     baroTempEl.className = 'hs-val gn';
   }
+  const humEl = $id('hHum');
+  if(humEl){
+    const hu = ss.humidity_pct;
+    humEl.textContent = hu != null ? hu.toFixed(1) : '--';
+    humEl.className = 'hs-val gn';
+  }
+  const batPctEl = $id('hBatPct');
+  if(batPctEl){
+    const bp = ss.bat_soc;
+    batPctEl.textContent = bp != null ? bp.toFixed(0) : '--';
+    batPctEl.className = 'hs-val';
+    if(bp != null){
+      const hue = bp * 1.2;  // 0% -> red(0), 100% -> green(120)
+      batPctEl.style.color = 'hsl(' + hue + ', 100%, 42%)';
+    } else {
+      batPctEl.style.color = '';
+    }
+  }
+  const batVEl = $id('hBatV');
+  if(batVEl){
+    const bv = ss.bat_voltage;
+    batVEl.textContent = bv != null ? bv.toFixed(2) : '--';
+    batVEl.className = 'hs-val';
+    if(bv != null){
+      const hue = ((bv - 3.0) / (4.2 - 3.0)) * 120;  // 3.0V->red, 4.2V->green
+      batVEl.style.color = 'hsl(' + Math.max(0, Math.min(120, hue)) + ', 100%, 42%)';
+    } else {
+      batVEl.style.color = '';
+    }
+  }
   const satEl = $id('hSat');
   if(satEl){
     const sat = lv.gps_satellites != null ? lv.gps_satellites : 0;

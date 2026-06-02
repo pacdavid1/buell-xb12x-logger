@@ -25,6 +25,81 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.81] — 2026-06-02
+
+### Added
+- main.py: low battery watchdog — graceful shutdown when SOC < 30%% or V < 3.50V
+  to prevent sudden power loss and protect LiPo battery
+- web/templates/index.html: BAT%% and BATV indicators with color gradient
+- sensors/cw2015.py: CW2015 driver for UPS-Lite v1.3 battery fuel gauge
+
+### Changed
+- main.py: battery watchdog thresholds raised from 5%%/3.15V to 30%%/3.50V
+- web/static/app.js: battery color uses HSL interpolation (red 0%% -> green 100%%)
+- web/static/app.js: hs-val class preserved for layout consistency
+
+### Fixed
+- main.py: SMBus creation condition now includes _CW2015_OK
+- main.py: CW2015 uses its own SMBus(1) bus (was sharing i2c-2 with BMP/AHT)
+- web/static/app.js: restored missing hs-val className on battery elements
+
+### AI
+- Codebuff (DeepSeek V4 Flash)
+
+
+## [v2.6.80] — 2026-06-02
+
+### Added
+- sensors/cw2015.py: new CW2015 driver for UPS-Lite v1.3 battery fuel gauge
+  at I2C address 0x62 (VCELL voltage + SOC percentage)
+- main.py: CW2015 integration — import, shared SMBus init, bat_voltage/bat_soc
+  reading in _sysmon_loop, data injection into ecu_loop
+- web/server.py: bat_voltage and bat_soc added to serial_stats
+- web/templates/index.html: BAT%% and BATV indicators in header row
+- web/static/app.js: live battery display with voltage and percentage
+
+### Changed
+- Identified mystery I2C device at 0x62 as UPS-Lite v1.3 (CW2015 fuel gauge)
+  for Raspberry Pi battery backup monitoring
+
+### AI
+- Codebuff (DeepSeek V4 Flash)
+
+## [v2.6.79] — 2026-06-02
+
+### Added
+- web/templates/index.html: HUM% indicator added to header row, to the right of AMB°C
+- web/static/app.js: live humidity display with 1 decimal, updated via serial_stats.humidity_pct
+- web/server.py: humidity_pct added to default serial_stats dict
+- BACKLOG.md: FASE 7 task for AHT20 vs BMP280 temperature comparison
+
+### Changed
+- web/static/app.js: humidity display precision from 0 to 1 decimal
+
+### AI
+- Codebuff (DeepSeek V4 Flash)
+
+## [v2.6.78] — 2026-06-02
+
+### Added
+- sensors/aht20.py: new AHT20 humidity + temperature sensor driver using smbus2
+  with i2c_rdwr for raw I2C reads (fixes corrupt humidity data from command byte)
+- main.py: AHT20 integration — import, shared SMBus initialization, humidity_pct
+  reading in _sysmon_loop, data injection into ecu_loop
+- ecu/protocol.py, protocol.py: humidity_pct added to CSV_COLUMNS for CSV logging
+
+### Fixed
+- Humidity reading was stuck at 0.0%% — root cause: driver used smbus2
+  read_i2c_block_data which sends a command byte before reading, corrupting
+  the humidity bytes. Fixed by switching to i2c_rdwr (raw I2C read).
+
+The AHT20 sensor had no code at all — humidity data was completely missing from
+both the live dashboard and CSV logs. Now fully functional.
+
+### AI
+- Codebuff (DeepSeek V4 Flash)
+
+
 ## [v2.6.77] — 2026-06-01
 
 ### Fixed
