@@ -267,6 +267,80 @@ that a language model can interpret and suggest changes for.
 - Safe write zone documented ✅ (docs/10_DDFI2_PROTOCOL.md section 11)
 
 
+
+## FASE 7 — Detección y clustering de eventos de aceleración (Bucket A/B)
+
+### Concepto
+Detectar eventos de aceleración como pares (condición estable A → transición B).
+Agrupar por similitud de TPS trajectory dentro y entre sesiones.
+Comparar PW (pulsos de inyección) para medir el efecto del mapa.
+Sin categorías predefinidas — los grupos emergen de los datos.
+
+```
+EVENTO = Bucket_A (condiciones estables ≥3s) + Curve_B (trayectoria TPS)
+
+Within session (mismo mapa):
+  Agrupar por Bucket_A → medir consistencia de PW
+  PW_std alto = ruido de ruta (pendiente, viento) → advertencia, no filtro
+
+Cross session (mapas diferentes):
+  Asociar por: mismo Bucket_A + Pearson(TPS_curve) > 0.85
+  Comparar: ΔPW(t) = PW_b(t) - PW_a(t)   ← efecto del mapa
+            Δkph(t) = kph_b(t) - kph_a(t) ← efecto en aceleración
+  Confianza variable por slice temporal t según n_eventos(t) cubriendo ese punto
+```
+
+### 7.1 — Detección de eventos (reemplaza detect_launches actual)
+- [ ] Ventana estable A: gear + RPM±200 + TPS±3% mantenidos ≥3s
+- [ ] Inicio de evento: TPS sale del bucket A (cualquier tipo de transición)
+- [ ] Filtro gear change: si hay cambio de marcha durante evento → descartar
+- [ ] Fin de evento: kph deja de aumentar OR TPS vuelve al bucket A por ≥2s
+- [ ] Sin umbral de dtps — captura snaps, roll-ons, parciales y escalonados
+
+### 7.2 — Descriptor del evento
+- [ ] Bucket_A = (gear, rpm_bucket±200, tps_bucket±3%, spd_bucket±10kph)
+- [ ] Curve_B = TPS resampleado a N=20 puntos equidistantes en eje temporal absoluto
+  Normalizado por peak_tps del evento (no por duración)
+- [ ] peak_bucket = 'partial' si peak_tps < 70% ELSE 'full'
+  → separa partial throttle de WOT antes de comparar curvas
+- [ ] Serie completa: t, rpm, tps, kph, pw1, pw2, ae, spark, gear
+
+### 7.3 — Clustering within session
+- [ ] Por cada grupo (Bucket_A, peak_bucket): agregar eventos con Pearson(Curve_B) > 0.85
+- [ ] Por cada slice temporal t:
+    n(t)    = eventos que alcanzan ese tiempo → confianza variable
+    PW_avg(t), PW_std(t) por cilindro (front/rear)
+    conf(t) = f(n(t), PW_std(t)) — gradiente, no binario
+- [ ] Advertencias (no filtros): CLT_range, slope_range, altitude_range del grupo
+
+### 7.4 — Matching cross-session
+- [ ] Buscar clusters de sesión B con mismo Bucket_A y Pearson(TPS_curve) > 0.85
+- [ ] Para cada match:
+    ΔPW(t)   = PW_avg_B(t) - PW_avg_A(t)   ← diferencia de mapa
+    Δkph(t)  = kph_avg_B(t) - kph_avg_A(t) ← diferencia de resultado
+    conf_match(t) = min(conf_A(t), conf_B(t))
+- [ ] Métrica de eficiencia relativa: Δkph / ΔPW por slice → qué mapa es más eficiente
+
+### 7.5 — Notificación live "READY FOR EVENT"
+- [ ] En ECU loop: monitorear gear + RPM_bucket + TPS_bucket
+    si estables ≥3s → live.json incluye event_ready: {gear, rpm, tps, spd, stable_s}
+- [ ] Dashboard: chip/indicator verde cuando event_ready activo
+    "GO: 3a · 3000rpm · 5%tps" — el rider sabe que puede ejecutar el pull
+- [ ] Registrar automáticamente el evento si stable_s ≥ 3 y luego hay transición
+
+### 7.6 — Visualización en Sessions VS
+- [ ] Vista de clusters mejorada: mostrar confianza por slice como banda (shaded area)
+- [ ] Comparación ΔPW(t) y Δkph(t) como gráfica de tiempo con banda de confianza
+- [ ] Badge de advertencia: "⚠ CLT range 180-215°C" "⚠ slope ±3%"
+- [ ] N eventos por cluster con breakdown de duración (cuántos de 1s, 2s, 4s, etc.)
+
+### Notas de diseño
+- Pendiente y aero = advertencias, NUNCA filtros de agrupación (demasiado restrictivo)
+- Velocidad = incluida en Bucket_A como referencia, no como filtro estricto
+- PW es la variable de medición, TPS es la variable de asociación
+- Pearson sobre N=20 puntos es suficiente — DTW es overkill para este caso
+- El algoritmo actual detect_launches sigue corriendo en paralelo hasta migración
+
 ## FASE 6 — Propuesta de mapa desde Sessions VS
 
 ### Contexto

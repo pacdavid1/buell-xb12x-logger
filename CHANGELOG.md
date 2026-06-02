@@ -25,6 +25,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.76] — 2026-06-01
+
+### Fixed
+- web/static/app.js: restored missing file — static/ directory had been deleted,
+  causing header to show no live sensor values (baro, temp, CPU, GPS)
+- web/templates/sessions_vs.html: restored missing file — sessions_vs returned 500
+- CHANGELOG.md, connection.py: restored files deleted from working tree
+- web/server.py: add 5s cache for _get_rides() to reduce CSV reads on every request;
+  invalidate cache on ride close
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.75] — 2026-05-31
 
 ### Fixed

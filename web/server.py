@@ -956,6 +956,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             checksum = session.current_checksum
             ride_num = session.current_ride_num
             session.close_current_ride(reason="dashboard_request")
+            # Invalidate rides cache
+            with self.server_instance._rides_cache_lock:
+                self.server_instance._rides_cache = None
+                self.server_instance._rides_cache_time = 0
             self._json({"ok": True, "msg": "Ride cerrado", "session": checksum, "ride_num": ride_num})
         else:
             self._json({"ok": False, "msg": "Sin ride activo"})
@@ -1134,12 +1138,18 @@ class WebServer:
         self.cell_tracker     = None
         self._coverage_targets = dict(self.COVERAGE_TARGETS_DEFAULT)
         self._data_lock = threading.RLock()
+        self._rides_cache = None          # cache for _get_rides()
+        self._rides_cache_time = 0        # timestamp of cache
+        self._rides_cache_lock = threading.Lock()
 
     def _get_rides(self):
+        # Cache: serve from cache if < 5 seconds old
+        with self._rides_cache_lock:
+            if self._rides_cache is not None and time.time() - self._rides_cache_time < 5:
+                return self._rides_cache
         rides = []
         sessions_path = self.buell_dir / 'sessions'
-        if not sessions_path.exists():
-            return rides
+        if not sessions_path.exists():            return rides
         for session_dir in sorted(sessions_path.iterdir()):
             if not session_dir.is_dir():
                 continue
@@ -1196,24 +1206,32 @@ class WebServer:
                 except Exception:
                     pass
             for rf in sorted(session_dir.glob('ride_[0-9]*.csv')):
+                # Skip continuation parts (_p2, _p3, etc.)
+                if re.search(r'_p\d+$', rf.stem):
+                    continue
                 try:
                     rnum = int(rf.stem.split('_')[-1])
                     if rnum in summary_nums:
                         continue
                     opened_utc = ''
                     n = 0
+                    # Fast path: read header + first data line only, then count with sum()
                     with open(rf) as f:
-                        header = None
-                        for line in f:
-                            if line.startswith('#'): continue
-                            if header is None: header = line.strip().split(','); continue
-                            n += 1
-                            if opened_utc: continue
+                        line = f.readline()
+                        while line and line.startswith('#'):
+                            line = f.readline()
+                        if not line:
+                            continue
+                        header = line.strip().split(',')
+                        first_data = f.readline()
+                        if first_data and not first_data.startswith('#'):
                             try:
                                 idx = header.index('timestamp_iso')
-                                opened_utc = line.strip().split(',')[idx]
+                                opened_utc = first_data.strip().split(',')[idx]
                             except Exception:
                                 pass
+                    # Count data lines efficiently (C-optimized sum)
+                    n = sum(1 for _ in open(rf) if not _.startswith('#')) - 1
                     rides.append({
                         'session': session_dir.name, 'firmware': fw,
                         'filename': rf.name, 'ride_num': rnum,
@@ -1222,7 +1240,12 @@ class WebServer:
                     })
                 except Exception:
                     pass
-        return sorted(rides, key=lambda r: (r['session'], r.get('ride_num', 0)))
+        result = sorted(rides, key=lambda r: (r['session'], r.get('ride_num', 0)))
+        # Update cache
+        with self._rides_cache_lock:
+            self._rides_cache = result
+            self._rides_cache_time = time.time()
+        return result
 
     def start(self):
         DashboardHandler.server_instance = self
