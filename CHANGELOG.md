@@ -25,6 +25,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.77] — 2026-06-01
+
+### Fixed
+- web/static/app.js: ride date displayed as unreadable "2605231741" — added
+  separators to format as "YY/MM/DD HH:mm" (e.g. "26/05/23 17:41")
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.76] — 2026-06-01
 
 ### Fixed
