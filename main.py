@@ -41,6 +41,8 @@ try:
 except ImportError:
     _AHT20_OK = False
 
+from tools.health_journal import check as _health_check
+
 # CW2015 (bateria UPS-Lite)
 try:
     from sensors.cw2015 import CW2015 as _CW2015
@@ -114,6 +116,8 @@ class BuellLogger:
         self.gps = GPSReader()
         self._bmp280 = None
         self._aht20 = None
+        self._bat_voltages = []  # rolling buffer for charging detection
+        self._bat_socs = []      # rolling buffer for SOC smoothing
         self._cw2015 = None
         self._smbus = None
         if _BMP280_OK or _AHT20_OK or _CW2015_OK:
@@ -249,6 +253,39 @@ class BuellLogger:
                 except Exception:
                     stats['bat_voltage'] = None
                     stats['bat_soc'] = None
+
+            # Charging detection via voltage trend
+            _v_now = stats.get('bat_voltage')
+            if _v_now is not None:
+                self._bat_voltages.append(_v_now)
+                if len(self._bat_voltages) > 15:  # ~30s window
+                    self._bat_voltages.pop(0)
+            _soc_raw = stats.get('bat_soc')
+            if _soc_raw is not None:
+                self._bat_socs.append(_soc_raw)
+                if len(self._bat_socs) > 5:  # smooth over 5 readings
+                    self._bat_socs.pop(0)
+                stats['bat_soc'] = sum(self._bat_socs) / len(self._bat_socs)
+            # Trend: up (charging), down (discharging), or stable
+            # Charging indicators: voltage rising, SOC rising, or voltage > 4.0V
+            if len(self._bat_voltages) >= 5:
+                _early = sum(self._bat_voltages[:3]) / 3
+                _late = sum(self._bat_voltages[-3:]) / 3
+                _diff = _late - _early
+                if _diff > 0.008:
+                    stats['bat_trend'] = 'up'
+                elif _diff < -0.008:
+                    stats['bat_trend'] = 'down'
+                else:
+                    stats['bat_trend'] = 'stable'
+                stats['bat_charging'] = _diff > 0.008 or stats.get('bat_voltage', 0) > 3.85
+            else:
+                # Pocas lecturas: usar voltaje alto como indicio de carga
+                stats['bat_trend'] = 'stable'
+                stats['bat_charging'] = stats.get('bat_voltage', 0) > 3.85
+
+            # Health journal: log system issues
+            _health_check(stats, self._ecu_alive if hasattr(self, '_ecu_alive') else True)
 
             # Low battery watchdog: graceful shutdown before hardware cut (2.7V)
             _soc = stats.get('bat_soc')

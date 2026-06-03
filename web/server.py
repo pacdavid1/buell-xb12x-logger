@@ -995,6 +995,18 @@ class DashboardHandler(BaseHTTPRequestHandler):
     def _get_live(self):
         net = self.server_instance.network
         _snap = self.server_instance.cell_tracker.snapshot() if self.server_instance.cell_tracker else (None, None)
+        _ecu_ok = self.server_instance.ecu_connected
+        _ss = self.server_instance.serial_stats or {}
+        _bat_v = _ss.get("bat_voltage")
+        _bat_soc = _ss.get("bat_soc")
+        if not _ecu_ok:
+            _sys = "ecu_lost"
+        elif (_bat_soc is not None and _bat_soc < 10) or (_bat_v is not None and _bat_v < 3.15):
+            _sys = "bat_crit"
+        elif (_bat_soc is not None and _bat_soc < 30) or (_bat_v is not None and _bat_v < 3.5):
+            _sys = "bat_low"
+        else:
+            _sys = "ok"
         return {
 
             "ts":              time.time(),
@@ -1006,7 +1018,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "waiting":         not self.server_instance.ride_active,
             "ride_num":        self.server_instance.session.current_ride_num if self.server_instance.session else 0,
             "elapsed_s":       self.server_instance.elapsed_s,
-            "ecu_connected":   self.server_instance.ecu_connected,
+            "ecu_connected":   _ecu_ok,
             "ecu_lost_s":      self.server_instance.ecu_lost_s,
             "live":            self._get_live_data(),
             "cells":           _snap[0] or {},
@@ -1015,6 +1027,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "serial_stats":    self.server_instance.serial_stats,
             "bike_serial":     self.server_instance.bike_serial,
             "ecu_identity":    self.server_instance.ecu_identity,
+            "sys_status":      _sys,
         }
 
 
@@ -1132,7 +1145,7 @@ class WebServer:
         self.elapsed_s        = 0.0
         self.eeprom_maps      = {}
         self.eeprom_params    = {}
-        self.serial_stats     = {'bps': 0, 'pct': 0.0, 'tx': 0, 'rx': 0, 'buf_in': 0, 'buf_pct': 0.0, 'cpu_pct': 0.0, 'cpu_temp': 0.0, 'mem_pct': 0.0, 'humidity_pct': None, 'bat_voltage': None, 'bat_soc': None}
+        self.serial_stats     = {'bps': 0, 'pct': 0.0, 'tx': 0, 'rx': 0, 'buf_in': 0, 'buf_pct': 0.0, 'cpu_pct': 0.0, 'cpu_temp': 0.0, 'mem_pct': 0.0, 'humidity_pct': None, 'bat_voltage': None, 'bat_soc': None, 'bat_charging': False}
         self.bike_serial      = None
         self.ecu_identity     = {}   # {name, dbfile, ddfi, remark}
         self.cell_tracker     = None

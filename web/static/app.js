@@ -249,19 +249,26 @@ function updateHeader(d) {
     batPctEl.textContent = bp != null ? bp.toFixed(0) : '--';
     batPctEl.className = 'hs-val';
     if(bp != null){
-      const hue = bp * 1.2;  // 0% -> red(0), 100% -> green(120)
+      const hue = bp * 1.2;
       batPctEl.style.color = 'hsl(' + hue + ', 100%, 42%)';
     } else {
       batPctEl.style.color = '';
     }
   }
+  const chgEl = $id('hBatChg');
+  if(chgEl){
+    chgEl.style.display = ss.bat_charging ? 'inline' : 'none';
+  }
   const batVEl = $id('hBatV');
   if(batVEl){
     const bv = ss.bat_voltage;
-    batVEl.textContent = bv != null ? bv.toFixed(2) : '--';
+    const ch = ss.bat_charging;
+    const tr = ss.bat_trend || (ch ? 'up' : 'down');
+    const arr = bv != null ? (tr === 'up' ? '↑' : tr === 'down' ? '↓' : '→') : '';
+    batVEl.textContent = bv != null ? bv.toFixed(2) + ' ' + arr : '--';
     batVEl.className = 'hs-val';
     if(bv != null){
-      const hue = ((bv - 3.0) / (4.2 - 3.0)) * 120;  // 3.0V->red, 4.2V->green
+      const hue = ((bv - 3.0) / (4.2 - 3.0)) * 120;
       batVEl.style.color = 'hsl(' + Math.max(0, Math.min(120, hue)) + ', 100%, 42%)';
     } else {
       batVEl.style.color = '';
@@ -373,6 +380,7 @@ function renderIndicators(ind) {
 }
 
 // ── FETCH LOOP ────────────────────────────────────────────────────
+let _lastSysStatus = "ok";
 let _lastLiveOk = Date.now();
 let _fetchingLive = false;
 async function fetchLive() {
@@ -396,6 +404,7 @@ async function fetchLive() {
     if(!r.ok) return;
     const d = await r.json();
     _lastLiveOk = Date.now();
+    _lastSysStatus = d.sys_status || "ok";
     lastData = d;
     updateHeader(d);
     launchReadyTick(d);
@@ -678,18 +687,7 @@ function launchReadyTick(d) {
 }
 
 _liveInterval = setInterval(fetchLive, 500);
-_freezeInterval = setInterval(()=>{
-  const frozen = (Date.now() - _lastLiveOk) > 5000;
-  const tabs = document.querySelector('.tabs');
-  const ind = $id('freezeIndicator');
-  if(frozen){
-    if(tabs) tabs.style.borderBottom = '2px solid #e74c3c';
-    if(ind){ ind.textContent='凍結'; ind.style.color='#e74c3c'; }
-  } else {
-    if(tabs) tabs.style.borderBottom = '';
-    if(ind){ ind.textContent='正常'; ind.style.color='#2ecc71'; }
-  }
-}, 3000);
+
 
 // ── EEPROM MAPS ──────────────────────────────────────────────────
 let _mapsData = null;
@@ -1602,7 +1600,18 @@ function exitHistory(){
       if(ind){ ind.textContent='凍結'; ind.style.color='#e74c3c'; }
     } else {
       if(tabs) tabs.style.borderBottom = '';
-      if(ind){ ind.textContent='正常'; ind.style.color='#2ecc71'; }
+      if(ind){
+        switch(_lastSysStatus){
+          case 'ecu_lost':
+            ind.textContent='ECU'; ind.style.color='#e67e22'; break;
+          case 'bat_crit':
+            ind.textContent='BAT!'; ind.style.color='#e74c3c'; break;
+          case 'bat_low':
+            ind.textContent='BAT'; ind.style.color='#f39c12'; break;
+          default:
+            ind.textContent='正常'; ind.style.color='#2ecc71';
+        }
+      }
     }
   }, 3000);
   fetchLive();

@@ -513,3 +513,47 @@ Para medir consumo real, agregar INA219 por I2C.
 ## Nota: CW2015 se autocalibra solo
 Tras 2-3 ciclos completos de carga/descarga, el chip ajusta su modelo interno.
 No necesita learning cycle manual.
+
+
+# Backlog: UPS-Lite v1.3 SW-only Ideas (planned)
+
+## Prioridad: ALTA (faciles, implementados)
+- [x] Charging detection via voltage trend (bat_charging flag in serial_stats)
+- [x] Charging icon (⚡) in dashboard when external power detected
+- [x] Trend arrow (↑ charging / ↓ discharging) next to BATV
+- [x] SOC smoothing (rolling average of last 5 readings)
+
+## Prioridad: MEDIA
+- [ ] Runtime remaining estimation: track discharge rate, show "~Xh" in dashboard
+- [ ] Daily battery health log: write bat_voltage + SOC to JSON file every hour
+- [ ] Charge cycle counter: track cumulative SOC changes, store in cycles.json
+- [ ] Adaptive shutdown threshold: higher during rides (30%%), lower when idle (15%%)
+- [ ] Charging completion notification: flash/alert when SOC reaches 100%%
+
+## Prioridad: BAJA
+- [ ] Historical battery graph: plot voltage over last 24h in dashboard
+- [ ] Battery degradation trend: compare voltage at same SOC over weeks
+- [ ] System health journal: JSON log of all detected issues
+
+---
+
+# Backlog: UPS-Lite v1.3 HW Modifications (requires soldering)
+
+## Prioridad: ALTA
+- [ ] MOSFET power switch for sensors: cut 5V to BMP/AHT/GPS when Pi shuts down
+  Components: 1x IRLML6402 (P-Ch MOSFET), 1x 10K resistor, 1x breadboard
+  GPIO control: HIGH = sensors ON, LOW = sensors OFF
+  Script: systemd pre-shutdown -> GPIO LOW, rc.local -> GPIO HIGH
+
+## Prioridad: MEDIA
+- [ ] Charge limiter at 80%%: MOSFET + GPIO to disconnect charger when SOC >= 80%%
+  Concept: CW2015 reads SOC -> GPIO toggles charger enable -> stops charging
+  Reconnect when SOC < 70%% for hysteresis
+
+## Prioridad: BAJA
+- [ ] Wake-on-GPIO: connect UPS-Lite power detect pad to Pi RUN pin
+  Requires: solder pads on UPS-Lite, wire to Pi header
+  Effect: Pi turns on when USB power connected
+- [ ] INA219 current sensor for precise power consumption monitoring
+
+---
