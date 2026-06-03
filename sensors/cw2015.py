@@ -6,6 +6,8 @@ Registers:
   0x00: VER - Version
   0x02: VCELL - Voltage (14-bit, 0.305mV/LSB)
   0x04: SOC - State of Charge (8.8 fixed point)
+  0x08: STATUS - Status register
+    Bit 4: CHG_IND - Charging indicator (1 = charging)
 """
 
 class CW2015:
@@ -13,6 +15,7 @@ class CW2015:
     REG_VER = 0x00
     REG_VCELL = 0x02
     REG_SOC = 0x04
+    REG_STATUS = 0x08
 
     def __init__(self, i2c_dev, i2c_addr=None):
         self._bus = i2c_dev
@@ -22,6 +25,10 @@ class CW2015:
         data = self._bus.read_i2c_block_data(self._addr, reg, 2)
         return (data[0] << 8) | data[1]
 
+    def _read_byte(self, reg):
+        data = self._bus.read_i2c_block_data(self._addr, reg, 1)
+        return data[0]
+
     def get_voltage(self):
         raw = self._read_word(self.REG_VCELL) & 0x3FFF
         return raw * 0.305 / 1000.0
@@ -29,6 +36,11 @@ class CW2015:
     def get_soc(self):
         data = self._bus.read_i2c_block_data(self._addr, self.REG_SOC, 2)
         return data[0] + data[1] / 256.0
+
+    def get_charging(self):
+        """Return True if CW2015 reports charging (Bit 4 of STATUS reg)."""
+        status = self._read_byte(self.REG_STATUS)
+        return bool(status & 0x10)  # Bit 4 = CHG_IND
 
     def get_version(self):
         return self._read_word(self.REG_VER)

@@ -244,9 +244,10 @@ function updateHeader(d) {
     humEl.className = 'hs-val gn';
   }
   const batPctEl = $id('hBatPct');
+  const batPctVal = $id('hBatPctVal');
   if(batPctEl){
     const bp = ss.bat_soc;
-    batPctEl.textContent = bp != null ? bp.toFixed(0) : '--';
+    if(batPctVal) batPctVal.textContent = bp != null ? bp.toFixed(0) : '--';
     batPctEl.className = 'hs-val';
     if(bp != null){
       const hue = bp * 1.2;

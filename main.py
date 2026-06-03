@@ -254,7 +254,7 @@ class BuellLogger:
                     stats['bat_voltage'] = None
                     stats['bat_soc'] = None
 
-            # Charging detection via voltage trend
+            # Charging detection via voltage trend + hysteresis
             _v_now = stats.get('bat_voltage')
             if _v_now is not None:
                 self._bat_voltages.append(_v_now)
@@ -266,24 +266,30 @@ class BuellLogger:
                 if len(self._bat_socs) > 5:  # smooth over 5 readings
                     self._bat_socs.pop(0)
                 stats['bat_soc'] = sum(self._bat_socs) / len(self._bat_socs)
-            # Trend: up (charging), down (discharging), or stable
-            # Charging indicators: voltage rising, SOC rising, or voltage > 4.0V
-            if len(self._bat_voltages) >= 5:
-                _early = sum(self._bat_voltages[:3]) / 3
-                _late = sum(self._bat_voltages[-3:]) / 3
+            # Charging detection with hysteresis
+            # 1. Voltage clearly rising -> charging
+            # 2. Voltage clearly falling -> not charging
+            # 3. Stable voltage -> keep previous state (hysteresis)
+            if len(self._bat_voltages) >= 3:
+                _early = sum(self._bat_voltages[:2]) / 2
+                _late = sum(self._bat_voltages[-2:]) / 2
                 _diff = _late - _early
-                if _diff > 0.008:
+                if _diff > 0.005:
+                    stats['bat_charging'] = True
                     stats['bat_trend'] = 'up'
-                elif _diff < -0.008:
+                elif _diff < -0.005:
+                    stats['bat_charging'] = False
                     stats['bat_trend'] = 'down'
                 else:
+                    # Stable: use hysteresis
+                    _prev = stats.get('bat_charging', _v_now is not None and _v_now > 3.85)
                     stats['bat_trend'] = 'stable'
-                stats['bat_charging'] = _diff > 0.008 or stats.get('bat_voltage', 0) > 3.85
+                    stats['bat_charging'] = _prev
             else:
-                # Pocas lecturas: usar voltaje alto como indicio de carga
+                # Not enough readings: use threshold
                 stats['bat_trend'] = 'stable'
-                stats['bat_charging'] = stats.get('bat_voltage', 0) > 3.85
-
+                stats['bat_charging'] = _v_now is not None and _v_now > 3.85
+            
             # Health journal: log system issues
             _health_check(stats, self._ecu_alive if hasattr(self, '_ecu_alive') else True)
 
