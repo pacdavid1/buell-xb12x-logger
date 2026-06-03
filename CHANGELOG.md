@@ -25,6 +25,23 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.82] — 2026-06-02
+
+### Fixed
+- web/templates/index.html + web/static/app.js: lightning bolt indicator (⚡) was
+  invisible because JavaScript textContent replaced the entire element tree, destroying
+  the ⚡ span. Fixed by isolating BAT%% value in its own <span id="hBatPctVal">.
+- sensors/cw2015.py: added STATUS register (0x08) CHG_IND bit 4 read, but the bit
+  always returns 1 on UPS-Lite v1.3 hardware — not usable for charging detection.
+
+### Changed
+- main.py: charging detection reverted from CW2015 CHG_IND to voltage trend with
+  hysteresis. Threshold lowered from 0.008V to 0.005V over ~1s window.
+  Stable voltage keeps previous state (up↑ = charging, down↓ = not charging).
+
+### AI
+- Codebuff (DeepSeek V4 Flash)
+
 ## [v2.6.81] — 2026-06-02
 
 ### Added
