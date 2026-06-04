@@ -129,23 +129,17 @@ var DATA    = null;
 var CUR     = null;
 
 // ── Session list ─────────────────────────────────────────────────────────────
-fetch('/rides').then(function(r){return r.json();}).then(function(d){
-  var rides = d.rides || d;
-  var seen  = {};
-  rides.forEach(function(r){
-    var sid = r.session||r.id||r.checksum; if(!sid) return;
-    if(!seen[sid]||(r.ride_num||0)>(seen[sid].ride_num||0)) seen[sid]=r;
-  });
+fetch('/tuner/sessions').then(function(r){return r.json();}).then(function(d){
+  var sessions = d.sessions || [];
   var sel = document.getElementById('selSession');
-  Object.values(seen)
-    .sort(function(a,b){return (b.opened_utc||'').localeCompare(a.opened_utc||'');})
-    .forEach(function(s){
-      var sid=s.session||s.id||s.checksum;
-      var opt=document.createElement('option');
-      opt.value=sid;
-      opt.textContent=sid+(s.firmware?'  '+s.firmware:'')+(s.opened_utc?'  '+s.opened_utc.slice(0,10):'');
-      sel.appendChild(opt);
-    });
+  sessions.forEach(function(s){
+    var sm = s.samples >= 1000 ? (s.samples/1000).toFixed(1)+'k' : s.samples;
+    var opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.id+(s.serial?' #'+s.serial:'')+' — '+s.created+' ('+s.rides+'r·'+sm+')';
+    sel.appendChild(opt);
+  });
+  if(sessions.length) setSt(sessions.length+' sesiones');
 }).catch(function(){setSt('Could not load sessions','err');});
 
 // ── Load ─────────────────────────────────────────────────────────────────────
@@ -473,7 +467,31 @@ function drawChart(c){
   if(showEvt){
     mb.forEach(function(m,idx){
       var col=evColor(idx,mb.length,0.4);
-      // draw each active metric's individual curve
+      var bam=m.bucket_a||{};
+      // Bucket A zone: per-event starting condition as dashed line
+      ctx.lineWidth=0.8; ctx.setLineDash([2,3]);
+      if(hasPW&&m.pw_start!=null){
+        ctx.strokeStyle=col;
+        var yps=ypLeft(m.pw_start);
+        ctx.beginPath();ctx.moveTo(LM,yps);ctx.lineTo(xBreak,yps);ctx.stroke();
+      }
+      if(active.rpm&&bam.rpm_avg!=null&&otherMins.rpm!=null){
+        ctx.strokeStyle=col;
+        var yra=ypRight('rpm',bam.rpm_avg);
+        ctx.beginPath();ctx.moveTo(LM,yra);ctx.lineTo(xBreak,yra);ctx.stroke();
+      }
+      if(active.vss&&bam.vss_avg!=null&&otherMins.vss!=null){
+        ctx.strokeStyle=col;
+        var yva=ypRight('vss',bam.vss_avg);
+        ctx.beginPath();ctx.moveTo(LM,yva);ctx.lineTo(xBreak,yva);ctx.stroke();
+      }
+      if(active.tps&&bam.tps_avg!=null&&otherMins.tps!=null){
+        ctx.strokeStyle=col;
+        var yta=ypRight('tps',bam.tps_avg);
+        ctx.beginPath();ctx.moveTo(LM,yta);ctx.lineTo(xBreak,yta);ctx.stroke();
+      }
+      ctx.setLineDash([]);
+      // Event phase: draw each active metric's individual curve
       var toDraw=PW_KEYS.filter(function(k){return active[k];}).map(function(k){
         return {curve:m[METRICS[k].key],yFn:ypLeft,col:col};
       }).concat(OTHER_KEYS.filter(function(k){return active[k]&&m[METRICS[k].key];}).map(function(k){

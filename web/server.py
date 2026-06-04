@@ -1862,7 +1862,10 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
     )
 
     if not stale:
-        return json.loads(cluster_file.read_text())
+        cached = json.loads(cluster_file.read_text())
+        if cached.get('threshold') == threshold:
+            return cached
+        stale = True
 
     # --- Step 3: pool all events and cluster ---
     all_events = []
