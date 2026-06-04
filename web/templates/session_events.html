@@ -10,6 +10,7 @@
 body{background:var(--bg);color:var(--tx);font-family:'Barlow Condensed',sans-serif;font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 ::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
 
+/* ── Header ─────────────────────────────────────────────────── */
 .hdr{background:var(--p);border-bottom:2px solid var(--ac);padding:6px 12px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
 .hdr-title{font-size:13px;font-weight:900;color:#fff;font-family:var(--mn);letter-spacing:.04em}
 .hdr-nav{display:flex;gap:6px}
@@ -17,69 +18,69 @@ body{background:var(--bg);color:var(--tx);font-family:'Barlow Condensed',sans-se
 .hdr-nav a:hover{color:var(--bl);border-color:var(--bl)}
 .hdr-nav a.active{color:var(--ac);border-color:var(--ac)}
 
-.controls{background:var(--p);border-bottom:1px solid var(--bd);padding:6px 12px;display:flex;gap:8px;align-items:flex-end;flex-shrink:0;flex-wrap:wrap}
+/* ── Main split layout ───────────────────────────────────────── */
+.main{flex:1;display:flex;overflow:hidden;min-height:0}
+
+/* ── Left panel ─────────────────────────────────────────────── */
+.left{width:200px;flex-shrink:0;background:var(--p);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+.left-controls{padding:8px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid var(--bd);flex-shrink:0}
 .ctrl-group{display:flex;flex-direction:column;gap:2px}
 .ctrl-group label{font-family:var(--mn);font-size:7px;color:var(--a2);letter-spacing:.12em;text-transform:uppercase}
-.ctrl-group select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:4px 8px;border-radius:2px;cursor:pointer;min-width:120px}
-.btn{font-family:var(--mn);font-size:10px;font-weight:700;background:var(--ac);color:#fff;border:none;padding:6px 14px;border-radius:2px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase}
+.ctrl-group select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:4px 6px;border-radius:2px;cursor:pointer;width:100%}
+.btn{font-family:var(--mn);font-size:10px;font-weight:700;background:var(--ac);color:#fff;border:none;padding:5px 10px;border-radius:2px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;width:100%}
 .btn:hover{filter:brightness(1.15)}
 .btn:disabled{opacity:.4;cursor:default}
-.status{font-family:var(--mn);font-size:9px;color:var(--dm);align-self:center;margin-left:auto}
-.status.err{color:var(--rd)}.status.ok{color:var(--gn)}.status.loading{color:var(--a2)}
+.status-line{font-family:var(--mn);font-size:8px;color:var(--dm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.status-line.err{color:var(--rd)}.status-line.ok{color:var(--gn)}.status-line.loading{color:var(--a2)}
 
-.content{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;min-height:0}
+.cluster-list{flex:1;overflow-y:auto;padding:4px}
+.cluster-list-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.1em;text-transform:uppercase;padding:4px 4px 2px}
+.chip{padding:5px 7px;border:1px solid var(--bd);border-left:3px solid transparent;border-radius:2px;cursor:pointer;margin-bottom:3px;transition:border-color .1s,background .1s}
+.chip:hover{background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.1)}
+.chip.active{border-left-color:var(--ac);border-color:rgba(232,66,10,.4);background:rgba(232,66,10,.06)}
+.chip-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px}
+.chip-id{font-family:var(--mn);font-size:8px;color:var(--dm)}
+.chip-n{font-family:var(--mn);font-size:11px;font-weight:900;color:var(--tx)}
+.chip-n.high{color:var(--gn)}.chip-n.med{color:var(--a2)}.chip-n.low{color:var(--dm)}
+.chip-bucket{font-family:var(--mn);font-size:9px;color:var(--tx)}
+.chip-bucket span{color:var(--a2)}
+.chip-badges{display:flex;gap:3px;flex-wrap:wrap;margin-top:2px}
+.cb{font-family:var(--mn);font-size:7px;padding:1px 4px;border-radius:1px;border:1px solid}
+.cb-ok{color:var(--gn);border-color:rgba(44,221,110,.3)}
+.cb-warn{color:var(--a2);border-color:rgba(245,166,35,.3)}
+.cb-info{color:var(--dm);border-color:var(--bd)}
+.cb-alert{color:var(--rd);border-color:rgba(255,68,68,.3)}
 
-.summary-bar{display:flex;gap:6px;flex-shrink:0}
-.sum-chip{background:var(--p);border:1px solid var(--bd);border-radius:2px;padding:4px 10px;font-family:var(--mn);font-size:9px;display:flex;gap:6px;align-items:center}
-.sum-chip .lbl{color:var(--dm);font-size:7px;text-transform:uppercase;letter-spacing:.1em}
-.sum-chip .val{color:var(--tx);font-weight:700}
+/* ── Right panel ─────────────────────────────────────────────── */
+.right{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
-.cluster-grid{display:flex;flex-direction:column;gap:5px}
+.chart-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;padding:8px 10px 6px}
+.chart-title{font-family:var(--mn);font-size:9px;color:var(--dm);flex-shrink:0;margin-bottom:4px;letter-spacing:.04em}
+.chart-wrap{flex:1;min-height:0;position:relative}
+.chart-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
 
-.cluster-card{background:var(--p);border:1px solid var(--bd);border-radius:3px;overflow:hidden;transition:border-color .12s}
-.cluster-card:hover{border-color:rgba(255,255,255,.12)}
-.cluster-card.orphan{opacity:.6}
-.cluster-card.ba-ok{border-left:3px solid var(--gn)}
-.cluster-card.ba-mixed{border-left:3px solid var(--a2)}
+.legend{flex-shrink:0;display:flex;gap:12px;padding:4px 0 2px;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:4px;font-family:var(--mn);font-size:8px;color:var(--dm)}
+.leg-line{width:18px;height:2px;border-radius:1px}
+.leg-dot{width:8px;height:2px;border-top:1px dashed}
 
-.card-header{display:flex;align-items:center;gap:6px;padding:5px 8px;cursor:pointer;user-select:none;min-height:32px;flex-wrap:wrap}
-.card-header:hover{background:rgba(255,255,255,.025)}
+.info-bar{flex-shrink:0;border-top:1px solid var(--bd);background:var(--p);padding:6px 10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;min-height:32px}
+.info-stat{font-family:var(--mn);font-size:9px;display:flex;gap:4px}
+.info-stat .k{color:var(--dm);font-size:7px;text-transform:uppercase;letter-spacing:.08em;align-self:center}
+.info-stat .v{color:var(--tx);font-weight:700}
+.info-badges{display:flex;gap:4px;flex-wrap:wrap}
 
-.cid{font-family:var(--mn);font-size:8px;color:var(--dm);flex-shrink:0;min-width:32px}
-.n-badge{font-family:var(--mn);font-size:10px;font-weight:900;padding:2px 6px;border-radius:2px;flex-shrink:0}
-.n-high{background:rgba(44,221,110,.15);color:var(--gn);border:1px solid rgba(44,221,110,.3)}
-.n-med{background:rgba(245,166,35,.12);color:var(--a2);border:1px solid rgba(245,166,35,.25)}
-.n-low{background:rgba(85,85,94,.2);color:var(--dm);border:1px solid var(--bd)}
+.members-strip{flex-shrink:0;border-top:1px solid var(--bd);max-height:120px;overflow-y:auto}
+table.mt{width:100%;border-collapse:collapse;font-family:var(--mn);font-size:8px}
+table.mt thead tr{background:var(--p);position:sticky;top:0;z-index:1}
+table.mt th{padding:3px 6px;text-align:right;font-size:7px;color:var(--dm);font-weight:700;letter-spacing:.06em;border-bottom:1px solid var(--bd)}
+table.mt th:first-child{text-align:left}
+table.mt td{padding:2px 6px;text-align:right;border-bottom:1px solid rgba(255,255,255,.03)}
+table.mt td:first-child{text-align:left}
+table.mt tr:hover td{background:rgba(255,255,255,.02)}
 
-.bucket-badge{font-family:var(--mn);font-size:9px;color:var(--tx);background:rgba(255,255,255,.04);border:1px solid var(--bd);padding:2px 6px;border-radius:2px;flex-shrink:0}
-.bucket-badge span{color:var(--a2);margin-right:2px}
-
-.context-badges{display:flex;gap:4px;flex-wrap:wrap;flex:1}
-.cbadge{font-family:var(--mn);font-size:8px;padding:1px 5px;border-radius:2px;border:1px solid;white-space:nowrap}
-.cbadge.warn{color:var(--a2);border-color:rgba(245,166,35,.35);background:rgba(245,166,35,.07)}
-.cbadge.info{color:var(--dm);border-color:var(--bd);background:transparent}
-.cbadge.alert{color:var(--rd);border-color:rgba(255,68,68,.35);background:rgba(255,68,68,.07)}
-
-.dtw-range{font-family:var(--mn);font-size:8px;color:var(--dm);flex-shrink:0;white-space:nowrap}
-.toggle-btn{font-family:var(--mn);font-size:9px;color:var(--dm);background:transparent;border:none;cursor:pointer;padding:2px 4px;flex-shrink:0}
-
-.card-body{display:none;border-top:1px solid var(--bd);padding:6px 8px;display:none;gap:8px;flex-direction:column}
-.card-body.open{display:flex}
-
-.chart-row{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap}
-.chart-wrap{flex:1;min-width:200px;display:flex;flex-direction:column;gap:3px}
-.chart-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.1em;text-transform:uppercase}
-.chart-canvas-wrap{position:relative;height:80px;width:100%}
-.chart-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%;height:100%}
-
-.members-table{width:100%;border-collapse:collapse;font-family:var(--mn);font-size:8px}
-.members-table th{text-align:left;color:var(--dm);font-size:7px;letter-spacing:.08em;padding:2px 4px;border-bottom:1px solid var(--bd)}
-.members-table td{padding:2px 4px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--tx)}
-.members-table td:first-child{color:var(--a2)}
-.members-table tr:hover td{background:rgba(255,255,255,.02)}
-
-.no-data{flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--mn);font-size:11px;color:var(--dm);flex-direction:column;gap:8px}
-.no-data span{font-size:24px}
+.empty{flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--mn);font-size:11px;color:var(--dm);flex-direction:column;gap:8px}
+.empty span{font-size:28px}
 </style>
 </head>
 <body>
@@ -94,300 +95,390 @@ body{background:var(--bg);color:var(--tx);font-family:'Barlow Condensed',sans-se
   </div>
 </div>
 
-<div class="controls">
-  <div class="ctrl-group">
-    <label>Session</label>
-    <select id="selSession"></select>
+<div class="main">
+  <!-- ── Left panel ── -->
+  <div class="left">
+    <div class="left-controls">
+      <div class="ctrl-group">
+        <label>Session</label>
+        <select id="selSession"></select>
+      </div>
+      <div class="ctrl-group">
+        <label>DTW Threshold</label>
+        <select id="selThresh">
+          <option value="0.80">0.80 — loose</option>
+          <option value="0.85" selected>0.85 — default</option>
+          <option value="0.90">0.90 — strict</option>
+          <option value="0.95">0.95 — very strict</option>
+        </select>
+      </div>
+      <button class="btn" id="btnLoad" onclick="loadSession()">LOAD</button>
+      <div class="status-line" id="status">Select a session</div>
+    </div>
+    <div class="cluster-list" id="clusterList">
+      <div class="cluster-list-label">CLUSTERS</div>
+    </div>
   </div>
-  <div class="ctrl-group">
-    <label>DTW Threshold</label>
-    <select id="selThresh">
-      <option value="0.80">0.80 — loose</option>
-      <option value="0.85" selected>0.85 — default</option>
-      <option value="0.90">0.90 — strict</option>
-      <option value="0.95">0.95 — very strict</option>
-    </select>
-  </div>
-  <button class="btn" id="btnLoad" onclick="loadSession()">LOAD</button>
-  <div class="status" id="status">Select a session</div>
-</div>
 
-<div class="content" id="content">
-  <div class="no-data"><span>⚡</span>Select a session and press LOAD</div>
+  <!-- ── Right panel ── -->
+  <div class="right" id="rightPanel">
+    <div class="empty"><span>⚡</span>Select a session and press LOAD</div>
+  </div>
 </div>
 
 <script>
-var DATA = null;
+var DATA         = null;
+var activeCluster = null;
+
+// ── Palette for individual event lines ───────────────────────────────────────
+function eventColor(i, n, alpha) {
+  var hue = (i / Math.max(n, 1)) * 300 + 180; // blue→green range
+  return 'hsla(' + hue + ',70%,60%,' + alpha + ')';
+}
 
 // ── Session list ─────────────────────────────────────────────────────────────
 fetch('/rides')
-  .then(r => r.json())
-  .then(sessions => {
-    var sel = document.getElementById('selSession');
-    sessions.forEach(function(s) {
-      var opt = document.createElement('option');
-      opt.value = s.id || s.checksum || s;
-      opt.textContent = (s.id || s.checksum || s) +
-        (s.version ? '  [' + s.version + ']' : '') +
-        (s.rides   ? '  ' + s.rides + 'r' : '');
-      sel.appendChild(opt);
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    var rides = data.rides || data;
+    var seen  = {};
+    rides.forEach(function(r) {
+      var sid = r.session || r.id || r.checksum;
+      if (!sid) return;
+      if (!seen[sid] || (r.ride_num||0) > (seen[sid].ride_num||0)) seen[sid] = r;
     });
+    var sel = document.getElementById('selSession');
+    Object.values(seen)
+      .sort(function(a,b){ return (b.opened_utc||'').localeCompare(a.opened_utc||''); })
+      .forEach(function(s) {
+        var sid  = s.session || s.id || s.checksum;
+        var fw   = s.firmware ? '  ' + s.firmware : '';
+        var date = s.opened_utc ? '  ' + s.opened_utc.slice(0,10) : '';
+        var opt  = document.createElement('option');
+        opt.value = sid;
+        opt.textContent = sid + fw + date;
+        sel.appendChild(opt);
+      });
   })
-  .catch(function() {
-    document.getElementById('status').textContent = 'Could not load sessions';
-    document.getElementById('status').className = 'status err';
-  });
+  .catch(function(){ setStatus('Could not load sessions', 'err'); });
 
-// ── Load session clusters ─────────────────────────────────────────────────────
+// ── Load ─────────────────────────────────────────────────────────────────────
 function loadSession() {
   var sid    = document.getElementById('selSession').value;
   var thresh = document.getElementById('selThresh').value;
   if (!sid) return;
-
-  var btn = document.getElementById('btnLoad');
-  var st  = document.getElementById('status');
-  btn.disabled = true;
-  st.className = 'status loading';
-  st.textContent = 'Processing…';
-  document.getElementById('content').innerHTML = '<div class="no-data"><span>⏳</span>Detecting events and clustering…</div>';
+  document.getElementById('btnLoad').disabled = true;
+  setStatus('Processing…', 'loading');
+  document.getElementById('clusterList').innerHTML = '<div class="cluster-list-label">CLUSTERS</div>';
+  document.getElementById('rightPanel').innerHTML  = '<div class="empty"><span>⏳</span>Detecting events…</div>';
 
   fetch('/session_events/data?session=' + sid + '&threshold=' + thresh)
-    .then(function(r) { return r.json(); })
+    .then(function(r){ return r.json(); })
     .then(function(d) {
-      btn.disabled = false;
-      if (d.error) {
-        st.className = 'status err';
-        st.textContent = 'Error: ' + d.error;
-        return;
-      }
+      document.getElementById('btnLoad').disabled = false;
+      if (d.error) { setStatus('Error: ' + d.error, 'err'); return; }
       DATA = d;
-      st.className = 'status ok';
-      st.textContent = d.n_rides + 'r · ' + d.n_events + ' events · ' + d.n_clusters + ' clusters';
-      render(d);
+      setStatus(d.n_rides + 'r · ' + d.n_events + 'ev · ' + d.n_clusters + 'cl', 'ok');
+      renderClusters(d.clusters);
+      if (d.clusters && d.clusters.length) selectCluster(d.clusters[0]);
     })
-    .catch(function(e) {
-      btn.disabled = false;
-      st.className = 'status err';
-      st.textContent = 'Request failed';
-    });
+    .catch(function(e){ document.getElementById('btnLoad').disabled=false; setStatus('Request failed','err'); });
 }
 
-// ── Render clusters ───────────────────────────────────────────────────────────
-function render(d) {
-  var content = document.getElementById('content');
-  if (!d.clusters || d.clusters.length === 0) {
-    content.innerHTML = '<div class="no-data"><span>🔍</span>No events detected in this session</div>';
-    return;
-  }
+function setStatus(msg, cls) {
+  var el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status-line' + (cls ? ' ' + cls : '');
+}
 
-  var html = '<div class="summary-bar">';
-  html += sumChip('RIDES', d.n_rides);
-  html += sumChip('EVENTS', d.n_events);
-  html += sumChip('CLUSTERS', d.clusters.filter(function(c){ return !c.orphan; }).length);
-  html += sumChip('ORPHANS', d.clusters.filter(function(c){ return c.orphan; }).length);
-  html += sumChip('THRESHOLD', d.threshold);
-  html += '</div>';
+// ── Cluster list ─────────────────────────────────────────────────────────────
+function renderClusters(clusters) {
+  var list = document.getElementById('clusterList');
+  list.innerHTML = '<div class="cluster-list-label">CLUSTERS</div>';
+  clusters.forEach(function(c, i) {
+    var chip = document.createElement('div');
+    chip.className = 'chip' + (c.orphan ? '' : '');
+    chip.dataset.cid = c.cluster_id;
 
-  html += '<div class="cluster-grid" id="clusterGrid"></div>';
-  content.innerHTML = html;
+    var ba  = c.bucket_a || {};
+    var nCl = c.n >= 5 ? 'high' : c.n >= 2 ? 'med' : 'low';
+    var baBadge = c.bucket_a_ok
+      ? '<div class="cb cb-ok">A-OK</div>'
+      : '<div class="cb cb-warn">A-MIX</div>';
+    var orphanBadge = c.orphan ? '<div class="cb cb-info">orphan</div>' : '';
+    var imbalBadge  = (c.stats && c.stats.pw_diff_max > 0.3)
+      ? '<div class="cb cb-alert">⚠imbal</div>' : '';
+    var tpsLabel = '';
+    if (c.members && c.members.length) {
+      var avgPeak = c.members.reduce(function(s,m){ return s + (m.tps_peak||0); },0) / c.members.length;
+      tpsLabel = avgPeak >= 90 ? '  WOT' : avgPeak >= 50 ? '  mid' : '  light';
+    }
 
-  var grid = document.getElementById('clusterGrid');
-  d.clusters.forEach(function(c, ci) {
-    grid.appendChild(buildCard(c, ci));
+    chip.innerHTML =
+      '<div class="chip-top">' +
+        '<div class="chip-id">' + c.cluster_id + tpsLabel + '</div>' +
+        '<div class="chip-n ' + nCl + '">N=' + c.n + '</div>' +
+      '</div>' +
+      '<div class="chip-bucket">' +
+        '<span>' + (ba.gear||'?') + 'a</span> ' +
+        Math.round(ba.rpm_center||0) + 'rpm · ' +
+        Math.round(ba.vss_center||0) + 'kph' +
+      '</div>' +
+      '<div class="chip-badges">' + baBadge + orphanBadge + imbalBadge + '</div>';
+
+    chip.addEventListener('click', function(){ selectCluster(c); });
+    list.appendChild(chip);
   });
 }
 
-function sumChip(lbl, val) {
-  return '<div class="sum-chip"><div class="lbl">' + lbl + '</div><div class="val">' + val + '</div></div>';
-}
-
-// ── Build cluster card ────────────────────────────────────────────────────────
-function buildCard(c, ci) {
-  var div = document.createElement('div');
-  var baClass = c.bucket_a_ok ? 'ba-ok' : 'ba-mixed';
-  div.className = 'cluster-card ' + baClass + (c.orphan ? ' orphan' : '');
-
-  var nClass = c.n >= 5 ? 'n-high' : c.n >= 2 ? 'n-med' : 'n-low';
-  var ba = c.bucket_a || {};
-  var gear = ba.gear || '?';
-  var rpm  = ba.rpm_center ? Math.round(ba.rpm_center) : '?';
-  var vss  = ba.vss_center ? Math.round(ba.vss_center) : '?';
-  var tps  = ba.tps_center != null ? ba.tps_center.toFixed(1) : '?';
-
-  var badges = buildBadges(c);
-
-  var headerHtml = '<div class="card-header" onclick="toggleCard(this)">' +
-    '<div class="cid">' + c.cluster_id + '</div>' +
-    '<div class="n-badge ' + nClass + '">N=' + c.n + '</div>' +
-    '<div class="bucket-badge"><span>' + gear + 'a</span>' + rpm + 'rpm<span style="margin:0 3px">·</span>' + vss + 'kph<span style="margin:0 3px">·</span>' + tps + '%TPS</div>' +
-    badges +
-    (c.orphan ? '' : '<div class="dtw-range">DTW ' + c.dtw_min + '-' + c.dtw_max + '</div>') +
-    '<button class="toggle-btn">▼</button>' +
-    '</div>';
-
-  var bodyHtml = '<div class="card-body">' +
-    buildChartRow(c, ci) +
-    buildMembersTable(c) +
-    '</div>';
-
-  div.innerHTML = headerHtml + bodyHtml;
-  return div;
-}
-
-function buildBadges(c) {
-  var out = '<div class="context-badges">';
-  if (!c.bucket_a_ok) out += '<div class="cbadge warn">⚠ BucketA mixed</div>';
-  if (c.has_very_short) out += '<div class="cbadge info">⚡ &lt;0.5s events</div>';
-  if (c.orphan) out += '<div class="cbadge info">orphan</div>';
-  if (c.stats && c.stats.pw_diff_max > 0.3) {
-    out += '<div class="cbadge alert">⚠ PW imbalance ' + c.stats.pw_diff_max.toFixed(2) + 'ms</div>';
-  }
-  out += '</div>';
-  return out;
-}
-
-function toggleCard(hdr) {
-  var body = hdr.nextElementSibling;
-  var btn  = hdr.querySelector('.toggle-btn');
-  var open = body.classList.toggle('open');
-  btn.textContent = open ? '▲' : '▼';
-  if (open) {
-    // Draw charts now that canvas has size
-    var canvases = body.querySelectorAll('canvas');
-    canvases.forEach(function(cv) {
-      drawPWChart(cv);
-    });
-  }
-}
-
-// ── Chart row ────────────────────────────────────────────────────────────────
-function buildChartRow(c, ci) {
-  if (!c.stats) return '';
-  var pwData = JSON.stringify({
-    avg:  c.stats.pw_avg,
-    pw1:  c.stats.pw1_avg,
-    pw2:  c.stats.pw2_avg,
-    conf: c.stats.confidence
+// ── Select & display cluster ──────────────────────────────────────────────────
+function selectCluster(c) {
+  activeCluster = c;
+  // highlight chip
+  document.querySelectorAll('.chip').forEach(function(el){
+    el.classList.toggle('active', el.dataset.cid === c.cluster_id);
   });
-  return '<div class="chart-row">' +
-    '<div class="chart-wrap">' +
-    '<div class="chart-label">PW (ms) — avg / pw1 / pw2 · confidence band</div>' +
-    '<div class="chart-canvas-wrap"><canvas data-pw=\'' + pwData + '\'></canvas></div>' +
+  buildRightPanel(c);
+}
+
+function buildRightPanel(c) {
+  var ba   = c.bucket_a  || {};
+  var st   = c.stats     || {};
+  var memb = c.members   || [];
+
+  var avgTpsPeak = memb.length
+    ? (memb.reduce(function(s,m){ return s+(m.tps_peak||0); },0)/memb.length).toFixed(0) + '%'
+    : '?';
+
+  // Title string
+  var title = c.cluster_id + ' · ' + (ba.gear||'?') + 'a · ' +
+    Math.round(ba.rpm_center||0) + 'rpm ±' + Math.round(ba.rpm_range||0) +
+    ' · ' + Math.round(ba.vss_center||0) + 'kph · TPS→' + avgTpsPeak +
+    '  [N=' + c.n + (c.orphan ? ' orphan' : '') + ']';
+
+  // Info stats
+  var infoParts = [
+    infoStat('Gear', (ba.gear||'?') + 'a'),
+    infoStat('RPM', Math.round(ba.rpm_center||0) + ' ±' + Math.round(ba.rpm_range||0)),
+    infoStat('TPS₀', (ba.tps_center||0).toFixed(1) + '%'),
+    infoStat('VSS', Math.round(ba.vss_center||0) + ' kph'),
+    infoStat('DTW', c.dtw_min + '–' + c.dtw_max),
+  ];
+  if (st.pw_diff_max != null) infoParts.push(infoStat('PW imbal', st.pw_diff_max.toFixed(2) + 'ms'));
+
+  var badges = '';
+  if (!c.bucket_a_ok) badges += '<div class="cb cb-warn">⚠ BucketA mixed</div>';
+  if (c.has_very_short) badges += '<div class="cb cb-info">⚡ &lt;0.5s members</div>';
+
+  // Members table
+  var tableRows = memb.map(function(m, i) {
+    var mba = m.bucket_a || {};
+    var dot = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' +
+              eventColor(i, memb.length, 0.9) + ';margin-right:3px"></span>';
+    return '<tr>' +
+      '<td>' + dot + (m.ride_file||'?').replace('ride_','').replace('_f7events','') + '</td>' +
+      '<td>' + (m.break_t||'') + 's</td>' +
+      '<td>' + (mba.gear||'') + 'a</td>' +
+      '<td>' + Math.round(mba.rpm_avg||0) + '</td>' +
+      '<td>' + (mba.tps_avg||0).toFixed(1) + '</td>' +
+      '<td>' + Math.round(mba.vss_avg||0) + '</td>' +
+      '<td>' + (m.pw_start||0).toFixed(2) + '→' + (m.pw_peak||0).toFixed(2) + '</td>' +
+      '<td style="color:' + ((m.vss_delta||0)>0 ? 'var(--gn)' : 'var(--rd)') + '">' +
+        ((m.vss_delta||0)>0?'+':'') + (m.vss_delta||0).toFixed(1) + '</td>' +
+      '<td>' + (m.duration||0).toFixed(1) + 's</td>' +
+      '</tr>';
+  }).join('');
+
+  var html =
+    '<div class="chart-area">' +
+      '<div class="chart-title" id="chartTitle">' + escHtml(title) + '</div>' +
+      '<div class="chart-wrap"><canvas id="mainChart"></canvas></div>' +
+      '<div class="legend">' +
+        '<div class="leg-item"><div class="leg-line" style="background:var(--ac);height:2.5px"></div> avg PW</div>' +
+        '<div class="leg-item"><div class="leg-dot" style="border-color:var(--bl)"></div> pw1 avg</div>' +
+        '<div class="leg-item"><div class="leg-dot" style="border-color:var(--gn)"></div> pw2 avg</div>' +
+        '<div class="leg-item"><div class="leg-line" style="background:rgba(180,180,200,0.35)"></div> each event</div>' +
+      '</div>' +
     '</div>' +
+    '<div class="info-bar">' +
+      infoParts.join('') +
+      '<div class="info-badges">' + badges + '</div>' +
+    '</div>' +
+    '<div class="members-strip">' +
+      '<table class="mt"><thead><tr>' +
+        '<th style="text-align:left">Ride</th><th>t(s)</th><th>Gear</th><th>RPM</th><th>TPS%</th><th>VSS</th><th>PW→peak</th><th>dVSS</th><th>dur</th>' +
+      '</tr></thead><tbody>' + tableRows + '</tbody></table>' +
     '</div>';
+
+  document.getElementById('rightPanel').innerHTML = html;
+  drawClusterChart(c);
 }
 
-function drawPWChart(canvas) {
-  var raw = canvas.getAttribute('data-pw');
-  if (!raw) return;
-  var d;
-  try { d = JSON.parse(raw); } catch(e) { return; }
+function infoStat(k, v) {
+  return '<div class="info-stat"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
+}
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+// ── Chart ─────────────────────────────────────────────────────────────────────
+function drawClusterChart(c) {
+  var canvas = document.getElementById('mainChart');
+  if (!canvas) return;
   var wrap = canvas.parentElement;
-  var W = wrap.clientWidth || 300;
-  var H = wrap.clientHeight || 80;
-  var dpr = window.devicePixelRatio || 1;
+  var dpr  = window.devicePixelRatio || 1;
+  var W    = wrap.clientWidth  || 600;
+  var H    = wrap.clientHeight || 300;
   canvas.width  = Math.round(W * dpr);
   canvas.height = Math.round(H * dpr);
   var ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
 
-  var n    = d.avg.length;
-  var pad  = {l:28, r:6, t:6, b:16};
-  var cw   = W - pad.l - pad.r;
-  var ch   = H - pad.t - pad.b;
+  var st   = c.stats   || {};
+  var memb = c.members || [];
+  var N    = 20;
 
-  var allVals = d.avg.concat(d.pw1 || [], d.pw2 || []);
+  // Y range from all data
+  var allVals = (st.pw_avg || []).slice();
+  memb.forEach(function(m){ (m.pw_curve||[]).forEach(function(v){ allVals.push(v); }); });
+  if (!allVals.length) return;
   var yMin = Math.min.apply(null, allVals);
   var yMax = Math.max.apply(null, allVals);
-  var yRange = yMax - yMin || 1;
+  var pad  = Math.max((yMax - yMin) * 0.12, 0.3);
+  yMin -= pad; yMax += pad;
 
-  function xp(i)  { return pad.l + (i / (n - 1)) * cw; }
-  function yp(v)  { return pad.t + ch - ((v - yMin) / yRange) * ch; }
+  var TM = 14, BM = 20, LM = 34, RM = 10;
+  var PW = W - LM - RM;
+  var PH = H - TM - BM;
 
-  // background
+  function xp(i) { return LM + (i / (N - 1)) * PW; }
+  function yp(v) { return TM + PH - ((v - yMin) / (yMax - yMin)) * PH; }
+
+  // Background
   ctx.fillStyle = '#0a0a0b';
   ctx.fillRect(0, 0, W, H);
 
-  // confidence band (±std around avg, opacity = confidence)
-  for (var i = 0; i < n - 1; i++) {
-    var conf = (d.conf[i] + d.conf[i + 1]) / 2;
-    var std  = 0.3; // visual band width in ms
-    ctx.fillStyle = 'rgba(232,66,10,' + (conf * 0.18) + ')';
-    var x0 = xp(i), x1 = xp(i + 1);
-    var y0a = yp(d.avg[i] + std), y0b = yp(d.avg[i] - std);
-    var y1a = yp(d.avg[i+1] + std), y1b = yp(d.avg[i+1] - std);
-    ctx.beginPath();
-    ctx.moveTo(x0, y0a); ctx.lineTo(x1, y1a);
-    ctx.lineTo(x1, y1b); ctx.lineTo(x0, y0b);
-    ctx.closePath(); ctx.fill();
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 1;
+  for (var g = 1; g <= 3; g++) {
+    var yg = TM + PH * g / 4;
+    ctx.beginPath(); ctx.moveTo(LM, yg); ctx.lineTo(LM + PW, yg); ctx.stroke();
   }
 
-  // pw1 thin line
-  if (d.pw1) {
-    ctx.strokeStyle = 'rgba(61,158,255,0.45)';
+  // X axis ticks (point indices labelled 0, 5, 10, 15, 20)
+  ctx.font = '7px monospace'; ctx.textAlign = 'center';
+  [0, 5, 10, 15, 19].forEach(function(i) {
+    var x = xp(i);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
     ctx.lineWidth = 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    d.pw1.forEach(function(v, i) { i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v)); });
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
+    ctx.beginPath(); ctx.moveTo(x, TM); ctx.lineTo(x, TM + PH); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.fillText(i === 0 ? '0' : i === 19 ? 'end' : i, x, H - 5);
+  });
 
-  // pw2 thin line
-  if (d.pw2) {
-    ctx.strokeStyle = 'rgba(44,221,110,0.45)';
-    ctx.lineWidth = 1;
-    ctx.setLineDash([3, 3]);
-    ctx.beginPath();
-    d.pw2.forEach(function(v, i) { i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v)); });
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // avg thick line
-  ctx.strokeStyle = '#e8420a';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  d.avg.forEach(function(v, i) { i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v)); });
-  ctx.stroke();
+  // t=0 marker
+  ctx.strokeStyle = 'rgba(232,66,10,0.4)';
+  ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(xp(0), TM); ctx.lineTo(xp(0), TM + PH); ctx.stroke();
+  ctx.setLineDash([]);
 
   // Y axis labels
-  ctx.fillStyle = '#55555e';
-  ctx.font = '8px monospace';
   ctx.textAlign = 'right';
-  ctx.fillText(yMax.toFixed(1), pad.l - 2, pad.t + 6);
-  ctx.fillText(yMin.toFixed(1), pad.l - 2, pad.t + ch);
-
-  // X axis labels
+  ctx.fillStyle = 'rgba(255,255,255,0.25)';
+  ctx.font = '7px monospace';
+  var ySteps = 4;
+  for (var ys = 0; ys <= ySteps; ys++) {
+    var yVal = yMin + (yMax - yMin) * ys / ySteps;
+    var yPos = TM + PH - (ys / ySteps) * PH;
+    ctx.fillText(yVal.toFixed(1), LM - 2, yPos + 3);
+  }
+  // Y axis label
+  ctx.save();
+  ctx.translate(10, TM + PH / 2);
+  ctx.rotate(-Math.PI / 2);
   ctx.textAlign = 'center';
-  ctx.fillText('0', pad.l, H - 2);
-  ctx.fillText('t', pad.l + cw, H - 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.2)';
+  ctx.font = '7px monospace';
+  ctx.fillText('PW (ms)', 0, 0);
+  ctx.restore();
+
+  // Confidence band around avg
+  if (st.pw_avg && st.pw_std && st.confidence) {
+    for (var i2 = 0; i2 < N - 1; i2++) {
+      var conf = (st.confidence[i2] + st.confidence[i2+1]) / 2;
+      var std2  = (st.pw_std[i2] + st.pw_std[i2+1]) / 2;
+      ctx.fillStyle = 'rgba(232,66,10,' + (conf * 0.12) + ')';
+      var x0 = xp(i2), x1 = xp(i2+1);
+      var ya0 = yp(st.pw_avg[i2] + std2), ya1 = yp(st.pw_avg[i2+1] + std2);
+      var yb0 = yp(st.pw_avg[i2] - std2), yb1 = yp(st.pw_avg[i2+1] - std2);
+      ctx.beginPath();
+      ctx.moveTo(x0, ya0); ctx.lineTo(x1, ya1);
+      ctx.lineTo(x1, yb1); ctx.lineTo(x0, yb0);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // Individual event lines
+  memb.forEach(function(m, idx) {
+    var curve = m.pw_curve;
+    if (!curve || curve.length < 2) return;
+    ctx.strokeStyle = eventColor(idx, memb.length, 0.45);
+    ctx.lineWidth = 1;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    curve.forEach(function(v, i) {
+      i === 0 ? ctx.moveTo(xp(i), yp(v)) : ctx.lineTo(xp(i), yp(v));
+    });
+    ctx.stroke();
+  });
+
+  // pw1 avg dashed
+  if (st.pw1_avg) {
+    ctx.strokeStyle = 'rgba(61,158,255,0.6)';
+    ctx.lineWidth = 1.2; ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    st.pw1_avg.forEach(function(v, i) {
+      i===0 ? ctx.moveTo(xp(i),yp(v)) : ctx.lineTo(xp(i),yp(v));
+    });
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // pw2 avg dashed
+  if (st.pw2_avg) {
+    ctx.strokeStyle = 'rgba(44,221,110,0.6)';
+    ctx.lineWidth = 1.2; ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    st.pw2_avg.forEach(function(v, i) {
+      i===0 ? ctx.moveTo(xp(i),yp(v)) : ctx.lineTo(xp(i),yp(v));
+    });
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  // Average line — thick orange
+  if (st.pw_avg) {
+    ctx.strokeStyle = '#e8420a';
+    ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    st.pw_avg.forEach(function(v, i) {
+      i===0 ? ctx.moveTo(xp(i),yp(v)) : ctx.lineTo(xp(i),yp(v));
+    });
+    ctx.stroke();
+  }
+
+  // Endpoint dots on avg
+  if (st.pw_avg) {
+    [0, N-1].forEach(function(i) {
+      ctx.beginPath();
+      ctx.arc(xp(i), yp(st.pw_avg[i]), 3, 0, 2*Math.PI);
+      ctx.fillStyle = '#e8420a'; ctx.fill();
+    });
+  }
 }
 
-// ── Members table ─────────────────────────────────────────────────────────────
-function buildMembersTable(c) {
-  if (!c.members || c.members.length === 0) return '';
-  var html = '<table class="members-table"><thead><tr>' +
-    '<th>Ride</th><th>t (s)</th><th>Gear</th><th>RPM</th><th>TPS%</th><th>VSS</th><th>PW→peak</th><th>dVSS</th><th>dur</th>' +
-    '</tr></thead><tbody>';
-  c.members.forEach(function(m) {
-    var ba = m.bucket_a || {};
-    html += '<tr>' +
-      '<td>' + (m.ride_file || '?') + '</td>' +
-      '<td>' + (m.break_t || '') + '</td>' +
-      '<td>' + (ba.gear || '') + 'a</td>' +
-      '<td>' + (ba.rpm_avg ? Math.round(ba.rpm_avg) : '') + '</td>' +
-      '<td>' + (ba.tps_avg != null ? ba.tps_avg.toFixed(1) : '') + '</td>' +
-      '<td>' + (ba.vss_avg ? Math.round(ba.vss_avg) : '') + '</td>' +
-      '<td>' + (m.pw_start != null ? m.pw_start.toFixed(2) : '') + '→' + (m.pw_peak != null ? m.pw_peak.toFixed(2) : '') + '</td>' +
-      '<td style="color:' + (m.vss_delta > 0 ? 'var(--gn)' : 'var(--rd)') + '">' + (m.vss_delta != null ? (m.vss_delta > 0 ? '+' : '') + m.vss_delta.toFixed(1) : '') + '</td>' +
-      '<td>' + (m.duration != null ? m.duration.toFixed(1) : '') + 's</td>' +
-      '</tr>';
-  });
-  html += '</tbody></table>';
-  return html;
-}
+// Redraw on resize
+window.addEventListener('resize', function() {
+  if (activeCluster) drawClusterChart(activeCluster);
+});
 </script>
 </body>
 </html>

@@ -1861,12 +1861,9 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
     clusters = _f7_cluster(all_events, threshold=threshold)
     for c in clusters:
         _f7_temporal_stats(c)
-        # strip full member arrays from JSON output (keep summary only)
+        # keep pw_curve in members so the frontend can draw individual event lines
         for m in c['members']:
-            m.pop('pw_curve',  None)
-            m.pop('pw1_curve', None)
-            m.pop('pw2_curve', None)
-            m.pop('tps_curve', None)
+            m.pop('tps_curve', None)  # tps not needed in UI
 
     result = {
         'session_id':  session_id,
