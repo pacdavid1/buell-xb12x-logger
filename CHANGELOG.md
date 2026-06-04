@@ -25,6 +25,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.84] — 2026-06-04
+
+### Fixed
+- main.py: battery charging indicator (⚡) was always False because the voltage
+  trend approach fails in CV phase (battery near full, voltage barely changes).
+  Replaced with direct CW2015 CHG_IND bit (STATUS register bit 4) with a
+  3-read majority debounce. Previous CHANGELOG note about CHG_IND "always being 1"
+  was incorrect — the bit correctly reflects USB power connection state.
+  Voltage trend is now used only for the ↑↓→ arrow in the BATV display.
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.83] — 2026-06-04
 
 ### Fixed

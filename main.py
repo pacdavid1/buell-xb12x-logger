@@ -116,8 +116,9 @@ class BuellLogger:
         self.gps = GPSReader()
         self._bmp280 = None
         self._aht20 = None
-        self._bat_voltages = []  # rolling buffer for charging detection
-        self._bat_socs = []      # rolling buffer for SOC smoothing
+        self._bat_voltages = []       # rolling buffer for voltage trend
+        self._bat_socs = []          # rolling buffer for SOC smoothing
+        self._bat_charging_reads = []  # debounce buffer for CW2015 CHG_IND bit
         self._cw2015 = None
         self._smbus = None
         if _BMP280_OK or _AHT20_OK or _CW2015_OK:
@@ -245,6 +246,7 @@ class BuellLogger:
                     stats['humidity_pct'] = _hum
                 except Exception:
                     stats['humidity_pct'] = None
+            _chg_hw = None
             if self._cw2015:
                 try:
                     _bat = self._cw2015.read_all()
@@ -253,37 +255,43 @@ class BuellLogger:
                 except Exception:
                     stats['bat_voltage'] = None
                     stats['bat_soc'] = None
+                try:
+                    _chg_hw = self._cw2015.get_charging()
+                except Exception:
+                    pass
 
-            # Charging detection via voltage trend + hysteresis
+            # Voltage buffer for trend arrow
             _v_now = stats.get('bat_voltage')
             if _v_now is not None:
                 self._bat_voltages.append(_v_now)
-                if len(self._bat_voltages) > 15:  # ~30s window
+                if len(self._bat_voltages) > 15:
                     self._bat_voltages.pop(0)
             _soc_raw = stats.get('bat_soc')
             if _soc_raw is not None:
                 self._bat_socs.append(_soc_raw)
-                if len(self._bat_socs) > 5:  # smooth over 5 readings
+                if len(self._bat_socs) > 5:
                     self._bat_socs.pop(0)
                 stats['bat_soc'] = sum(self._bat_socs) / len(self._bat_socs)
-            # Charging detection via voltage trend (30s window)
-            # Smooths noise by averaging groups of 5 readings
-            if len(self._bat_voltages) >= 10:
-                _early = sum(self._bat_voltages[:5]) / 5
-                _late = sum(self._bat_voltages[-5:]) / 5
-                _diff = _late - _early
-                if _diff > 0.015:
-                    stats['bat_charging'] = True
-                    stats['bat_trend'] = 'up'
-                elif _diff < -0.015:
-                    stats['bat_charging'] = False
-                    stats['bat_trend'] = 'down'
+            # Charging detection: CW2015 CHG_IND bit with 3-read majority debounce
+            # Falls back to voltage trend if hardware bit not available
+            if _chg_hw is not None:
+                self._bat_charging_reads.append(_chg_hw)
+                if len(self._bat_charging_reads) > 3:
+                    self._bat_charging_reads.pop(0)
+                stats['bat_charging'] = sum(1 for x in self._bat_charging_reads if x) >= 2
+            else:
+                # Fallback: voltage rising > 0.015V over 20s window
+                if len(self._bat_voltages) >= 10:
+                    _d = sum(self._bat_voltages[-5:]) / 5 - sum(self._bat_voltages[:5]) / 5
+                    stats['bat_charging'] = _d > 0.015
                 else:
-                    stats['bat_trend'] = 'stable'
                     stats['bat_charging'] = False
+            # Voltage trend arrow (independent of charging flag)
+            if len(self._bat_voltages) >= 10:
+                _d = sum(self._bat_voltages[-5:]) / 5 - sum(self._bat_voltages[:5]) / 5
+                stats['bat_trend'] = 'up' if _d > 0.015 else 'down' if _d < -0.015 else 'stable'
             else:
                 stats['bat_trend'] = 'stable'
-                stats['bat_charging'] = False
             
             # Health journal: log system issues
             _health_check(stats, self._ecu_alive if hasattr(self, '_ecu_alive') else True)
