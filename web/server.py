@@ -1627,13 +1627,14 @@ def _f7_detect_events(rows):
                         phase_b.append(r2)
 
                     if len(phase_b) >= MIN_SAMPLES:
-                        pw_s  = [(r['pw1'] + r.get('pw2', r['pw1'])) / 2 for r in phase_b]
-                        pw1_s = [r['pw1'] for r in phase_b]
-                        pw2_s = [r.get('pw2', r['pw1']) for r in phase_b]
+                        pw_s   = [(r['pw1'] + r.get('pw2', r['pw1'])) / 2 for r in phase_b]
+                        pw1_s  = [r['pw1'] for r in phase_b]
+                        pw2_s  = [r.get('pw2', r['pw1']) for r in phase_b]
                         tps_s2 = [r['tps'] for r in phase_b]
-                        vss_s = [r['spd'] for r in phase_b]
-                        dur   = phase_b[-1]['t'] - phase_b[0]['t']
-                        vss_d = vss_s[-1] - vss_s[0]
+                        vss_s  = [r['spd'] for r in phase_b]
+                        rpm_s  = [r['rpm'] for r in phase_b]
+                        dur    = phase_b[-1]['t'] - phase_b[0]['t']
+                        vss_d  = vss_s[-1] - vss_s[0]
 
                         # acceleration only: PW rises and bike speeds up
                         if max(pw_s) <= pw_s[0] * 1.05 or vss_d < 0:
@@ -1642,23 +1643,24 @@ def _f7_detect_events(rows):
                             stable_t   = 0.0
                             continue
 
-                        tps_rs = _f7_resample(tps_s2)
-                        tps_mx = max(tps_rs) or 1
                         events.append({
-                            'break_t':   round(t0, 2),
-                            'duration':  round(dur, 2),
-                            'n_raw':     len(phase_b),
-                            'bucket_a':  bucket_a,
-                            'pw_curve':  _f7_resample(pw_s),
-                            'pw1_curve': _f7_resample(pw1_s),
-                            'pw2_curve': _f7_resample(pw2_s),
-                            'tps_curve': [v / tps_mx for v in tps_rs],
-                            'pw_start':  round(pw_s[0], 2),
-                            'pw_peak':   round(max(pw_s), 2),
-                            'pw_delta':  round(max(pw_s) - pw_s[0], 2),
-                            'tps_start': round(tps_s2[0], 1),
-                            'tps_peak':  round(max(tps_s2), 1),
-                            'vss_delta': round(vss_d, 1),
+                            'event_type': 'acceleration',
+                            'break_t':    round(t0, 2),
+                            'duration':   round(dur, 2),
+                            'n_raw':      len(phase_b),
+                            'bucket_a':   bucket_a,
+                            'pw_curve':   _f7_resample(pw_s),
+                            'pw1_curve':  _f7_resample(pw1_s),
+                            'pw2_curve':  _f7_resample(pw2_s),
+                            'rpm_curve':  _f7_resample(rpm_s),
+                            'vss_curve':  _f7_resample(vss_s),
+                            'tps_curve':  _f7_resample(tps_s2),
+                            'pw_start':   round(pw_s[0], 2),
+                            'pw_peak':    round(max(pw_s), 2),
+                            'pw_delta':   round(max(pw_s) - pw_s[0], 2),
+                            'tps_start':  round(tps_s2[0], 1),
+                            'tps_peak':   round(max(tps_s2), 1),
+                            'vss_delta':  round(vss_d, 1),
                             'very_short': dur < 0.5,
                         })
             in_stable = False
@@ -1753,14 +1755,26 @@ def _f7_temporal_stats(cluster, n=_F7_N):
         return
 
     import numpy as _np
-    pw_mat  = _np.array([m['pw_curve']  for m in members])   # (K, N)
-    pw1_mat = _np.array([m['pw1_curve'] for m in members])
-    pw2_mat = _np.array([m['pw2_curve'] for m in members])
+
+    def _safe_mat(key):
+        rows = [m[key] for m in members if m.get(key)]
+        return _np.array(rows) if rows else None
+
+    pw_mat  = _safe_mat('pw_curve')
+    pw1_mat = _safe_mat('pw1_curve')
+    pw2_mat = _safe_mat('pw2_curve')
+    rpm_mat = _safe_mat('rpm_curve')
+    vss_mat = _safe_mat('vss_curve')
+    tps_mat = _safe_mat('tps_curve')
+
+    if pw_mat is None:
+        cluster['stats'] = None
+        return
 
     pw_avg  = pw_mat.mean(axis=0).tolist()
     pw_std  = pw_mat.std(axis=0).tolist()
-    pw1_avg = pw1_mat.mean(axis=0).tolist()
-    pw2_avg = pw2_mat.mean(axis=0).tolist()
+    pw1_avg = pw1_mat.mean(axis=0).tolist() if pw1_mat is not None else pw_avg
+    pw2_avg = pw2_mat.mean(axis=0).tolist() if pw2_mat is not None else pw_avg
     pw_diff = [abs(pw1_avg[t] - pw2_avg[t]) for t in range(n)]
 
     k = len(members)
@@ -1778,6 +1792,9 @@ def _f7_temporal_stats(cluster, n=_F7_N):
         'pw_diff_avg': [round(v, 3) for v in pw_diff],
         'pw_diff_max': round(max(pw_diff), 3),
         'confidence':  confidence,
+        'rpm_avg': [round(v, 1) for v in rpm_mat.mean(axis=0).tolist()] if rpm_mat is not None else [],
+        'vss_avg': [round(v, 2) for v in vss_mat.mean(axis=0).tolist()] if vss_mat is not None else [],
+        'tps_avg': [round(v, 2) for v in tps_mat.mean(axis=0).tolist()] if tps_mat is not None else [],
     }
 
 
@@ -1861,9 +1878,7 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
     clusters = _f7_cluster(all_events, threshold=threshold)
     for c in clusters:
         _f7_temporal_stats(c)
-        # keep pw_curve in members so the frontend can draw individual event lines
-        for m in c['members']:
-            m.pop('tps_curve', None)  # tps not needed in UI
+        # keep all curves in members for multi-metric chart rendering
 
     result = {
         'session_id':  session_id,
