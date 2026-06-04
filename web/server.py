@@ -104,6 +104,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/gps_fix': self._handle_gps_fix,
             '/gps_track': self._handle_gps_track,
             '/ride_note': self._handle_ride_note,
+            '/session_events': self._handle_session_events,
+            '/session_events/data': self._handle_session_events_data,
             '/sessions_launch': self._handle_sessions_launch,
             '/sessions_launch/data': self._handle_sessions_launch_data,
         }
@@ -256,6 +258,36 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({'error': str(e)}, 500)
         return
 
+
+    def _handle_session_events(self, path=None):
+        """Serve the Session Events (FASE7) page."""
+        try:
+            buell_dir = self.server_instance.buell_dir
+            tmpl = (buell_dir / 'web' / 'templates' / 'session_events.html').read_text()
+            self._html(tmpl)
+        except Exception as e:
+            self._html(f'<pre>Error: {e}</pre>', 500)
+
+    def _handle_session_events_data(self, path=None):
+        """Return cluster JSON for a session. ?session=<checksum>&threshold=0.85"""
+        from urllib.parse import urlparse, parse_qs
+        buell_dir = self.server_instance.buell_dir
+        qs        = parse_qs(urlparse(self.path).query)
+        sid       = (qs.get('session', [''])[0]).strip().upper()
+        threshold = float((qs.get('threshold', ['0.85'])[0]))
+        if not sid:
+            self._json({'error': 'missing session param'}, 400)
+            return
+        sdir = buell_dir / 'sessions' / sid
+        if not sdir.is_dir():
+            self._json({'error': f'session {sid} not found'}, 404)
+            return
+        try:
+            data = _f7_load_session_clusters(buell_dir, sid, threshold)
+            self._json(data)
+        except Exception as e:
+            import traceback
+            self._json({'error': str(e), 'trace': traceback.format_exc()}, 500)
 
     def _handle_sessions_launch(self, path=None):
         """Serve the Launch Analysis page."""
@@ -1467,6 +1499,388 @@ def _compare_sessions_cached(buell_dir, sa, sb):
     return result
 
 
+
+
+# ── FASE7: Event detection & PW similarity clustering ────────────────────────
+# Inverse-order algorithm: cluster by PW curve (DTW) first, validate Bucket A second.
+
+import math as _math
+
+_F7_N       = 20    # resample points
+_F7_WINDOW  = 3     # Sakoe-Chiba window
+_F7_THRESH  = 0.85  # default DTW threshold
+
+
+def _f7_resample(series, n=_F7_N):
+    L = len(series)
+    if L == 0:
+        return [0.0] * n
+    if L >= n:
+        idx = [int(round(i * (L - 1) / (n - 1))) for i in range(n)]
+        return [series[i] for i in idx]
+    x_old = [i / (L - 1) for i in range(L)] if L > 1 else [0.0]
+    x_new = [i / (n - 1) for i in range(n)]
+    out = []
+    for x in x_new:
+        lo = max((i for i, v in enumerate(x_old) if v <= x), default=0)
+        hi = min((i for i, v in enumerate(x_old) if v >= x), default=L - 1)
+        if lo == hi:
+            out.append(series[lo])
+        else:
+            t = (x - x_old[lo]) / (x_old[hi] - x_old[lo])
+            out.append(series[lo] + t * (series[hi] - series[lo]))
+    return out
+
+
+def _f7_dtw(a, b, window=_F7_WINDOW):
+    """DTW similarity 0-1 with Sakoe-Chiba window, normalized by combined range."""
+    n = len(a)
+    INF = float('inf')
+    mat = [[INF] * (n + 1) for _ in range(n + 1)]
+    mat[0][0] = 0.0
+    for i in range(1, n + 1):
+        for j in range(max(1, i - window), min(n, i + window) + 1):
+            cost = abs(a[i - 1] - b[j - 1])
+            mat[i][j] = cost + min(mat[i-1][j], mat[i][j-1], mat[i-1][j-1])
+    raw = mat[n][n]
+    cr = max(max(a), max(b)) - min(min(a), min(b))
+    if cr == 0:
+        return 1.0
+    return max(0.0, 1.0 - raw / (n * cr))
+
+
+def _f7_rolling_std(vals):
+    n = len(vals)
+    if n < 2:
+        return 0.0
+    m = sum(vals) / n
+    return _math.sqrt(sum((x - m) ** 2 for x in vals) / n)
+
+
+def _f7_detect_events(rows):
+    """Detect acceleration events: stable bucket A >= 3s, then break, then PW rises."""
+    STABLE_S    = 3.0
+    RPM_STD_MAX = 150
+    TPS_STD_MAX = 2.0
+    TPS_BREAK   = 2.0
+    MIN_VSS     = 5.0
+    MAX_DUR     = 5.0
+    MIN_SAMPLES = 4
+    WINDOW      = 24  # ~3s at 8Hz
+
+    events = []
+    stable_buf = []
+    stable_t   = 0.0
+    in_stable  = False
+
+    for i, row in enumerate(rows):
+        if row.get('spd', 0) < MIN_VSS or row.get('gear', 0) < 1 or not row.get('fl_eng', True):
+            stable_buf = []
+            stable_t   = 0.0
+            in_stable  = False
+            continue
+
+        stable_buf.append(row)
+        if len(stable_buf) > WINDOW:
+            stable_buf.pop(0)
+        if len(stable_buf) < WINDOW // 2:
+            continue
+
+        rpm_s = _f7_rolling_std([r['rpm'] for r in stable_buf])
+        tps_s = _f7_rolling_std([r['tps'] for r in stable_buf])
+        dt    = (row['t'] - rows[i - 1]['t']) if i > 0 else 0.13
+
+        if rpm_s < RPM_STD_MAX and tps_s < TPS_STD_MAX:
+            stable_t += dt
+            if stable_t >= STABLE_S:
+                in_stable = True
+        else:
+            if in_stable:
+                tail_tps = sum(r['tps'] for r in stable_buf[-5:]) / min(5, len(stable_buf))
+                if abs(row['tps'] - tail_tps) >= TPS_BREAK:
+                    win = stable_buf[-WINDOW:]
+                    bucket_a = {
+                        'gear':    int(round(sum(r['gear'] for r in win) / len(win))),
+                        'rpm_avg': round(sum(r['rpm'] for r in win) / len(win), 0),
+                        'tps_avg': round(sum(r['tps'] for r in win) / len(win), 1),
+                        'vss_avg': round(sum(r['spd'] for r in win) / len(win), 1),
+                        'clt_avg': round(sum(r['clt'] for r in win) / len(win), 1),
+                    }
+                    t0     = row['t']
+                    gear0  = bucket_a['gear']
+                    tps0   = bucket_a['tps_avg']
+                    phase_b = []
+                    tps_ret = 0
+                    for r2 in rows[i:]:
+                        if r2['t'] - t0 > MAX_DUR:
+                            break
+                        if int(round(r2.get('gear', 0))) != gear0:
+                            break
+                        if r2.get('fl_fc', False):
+                            break
+                        if abs(r2['tps'] - tps0) < TPS_BREAK:
+                            tps_ret += 1
+                            if tps_ret >= 16:
+                                break
+                        else:
+                            tps_ret = 0
+                        phase_b.append(r2)
+
+                    if len(phase_b) >= MIN_SAMPLES:
+                        pw_s  = [(r['pw1'] + r.get('pw2', r['pw1'])) / 2 for r in phase_b]
+                        pw1_s = [r['pw1'] for r in phase_b]
+                        pw2_s = [r.get('pw2', r['pw1']) for r in phase_b]
+                        tps_s2 = [r['tps'] for r in phase_b]
+                        vss_s = [r['spd'] for r in phase_b]
+                        dur   = phase_b[-1]['t'] - phase_b[0]['t']
+                        vss_d = vss_s[-1] - vss_s[0]
+
+                        # acceleration only: PW rises and bike speeds up
+                        if max(pw_s) <= pw_s[0] * 1.05 or vss_d < 0:
+                            in_stable = False
+                            stable_buf = [row]
+                            stable_t   = 0.0
+                            continue
+
+                        tps_rs = _f7_resample(tps_s2)
+                        tps_mx = max(tps_rs) or 1
+                        events.append({
+                            'break_t':   round(t0, 2),
+                            'duration':  round(dur, 2),
+                            'n_raw':     len(phase_b),
+                            'bucket_a':  bucket_a,
+                            'pw_curve':  _f7_resample(pw_s),
+                            'pw1_curve': _f7_resample(pw1_s),
+                            'pw2_curve': _f7_resample(pw2_s),
+                            'tps_curve': [v / tps_mx for v in tps_rs],
+                            'pw_start':  round(pw_s[0], 2),
+                            'pw_peak':   round(max(pw_s), 2),
+                            'pw_delta':  round(max(pw_s) - pw_s[0], 2),
+                            'tps_start': round(tps_s2[0], 1),
+                            'tps_peak':  round(max(tps_s2), 1),
+                            'vss_delta': round(vss_d, 1),
+                            'very_short': dur < 0.5,
+                        })
+            in_stable = False
+            stable_buf = [row]
+            stable_t   = 0.0
+
+    return events
+
+
+def _f7_cluster(events, threshold=_F7_THRESH):
+    """Union-Find clustering by PW DTW similarity, then validate Bucket A."""
+    from collections import defaultdict
+    n = len(events)
+    if n == 0:
+        return []
+
+    mat = [[0.0] * n for _ in range(n)]
+    for i in range(n):
+        for j in range(i, n):
+            s = _f7_dtw(events[i]['pw_curve'], events[j]['pw_curve'])
+            mat[i][j] = mat[j][i] = s
+
+    parent = list(range(n))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            if mat[i][j] >= threshold:
+                union(i, j)
+
+    groups = defaultdict(list)
+    for i in range(n):
+        groups[find(i)].append(i)
+
+    clusters = []
+    cid = 1
+    for members in sorted(groups.values(), key=lambda m: -len(m)):
+        ev = [events[i] for i in members]
+        gears = [e['bucket_a']['gear'] for e in ev]
+        rpms  = [e['bucket_a']['rpm_avg'] for e in ev]
+        tpss  = [e['bucket_a']['tps_avg'] for e in ev]
+        vsss  = [e['bucket_a']['vss_avg'] for e in ev]
+        ba_ok = (
+            len(set(gears)) == 1 and
+            max(rpms) - min(rpms) <= 250 and
+            max(tpss) - min(tpss) <= 3.0 and
+            max(vsss) - min(vsss) <= 10.0
+        )
+        idxs   = sorted(members)
+        scores = [mat[idxs[ii]][idxs[jj]]
+                  for ii in range(len(idxs))
+                  for jj in range(ii + 1, len(idxs))]
+        ba_summary = {
+            'gear':      int(round(sum(gears) / len(gears))),
+            'rpm_center': round(sum(rpms) / len(rpms), 0),
+            'rpm_range':  round(max(rpms) - min(rpms), 0),
+            'tps_center': round(sum(tpss) / len(tpss), 1),
+            'tps_range':  round(max(tpss) - min(tpss), 1),
+            'vss_center': round(sum(vsss) / len(vsss), 1),
+            'vss_range':  round(max(vsss) - min(vsss), 1),
+        }
+        clusters.append({
+            'cluster_id':     f'C{cid:03d}',
+            'n':              len(ev),
+            'orphan':         len(ev) == 1,
+            'bucket_a_ok':    ba_ok,
+            'bucket_a':       ba_summary,
+            'dtw_min':        round(min(scores), 3) if scores else 1.0,
+            'dtw_max':        round(max(scores), 3) if scores else 1.0,
+            'has_very_short': any(e['very_short'] for e in ev),
+            'members':        ev,
+        })
+        cid += 1
+    return clusters
+
+
+def _f7_temporal_stats(cluster, n=_F7_N):
+    """Compute per-slice PW/VSS stats and confidence for a cluster."""
+    members = cluster['members']
+    if len(members) < 2:
+        cluster['stats'] = None
+        return
+
+    import numpy as _np
+    pw_mat  = _np.array([m['pw_curve']  for m in members])   # (K, N)
+    pw1_mat = _np.array([m['pw1_curve'] for m in members])
+    pw2_mat = _np.array([m['pw2_curve'] for m in members])
+
+    pw_avg  = pw_mat.mean(axis=0).tolist()
+    pw_std  = pw_mat.std(axis=0).tolist()
+    pw1_avg = pw1_mat.mean(axis=0).tolist()
+    pw2_avg = pw2_mat.mean(axis=0).tolist()
+    pw_diff = [abs(pw1_avg[t] - pw2_avg[t]) for t in range(n)]
+
+    k = len(members)
+    confidence = []
+    for t in range(n):
+        n_f = min(k / 5.0, 1.0)
+        s_f = max(0.0, 1.0 - pw_std[t] / 2.0)
+        confidence.append(round(n_f * s_f, 2))
+
+    cluster['stats'] = {
+        'pw_avg':      [round(v, 3) for v in pw_avg],
+        'pw_std':      [round(v, 3) for v in pw_std],
+        'pw1_avg':     [round(v, 3) for v in pw1_avg],
+        'pw2_avg':     [round(v, 3) for v in pw2_avg],
+        'pw_diff_avg': [round(v, 3) for v in pw_diff],
+        'pw_diff_max': round(max(pw_diff), 3),
+        'confidence':  confidence,
+    }
+
+
+def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
+    """
+    Load or compute clusters for a session.
+    Per-ride events are cached as ride_*_f7events.json.
+    Session clusters cached as session_f7clusters.json.
+    Recomputed when any events file is newer than the cluster cache.
+    """
+    import csv as _csv
+    buell_dir = Path(buell_dir)
+    sdir      = buell_dir / 'sessions' / session_id
+
+    def _sf(v, default=0.0):
+        try:
+            return float(v)
+        except Exception:
+            return default
+
+    def _load_csv_rows(csv_path):
+        rows = []
+        with open(csv_path) as f:
+            lines = [l for l in f if not l.startswith('#')]
+        for r in _csv.DictReader(lines):
+            try:
+                rpm = _sf(r['RPM'])
+                if rpm < 100:
+                    continue
+                rows.append({
+                    't':      _sf(r['time_elapsed_s']),
+                    'rpm':    rpm,
+                    'tps':    _sf(r.get('TPS_pct') or r.get('TPD', 0)),
+                    'spd':    _sf(r.get('VS_KPH', 0)),
+                    'pw1':    _sf(r['pw1']),
+                    'pw2':    _sf(r.get('pw2', 0)),
+                    'gear':   _sf(r.get('Gear', 0)),
+                    'clt':    _sf(r['CLT']),
+                    'ae':     _sf(r.get('Accel_Corr', 100)),
+                    'baro':   _sf(r.get('baro_hPa', 0)),
+                    'fl_fc':  r.get('fl_fuel_cut', '0').strip() in ('1', 'True', 'true'),
+                    'fl_eng': r.get('fl_engine_run', '1').strip() in ('1', 'True', 'true'),
+                })
+            except Exception:
+                continue
+        return rows
+
+    # --- Step 1: detect events per ride (incremental cache) ---
+    csv_files   = sorted(sdir.glob('ride_*.csv'))
+    event_files = []
+    for cp in csv_files:
+        ef = cp.with_name(cp.stem + '_f7events.json')
+        if not ef.exists() or ef.stat().st_mtime < cp.stat().st_mtime:
+            rows = _load_csv_rows(cp)
+            evs  = _f7_detect_events(rows)
+            # strip pw_curve arrays to save space (will re-compute from pw1/pw2)
+            ef.write_text(json.dumps(evs, separators=(',', ':')))
+        event_files.append(ef)
+
+    # --- Step 2: check cluster cache staleness ---
+    cluster_file = sdir / 'session_f7clusters.json'
+    stale = (
+        not cluster_file.exists() or
+        any(ef.stat().st_mtime > cluster_file.stat().st_mtime for ef in event_files)
+    )
+
+    if not stale:
+        return json.loads(cluster_file.read_text())
+
+    # --- Step 3: pool all events and cluster ---
+    all_events = []
+    for ef in event_files:
+        try:
+            evs = json.loads(ef.read_text())
+            for e in evs:
+                e['ride_file'] = ef.stem.replace('_f7events', '')
+            all_events.extend(evs)
+        except Exception:
+            continue
+
+    clusters = _f7_cluster(all_events, threshold=threshold)
+    for c in clusters:
+        _f7_temporal_stats(c)
+        # strip full member arrays from JSON output (keep summary only)
+        for m in c['members']:
+            m.pop('pw_curve',  None)
+            m.pop('pw1_curve', None)
+            m.pop('pw2_curve', None)
+            m.pop('tps_curve', None)
+
+    result = {
+        'session_id':  session_id,
+        'n_events':    len(all_events),
+        'n_clusters':  len(clusters),
+        'n_rides':     len(event_files),
+        'threshold':   threshold,
+        'clusters':    clusters,
+    }
+    cluster_file.write_text(json.dumps(result, separators=(',', ':')))
+    return result
+
+
+# ── end FASE7 ────────────────────────────────────────────────────────────────
 
 def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=8.0, min_rpm=1500):
     """Detect WOT tip-in events from CSV rows.
