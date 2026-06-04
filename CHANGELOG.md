@@ -25,6 +25,29 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.83] — 2026-06-04
+
+### Fixed
+- web/server.py: _f7_load_session_clusters cluster cache was not invalidated when
+  DTW threshold changed — any threshold different from the cached one now triggers
+  full recomputation instead of returning stale results
+- main.py: battery charging detection threshold raised to 0.015V and window
+  extended to 10 readings (~5s) to reduce false positives on stable voltage
+
+### Added
+- web/templates/session_events.html: session dropdown now uses /tuner/sessions
+  endpoint (same as Sessions VS), showing id #serial date rides/samples
+- web/templates/session_events.html: per-event dashed lines in Bucket A zone of
+  the chart showing each cluster member's individual starting conditions
+  (pw_start, rpm_avg, vss_avg, tps_avg) — makes pre-event context visible
+  when comparing event curves
+- web/templates/sessions_vs.html: added Events nav link
+- web/templates/sessions_launch.html: added Events nav link
+- web/templates/index.html: added Session Events link to hamburger menu
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.82] — 2026-06-02
 
 ### Fixed
