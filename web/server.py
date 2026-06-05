@@ -1627,7 +1627,40 @@ def _f7_detect_events(rows):
                         phase_b.append(r2)
 
                     if len(phase_b) >= MIN_SAMPLES:
-                        pw_s   = [(r['pw1'] + r.get('pw2', r['pw1'])) / 2 for r in phase_b]
+                        pw_s = [(r['pw1'] + r.get('pw2', r['pw1'])) / 2 for r in phase_b]
+
+                        # Trim at fuel cut: PW < 2ms means injector off
+                        fc_cut = next((k for k, pw in enumerate(pw_s) if pw < 2.0), len(pw_s))
+                        if fc_cut < len(pw_s):
+                            phase_b = phase_b[:fc_cut]
+                            pw_s    = pw_s[:fc_cut]
+
+                        # Trim when PW drops >35% below peak for 2+ consecutive samples
+                        if pw_s:
+                            pk     = pw_s[0]
+                            drop_n = 0
+                            drop_cut = len(pw_s)
+                            for k, pw in enumerate(pw_s):
+                                if pw > pk:
+                                    pk     = pw
+                                    drop_n = 0
+                                elif pk >= pw_s[0] * 1.3 and pw < pk * 0.65:
+                                    drop_n += 1
+                                    if drop_n >= 2:
+                                        drop_cut = max(k - 1, 1)
+                                        break
+                                else:
+                                    drop_n = 0
+                            if drop_cut < len(pw_s):
+                                phase_b = phase_b[:drop_cut]
+                                pw_s    = pw_s[:drop_cut]
+
+                        if len(phase_b) < MIN_SAMPLES:
+                            in_stable = False
+                            stable_buf = [row]
+                            stable_t   = 0.0
+                            continue
+
                         pw1_s  = [r['pw1'] for r in phase_b]
                         pw2_s  = [r.get('pw2', r['pw1']) for r in phase_b]
                         tps_s2 = [r['tps'] for r in phase_b]
@@ -1636,8 +1669,8 @@ def _f7_detect_events(rows):
                         dur    = phase_b[-1]['t'] - phase_b[0]['t']
                         vss_d  = vss_s[-1] - vss_s[0]
 
-                        # acceleration only: PW rises and bike speeds up
-                        if max(pw_s) <= pw_s[0] * 1.05 or vss_d < 0:
+                        # acceleration only: PW must rise meaningfully from break
+                        if max(pw_s) <= pw_s[0] * 1.05:
                             in_stable = False
                             stable_buf = [row]
                             stable_t   = 0.0
@@ -1671,8 +1704,7 @@ def _f7_detect_events(rows):
 
 
 def _f7_cluster(events, threshold=_F7_THRESH):
-    """Union-Find clustering by PW DTW similarity, then validate Bucket A."""
-    from collections import defaultdict
+    """Complete-linkage clustering: all pairs in a cluster must have DTW >= threshold."""
     n = len(events)
     if n == 0:
         return []
@@ -1683,31 +1715,29 @@ def _f7_cluster(events, threshold=_F7_THRESH):
             s = _f7_dtw(events[i]['pw_curve'], events[j]['pw_curve'])
             mat[i][j] = mat[j][i] = s
 
-    parent = list(range(n))
+    # Agglomerative complete linkage: merge only when min cross-pair DTW >= threshold
+    clusters_idx = [{i} for i in range(n)]
+    while True:
+        best_score = threshold - 0.001
+        best_pair  = None
+        for a in range(len(clusters_idx)):
+            for b in range(a + 1, len(clusters_idx)):
+                min_cross = min(mat[i][j] for i in clusters_idx[a] for j in clusters_idx[b])
+                if min_cross > best_score:
+                    best_score = min_cross
+                    best_pair  = (a, b)
+        if best_pair is None:
+            break
+        a, b = best_pair
+        merged = clusters_idx[a] | clusters_idx[b]
+        clusters_idx = [c for idx, c in enumerate(clusters_idx) if idx not in (a, b)]
+        clusters_idx.append(merged)
 
-    def find(x):
-        while parent[x] != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
-
-    def union(a, b):
-        ra, rb = find(a), find(b)
-        if ra != rb:
-            parent[ra] = rb
-
-    for i in range(n):
-        for j in range(i + 1, n):
-            if mat[i][j] >= threshold:
-                union(i, j)
-
-    groups = defaultdict(list)
-    for i in range(n):
-        groups[find(i)].append(i)
+    clusters_idx.sort(key=lambda c: -len(c))
 
     clusters = []
     cid = 1
-    for members in sorted(groups.values(), key=lambda m: -len(m)):
+    for members in clusters_idx:
         ev = [events[i] for i in members]
         gears = [e['bucket_a']['gear'] for e in ev]
         rpms  = [e['bucket_a']['rpm_avg'] for e in ev]
