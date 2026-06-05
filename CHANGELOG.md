@@ -25,6 +25,35 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.88] — 2026-06-04
+
+### Added
+- web/server.py + session_events.html: accel/decel event type segregation
+  — _f7_detect_events detects TPS break direction (rising=accel, falling=decel);
+  PW-rise filter only applied to accel events; accel and decel clustered
+  independently (A001/D001 cluster IDs); result JSON includes n_accel/n_decel counts
+- session_events.html: type filter bar (ALL / ACCEL / DECEL) above cluster strip;
+  status bar shows per-type counts (e.g. 50↑ 34↓); filtering is frontend-only
+  so no recomputation needed
+- web/server.py: threshold-specific cluster cache files (session_f7clusters_0_85.json);
+  switching thresholds uses separate cached JSON without recomputation
+- web/server.py + session_events.html: /session_events/download endpoint returns
+  full cluster JSON as attachment; download button appears after load
+- web/server.py: _F7_EVENTS_V version guard — stale event caches (missing
+  pre_pw_curve or newer struct fields) are automatically invalidated and recomputed
+
+### Fixed
+- session_events.html: filter change now hides chart when selected cluster is
+  not in new filter (previously showed stale chart data after type switch)
+- session_events.html: active chip highlight now uses cluster_id instead of
+  positional index — no more wrong chip lighting up after strip rebuild on filter change
+- web/server.py: _safe_pre in _f7_temporal_stats removed redundant numpy re-import
+  (used _np2 when _np was already in scope)
+- _F7_EVENTS_V bumped to 3 to invalidate event caches missing pre_*_curve fields
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.87] — 2026-06-04
 
 ### Added

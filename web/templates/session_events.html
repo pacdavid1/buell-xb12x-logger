@@ -178,7 +178,7 @@ function loadSession(){
       document.getElementById('tfCount').textContent=nA+' accel · '+nD+' decel';
       CUR_FILTER='all';
       setFilter('all',true);
-      if(ALL_CLUSTERS.length) selectCluster(filteredClusters()[0],0);
+      if(ALL_CLUSTERS.length) selectCluster(filteredClusters()[0]);
     })
     .catch(function(){
       document.getElementById('btnLoad').disabled=false;
@@ -196,7 +196,14 @@ function setFilter(f, skipStrip){
   ['all','accel','decel'].forEach(function(k){
     document.getElementById('tf-'+k).classList.toggle('active', k===f);
   });
-  if(!skipStrip) buildStrip(filteredClusters());
+  var fc=filteredClusters();
+  // if current cluster not in new filter, hide the chart
+  if(CUR && !fc.some(function(c){return c.cluster_id===CUR.cluster_id;})){
+    CUR=null;
+    document.getElementById('chartArea').classList.remove('visible');
+    document.getElementById('emptyState').style.display='flex';
+  }
+  if(!skipStrip) buildStrip(fc);
 }
 
 function buildStrip(clusters){
@@ -216,6 +223,7 @@ function buildStrip(clusters){
     var chip=document.createElement('div');
     chip.className='cl-chip';
     chip.dataset.cidx=idx;
+    chip.dataset.cid=c.cluster_id;
     chip.innerHTML=
       '<span class="cl-chip-gear">'+(ba.gear||'?')+'a</span>'+
       '<span class="cl-chip-n '+nCls+'">N='+c.n+'</span>'+
@@ -224,16 +232,16 @@ function buildStrip(clusters){
       (c.bucket_a_ok?'<span class="cb cb-ok">A✓</span>':'<span class="cb cb-warn">A±</span>')+
       (c.orphan?'<span class="cb cb-info">solo</span>':'')+
       (c.stats&&c.stats.pw_diff_max>0.3?'<span class="cb cb-alert">⚠</span>':'');
-    chip.onclick=(function(cl,i){return function(){selectCluster(cl,i);};})(c,idx);
+    chip.onclick=(function(cl){return function(){selectCluster(cl);};})(c);
     strip.appendChild(chip);
   });
   strip.classList.add('visible');
 }
 
-function selectCluster(c,idx){
+function selectCluster(c){
   CUR=c;
   document.querySelectorAll('.cl-chip').forEach(function(el){
-    el.classList.toggle('active', parseInt(el.dataset.cidx)===idx);
+    el.classList.toggle('active', el.dataset.cid===c.cluster_id);
   });
   document.getElementById('emptyState').style.display='none';
   document.getElementById('chartArea').classList.add('visible');

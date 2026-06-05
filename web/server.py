@@ -1858,8 +1858,7 @@ def _f7_temporal_stats(cluster, n=_F7_N):
         rows2 = [m[key] for m in members if m.get(key)]
         if not rows2:
             return []
-        import numpy as _np2
-        mat2 = _np2.array(rows2)
+        mat2 = _np.array(rows2)
         return [round(v, 3) for v in mat2.mean(axis=0).tolist()]
 
     cluster['stats'] = {
