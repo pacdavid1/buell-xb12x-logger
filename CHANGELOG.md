@@ -25,6 +25,24 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.86] — 2026-06-04
+
+### Fixed
+- web/server.py: _f7_detect_events — truncate event when any sample has PW < 2.0ms
+  (fuel injector off / fuel cut not caught by fl_fc flag); truncate when PW drops
+  >35% below event peak for 2+ consecutive samples (captures clean acceleration
+  phase only, prevents post-peak deceleration from contaminating the curve)
+- web/server.py: _f7_detect_events — removed vss_d < 0 acceleration filter (unreliable
+  after truncation since VSS may not have time to build)
+- web/server.py: _f7_cluster — replaced Union-Find (single-linkage, allows transitive
+  chaining) with agglomerative complete-linkage: a cluster only forms/grows when ALL
+  cross-pair DTW scores >= threshold. Prevents super-clusters where DTW min was 0.282
+  but events were grouped by transitivity. Result: DTW min 0.282→0.849, max cluster
+  size 38→10, detected events 60→84 (shorter clean events now survive)
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.85] — 2026-06-04
 
 ### Fixed
