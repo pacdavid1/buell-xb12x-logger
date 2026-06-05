@@ -60,6 +60,12 @@
 
 
 
+## UX — Hamburger Menu Consistency
+- [ ] Replicate the hamburger/nav menu across all pages (Dashboard, Sessions VS,
+  Launch Analysis, Session Events, VE/Tuner) so navigation is identical on every tab.
+  Currently the menu exists on some pages but not others — all pages should have
+  the same links and layout.
+
 ## UX — Grid Simplification (Cobertura)
 - [ ] Simplificar grid: eliminar modos EGO, O2 ADC, Confianza (no útiles con narrowband bloqueado a 100%)
 - [ ] Mantener solo: Segundos (cantidad de data) + SWEET + TIPIN + TIPOUT + WOT (calidad por condición)
@@ -99,7 +105,6 @@
 ## CODE CLEANUP — Found during code review (2026-05-26)
 
 ### 🔴 Priority High — Confirmed Bugs
-- [x] **#1 — `o2_adc_avg` wrong variable scope** (`ecu/session.py:341`): Uses `v["o2_adc_sum"]` but `v` is from outer scope — should be `a["o2_adc_sum"]`. Causes NameError at runtime when generating tuning report.
 
 ### 🟡 Priority Medium — Fragile Patterns
 - [ ] **#5 — Silent except: pass** (`ecu/session.py`): Multiple `except Exception` blocks log warnings but don't repair corrupted data. Swallows structural validation errors.
@@ -290,32 +295,8 @@ Cross session (mapas diferentes):
   Confianza variable por slice temporal t según n_eventos(t) cubriendo ese punto
 ```
 
-### 7.1 — Event detection (replaces detect_launches)
-- [x] Stable window A: gear + RPM±200 + TPS±3% held ≥3s
-- [x] Event trigger: TPS breaks out of bucket A (any direction)
-- [x] Gear change filter: discard event if gear changes during phase B
-- [x] Event end: fuel-cut trim (PW < 2ms) + PW drop >35% below peak for 2+ samples
-- [x] Accel/decel segregation: TPS rising = accel, falling = decel; clustered separately
-- [x] Pre-break series: 10-point resample of stable window stored per event (pre_*_curve)
-- [x] Event cache: ride_*_f7events.json with version guard (_F7_EVENTS_V) for invalidation
-
 ### 7.2 — Event descriptor
-- [x] Bucket_A = {gear, rpm_avg, tps_avg, vss_avg, clt_avg}
-- [x] Phase B curves: pw_curve, pw1_curve, pw2_curve, rpm_curve, vss_curve, tps_curve (N=20)
-- [x] Pre-break curves: pre_pw/rpm/vss/tps_curve (N=10) for Bucket A visualization
-- [x] Summary metrics: pw_start, pw_peak, pw_delta, tps_start, tps_peak, vss_delta, duration
 - [ ] GPS slope in event context (gps_slope_pct from gps_alt_m + VSS×dt approximation)
-
-### 7.3 — Clustering within session
-- [x] Complete-linkage agglomerative DTW clustering (all pairs must exceed threshold)
-  Replaced Union-Find (allowed transitive chaining, produced DTW-min=0.282 super-clusters)
-- [x] Bucket A sub-division: _f7_ba_consistent + _f7_sub_divide_by_bucket_a
-  Levels: (1) gear+200rpm bucket → (2) 10kph VSS bucket → (3) 3% TPS bucket
-  Fixes: gear average artefact (e.g. (2+5+5)/3 = 4a) that masked VSS incompatibility
-- [x] Temporal confidence per slice: n_factor × std_factor, per-slice pw/vss/tps avg
-- [x] pw1/pw2 separate averages for injector balance visualization
-- [x] Threshold-specific cluster cache: session_f7clusters_0_85.json (no recompute on switch)
-- [x] Download endpoint: /session_events/download returns cluster JSON as attachment
 
 ### 7.4 — Cross-session matching
 - [ ] Match clusters from session A and B by Bucket A compatibility + TPS curve DTW > 0.85
@@ -327,13 +308,7 @@ Cross session (mapas diferentes):
 - [ ] Dashboard: green pulsing chip "GO: 3a · 3000rpm · 5%tps"
 - [ ] Auto-record event when stable_s ≥ 3 and transition detected
 
-### 7.6 — Session Events UI (implemented)
-- [x] Full layout: horizontal cluster chip strip (no sidebar), chart fills full width
-- [x] Bucket A zone shows actual pre-break time series curves (avg + per-event lines)
-- [x] Accel/decel filter toggle (ALL / ACCEL / DECEL) above cluster strip
-- [x] Cluster chip IDs: A001 (accel) / D001 (decel)
-- [x] Cond-boxes at bottom: BUCKET A initial conditions + BUCKET B event outcomes
-- [x] Members table with per-event details
+### 7.6 — Session Events UI
 - [ ] Confidence band visualization (shaded area on chart — partially implemented)
 - [ ] ΔPW(t) and ΔVSS(t) cross-session comparison chart (needs 7.4)
 - [ ] Warning badges: CLT range, GPS slope, PW imbalance (partial — imbalance badge done)
@@ -520,12 +495,6 @@ No necesita learning cycle manual.
 
 
 # Backlog: UPS-Lite v1.3 SW-only Ideas (planned)
-
-## Prioridad: ALTA (faciles, implementados)
-- [x] Charging detection via voltage trend (bat_charging flag in serial_stats)
-- [x] Charging icon (⚡) in dashboard when external power detected
-- [x] Trend arrow (↑ charging / ↓ discharging) next to BATV
-- [x] SOC smoothing (rolling average of last 5 readings)
 
 ## Prioridad: MEDIA
 - [ ] Runtime remaining estimation: track discharge rate, show "~Xh" in dashboard
