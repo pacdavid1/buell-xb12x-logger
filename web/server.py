@@ -1743,8 +1743,54 @@ def _f7_detect_events(rows):
     return events
 
 
+def _f7_ba_consistent(events):
+    """True if all events share compatible Bucket A conditions."""
+    if len(events) <= 1:
+        return True
+    gears = [e['bucket_a']['gear'] for e in events]
+    rpms  = [e['bucket_a']['rpm_avg'] for e in events]
+    tpss  = [e['bucket_a']['tps_avg'] for e in events]
+    vsss  = [e['bucket_a']['vss_avg'] for e in events]
+    return (
+        len(set(gears)) == 1 and
+        max(rpms) - min(rpms) <= 250 and
+        max(tpss) - min(tpss) <= 3.0 and
+        max(vsss) - min(vsss) <= 10.0
+    )
+
+
+def _f7_sub_divide_by_bucket_a(events):
+    """Split a PW-similar group into Bucket-A-consistent sub-groups.
+    Level 1: gear + 200-RPM bucket. Level 2: 10 km/h VSS bucket. Level 3: 3%-TPS bucket.
+    """
+    from collections import defaultdict
+    if _f7_ba_consistent(events):
+        return [events]
+    sub1 = defaultdict(list)
+    for e in events:
+        key = (e['bucket_a']['gear'], int(e['bucket_a']['rpm_avg'] / 200) * 200)
+        sub1[key].append(e)
+    result = []
+    for sg in sub1.values():
+        if _f7_ba_consistent(sg):
+            result.append(sg)
+        else:
+            sub2 = defaultdict(list)
+            for e in sg:
+                sub2[int(e['bucket_a']['vss_avg'] / 10) * 10].append(e)
+            for sg2 in sub2.values():
+                if _f7_ba_consistent(sg2):
+                    result.append(sg2)
+                else:
+                    sub3 = defaultdict(list)
+                    for e in sg2:
+                        sub3[int(e['bucket_a']['tps_avg'] / 3) * 3].append(e)
+                    result.extend(sub3.values())
+    return result
+
+
 def _f7_cluster(events, threshold=_F7_THRESH):
-    """Complete-linkage clustering: all pairs in a cluster must have DTW >= threshold."""
+    """Complete-linkage DTW clustering, then sub-divide by Bucket A consistency."""
     n = len(events)
     if n == 0:
         return []
@@ -1775,26 +1821,36 @@ def _f7_cluster(events, threshold=_F7_THRESH):
 
     clusters_idx.sort(key=lambda c: -len(c))
 
+    # Sub-divide each DTW cluster by Bucket A consistency, tracking original indices
+    final_groups = []  # list of (ev_list, idx_set)
+    for members in clusters_idx:
+        ev = [events[i] for i in sorted(members)]
+        if len(ev) == 1:
+            final_groups.append((ev, members))
+        else:
+            sub_groups = _f7_sub_divide_by_bucket_a(ev)
+            if len(sub_groups) == 1:
+                final_groups.append((ev, members))
+            else:
+                ev_to_idx = {id(events[i]): i for i in sorted(members)}
+                for sg in sub_groups:
+                    sg_idxs = frozenset(ev_to_idx[id(e)] for e in sg)
+                    final_groups.append((sg, sg_idxs))
+
+    final_groups.sort(key=lambda x: -len(x[0]))
+
     clusters = []
     cid = 1
-    for members in clusters_idx:
-        ev = [events[i] for i in members]
+    for ev, idx_set in final_groups:
         gears = [e['bucket_a']['gear'] for e in ev]
         rpms  = [e['bucket_a']['rpm_avg'] for e in ev]
         tpss  = [e['bucket_a']['tps_avg'] for e in ev]
         vsss  = [e['bucket_a']['vss_avg'] for e in ev]
-        ba_ok = (
-            len(set(gears)) == 1 and
-            max(rpms) - min(rpms) <= 250 and
-            max(tpss) - min(tpss) <= 3.0 and
-            max(vsss) - min(vsss) <= 10.0
-        )
-        idxs   = sorted(members)
-        scores = [mat[idxs[ii]][idxs[jj]]
-                  for ii in range(len(idxs))
-                  for jj in range(ii + 1, len(idxs))]
+        ba_ok = _f7_ba_consistent(ev)
+        idxs  = sorted(idx_set)
+        scores = [mat[ii][jj] for ii in idxs for jj in idxs if ii < jj]
         ba_summary = {
-            'gear':      int(round(sum(gears) / len(gears))),
+            'gear':       int(round(sum(gears) / len(gears))),
             'rpm_center': round(sum(rpms) / len(rpms), 0),
             'rpm_range':  round(max(rpms) - min(rpms), 0),
             'tps_center': round(sum(tpss) / len(tpss), 1),
@@ -1944,7 +2000,8 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
         event_files.append(ef)
 
     # --- Step 2: check cluster cache staleness ---
-    cluster_file = sdir / 'session_f7clusters.json'
+    thr_tag = str(threshold).replace('.', '_')
+    cluster_file = sdir / f'session_f7clusters_{thr_tag}.json'
     stale = (
         not cluster_file.exists() or
         any(ef.stat().st_mtime > cluster_file.stat().st_mtime for ef in event_files)
