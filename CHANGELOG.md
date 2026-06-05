@@ -25,6 +25,24 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.89] — 2026-06-04
+
+### Fixed
+- web/server.py: implement _f7_ba_consistent() and _f7_sub_divide_by_bucket_a()
+  — after complete-linkage DTW clustering, each cluster is sub-divided by Bucket A
+  consistency: gear exact, RPM ±250, TPS ±3%, VSS ±10 km/h. Three levels:
+  (1) gear + 200-RPM bucket, (2) 10 km/h VSS bucket, (3) 3%-TPS bucket.
+  Root cause: cluster with apparent gear=4a (vss=54/98/98 kph) was an averaging
+  artefact — (2+5+5)/3 = 4.0. Sub-division reveals true gears and separates the
+  misdetected 2a@54kph orphan from the valid 5a@97-98kph pair (ba_ok=True for both).
+  Physical rationale: Alpha-N means PW=f(TPS,RPM); same RPM at 54 vs 98 kph in the
+  same gear is physically impossible — VSS must be included as a grouping criterion.
+- web/server.py: restored threshold-specific cluster cache filename
+  (session_f7clusters_0_85.json) that was lost in a previous fix script
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.88] — 2026-06-04
 
 ### Added
