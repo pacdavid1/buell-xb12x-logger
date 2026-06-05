@@ -290,49 +290,53 @@ Cross session (mapas diferentes):
   Confianza variable por slice temporal t según n_eventos(t) cubriendo ese punto
 ```
 
-### 7.1 — Detección de eventos (reemplaza detect_launches actual)
-- [ ] Ventana estable A: gear + RPM±200 + TPS±3% mantenidos ≥3s
-- [ ] Inicio de evento: TPS sale del bucket A (cualquier tipo de transición)
-- [ ] Filtro gear change: si hay cambio de marcha durante evento → descartar
-- [ ] Fin de evento: kph deja de aumentar OR TPS vuelve al bucket A por ≥2s
-- [ ] Sin umbral de dtps — captura snaps, roll-ons, parciales y escalonados
+### 7.1 — Event detection (replaces detect_launches)
+- [x] Stable window A: gear + RPM±200 + TPS±3% held ≥3s
+- [x] Event trigger: TPS breaks out of bucket A (any direction)
+- [x] Gear change filter: discard event if gear changes during phase B
+- [x] Event end: fuel-cut trim (PW < 2ms) + PW drop >35% below peak for 2+ samples
+- [x] Accel/decel segregation: TPS rising = accel, falling = decel; clustered separately
+- [x] Pre-break series: 10-point resample of stable window stored per event (pre_*_curve)
+- [x] Event cache: ride_*_f7events.json with version guard (_F7_EVENTS_V) for invalidation
 
-### 7.2 — Descriptor del evento
-- [ ] Bucket_A = (gear, rpm_bucket±200, tps_bucket±3%, spd_bucket±10kph)
-- [ ] Curve_B = TPS resampleado a N=20 puntos equidistantes en eje temporal absoluto
-  Normalizado por peak_tps del evento (no por duración)
-- [ ] peak_bucket = 'partial' si peak_tps < 70% ELSE 'full'
-  → separa partial throttle de WOT antes de comparar curvas
-- [ ] Serie completa: t, rpm, tps, kph, pw1, pw2, ae, spark, gear
+### 7.2 — Event descriptor
+- [x] Bucket_A = {gear, rpm_avg, tps_avg, vss_avg, clt_avg}
+- [x] Phase B curves: pw_curve, pw1_curve, pw2_curve, rpm_curve, vss_curve, tps_curve (N=20)
+- [x] Pre-break curves: pre_pw/rpm/vss/tps_curve (N=10) for Bucket A visualization
+- [x] Summary metrics: pw_start, pw_peak, pw_delta, tps_start, tps_peak, vss_delta, duration
+- [ ] GPS slope in event context (gps_slope_pct from gps_alt_m + VSS×dt approximation)
 
 ### 7.3 — Clustering within session
-- [ ] Por cada grupo (Bucket_A, peak_bucket): agregar eventos con Pearson(Curve_B) > 0.85
-- [ ] Por cada slice temporal t:
-    n(t)    = eventos que alcanzan ese tiempo → confianza variable
-    PW_avg(t), PW_std(t) por cilindro (front/rear)
-    conf(t) = f(n(t), PW_std(t)) — gradiente, no binario
-- [ ] Advertencias (no filtros): CLT_range, slope_range, altitude_range del grupo
+- [x] Complete-linkage agglomerative DTW clustering (all pairs must exceed threshold)
+  Replaced Union-Find (allowed transitive chaining, produced DTW-min=0.282 super-clusters)
+- [x] Bucket A sub-division: _f7_ba_consistent + _f7_sub_divide_by_bucket_a
+  Levels: (1) gear+200rpm bucket → (2) 10kph VSS bucket → (3) 3% TPS bucket
+  Fixes: gear average artefact (e.g. (2+5+5)/3 = 4a) that masked VSS incompatibility
+- [x] Temporal confidence per slice: n_factor × std_factor, per-slice pw/vss/tps avg
+- [x] pw1/pw2 separate averages for injector balance visualization
+- [x] Threshold-specific cluster cache: session_f7clusters_0_85.json (no recompute on switch)
+- [x] Download endpoint: /session_events/download returns cluster JSON as attachment
 
-### 7.4 — Matching cross-session
-- [ ] Buscar clusters de sesión B con mismo Bucket_A y Pearson(TPS_curve) > 0.85
-- [ ] Para cada match:
-    ΔPW(t)   = PW_avg_B(t) - PW_avg_A(t)   ← diferencia de mapa
-    Δkph(t)  = kph_avg_B(t) - kph_avg_A(t) ← diferencia de resultado
-    conf_match(t) = min(conf_A(t), conf_B(t))
-- [ ] Métrica de eficiencia relativa: Δkph / ΔPW por slice → qué mapa es más eficiente
+### 7.4 — Cross-session matching
+- [ ] Match clusters from session A and B by Bucket A compatibility + TPS curve DTW > 0.85
+- [ ] For each match: ΔPW(t), ΔVSS(t), conf_match(t) = min(conf_A, conf_B)
+- [ ] Relative efficiency metric: ΔVSS / ΔPW per slice
 
-### 7.5 — Notificación live "READY FOR EVENT"
-- [ ] En ECU loop: monitorear gear + RPM_bucket + TPS_bucket
-    si estables ≥3s → live.json incluye event_ready: {gear, rpm, tps, spd, stable_s}
-- [ ] Dashboard: chip/indicator verde cuando event_ready activo
-    "GO: 3a · 3000rpm · 5%tps" — el rider sabe que puede ejecutar el pull
-- [ ] Registrar automáticamente el evento si stable_s ≥ 3 y luego hay transición
+### 7.5 — Live "READY FOR EVENT" notification
+- [ ] ECU loop: monitor gear + RPM_bucket + TPS_bucket; emit event_ready in live.json if stable ≥3s
+- [ ] Dashboard: green pulsing chip "GO: 3a · 3000rpm · 5%tps"
+- [ ] Auto-record event when stable_s ≥ 3 and transition detected
 
-### 7.6 — Visualización en Sessions VS
-- [ ] Vista de clusters mejorada: mostrar confianza por slice como banda (shaded area)
-- [ ] Comparación ΔPW(t) y Δkph(t) como gráfica de tiempo con banda de confianza
-- [ ] Badge de advertencia: "⚠ CLT range 180-215°C" "⚠ slope ±3%"
-- [ ] N eventos por cluster con breakdown de duración (cuántos de 1s, 2s, 4s, etc.)
+### 7.6 — Session Events UI (implemented)
+- [x] Full layout: horizontal cluster chip strip (no sidebar), chart fills full width
+- [x] Bucket A zone shows actual pre-break time series curves (avg + per-event lines)
+- [x] Accel/decel filter toggle (ALL / ACCEL / DECEL) above cluster strip
+- [x] Cluster chip IDs: A001 (accel) / D001 (decel)
+- [x] Cond-boxes at bottom: BUCKET A initial conditions + BUCKET B event outcomes
+- [x] Members table with per-event details
+- [ ] Confidence band visualization (shaded area on chart — partially implemented)
+- [ ] ΔPW(t) and ΔVSS(t) cross-session comparison chart (needs 7.4)
+- [ ] Warning badges: CLT range, GPS slope, PW imbalance (partial — imbalance badge done)
 
 ### Notas de diseño
 - Pendiente y aero = advertencias, NUNCA filtros de agrupación (demasiado restrictivo)
