@@ -1535,6 +1535,7 @@ import math as _math
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
 _F7_THRESH  = 0.85  # default DTW threshold
+_F7_EVENTS_V = 2     # bump when event struct fields change
 
 
 def _f7_resample(series, n=_F7_N):
@@ -1926,7 +1927,15 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
     event_files = []
     for cp in csv_files:
         ef = cp.with_name(cp.stem + '_f7events.json')
-        if not ef.exists() or ef.stat().st_mtime < cp.stat().st_mtime:
+        _regen = not ef.exists() or ef.stat().st_mtime < cp.stat().st_mtime
+        if not _regen:
+            try:
+                _s = json.loads(ef.read_text())
+                if not _s or 'pre_pw_curve' not in _s[0]:
+                    _regen = True
+            except Exception:
+                _regen = True
+        if _regen:
             rows = _load_csv_rows(cp)
             evs  = _f7_detect_events(rows)
             # strip pw_curve arrays to save space (will re-compute from pw1/pw2)
@@ -1942,7 +1951,7 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
 
     if not stale:
         cached = json.loads(cluster_file.read_text())
-        if cached.get('threshold') == threshold:
+        if cached.get('threshold') == threshold and cached.get('events_v') == _F7_EVENTS_V:
             return cached
         stale = True
 
@@ -1964,6 +1973,7 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
 
     result = {
         'session_id':  session_id,
+        'events_v':    _F7_EVENTS_V,
         'n_events':    len(all_events),
         'n_clusters':  len(clusters),
         'n_rides':     len(event_files),
