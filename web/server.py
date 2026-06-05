@@ -1535,7 +1535,7 @@ import math as _math
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
 _F7_THRESH  = 0.85  # default DTW threshold
-_F7_EVENTS_V = 2     # bump when event struct fields change
+_F7_EVENTS_V = 3     # bump when event struct fields change
 
 
 def _f7_resample(series, n=_F7_N):
@@ -1624,7 +1624,9 @@ def _f7_detect_events(rows):
         else:
             if in_stable:
                 tail_tps = sum(r['tps'] for r in stable_buf[-5:]) / min(5, len(stable_buf))
-                if abs(row['tps'] - tail_tps) >= TPS_BREAK:
+                _tps_delta = row['tps'] - tail_tps
+                if abs(_tps_delta) >= TPS_BREAK:
+                    _ev_type = 'accel' if _tps_delta > 0 else 'decel'
                     win = stable_buf[-WINDOW:]
                     bucket_a = {
                         'gear':    int(round(sum(r['gear'] for r in win) / len(win))),
@@ -1696,8 +1698,8 @@ def _f7_detect_events(rows):
                         dur    = phase_b[-1]['t'] - phase_b[0]['t']
                         vss_d  = vss_s[-1] - vss_s[0]
 
-                        # acceleration only: PW must rise meaningfully from break
-                        if max(pw_s) <= pw_s[0] * 1.05:
+                        # accel: PW must rise; decel: any pattern allowed
+                        if _ev_type == 'accel' and max(pw_s) <= pw_s[0] * 1.05:
                             in_stable = False
                             stable_buf = [row]
                             stable_t   = 0.0
@@ -1711,7 +1713,7 @@ def _f7_detect_events(rows):
                         pre_tps_c = _f7_resample([r['tps'] for r in win], _PRE_N)
 
                         events.append({
-                            'event_type': 'acceleration',
+                            'event_type': _ev_type,
                             'break_t':    round(t0, 2),
                             'duration':   round(dur, 2),
                             'n_raw':      len(phase_b),
@@ -1966,15 +1968,27 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
         except Exception:
             continue
 
-    clusters = _f7_cluster(all_events, threshold=threshold)
+    # Cluster accel and decel separately so type-mixed DTW is avoided
+    _accel_evs = [e for e in all_events if e.get('event_type', 'accel') == 'accel']
+    _decel_evs = [e for e in all_events if e.get('event_type') == 'decel']
+    _accel_cls = _f7_cluster(_accel_evs, threshold=threshold)
+    _decel_cls = _f7_cluster(_decel_evs, threshold=threshold)
+    for i, c in enumerate(_accel_cls):
+        c['cluster_id']   = f'A{i+1:03d}'
+        c['cluster_type'] = 'accel'
+    for i, c in enumerate(_decel_cls):
+        c['cluster_id']   = f'D{i+1:03d}'
+        c['cluster_type'] = 'decel'
+    clusters = _accel_cls + _decel_cls
     for c in clusters:
         _f7_temporal_stats(c)
-        # keep all curves in members for multi-metric chart rendering
 
     result = {
         'session_id':  session_id,
         'events_v':    _F7_EVENTS_V,
         'n_events':    len(all_events),
+        'n_accel':     len(_accel_evs),
+        'n_decel':     len(_decel_evs),
         'n_clusters':  len(clusters),
         'n_rides':     len(event_files),
         'threshold':   threshold,

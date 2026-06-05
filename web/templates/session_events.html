@@ -24,6 +24,14 @@ body{background:var(--bg);color:var(--tx);font-family:'Barlow Condensed',sans-se
 .btn-load:disabled{opacity:.4;cursor:default}
 .status{font-family:var(--mn);font-size:9px;color:var(--dm);margin-left:auto;white-space:nowrap;align-self:center}
 .status.err{color:var(--rd)}.status.ok{color:var(--gn)}.status.loading{color:var(--a2)}
+.type-filter{flex-shrink:0;border-bottom:1px solid var(--bd);padding:4px 12px;display:none;gap:5px;align-items:center;background:var(--p)}
+.type-filter.visible{display:flex}
+.tf-btn{font-family:var(--mn);font-size:9px;font-weight:700;padding:3px 10px;border-radius:2px;border:1px solid var(--bd);background:var(--bg);color:var(--dm);cursor:pointer;letter-spacing:.05em}
+.tf-btn.active{color:#fff;border-color:var(--ac)}
+.tf-btn.accel.active{border-color:var(--gn);color:var(--gn);background:rgba(44,221,110,.1)}
+.tf-btn.decel.active{border-color:var(--bl);color:var(--bl);background:rgba(61,158,255,.1)}
+.tf-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.1em;text-transform:uppercase;margin-right:4px}
+.tf-count{font-family:var(--mn);font-size:8px;color:var(--dm);margin-left:auto}
 .cluster-strip{flex-shrink:0;border-bottom:1px solid var(--bd);padding:5px 12px;display:none;overflow-x:auto;overflow-y:hidden;white-space:nowrap;background:var(--bg)}
 .cluster-strip.visible{display:block}
 .cl-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--bd);border-left:3px solid transparent;border-radius:2px;background:var(--p);cursor:pointer;font-family:var(--mn);font-size:9px;color:var(--dm);transition:border-color .12s,color .12s;vertical-align:top;margin-right:5px;white-space:nowrap}
@@ -94,6 +102,13 @@ table.mt tr:hover td{background:rgba(255,255,255,.02)}
   <button class="btn-load" id="btnDl" style="background:var(--bl);display:none" onclick="downloadJson()">↓ JSON</button>
   <div class="status" id="status">Select a session.</div>
 </div>
+<div class="type-filter" id="typeFilter">
+  <span class="tf-label">Type</span>
+  <button class="tf-btn active" id="tf-all"   onclick="setFilter('all')">ALL</button>
+  <button class="tf-btn accel"  id="tf-accel" onclick="setFilter('accel')">⬆ ACCEL</button>
+  <button class="tf-btn decel"  id="tf-decel" onclick="setFilter('decel')">⬇ DECEL</button>
+  <span class="tf-count" id="tfCount"></span>
+</div>
 <div class="cluster-strip" id="clusterStrip"></div>
 <div class="chart-area" id="chartArea">
   <div class="chart-toolbar" id="chartToolbar">
@@ -119,6 +134,7 @@ var active  = {pw:true, pw1:false, pw2:false, rpm:true, vss:true, tps:true};
 var showEvt = true;
 var CUR = null;
 var ALL_CLUSTERS = [];
+var CUR_FILTER = 'all';
 
 fetch('/tuner/sessions').then(function(r){return r.json();}).then(function(d){
   var sessions = d.sessions||[];
@@ -146,6 +162,7 @@ function loadSession(){
   document.getElementById('btnLoad').disabled=true;
   setSt('Processing…','loading');
   document.getElementById('clusterStrip').classList.remove('visible');
+  document.getElementById('typeFilter').classList.remove('visible');
   document.getElementById('chartArea').classList.remove('visible');
   document.getElementById('emptyState').style.display='flex';
   fetch('/session_events/data?session='+sid+'&threshold='+thr)
@@ -154,15 +171,32 @@ function loadSession(){
       document.getElementById('btnLoad').disabled=false;
       if(d.error){setSt('Error: '+d.error,'err');return;}
       ALL_CLUSTERS=d.clusters||[];
-      setSt(d.n_rides+'r · '+d.n_events+'ev · '+d.n_clusters+'cl','ok');
+      var nA=d.n_accel||0, nD=d.n_decel||0;
+      setSt(d.n_rides+'r · '+nA+'↑ '+nD+'↓ · '+d.n_clusters+'cl','ok');
       document.getElementById('btnDl').style.display='';
-      buildStrip(ALL_CLUSTERS);
-      if(ALL_CLUSTERS.length) selectCluster(ALL_CLUSTERS[0],0);
+      document.getElementById('typeFilter').classList.add('visible');
+      document.getElementById('tfCount').textContent=nA+' accel · '+nD+' decel';
+      CUR_FILTER='all';
+      setFilter('all',true);
+      if(ALL_CLUSTERS.length) selectCluster(filteredClusters()[0],0);
     })
     .catch(function(){
       document.getElementById('btnLoad').disabled=false;
       setSt('Request failed','err');
     });
+}
+
+function filteredClusters(){
+  if(CUR_FILTER==='all') return ALL_CLUSTERS;
+  return ALL_CLUSTERS.filter(function(c){return c.cluster_type===CUR_FILTER;});
+}
+
+function setFilter(f, skipStrip){
+  CUR_FILTER=f;
+  ['all','accel','decel'].forEach(function(k){
+    document.getElementById('tf-'+k).classList.toggle('active', k===f);
+  });
+  if(!skipStrip) buildStrip(filteredClusters());
 }
 
 function buildStrip(clusters){
