@@ -1676,6 +1676,13 @@ def _f7_detect_events(rows):
                             stable_t   = 0.0
                             continue
 
+                        # Pre-break series: resample last WINDOW samples to PRE_N points
+                        _PRE_N = 10
+                        pre_pw_c  = _f7_resample([(r['pw1']+r.get('pw2',r['pw1']))/2 for r in win], _PRE_N)
+                        pre_rpm_c = _f7_resample([r['rpm'] for r in win], _PRE_N)
+                        pre_vss_c = _f7_resample([r['spd'] for r in win], _PRE_N)
+                        pre_tps_c = _f7_resample([r['tps'] for r in win], _PRE_N)
+
                         events.append({
                             'event_type': 'acceleration',
                             'break_t':    round(t0, 2),
@@ -1688,6 +1695,10 @@ def _f7_detect_events(rows):
                             'rpm_curve':  _f7_resample(rpm_s),
                             'vss_curve':  _f7_resample(vss_s),
                             'tps_curve':  _f7_resample(tps_s2),
+                            'pre_pw_curve':  pre_pw_c,
+                            'pre_rpm_curve': pre_rpm_c,
+                            'pre_vss_curve': pre_vss_c,
+                            'pre_tps_curve': pre_tps_c,
                             'pw_start':   round(pw_s[0], 2),
                             'pw_peak':    round(max(pw_s), 2),
                             'pw_delta':   round(max(pw_s) - pw_s[0], 2),
@@ -1814,6 +1825,14 @@ def _f7_temporal_stats(cluster, n=_F7_N):
         s_f = max(0.0, 1.0 - pw_std[t] / 2.0)
         confidence.append(round(n_f * s_f, 2))
 
+    def _safe_pre(key):
+        rows2 = [m[key] for m in members if m.get(key)]
+        if not rows2:
+            return []
+        import numpy as _np2
+        mat2 = _np2.array(rows2)
+        return [round(v, 3) for v in mat2.mean(axis=0).tolist()]
+
     cluster['stats'] = {
         'pw_avg':      [round(v, 3) for v in pw_avg],
         'pw_std':      [round(v, 3) for v in pw_std],
@@ -1822,9 +1841,13 @@ def _f7_temporal_stats(cluster, n=_F7_N):
         'pw_diff_avg': [round(v, 3) for v in pw_diff],
         'pw_diff_max': round(max(pw_diff), 3),
         'confidence':  confidence,
-        'rpm_avg': [round(v, 1) for v in rpm_mat.mean(axis=0).tolist()] if rpm_mat is not None else [],
-        'vss_avg': [round(v, 2) for v in vss_mat.mean(axis=0).tolist()] if vss_mat is not None else [],
-        'tps_avg': [round(v, 2) for v in tps_mat.mean(axis=0).tolist()] if tps_mat is not None else [],
+        'rpm_avg':     [round(v, 1) for v in rpm_mat.mean(axis=0).tolist()] if rpm_mat is not None else [],
+        'vss_avg':     [round(v, 2) for v in vss_mat.mean(axis=0).tolist()] if vss_mat is not None else [],
+        'tps_avg':     [round(v, 2) for v in tps_mat.mean(axis=0).tolist()] if tps_mat is not None else [],
+        'pre_pw_avg':  _safe_pre('pre_pw_curve'),
+        'pre_rpm_avg': _safe_pre('pre_rpm_curve'),
+        'pre_vss_avg': _safe_pre('pre_vss_curve'),
+        'pre_tps_avg': _safe_pre('pre_tps_curve'),
     }
 
 

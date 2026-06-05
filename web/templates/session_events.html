@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-<meta charset="UTF-8">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Session Events — Buell Logger</title>
+<title>Session Events — Buell</title>
 <style>
 :root{--bg:#0a0a0b;--p:#111114;--bd:#1e1e24;--ac:#e8420a;--a2:#f5a623;--bl:#3d9eff;--gn:#2cdd6e;--dm:#55555e;--tx:#c8c8cc;--rd:#ff4444;--mn:'Share Tech Mono',monospace}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -15,57 +15,46 @@ body{background:var(--bg);color:var(--tx);font-family:'Barlow Condensed',sans-se
 .hdr-nav a{font-family:var(--mn);font-size:9px;color:var(--dm);text-decoration:none;border:1px solid var(--bd);padding:3px 8px;border-radius:2px}
 .hdr-nav a:hover{color:var(--bl);border-color:var(--bl)}
 .hdr-nav a.active{color:var(--ac);border-color:var(--ac)}
-.main{flex:1;display:flex;overflow:hidden;min-height:0}
-/* ── Left ── */
-.left{width:196px;flex-shrink:0;background:var(--p);border-right:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
-.left-ctrl{padding:7px;display:flex;flex-direction:column;gap:5px;border-bottom:1px solid var(--bd);flex-shrink:0}
-.cg{display:flex;flex-direction:column;gap:2px}
-.cg label{font-family:var(--mn);font-size:7px;color:var(--a2);letter-spacing:.12em;text-transform:uppercase}
-.cg select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:4px 5px;border-radius:2px;cursor:pointer;width:100%}
-.btn-load{font-family:var(--mn);font-size:10px;font-weight:700;background:var(--ac);color:#fff;border:none;padding:5px;border-radius:2px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;width:100%}
+.controls{background:var(--p);border-bottom:1px solid var(--bd);padding:6px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.ctrl-group{display:flex;flex-direction:column;gap:2px;flex:1;min-width:120px;max-width:300px}
+.ctrl-group label{font-family:var(--mn);font-size:7px;color:var(--a2);letter-spacing:.12em;text-transform:uppercase}
+.ctrl-group select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:4px 6px;border-radius:2px;width:100%;cursor:pointer}
+.btn-load{font-family:var(--mn);font-size:10px;font-weight:700;background:var(--ac);color:#fff;border:none;padding:6px 14px;border-radius:2px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;flex-shrink:0;align-self:flex-end}
 .btn-load:hover{filter:brightness(1.15)}
 .btn-load:disabled{opacity:.4;cursor:default}
-.st{font-family:var(--mn);font-size:8px;color:var(--dm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.st.ok{color:var(--gn)}.st.err{color:var(--rd)}.st.loading{color:var(--a2)}
-.cl-list{flex:1;overflow-y:auto;padding:4px}
-.cl-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.1em;text-transform:uppercase;padding:4px 3px 3px}
-.chip{padding:5px 6px;border:1px solid var(--bd);border-left:3px solid transparent;border-radius:2px;cursor:pointer;margin-bottom:3px}
-.chip:hover{background:rgba(255,255,255,.03)}
-.chip.active{border-left-color:var(--ac);border-color:rgba(232,66,10,.4);background:rgba(232,66,10,.06)}
-.chip-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:1px}
-.chip-id{font-family:var(--mn);font-size:8px;color:var(--dm)}
-.chip-n{font-family:var(--mn);font-size:11px;font-weight:900}
-.chip-n.hi{color:var(--gn)}.chip-n.md{color:var(--a2)}.chip-n.lo{color:var(--dm)}
-.chip-bucket{font-family:var(--mn);font-size:9px;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.chip-bucket span{color:var(--a2)}
-.chip-sub{font-family:var(--mn);font-size:8px;color:var(--dm)}
-.chip-bgs{display:flex;gap:3px;margin-top:2px;flex-wrap:wrap}
+.status{font-family:var(--mn);font-size:9px;color:var(--dm);margin-left:auto;white-space:nowrap;align-self:center}
+.status.err{color:var(--rd)}.status.ok{color:var(--gn)}.status.loading{color:var(--a2)}
+.cluster-strip{flex-shrink:0;border-bottom:1px solid var(--bd);padding:5px 12px;display:none;overflow-x:auto;overflow-y:hidden;white-space:nowrap;background:var(--bg)}
+.cluster-strip.visible{display:block}
+.cl-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--bd);border-left:3px solid transparent;border-radius:2px;background:var(--p);cursor:pointer;font-family:var(--mn);font-size:9px;color:var(--dm);transition:border-color .12s,color .12s;vertical-align:top;margin-right:5px;white-space:nowrap}
+.cl-chip:hover{border-color:var(--bl);color:var(--tx)}
+.cl-chip.active{border-left-color:var(--ac);border-color:var(--ac);color:#fff}
+.cl-chip-gear{font-size:14px;font-weight:900;color:var(--a2)}
+.cl-chip-n{font-size:11px;font-weight:900}
+.cl-chip-n.hi{color:var(--gn)}.cl-chip-n.md{color:var(--a2)}.cl-chip-n.lo{color:var(--dm)}
+.cl-chip-cond{color:var(--tx)}
 .cb{font-family:var(--mn);font-size:7px;padding:1px 4px;border-radius:1px;border:1px solid}
 .cb-ok{color:var(--gn);border-color:rgba(44,221,110,.3)}
 .cb-warn{color:var(--a2);border-color:rgba(245,166,35,.3)}
 .cb-info{color:var(--dm);border-color:var(--bd)}
 .cb-alert{color:var(--rd);border-color:rgba(255,68,68,.3)}
-/* ── Right ── */
-.right{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-.chart-toolbar{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:5px 10px;border-bottom:1px solid var(--bd);background:var(--p);flex-wrap:wrap}
-.chart-toolbar-label{font-family:var(--mn);font-size:8px;color:var(--dm);margin-right:2px}
-.mtoggle{font-family:var(--mn);font-size:8px;font-weight:700;padding:3px 8px;border-radius:2px;border:1px solid;cursor:pointer;letter-spacing:.05em;transition:opacity .1s}
-.mtoggle.off{opacity:.35}
-.t-pw{background:rgba(232,66,10,.12);color:#e8420a;border-color:rgba(232,66,10,.4)}
-.t-pw1{background:rgba(61,158,255,.1);color:#3d9eff;border-color:rgba(61,158,255,.35)}
-.t-pw2{background:rgba(44,221,110,.1);color:#2cdd6e;border-color:rgba(44,221,110,.35)}
-.t-rpm{background:rgba(255,200,50,.1);color:#ffc832;border-color:rgba(255,200,50,.35)}
-.t-vss{background:rgba(180,100,255,.1);color:#b464ff;border-color:rgba(180,100,255,.35)}
-.t-tps{background:rgba(80,200,200,.1);color:#50c8c8;border-color:rgba(80,200,200,.35)}
-.t-events{background:rgba(255,255,255,.06);color:var(--tx);border-color:var(--bd)}
-.sep{width:1px;height:16px;background:var(--bd);flex-shrink:0}
-.chart-area{flex:1;min-height:0;position:relative}
-.chart-area canvas{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
-.info-bar{flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:5px 10px;border-top:1px solid var(--bd);background:var(--p);min-height:28px}
-.is{font-family:var(--mn);font-size:9px;display:flex;gap:3px;align-items:baseline}
-.is .k{color:var(--dm);font-size:7px;text-transform:uppercase;letter-spacing:.08em}
-.is .v{color:var(--tx);font-weight:700}
-.members-strip{flex-shrink:0;border-top:1px solid var(--bd);max-height:110px;overflow-y:auto}
+.chart-area{flex:1;min-height:0;display:none;flex-direction:column;padding:8px 12px 6px;gap:5px}
+.chart-area.visible{display:flex}
+.chart-toolbar{flex-shrink:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.chart-label{font-family:var(--mn);font-size:9px;color:var(--dm);flex-shrink:0;padding-right:8px;border-right:1px solid var(--bd)}
+.mtog{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--bd);border-radius:2px;background:var(--bg);font-family:var(--mn);font-size:9px;color:var(--dm);cursor:pointer;transition:all .12s;user-select:none}
+.mtog:hover{border-color:var(--mc,#fff);color:var(--mc,#fff)}
+.mtog.active{border-color:var(--mc,#fff);color:var(--mc,#fff);background:color-mix(in srgb,var(--mc,#fff) 10%,transparent)}
+.mtog-dot{width:7px;height:7px;border-radius:50%;background:var(--mc,#888);flex-shrink:0}
+.mtog:not(.active) .mtog-dot{background:var(--dm)}
+.chart-wrap{flex:1;min-height:0;position:relative}
+canvas#chart{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
+.cond-row-wrap{flex-shrink:0;display:flex;gap:6px;overflow-x:auto}
+.cond-box{background:var(--p);border:1px solid var(--bd);border-radius:2px;padding:5px 8px;min-width:130px;flex:1}
+.cond-box-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px}
+.cond-row{display:flex;justify-content:space-between;font-family:var(--mn);font-size:9px;padding:1px 0;gap:8px}
+.cond-row .k{color:var(--dm)}.cond-row .v{color:#fff;font-weight:700}
+.members-strip{flex-shrink:0;max-height:90px;overflow-y:auto;border-top:1px solid var(--bd)}
 table.mt{width:100%;border-collapse:collapse;font-family:var(--mn);font-size:8px}
 table.mt thead tr{background:var(--p);position:sticky;top:0;z-index:1}
 table.mt th{padding:3px 5px;text-align:right;font-size:7px;color:var(--dm);font-weight:700;letter-spacing:.05em;border-bottom:1px solid var(--bd)}
@@ -79,7 +68,7 @@ table.mt tr:hover td{background:rgba(255,255,255,.02)}
 </head>
 <body>
 <div class="hdr">
-  <div class="hdr-title">BUELL LOGGER — SESSION EVENTS</div>
+  <div class="hdr-title">SESSION EVENTS</div>
   <div class="hdr-nav">
     <a href="/">Dashboard</a>
     <a href="/sessions_vs">VS</a>
@@ -87,213 +76,238 @@ table.mt tr:hover td{background:rgba(255,255,255,.02)}
     <a href="/session_events" class="active">Events</a>
   </div>
 </div>
-<div class="main">
-  <div class="left">
-    <div class="left-ctrl">
-      <div class="cg"><label>Session</label><select id="selSession"></select></div>
-      <div class="cg">
-        <label>DTW Threshold</label>
-        <select id="selThresh">
-          <option value="0.80">0.80 — loose</option>
-          <option value="0.85" selected>0.85 — default</option>
-          <option value="0.90">0.90 — strict</option>
-          <option value="0.95">0.95 — very strict</option>
-        </select>
-      </div>
-      <button class="btn-load" id="btnLoad" onclick="loadSession()">LOAD</button>
-      <div class="st" id="status">Select a session</div>
-    </div>
-    <div class="cl-list" id="clusterList"><div class="cl-label">CLUSTERS</div></div>
+<div class="controls">
+  <div class="ctrl-group">
+    <label>Session</label>
+    <select id="selSession"></select>
   </div>
-  <div class="right" id="rightPanel">
-    <div class="empty"><span>⚡</span>Select a session and press LOAD</div>
+  <div class="ctrl-group" style="max-width:160px">
+    <label>DTW Threshold</label>
+    <select id="selThresh">
+      <option value="0.80">0.80 — loose</option>
+      <option value="0.85" selected>0.85 — default</option>
+      <option value="0.90">0.90 — strict</option>
+      <option value="0.95">0.95 — very strict</option>
+    </select>
   </div>
+  <button class="btn-load" id="btnLoad" onclick="loadSession()">LOAD</button>
+  <div class="status" id="status">Select a session.</div>
 </div>
+<div class="cluster-strip" id="clusterStrip"></div>
+<div class="chart-area" id="chartArea">
+  <div class="chart-toolbar" id="chartToolbar">
+    <div class="chart-label" id="chartLabel">—</div>
+  </div>
+  <div class="chart-wrap"><canvas id="chart"></canvas></div>
+  <div class="cond-row-wrap" id="condRow"></div>
+  <div class="members-strip" id="membersStrip"></div>
+</div>
+<div class="empty" id="emptyState"><span>⚡</span>Select a session and press LOAD</div>
 <script>
-// ── Metric config ─────────────────────────────────────────────────────────────
 var METRICS = {
-  pw:     { key:'pw_curve',  avg:'pw_avg',  label:'PW avg',  color:'#e8420a', width:2.5, dash:[]       },
-  pw1:    { key:'pw1_curve', avg:'pw1_avg', label:'PW1',     color:'#3d9eff', width:1.2, dash:[5,4]    },
-  pw2:    { key:'pw2_curve', avg:'pw2_avg', label:'PW2',     color:'#2cdd6e', width:1.2, dash:[5,4]    },
-  rpm:    { key:'rpm_curve', avg:'rpm_avg', label:'RPM',     color:'#ffc832', width:1.5, dash:[]       },
-  vss:    { key:'vss_curve', avg:'vss_avg', label:'VSS',     color:'#b464ff', width:1.5, dash:[]       },
-  tps:    { key:'tps_curve', avg:'tps_avg', label:'TPS%',    color:'#50c8c8', width:1.5, dash:[]       },
+  pw:  {key:'pw_curve', avg:'pw_avg',  label:'PW avg', color:'#e8420a', width:2.5, dash:[]   },
+  pw1: {key:'pw1_curve',avg:'pw1_avg', label:'PW1',    color:'#3d9eff', width:1.2, dash:[5,4]},
+  pw2: {key:'pw2_curve',avg:'pw2_avg', label:'PW2',    color:'#2cdd6e', width:1.2, dash:[5,4]},
+  rpm: {key:'rpm_curve',avg:'rpm_avg', label:'RPM',    color:'#ffc832', width:1.5, dash:[]   },
+  vss: {key:'vss_curve',avg:'vss_avg', label:'VSS',    color:'#b464ff', width:1.5, dash:[]   },
+  tps: {key:'tps_curve',avg:'tps_avg', label:'TPS%',   color:'#50c8c8', width:1.5, dash:[]   },
 };
-// axis groups: 'pw' group shares left axis (ms), 'other' group shares right axis (0-100%)
 var PW_KEYS    = ['pw','pw1','pw2'];
 var OTHER_KEYS = ['rpm','vss','tps'];
+var active  = {pw:true, pw1:false, pw2:false, rpm:true, vss:true, tps:true};
+var showEvt = true;
+var CUR = null;
+var ALL_CLUSTERS = [];
 
-var active  = {pw:true, pw1:false, pw2:false, rpm:false, vss:false, tps:false};
-var showEvt = true;  // individual event lines toggle
-var DATA    = null;
-var CUR     = null;
-
-// ── Session list ─────────────────────────────────────────────────────────────
 fetch('/tuner/sessions').then(function(r){return r.json();}).then(function(d){
-  var sessions = d.sessions || [];
+  var sessions = d.sessions||[];
   var sel = document.getElementById('selSession');
   sessions.forEach(function(s){
-    var sm = s.samples >= 1000 ? (s.samples/1000).toFixed(1)+'k' : s.samples;
-    var opt = document.createElement('option');
-    opt.value = s.id;
-    opt.textContent = s.id+(s.serial?' #'+s.serial:'')+' — '+s.created+' ('+s.rides+'r·'+sm+')';
-    sel.appendChild(opt);
+    var sm = s.samples>=1000?(s.samples/1000).toFixed(1)+'k':s.samples;
+    var o = document.createElement('option');
+    o.value = s.id;
+    o.textContent = s.id+(s.serial?' #'+s.serial:'')+' — '+s.created+' ('+s.rides+'r·'+sm+')';
+    sel.appendChild(o);
   });
-  if(sessions.length) setSt(sessions.length+' sesiones');
+  if(sessions.length) setSt(sessions.length+' sessions');
 }).catch(function(){setSt('Could not load sessions','err');});
 
-// ── Load ─────────────────────────────────────────────────────────────────────
+function setSt(msg,cls){
+  var el=document.getElementById('status');
+  el.textContent=msg;
+  el.className='status'+(cls?' '+cls:'');
+}
+
 function loadSession(){
   var sid=document.getElementById('selSession').value;
   var thr=document.getElementById('selThresh').value;
   if(!sid) return;
   document.getElementById('btnLoad').disabled=true;
   setSt('Processing…','loading');
-  document.getElementById('clusterList').innerHTML='<div class="cl-label">CLUSTERS</div>';
-  document.getElementById('rightPanel').innerHTML='<div class="empty"><span>⏳</span>Detecting events…</div>';
+  document.getElementById('clusterStrip').classList.remove('visible');
+  document.getElementById('chartArea').classList.remove('visible');
+  document.getElementById('emptyState').style.display='flex';
   fetch('/session_events/data?session='+sid+'&threshold='+thr)
     .then(function(r){return r.json();})
     .then(function(d){
       document.getElementById('btnLoad').disabled=false;
       if(d.error){setSt('Error: '+d.error,'err');return;}
-      DATA=d;
+      ALL_CLUSTERS=d.clusters||[];
       setSt(d.n_rides+'r · '+d.n_events+'ev · '+d.n_clusters+'cl','ok');
-      buildClusterList(d.clusters);
-      if(d.clusters&&d.clusters.length) selectCluster(d.clusters[0]);
+      buildStrip(ALL_CLUSTERS);
+      if(ALL_CLUSTERS.length) selectCluster(ALL_CLUSTERS[0],0);
     })
-    .catch(function(){document.getElementById('btnLoad').disabled=false;setSt('Request failed','err');});
+    .catch(function(){
+      document.getElementById('btnLoad').disabled=false;
+      setSt('Request failed','err');
+    });
 }
-function setSt(msg,cls){var el=document.getElementById('status');el.textContent=msg;el.className='st'+(cls?' '+cls:'');}
 
-// ── Cluster list ─────────────────────────────────────────────────────────────
-function buildClusterList(clusters){
-  var list=document.getElementById('clusterList');
-  list.innerHTML='<div class="cl-label">CLUSTERS</div>';
-  clusters.forEach(function(c){
+function buildStrip(clusters){
+  var strip=document.getElementById('clusterStrip');
+  strip.innerHTML='';
+  if(!clusters||!clusters.length){
+    strip.innerHTML='<span style="font-family:var(--mn);font-size:9px;color:var(--dm)">No events detected.</span>';
+    strip.classList.add('visible');
+    return;
+  }
+  clusters.forEach(function(c,idx){
     var ba=c.bucket_a||{};
-    var nCl=c.n>=5?'hi':c.n>=2?'md':'lo';
+    var nCls=c.n>=5?'hi':c.n>=2?'md':'lo';
     var avgTps=c.members&&c.members.length
-      ?(c.members.reduce(function(s,m){return s+(m.tps_peak||0);},0)/c.members.length).toFixed(0)+'%'
+      ?(c.members.reduce(function(s,m){return s+(m.tps_peak||0);},0)/c.members.length).toFixed(0)
       :'?';
     var chip=document.createElement('div');
-    chip.className='chip'; chip.dataset.cid=c.cluster_id;
+    chip.className='cl-chip';
+    chip.dataset.cidx=idx;
     chip.innerHTML=
-      '<div class="chip-top">'+
-        '<div class="chip-id">'+c.cluster_id+'</div>'+
-        '<div class="chip-n '+nCl+'">N='+c.n+'</div>'+
-      '</div>'+
-      '<div class="chip-bucket"><span>'+(ba.gear||'?')+'a</span> '+
-        Math.round(ba.rpm_center||0)+'rpm · '+Math.round(ba.vss_center||0)+'kph</div>'+
-      '<div class="chip-sub">TPS→'+avgTps+
-        (c.orphan?' · orphan':'')+
-        (!c.bucket_a_ok?' · mixed':'')+
-      '</div>'+
-      '<div class="chip-bgs">'+
-        (c.bucket_a_ok?'<div class="cb cb-ok">A-OK</div>':'<div class="cb cb-warn">A-MIX</div>')+
-        (c.orphan?'<div class="cb cb-info">orphan</div>':'')+
-        (c.stats&&c.stats.pw_diff_max>0.3?'<div class="cb cb-alert">⚠imbal</div>':'')+
-      '</div>';
-    chip.addEventListener('click',function(){selectCluster(c);});
-    list.appendChild(chip);
+      '<span class="cl-chip-gear">'+(ba.gear||'?')+'a</span>'+
+      '<span class="cl-chip-n '+nCls+'">N='+c.n+'</span>'+
+      '<span class="cl-chip-cond">'+Math.round(ba.rpm_center||0)+'rpm · '+
+        Math.round(ba.vss_center||0)+'kph · →'+avgTps+'%</span>'+
+      (c.bucket_a_ok?'<span class="cb cb-ok">A✓</span>':'<span class="cb cb-warn">A±</span>')+
+      (c.orphan?'<span class="cb cb-info">solo</span>':'')+
+      (c.stats&&c.stats.pw_diff_max>0.3?'<span class="cb cb-alert">⚠</span>':'');
+    chip.onclick=(function(cl,i){return function(){selectCluster(cl,i);};})(c,idx);
+    strip.appendChild(chip);
   });
+  strip.classList.add('visible');
 }
 
-// ── Select cluster ────────────────────────────────────────────────────────────
-function selectCluster(c){
+function selectCluster(c,idx){
   CUR=c;
-  document.querySelectorAll('.chip').forEach(function(el){
-    el.classList.toggle('active',el.dataset.cid===c.cluster_id);
+  document.querySelectorAll('.cl-chip').forEach(function(el){
+    el.classList.toggle('active', parseInt(el.dataset.cidx)===idx);
   });
-  buildRight(c);
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('chartArea').classList.add('visible');
+  buildToolbar();
+  buildConditions(c);
+  buildMembers(c);
+  requestAnimationFrame(function(){drawChart(c);});
 }
 
-// ── Build right panel ─────────────────────────────────────────────────────────
-function buildRight(c){
+function buildToolbar(){
+  if(!CUR) return;
+  var ba=CUR.bucket_a||{};
+  document.getElementById('chartLabel').textContent=
+    (ba.gear||'?')+'a · ~'+Math.round(ba.rpm_center||0)+'rpm · '+
+    (ba.tps_center||0).toFixed(1)+'%TPS · ~'+Math.round(ba.vss_center||0)+'kph  ['+
+    CUR.cluster_id+' N='+CUR.n+']';
+  var tog=document.getElementById('chartToolbar');
+  while(tog.children.length>1) tog.removeChild(tog.lastChild);
+  ['pw','pw1','pw2','rpm','vss','tps'].forEach(function(k){
+    var m=METRICS[k];
+    var btn=document.createElement('button');
+    btn.className='mtog'+(active[k]?' active':'');
+    btn.style.setProperty('--mc',m.color);
+    btn.innerHTML='<span class="mtog-dot"></span>'+m.label;
+    btn.onclick=(function(key){return function(){
+      active[key]=!active[key];
+      buildToolbar();
+      if(CUR) drawChart(CUR);
+    };})(k);
+    tog.appendChild(btn);
+  });
+  var sep=document.createElement('span');
+  sep.style.cssText='width:1px;height:16px;background:var(--bd);flex-shrink:0;display:inline-block;margin:0 2px';
+  tog.appendChild(sep);
+  var evBtn=document.createElement('button');
+  evBtn.className='mtog'+(showEvt?' active':'');
+  evBtn.style.setProperty('--mc','#888');
+  evBtn.innerHTML='<span class="mtog-dot"></span>Each event';
+  evBtn.onclick=function(){showEvt=!showEvt;buildToolbar();if(CUR) drawChart(CUR);};
+  tog.appendChild(evBtn);
+}
+
+function buildConditions(c){
   var ba=c.bucket_a||{};
   var st=c.stats||{};
   var mb=c.members||[];
-
-  var avgPeak=mb.length?(mb.reduce(function(s,m){return s+(m.tps_peak||0);},0)/mb.length).toFixed(0)+'%':'?';
-  var title=c.cluster_id+' · '+(ba.gear||'?')+'a · '+Math.round(ba.rpm_center||0)+
-    'rpm ±'+Math.round(ba.rpm_range||0)+' · '+Math.round(ba.vss_center||0)+
-    'kph · TPS→'+avgPeak+'  [N='+c.n+']';
-
-  var tableRows=mb.map(function(m,i){
-    var mba=m.bucket_a||{};
-    var dot='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+evColor(i,mb.length,0.9)+';margin-right:3px;flex-shrink:0;vertical-align:middle"></span>';
-    return '<tr>'+
-      '<td>'+dot+(m.ride_file||'?').replace('ride_','').replace('_f7events','')+'</td>'+
-      '<td>'+(m.break_t||'')+'s</td>'+
-      '<td>'+(mba.gear||'')+'a</td>'+
-      '<td>'+Math.round(mba.rpm_avg||0)+'</td>'+
-      '<td>'+(mba.tps_avg||0).toFixed(1)+'</td>'+
-      '<td>'+Math.round(mba.vss_avg||0)+'</td>'+
-      '<td>'+(m.pw_start||0).toFixed(2)+'→'+(m.pw_peak||0).toFixed(2)+'</td>'+
-      '<td style="color:'+((m.vss_delta||0)>0?'var(--gn)':'var(--rd)') +'">'+(m.vss_delta>0?'+':'')+(m.vss_delta||0).toFixed(1)+'</td>'+
-      '<td>'+(m.duration||0).toFixed(1)+'s</td>'+
-      '</tr>';
-  }).join('');
-
-  // info stats
-  var infoParts=[
-    istat('Gear',(ba.gear||'?')+'a'),
-    istat('RPM',Math.round(ba.rpm_center||0)+' ±'+Math.round(ba.rpm_range||0)),
-    istat('TPS₀',(ba.tps_center||0).toFixed(1)+'%'),
-    istat('VSS',Math.round(ba.vss_center||0)+' kph'),
-    istat('DTW',c.dtw_min+'–'+c.dtw_max),
+  function avg(arr){return arr.length?arr.reduce(function(a,b){return a+b;},0)/arr.length:0;}
+  var pwStarts=mb.map(function(m){return m.pw_start||0;});
+  var pwPeaks =mb.map(function(m){return m.pw_peak||0;});
+  var durs    =mb.map(function(m){return m.duration||0;});
+  var vssDels =mb.map(function(m){return m.vss_delta||0;});
+  var aRows=[
+    ['Gear',  (ba.gear||'?')+'a'],
+    ['RPM',   Math.round(ba.rpm_center||0)+' ±'+Math.round(ba.rpm_range||0)],
+    ['TPS',   (ba.tps_center||0).toFixed(1)+'% ±'+(ba.tps_range||0).toFixed(1)],
+    ['VSS',   Math.round(ba.vss_center||0)+' ±'+Math.round(ba.vss_range||0)+' km/h'],
+    ['N',     c.n+(c.orphan?' (solo)':'')],
+    ['DTW',   c.dtw_min+'–'+c.dtw_max],
   ];
+  var bRows=[
+    ['PW start', avg(pwStarts).toFixed(2)+' ms'],
+    ['PW peak',  avg(pwPeaks).toFixed(2)+' ms'],
+    ['PW rise',  (avg(pwPeaks)-avg(pwStarts)).toFixed(2)+' ms'],
+    ['Dur avg',  avg(durs).toFixed(1)+' s'],
+    ['ΔVSS',     (avg(vssDels)>=0?'+':'')+avg(vssDels).toFixed(1)+' km/h'],
+  ];
+  if(st.pw_diff_max!=null)
+    bRows.push(['PW imbal', st.pw_diff_max.toFixed(3)+'ms'+(st.pw_diff_max>0.3?' ⚠':'')]);
+  function box(label,rows){
+    return '<div class="cond-box"><div class="cond-box-label">'+label+'</div>'+
+      rows.map(function(r){
+        return '<div class="cond-row"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>';
+      }).join('')+'</div>';
+  }
+  document.getElementById('condRow').innerHTML=
+    box('BUCKET A — initial conditions', aRows)+
+    box('BUCKET B — event outcomes', bRows);
+}
 
-  var html=
-    '<div class="chart-toolbar">'+
-      '<span class="chart-toolbar-label">SHOW</span>'+
-      mkToggle('pw',    't-pw',     'PW avg')+
-      mkToggle('pw1',   't-pw1',    'PW1')+
-      mkToggle('pw2',   't-pw2',    'PW2')+
-      '<div class="sep"></div>'+
-      mkToggle('rpm',   't-rpm',    'RPM')+
-      mkToggle('vss',   't-vss',    'VSS')+
-      mkToggle('tps',   't-tps',    'TPS%')+
-      '<div class="sep"></div>'+
-      '<button class="mtoggle t-events'+(showEvt?'':' off')+'" id="tog-events" onclick="toggleEvt()">Each event</button>'+
-    '</div>'+
-    '<div class="chart-area"><canvas id="mainChart"></canvas></div>'+
-    '<div class="info-bar">'+infoParts.join('')+
-      (!c.bucket_a_ok?'<div class="cb cb-warn">⚠ BucketA mixed</div>':'')+
-    '</div>'+
-    '<div class="members-strip">'+
-      '<table class="mt"><thead><tr>'+
-        '<th style="text-align:left">Ride</th><th>t(s)</th><th>Gr</th><th>RPM</th><th>TPS%</th><th>VSS</th><th>PW→pk</th><th>dVSS</th><th>dur</th>'+
-      '</tr></thead><tbody>'+tableRows+'</tbody></table>'+
-    '</div>';
+function buildMembers(c){
+  var mb=c.members||[];
+  document.getElementById('membersStrip').innerHTML=
+    '<table class="mt"><thead><tr>'+
+    '<th style="text-align:left">Ride</th><th>t(s)</th><th>Gr</th><th>RPM</th><th>TPS%</th><th>VSS</th><th>PW→pk</th><th>dVSS</th><th>dur</th>'+
+    '</tr></thead><tbody>'+
+    mb.map(function(m,i){
+      var ba=m.bucket_a||{};
+      var dot='<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+evColor(i,mb.length,0.9)+';margin-right:3px;vertical-align:middle"></span>';
+      return '<tr>'+
+        '<td>'+dot+(m.ride_file||'?').replace('ride_','').replace('_f7events','')+'</td>'+
+        '<td>'+(m.break_t||'')+'</td>'+
+        '<td>'+(ba.gear||'')+'a</td>'+
+        '<td>'+Math.round(ba.rpm_avg||0)+'</td>'+
+        '<td>'+(ba.tps_avg||0).toFixed(1)+'</td>'+
+        '<td>'+Math.round(ba.vss_avg||0)+'</td>'+
+        '<td>'+(m.pw_start||0).toFixed(2)+'→'+(m.pw_peak||0).toFixed(2)+'</td>'+
+        '<td style="color:'+((m.vss_delta||0)>=0?'var(--gn)':'var(--rd)')+'">'+
+          ((m.vss_delta||0)>=0?'+':'')+(m.vss_delta||0).toFixed(1)+'</td>'+
+        '<td>'+(m.duration||0).toFixed(1)+'s</td>'+
+        '</tr>';
+    }).join('')+
+    '</tbody></table>';
+}
 
-  document.getElementById('rightPanel').innerHTML=html;
-  drawChart(c);
-}
-function mkToggle(key,cls,lbl){
-  return '<button class="mtoggle '+cls+(active[key]?'':' off')+'" id="tog-'+key+'" onclick="toggle(\''+key+'\')">'+lbl+'</button>';
-}
-function toggle(key){
-  active[key]=!active[key];
-  var el=document.getElementById('tog-'+key);
-  if(el) el.classList.toggle('off',!active[key]);
-  if(CUR) drawChart(CUR);
-}
-function toggleEvt(){
-  showEvt=!showEvt;
-  var el=document.getElementById('tog-events');
-  if(el) el.classList.toggle('off',!showEvt);
-  if(CUR) drawChart(CUR);
-}
-function istat(k,v){return '<div class="is"><div class="k">'+k+'</div><div class="v">'+v+'</div></div>';}
 function evColor(i,n,a){var h=(i/Math.max(n,1))*300+180;return 'hsla('+h+',70%,60%,'+a+')';}
 
-// ── Chart drawing ─────────────────────────────────────────────────────────────
-var PRE_PTS = 5;   // pre-event columns showing Bucket A
-var EVT_PTS = 20;  // event points (N_RESAMPLE)
-var TOT_PTS = PRE_PTS + EVT_PTS;
+var PRE_PTS=10, EVT_PTS=20, TOT_PTS=30;
 
 function drawChart(c){
-  var canvas=document.getElementById('mainChart');
+  var canvas=document.getElementById('chart');
   if(!canvas) return;
   var wrap=canvas.parentElement;
   var dpr=window.devicePixelRatio||1;
@@ -305,209 +319,187 @@ function drawChart(c){
   ctx.scale(dpr,dpr);
   ctx.clearRect(0,0,W,H);
 
-  var st  =c.stats  ||{};
-  var ba  =c.bucket_a||{};
-  var mb  =c.members ||[];
+  var st=c.stats||{};
+  var ba=c.bucket_a||{};
+  var mb=c.members||[];
+  var TM=14,BM=20,LM=8,RM=8;
+  var CW=W-LM-RM, PH=H-TM-BM;
 
-  var TM=14, BM=20, LM=36, RM=36;
-  var PW_W=W-LM-RM;
-  var PH=H-TM-BM;
+  function xp(i){return LM+(i/(TOT_PTS-1))*CW;}
+  var xBreak=xp(PRE_PTS);
 
-  // x mapping: index 0..TOT_PTS-1 → pixel
-  function xp(i){ return LM + (i/(TOT_PTS-1))*PW_W; }
-  var xBreak = xp(PRE_PTS);  // pixel where event starts
-
-  // ── Compute Y ranges ──────────────────────────────────────────────────────
-  // Left axis (PW group: pw, pw1, pw2) — absolute ms
-  var pwVals=[];
+  var allVals={pw:[],pw1:[],pw2:[],rpm:[],vss:[],tps:[]};
+  var PRE_KEYS = {pw:'pre_pw_curve', rpm:'pre_rpm_curve', vss:'pre_vss_curve', tps:'pre_tps_curve'};
+  var PRE_AVG  = {pw:'pre_pw_avg',   rpm:'pre_rpm_avg',   vss:'pre_vss_avg',   tps:'pre_tps_avg'};
   PW_KEYS.forEach(function(k){
     if(!active[k]) return;
-    (st[METRICS[k].avg]||[]).forEach(function(v){pwVals.push(v);});
-    mb.forEach(function(m){(m[METRICS[k].key]||[]).forEach(function(v){pwVals.push(v);});});
-    // bucket_a pw reference
-    if(ba.rpm_avg!=null) pwVals.push(ba.rpm_avg); // dummy — pw bucket A from pw_start avg
+    (st[METRICS[k].avg]||[]).forEach(function(v){allVals[k].push(v);});
+    (st[PRE_AVG[k]]||[]).forEach(function(v){allVals[k].push(v);});
+    mb.forEach(function(m){(m[METRICS[k].key]||[]).forEach(function(v){allVals[k].push(v);});});
+    mb.forEach(function(m){(m[PRE_KEYS[k]]||[]).forEach(function(v){allVals[k].push(v);});});
   });
-  // add pw_start for bucket A reference line
-  if(mb.length) mb.forEach(function(m){if(m.pw_start!=null) pwVals.push(m.pw_start);});
-  var pwMin=pwVals.length?Math.min.apply(null,pwVals)-0.3:0;
-  var pwMax=pwVals.length?Math.max.apply(null,pwVals)+0.3:12;
-
-  // Right axis (other metrics) — each normalized 0-100 (display %), but using their real ranges
-  // We'll collect min/max per metric for normalization
-  var otherMins={}, otherMaxs={};
   OTHER_KEYS.forEach(function(k){
     if(!active[k]) return;
-    var vals=[];
-    (st[METRICS[k].avg]||[]).forEach(function(v){vals.push(v);});
-    mb.forEach(function(m){(m[METRICS[k].key]||[]).forEach(function(v){vals.push(v);});});
-    // bucket_a reference
-    if(k==='rpm'&&ba.rpm_avg!=null) vals.push(ba.rpm_avg);
-    if(k==='vss'&&ba.vss_avg!=null) vals.push(ba.vss_avg);
-    if(k==='tps'&&ba.tps_avg!=null) vals.push(ba.tps_avg);
-    if(!vals.length){otherMins[k]=0;otherMaxs[k]=100;return;}
-    var p=Math.max((Math.max.apply(null,vals)-Math.min.apply(null,vals))*0.1,5);
-    otherMins[k]=Math.min.apply(null,vals)-p;
-    otherMaxs[k]=Math.max.apply(null,vals)+p;
+    (st[METRICS[k].avg]||[]).forEach(function(v){allVals[k].push(v);});
+    (st[PRE_AVG[k]]||[]).forEach(function(v){allVals[k].push(v);});
+    mb.forEach(function(m){(m[METRICS[k].key]||[]).forEach(function(v){allVals[k].push(v);});});
+    mb.forEach(function(m){(m[PRE_KEYS[k]]||[]).forEach(function(v){allVals[k].push(v);});});
   });
 
-  function ypLeft(v){  return TM+PH-((v-pwMin)/(pwMax-pwMin))*PH; }
-  function ypRight(k,v){ return TM+PH-((v-otherMins[k])/(otherMaxs[k]-otherMins[k]))*PH; }
+  var pwVals=[];
+  PW_KEYS.forEach(function(k){if(active[k]) allVals[k].forEach(function(v){pwVals.push(v);});});
+  var pwMin=pwVals.length?Math.min.apply(null,pwVals)-0.3:0;
+  var pwMax=pwVals.length?Math.max.apply(null,pwVals)+0.5:12;
 
-  // ── Background ───────────────────────────────────────────────────────────
-  ctx.fillStyle='#0a0a0b'; ctx.fillRect(0,0,W,H);
+  var oActive=OTHER_KEYS.filter(function(k){return active[k];});
+  var oScales={};
+  oActive.forEach(function(k){
+    var vals=allVals[k];
+    if(!vals.length){oScales[k]={min:0,max:100};return;}
+    var p=Math.max((Math.max.apply(null,vals)-Math.min.apply(null,vals))*0.12,5);
+    oScales[k]={min:Math.min.apply(null,vals)-p, max:Math.max.apply(null,vals)+p};
+  });
 
-  // Bucket A shaded zone
-  ctx.fillStyle='rgba(255,255,255,0.025)';
-  ctx.fillRect(LM,TM,xBreak-LM,PH);
-  ctx.font='7px monospace'; ctx.textAlign='center'; ctx.fillStyle='rgba(255,255,255,0.18)';
-  ctx.fillText('BUCKET A',LM+(xBreak-LM)/2,TM+10);
-
-  // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
-  for(var g=1;g<=3;g++){
-    var yg=TM+PH*g/4;
-    ctx.beginPath();ctx.moveTo(LM,yg);ctx.lineTo(LM+PW_W,yg);ctx.stroke();
+  function ypL(v){return TM+PH-((v-pwMin)/(pwMax-pwMin))*PH;}
+  function ypR(k,v){
+    var s=oScales[k];
+    if(!s||s.max===s.min) return TM+PH/2;
+    return TM+PH-((v-s.min)/(s.max-s.min))*PH;
   }
 
-  // Event start line
-  ctx.strokeStyle='rgba(232,66,10,0.5)'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(xBreak,TM);ctx.lineTo(xBreak,TM+PH);ctx.stroke();
-  ctx.setLineDash([]);
-  ctx.fillStyle='rgba(232,66,10,0.7)'; ctx.font='7px monospace'; ctx.textAlign='center';
-  ctx.fillText('BREAK',xBreak,TM+8);
-
-  // X axis ticks (event points 0,5,10,15,end)
+  ctx.fillStyle='#0a0a0b'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,0.03)';
+  ctx.fillRect(LM,TM,xBreak-LM,PH);
+  ctx.font='bold 7px monospace'; ctx.textAlign='center';
+  ctx.fillStyle='rgba(255,255,255,0.2)';
+  ctx.fillText('BUCKET A',LM+(xBreak-LM)/2,TM+10);
+  ctx.strokeStyle='rgba(255,255,255,0.035)'; ctx.lineWidth=1;
+  for(var g=1;g<=3;g++){
+    var yg=TM+PH*g/4;
+    ctx.beginPath();ctx.moveTo(LM,yg);ctx.lineTo(LM+CW,yg);ctx.stroke();
+  }
+  ctx.font='7px monospace'; ctx.textAlign='center';
+  // Pre-break time ticks (-3s, -2s, -1s)
+  [{i:0,lbl:'-3s'},{i:3,lbl:'-2s'},{i:7,lbl:'-1s'}].forEach(function(t){
+    var x=xp(t.i);
+    ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,TM);ctx.lineTo(x,TM+PH);ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,0.2)'; ctx.fillText(t.lbl,x,H-4);
+  });
+  // Event points
   [0,5,10,15,19].forEach(function(i){
     var x=xp(PRE_PTS+i);
     ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
     ctx.beginPath();ctx.moveTo(x,TM);ctx.lineTo(x,TM+PH);ctx.stroke();
-    ctx.fillStyle='rgba(255,255,255,0.25)'; ctx.font='7px monospace'; ctx.textAlign='center';
-    ctx.fillText(i===0?'0':i===19?'end':''+i,x,H-4);
+    ctx.fillStyle='rgba(255,255,255,0.25)';
+    ctx.fillText(i===0?'0s':i===19?'end':'pt'+i,x,H-4);
   });
+  ctx.strokeStyle='rgba(232,66,10,0.5)'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(xBreak,TM);ctx.lineTo(xBreak,TM+PH);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(232,66,10,0.7)'; ctx.font='bold 7px monospace'; ctx.textAlign='center';
+  ctx.fillText('BREAK',xBreak,TM+8);
 
-  // ── Left Y axis (PW) ─────────────────────────────────────────────────────
   var hasPW=PW_KEYS.some(function(k){return active[k];});
   if(hasPW){
-    ctx.strokeStyle='rgba(232,66,10,0.25)'; ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(LM,TM);ctx.lineTo(LM,TM+PH);ctx.stroke();
-    ctx.fillStyle='rgba(232,66,10,0.6)'; ctx.font='7px monospace'; ctx.textAlign='right';
-    ctx.fillText(pwMax.toFixed(1)+'ms',LM-2,TM+7);
-    ctx.fillText(pwMin.toFixed(1)+'ms',LM-2,TM+PH);
-    ctx.save();ctx.translate(8,TM+PH/2);ctx.rotate(-Math.PI/2);
-    ctx.textAlign='center';ctx.fillStyle='rgba(232,66,10,0.4)';
-    ctx.fillText('PW (ms)',0,0);ctx.restore();
+    ctx.fillStyle='rgba(232,66,10,0.5)'; ctx.font='bold 7px monospace'; ctx.textAlign='left';
+    ctx.fillText('PW ms',LM+2,TM+9);
+    ctx.font='6px monospace'; ctx.globalAlpha=0.45;
+    ctx.fillText(pwMax.toFixed(1),LM+2,TM+18);
+    ctx.fillText(pwMin.toFixed(1),LM+2,TM+PH-2);
+    ctx.globalAlpha=1;
   }
-
-  // ── Right Y axis (other metrics) ─────────────────────────────────────────
-  var hasOther=OTHER_KEYS.some(function(k){return active[k];});
-  if(hasOther){
-    ctx.strokeStyle='rgba(255,255,255,0.1)'; ctx.lineWidth=1;
-    ctx.beginPath();ctx.moveTo(LM+PW_W,TM);ctx.lineTo(LM+PW_W,TM+PH);ctx.stroke();
-    var rightActive=OTHER_KEYS.filter(function(k){return active[k];});
-    rightActive.forEach(function(k,ri){
-      var yTop=TM+ri*(PH/rightActive.length);
-      var yH=PH/rightActive.length;
-      ctx.fillStyle=METRICS[k].color;
-      ctx.font='bold 7px monospace'; ctx.textAlign='left';
+  if(oActive.length){
+    oActive.forEach(function(k,i){
+      var m=METRICS[k]; var s=oScales[k];
+      ctx.fillStyle=m.color; ctx.font='bold 7px monospace'; ctx.textAlign='right';
       ctx.globalAlpha=0.7;
-      ctx.fillText(METRICS[k].label,LM+PW_W+3,yTop+10);
-      ctx.font='6px monospace'; ctx.globalAlpha=0.5;
-      ctx.fillText(otherMaxs[k].toFixed(0),LM+PW_W+3,yTop+18);
-      ctx.fillText(otherMins[k].toFixed(0),LM+PW_W+3,yTop+yH-2);
+      ctx.fillText(m.label, W-RM-(i+1)*(CW/6), TM+9);
+      ctx.font='6px monospace'; ctx.globalAlpha=0.4;
+      ctx.fillText(s.max.toFixed(0), W-RM-(i+1)*(CW/6), TM+18);
+      ctx.fillText(s.min.toFixed(0), W-RM-(i+1)*(CW/6), TM+PH-2);
       ctx.globalAlpha=1;
     });
   }
 
-  // ── Bucket A reference lines ──────────────────────────────────────────────
-  // PW reference from members' pw_start avg
-  if(hasPW&&mb.length){
-    var pwStarts=mb.map(function(m){return m.pw_start||0;});
-    var pwStartAvg=pwStarts.reduce(function(a,b){return a+b;},0)/pwStarts.length;
-    ctx.strokeStyle='rgba(232,66,10,0.35)'; ctx.setLineDash([3,3]); ctx.lineWidth=1;
-    var yRef=ypLeft(pwStartAvg);
-    ctx.beginPath();ctx.moveTo(LM,yRef);ctx.lineTo(xBreak,yRef);ctx.stroke();
-    ctx.setLineDash([]);
+  // Draw actual Bucket A time series in pre-break zone (cluster averages)
+  function drawPre(arr, yFn, color, width){
+    if(!arr||arr.length<2) return;
+    var N=arr.length;
+    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineJoin='round'; ctx.lineCap='round';
+    ctx.globalAlpha=0.9;
+    ctx.beginPath();
+    arr.forEach(function(v,i){
+      var x=LM+(i/(N-1))*(xBreak-LM);
+      i===0?ctx.moveTo(x,yFn(v)):ctx.lineTo(x,yFn(v));
+    });
+    ctx.stroke();
+    // dot at break
+    var yEnd=yFn(arr[N-1]);
+    ctx.beginPath();ctx.arc(xBreak,yEnd,3,0,2*Math.PI);ctx.fillStyle=color;ctx.fill();
+    // value label
+    ctx.font='bold 7px monospace'; ctx.textAlign='left';
+    ctx.fillStyle=color; ctx.globalAlpha=0.85;
+    ctx.fillText(typeof arr[N-1]==='number'?arr[N-1].toFixed(arr[N-1]>100?0:1):'', xBreak+4, yEnd+3);
+    ctx.globalAlpha=1;
   }
-  // RPM bucket A
-  if(active.rpm&&ba.rpm_avg!=null&&otherMins.rpm!=null){
-    ctx.strokeStyle=METRICS.rpm.color; ctx.globalAlpha=0.4; ctx.setLineDash([3,3]); ctx.lineWidth=1;
-    var yr=ypRight('rpm',ba.rpm_avg);
-    ctx.beginPath();ctx.moveTo(LM,yr);ctx.lineTo(xBreak,yr);ctx.stroke();
-    ctx.setLineDash([]); ctx.globalAlpha=1;
-  }
-  // VSS bucket A
-  if(active.vss&&ba.vss_avg!=null&&otherMins.vss!=null){
-    ctx.strokeStyle=METRICS.vss.color; ctx.globalAlpha=0.4; ctx.setLineDash([3,3]); ctx.lineWidth=1;
-    var yv=ypRight('vss',ba.vss_avg);
-    ctx.beginPath();ctx.moveTo(LM,yv);ctx.lineTo(xBreak,yv);ctx.stroke();
-    ctx.setLineDash([]); ctx.globalAlpha=1;
-  }
-  // TPS bucket A
-  if(active.tps&&ba.tps_avg!=null&&otherMins.tps!=null){
-    ctx.strokeStyle=METRICS.tps.color; ctx.globalAlpha=0.4; ctx.setLineDash([3,3]); ctx.lineWidth=1;
-    var yt=ypRight('tps',ba.tps_avg);
-    ctx.beginPath();ctx.moveTo(LM,yt);ctx.lineTo(xBreak,yt);ctx.stroke();
-    ctx.setLineDash([]); ctx.globalAlpha=1;
-  }
+  if(hasPW)
+    drawPre(st.pre_pw_avg, ypL, '#e8420a', 2.0);
+  if(active.rpm&&st.pre_rpm_avg&&oScales.rpm)
+    drawPre(st.pre_rpm_avg, function(v){return ypR('rpm',v);}, '#ffc832', 1.5);
+  if(active.vss&&st.pre_vss_avg&&oScales.vss)
+    drawPre(st.pre_vss_avg, function(v){return ypR('vss',v);}, '#b464ff', 1.5);
+  if(active.tps&&st.pre_tps_avg&&oScales.tps)
+    drawPre(st.pre_tps_avg, function(v){return ypR('tps',v);}, '#50c8c8', 1.5);
 
-  // ── Confidence band (pw only) ─────────────────────────────────────────────
   if(active.pw&&st.pw_avg&&st.pw_std&&st.confidence){
     for(var i=0;i<EVT_PTS-1;i++){
       var conf=(st.confidence[i]+st.confidence[i+1])/2;
       var std2=(st.pw_std[i]+st.pw_std[i+1])/2;
-      ctx.fillStyle='rgba(232,66,10,'+(conf*0.12)+')';
-      var xa=xp(PRE_PTS+i), xb=xp(PRE_PTS+i+1);
-      var ya0=ypLeft(st.pw_avg[i]+std2),   ya1=ypLeft(st.pw_avg[i+1]+std2);
-      var yb0=ypLeft(st.pw_avg[i]-std2),   yb1=ypLeft(st.pw_avg[i+1]-std2);
+      ctx.fillStyle='rgba(232,66,10,'+(conf*0.13)+')';
+      var xa=xp(PRE_PTS+i),xb=xp(PRE_PTS+i+1);
+      var ya0=ypL(st.pw_avg[i]+std2),ya1=ypL(st.pw_avg[i+1]+std2);
+      var yb0=ypL(st.pw_avg[i]-std2),yb1=ypL(st.pw_avg[i+1]-std2);
       ctx.beginPath();ctx.moveTo(xa,ya0);ctx.lineTo(xb,ya1);ctx.lineTo(xb,yb1);ctx.lineTo(xa,yb0);ctx.closePath();ctx.fill();
     }
   }
 
-  // ── Individual event lines ─────────────────────────────────────────────────
   if(showEvt){
     mb.forEach(function(m,idx){
-      var col=evColor(idx,mb.length,0.4);
-      var bam=m.bucket_a||{};
-      // Bucket A zone: per-event starting condition as dashed line
-      ctx.lineWidth=0.8; ctx.setLineDash([2,3]);
-      if(hasPW&&m.pw_start!=null){
-        ctx.strokeStyle=col;
-        var yps=ypLeft(m.pw_start);
-        ctx.beginPath();ctx.moveTo(LM,yps);ctx.lineTo(xBreak,yps);ctx.stroke();
-      }
-      if(active.rpm&&bam.rpm_avg!=null&&otherMins.rpm!=null){
-        ctx.strokeStyle=col;
-        var yra=ypRight('rpm',bam.rpm_avg);
-        ctx.beginPath();ctx.moveTo(LM,yra);ctx.lineTo(xBreak,yra);ctx.stroke();
-      }
-      if(active.vss&&bam.vss_avg!=null&&otherMins.vss!=null){
-        ctx.strokeStyle=col;
-        var yva=ypRight('vss',bam.vss_avg);
-        ctx.beginPath();ctx.moveTo(LM,yva);ctx.lineTo(xBreak,yva);ctx.stroke();
-      }
-      if(active.tps&&bam.tps_avg!=null&&otherMins.tps!=null){
-        ctx.strokeStyle=col;
-        var yta=ypRight('tps',bam.tps_avg);
-        ctx.beginPath();ctx.moveTo(LM,yta);ctx.lineTo(xBreak,yta);ctx.stroke();
-      }
-      ctx.setLineDash([]);
-      // Event phase: draw each active metric's individual curve
-      var toDraw=PW_KEYS.filter(function(k){return active[k];}).map(function(k){
-        return {curve:m[METRICS[k].key],yFn:ypLeft,col:col};
-      }).concat(OTHER_KEYS.filter(function(k){return active[k]&&m[METRICS[k].key];}).map(function(k){
-        return {curve:m[METRICS[k].key],yFn:function(v){return ypRight(k,v);},col:col};
-      }));
-      toDraw.forEach(function(td){
-        var cv=td.curve; if(!cv||cv.length<2) return;
-        ctx.strokeStyle=td.col; ctx.lineWidth=0.8; ctx.lineJoin='round';
+      var col=evColor(idx,mb.length,0.28);
+      function drawPreEv(arr,yFn){
+        if(!arr||arr.length<2) return;
+        var N=arr.length;
+        ctx.strokeStyle=col; ctx.lineWidth=0.7; ctx.lineJoin='round';
         ctx.beginPath();
-        cv.forEach(function(v,i){i===0?ctx.moveTo(xp(PRE_PTS+i),td.yFn(v)):ctx.lineTo(xp(PRE_PTS+i),td.yFn(v));});
+        arr.forEach(function(v,i){
+          var x=LM+(i/(N-1))*(xBreak-LM);
+          i===0?ctx.moveTo(x,yFn(v)):ctx.lineTo(x,yFn(v));
+        });
+        ctx.stroke();
+      }
+      if(hasPW) drawPreEv(m.pre_pw_curve, ypL);
+      if(active.rpm&&m.pre_rpm_curve&&oScales.rpm) drawPreEv(m.pre_rpm_curve,function(v){return ypR('rpm',v);});
+      if(active.vss&&m.pre_vss_curve&&oScales.vss) drawPreEv(m.pre_vss_curve,function(v){return ypR('vss',v);});
+      if(active.tps&&m.pre_tps_curve&&oScales.tps) drawPreEv(m.pre_tps_curve,function(v){return ypR('tps',v);});
+      var draws=[];
+      PW_KEYS.forEach(function(k){
+        if(active[k]&&m[METRICS[k].key]) draws.push({cv:m[METRICS[k].key],yFn:ypL,col:col});
+      });
+      OTHER_KEYS.forEach(function(k){
+        if(active[k]&&m[METRICS[k].key]&&oScales[k])
+          draws.push({cv:m[METRICS[k].key],yFn:function(v){return ypR(k,v);},col:col});
+      });
+      draws.forEach(function(d){
+        if(!d.cv||d.cv.length<2) return;
+        ctx.strokeStyle=d.col; ctx.lineWidth=0.8; ctx.lineJoin='round';
+        ctx.beginPath();
+        d.cv.forEach(function(v,i){i===0?ctx.moveTo(xp(PRE_PTS+i),d.yFn(v)):ctx.lineTo(xp(PRE_PTS+i),d.yFn(v));});
         ctx.stroke();
       });
     });
   }
 
-  // ── Average lines (all active metrics) ────────────────────────────────────
   function drawAvg(arr,yFn,color,width,dash){
     if(!arr||arr.length<2) return;
     ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineJoin='round'; ctx.lineCap='round';
@@ -515,20 +507,18 @@ function drawChart(c){
     ctx.beginPath();
     arr.forEach(function(v,i){i===0?ctx.moveTo(xp(PRE_PTS+i),yFn(v)):ctx.lineTo(xp(PRE_PTS+i),yFn(v));});
     ctx.stroke(); ctx.setLineDash([]);
-    // endpoint dots
     ctx.beginPath();ctx.arc(xp(PRE_PTS),yFn(arr[0]),3,0,2*Math.PI);ctx.fillStyle=color;ctx.fill();
     ctx.beginPath();ctx.arc(xp(PRE_PTS+arr.length-1),yFn(arr[arr.length-1]),3,0,2*Math.PI);ctx.fill();
   }
-
   PW_KEYS.forEach(function(k){
     if(!active[k]) return;
     var m=METRICS[k];
-    drawAvg(st[m.avg],ypLeft,m.color,m.width,m.dash);
+    drawAvg(st[m.avg],ypL,m.color,m.width,m.dash);
   });
   OTHER_KEYS.forEach(function(k){
-    if(!active[k]) return;
+    if(!active[k]||!oScales[k]) return;
     var m=METRICS[k];
-    drawAvg(st[m.avg],function(v){return ypRight(k,v);},m.color,m.width,m.dash);
+    drawAvg(st[m.avg],function(v){return ypR(k,v);},m.color,m.width,m.dash);
   });
 }
 
