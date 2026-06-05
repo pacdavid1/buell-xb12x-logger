@@ -25,6 +25,20 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.90] — 2026-06-04
+
+### Docs
+- BACKLOG.md: FASE7 section updated — marked 7.1/7.2/7.3/7.6 as complete,
+  documented all implemented items, added pending 7.4 (cross-session) and 7.5 (live)
+- ECC coding-style.md: added Language — English Only rule: all touched code,
+  comments, UI text, and frontend strings must be written in English; Spanish
+  code is rewritten to English when modified (incremental cleanup, not mass refactor)
+- ECC git-workflow.md: added Commit Order section — CHANGELOG must be updated
+  before committing; changelog entry and code change go in the same commit
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.89] — 2026-06-04
 
 ### Fixed
