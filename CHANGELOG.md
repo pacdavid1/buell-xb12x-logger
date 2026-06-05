@@ -25,6 +25,20 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.85] — 2026-06-04
+
+### Fixed
+- main.py: battery charging indicator (⚡) was always shown regardless of charger
+  state because the CW2015 CHG_IND bit (STATUS register bit 4) is stuck high on
+  this UPS-Lite hardware — reverted to voltage trend + hysteresis approach from
+  v2.6.82. Detection: rising >0.005V over 2-read window → charging, falling
+  <-0.005V → not charging, stable → keep previous state (hysteresis). Fallback
+  for <3 readings: voltage > 3.85V assumes charging. Removed duplicate bat_trend
+  block that was overwriting the trend arrow computed in the charging logic.
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.84] — 2026-06-04
 
 ### Fixed
