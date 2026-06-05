@@ -91,6 +91,7 @@ table.mt tr:hover td{background:rgba(255,255,255,.02)}
     </select>
   </div>
   <button class="btn-load" id="btnLoad" onclick="loadSession()">LOAD</button>
+  <button class="btn-load" id="btnDl" style="background:var(--bl);display:none" onclick="downloadJson()">↓ JSON</button>
   <div class="status" id="status">Select a session.</div>
 </div>
 <div class="cluster-strip" id="clusterStrip"></div>
@@ -154,6 +155,7 @@ function loadSession(){
       if(d.error){setSt('Error: '+d.error,'err');return;}
       ALL_CLUSTERS=d.clusters||[];
       setSt(d.n_rides+'r · '+d.n_events+'ev · '+d.n_clusters+'cl','ok');
+      document.getElementById('btnDl').style.display='';
       buildStrip(ALL_CLUSTERS);
       if(ALL_CLUSTERS.length) selectCluster(ALL_CLUSTERS[0],0);
     })
@@ -300,6 +302,13 @@ function buildMembers(c){
         '</tr>';
     }).join('')+
     '</tbody></table>';
+}
+
+function downloadJson(){
+  var sid=document.getElementById('selSession').value;
+  var thr=document.getElementById('selThresh').value;
+  if(!sid) return;
+  window.location.href='/session_events/download?session='+sid+'&threshold='+thr;
 }
 
 function evColor(i,n,a){var h=(i/Math.max(n,1))*300+180;return 'hsla('+h+',70%,60%,'+a+')';}

@@ -289,6 +289,32 @@ class DashboardHandler(BaseHTTPRequestHandler):
             import traceback
             self._json({'error': str(e), 'trace': traceback.format_exc()}, 500)
 
+    def _handle_session_events_download(self, path=None):
+        """Return cluster JSON as downloadable file."""
+        from urllib.parse import urlparse, parse_qs
+        buell_dir = self.server_instance.buell_dir
+        qs        = parse_qs(urlparse(self.path).query)
+        sid       = (qs.get('session', [''])[0]).strip().upper()
+        threshold = float((qs.get('threshold', ['0.85'])[0]))
+        if not sid:
+            self._json({'error': 'missing session param'}, 400); return
+        sdir = buell_dir / 'sessions' / sid
+        if not sdir.is_dir():
+            self._json({'error': f'session {sid} not found'}, 404); return
+        try:
+            data  = _f7_load_session_clusters(buell_dir, sid, threshold)
+            body  = json.dumps(data, indent=2).encode('utf-8')
+            fname = f'session_events_{sid}_{threshold}.json'
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Disposition', f'attachment; filename={fname}')
+            self.send_header('Content-Length', str(len(body)))
+            self.send_header('Cache-Control', 'no-store')
+            self.end_headers()
+            self.wfile.write(body)
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+
     def _handle_sessions_launch(self, path=None):
         """Serve the Launch Analysis page."""
         try:

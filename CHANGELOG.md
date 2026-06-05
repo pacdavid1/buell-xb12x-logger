@@ -25,6 +25,21 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.87] — 2026-06-04
+
+### Added
+- web/server.py + session_events.html: pre-break time series in Session Events chart
+  — _f7_detect_events now stores pre_pw/rpm/vss/tps_curve (10-point resample of the
+  3s stable window before the break); _f7_temporal_stats computes pre_*_avg across
+  cluster members; chart left zone (BUCKET A) now shows actual time series curves
+  instead of flat reference lines, matching Launch Analysis visual style
+- session_events.html: full layout rewrite — horizontal chip strip replaces vertical
+  sidebar, chart fills full width, two cond-boxes at bottom (BUCKET A initial
+  conditions + BUCKET B event outcomes)
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.86] — 2026-06-04
 
 ### Fixed
