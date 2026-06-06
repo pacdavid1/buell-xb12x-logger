@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.94] — 2026-06-06
+
+### Docs
+- BACKLOG.md: removed completed items — 7.4.1/_f7_match_cross_session,
+  7.4.2/_compare_sessions integration, 7.4.3 event struct improvements,
+  7.2 GPS slope, UPS-Lite battery gradient (all documented in v2.6.92/v2.6.93)
+- Remaining 7.4 pending: 7.4.4 env_warning in matches, 7.4.5 cross-session cache
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.93] — 2026-06-06
 
 ### Fixed
