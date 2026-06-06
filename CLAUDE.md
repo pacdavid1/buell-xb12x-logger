@@ -193,19 +193,30 @@ It also validates code we write and acts as a supervisor.
 3. At any natural pause (waiting for user input) — quick check, don't block.
 4. When user asks 'what's next?' — include freebuff pending task count.
 
-**How to consume a response:**
-1. Read the file with the Read tool
-2. Evaluate: what's useful, what changes the plan, what needs a follow-up task
-3. DELETE the file (rm command) — deletion = consumed signal to freebuff
-4. If finding changes the plan: add new TASK to TASKS.md BEFORE next freebuff run
-5. Tell user what freebuff said in 2-3 lines
+**How to consume a response — DO NOT DELETE until all steps are done:**
 
-**MANDATORY: if freebuff gives code or fixes we can't apply right now:**
--> Add the item to BACKLOG.md immediately (don't just note it mentally)
--> Include: what file, what change, why it matters, source = freebuff task NNN
--> Label it with the task number so we can trace it back
--> The code freebuff provides may not match actual file contents — always verify
-   before applying; add to backlog with a 'VERIFY CODE BEFORE APPLY' note if unsure
+Step 1 — READ: Read the full file with the Read tool.
+
+Step 2 — PROCESS every finding (do ALL of these before deleting):
+  a) Things we can apply NOW -> apply them, add to CHANGELOG, commit
+  b) Things we CAN'T apply now -> add to BACKLOG.md with:
+       - file/function to change, what to change, why it matters
+       - source tag: (freebuff task NNN)
+       - 'VERIFY CODE BEFORE APPLY' if freebuff's snippet may not match real code
+  c) Follow-up questions freebuff raised -> add new TASK to TASKS.md
+  d) Code freebuff wrote (new files) -> copy to Pi, validate import, commit
+
+Step 3 — VERIFY: Before deleting, ask yourself:
+  'Is there ANY finding in this file not yet in code, backlog, or new task?'
+  If yes -> process it first.
+
+Step 4 — DELETE: Only now delete the file.
+  rm command — deletion signals freebuff the response was consumed.
+
+Step 5 — REPORT: Tell user in 2-3 lines what freebuff said and what was done with it.
+
+**Why this order matters:** Deleting before processing loses the work permanently.
+Freebuff's research takes time. Every finding must land somewhere: code, backlog, or task.
 
 **When to ADD a task to freebuff (do this proactively, not when asked):**
 - After EVERY git commit with new code -> add validation task immediately

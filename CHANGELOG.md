@@ -25,6 +25,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.14] — 2026-06-06
+
+### Docs
+- CLAUDE.md: rewrote freebuff consume protocol — DO NOT DELETE response file
+  until ALL findings are processed (applied, backlogged, or tasked).
+  5-step protocol with explicit VERIFY step before deletion.
+
 ## [v2.7.13] — 2026-06-06
 
 ### Docs
