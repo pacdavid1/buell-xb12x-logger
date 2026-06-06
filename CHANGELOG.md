@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.97] — 2026-06-06
+
+### Changed
+- web/templates: added DEV NOTE English-only header to sessions_vs, sessions_launch,
+  session_events, tuner, errorlog_viz — incremental AI agent coding standard rollout
+- BACKLOG.md: added AI Agent Header Note rule (incremental, touch-triggered)
+- BACKLOG.md: added 7.7 events-compete-directly comparison and 7.8 launch→f7 migration
+
 ## [v2.6.96] — 2026-06-06
 
 ### Changed

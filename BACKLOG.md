@@ -71,6 +71,14 @@
 
 ## CODE STANDARDS
 
+### AI Agent Header Note (incremental cleanup)
+When modifying any source file, if the file header does not already contain a DEV NOTE,
+add one immediately after the first line:
+- Python: 
+- JS: 
+- HTML: see the 5-line HTML comment block used in web/templates/*.html as reference
+This is incremental — only add to files you touch, never as a bulk pass on untouched files.
+
 ### Workflow
 - **Backlog → Changelog**: When a task is completed, remove it from BACKLOG.md
   and add an entry to CHANGELOG.md with the version number. Do NOT leave
@@ -300,6 +308,22 @@ Cross session (mapas diferentes):
 - [ ] Confidence band visualization (shaded area on chart — partially implemented)
 - [ ] ΔPW(t) and ΔVSS(t) cross-session comparison chart (needs 7.4)
 - [ ] Warning badges: CLT range, GPS slope, PW imbalance (partial — imbalance badge done)
+
+
+#### 7.7 — Events-compete-directly comparison (all sessions)
+- [ ] Batch-generate session_f7clusters JSON for all sessions that have ride CSVs
+- [ ] Compare events directly (not sessions) — any two accel events with matching
+  Bucket_A (gear, RPM_bin, TPS_bin, KPH_bin) and Pearson(TPS_curve) > 0.85 compete
+  regardless of which session they came from
+- [ ] Score: Δkph winner per event pair → rank sessions by win rate
+- [ ] Filter: require >= 5 matched events per session before including in ranking
+- [ ] Output: ranked list of sessions/eeproms by acceleration win rate
+
+#### 7.8 — Migrate Launch Analysis to use f7 events JSON
+- [ ] Launch currently runs detect_launches() independently — migrate to consume
+  session_f7clusters JSON as its event source (accel events only)
+- [ ] Removes duplicate detection logic; f7 events are richer (Bucket_A struct, env context)
+- [ ] detect_launches() stays alive in parallel until migration is complete and validated
 
 ### Notas de diseño
 - Pendiente y aero = advertencias, NUNCA filtros de agrupación (demasiado restrictivo)
