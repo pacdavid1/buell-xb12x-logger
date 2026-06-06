@@ -295,39 +295,9 @@ Cross session (mapas diferentes):
   Confianza variable por slice temporal t según n_eventos(t) cubriendo ese punto
 ```
 
-### 7.2 — Event descriptor
-- [ ] GPS slope in event context (gps_slope_pct from gps_alt_m + VSS×dt approximation)
-
-### 7.4 — Cross-session matching [CRÍTICO]
-
-#### 7.4.1 — `_f7_match_cross_session()` — NEW FUNCTION (not yet implemented)
-- [ ] Implement function: for each cluster pair (A, B) check Bucket A compatibility
-      (gear exact, RPM±300, TPS±5%, VSS±15kph), then TPS curve DTW >= threshold
-- [ ] Use TPS DTW (not PW DTW) — asymmetry: within-session=PW, cross-session=TPS
-      Reason: PW is what we compare; TPS is the common rider input across maps
-- [ ] TPS curves must be normalized [0,1] before DTW (compare shape, not amplitude)
-- [ ] For each match compute: delta_pw[t], delta_vss[t], conf_match[t]=min(conf_A,conf_B)
-- [ ] Efficiency metric: sum(delta_vss) / sum(pw_avg_A) — ΔVSS per ms of baseline fuel
-- [ ] Balance shift: mean(pw_diff_avg_B) - mean(pw_diff_avg_A)
-- [ ] Sort matches by confidence-weighted score: min(conf_match)*tps_dtw*min(n_a,n_b)
-      (not just by efficiency_delta — high-confidence low-N matches are more useful)
-
-#### 7.4.2 — Integrate FASE7 into `_compare_sessions()` return
-- [ ] After existing launch/cell system, call _f7_load_session_clusters for both sessions
-- [ ] Call _f7_match_cross_session, add f7_matches to result dict
-- [ ] Wrap in try/except — FASE7 failure must not break existing comparison
-- [ ] Add same_map detection: compare eeprom.bin bytes, set result['same_map']
-      UI must show "⚠ Same map — ΔPW should be ~0" banner when True
-
-#### 7.4.3 — Event struct improvements (all together → bump _F7_EVENTS_V=4)
-- [ ] Add gps_alt_m, humidity_pct, temp_amb to _load_csv_rows in _f7_load_session_clusters
-- [ ] Pass baro_hpa, temp_amb_c, humidity_pct, gps_slope to event dict in _f7_detect_events
-      gps_slope = diff(gps_alt_m) / (vss * dt) * 100 approximation
-- [ ] Save tps_curve_norm [0,1] in event (alongside raw tps_curve for visualization)
-      Edge case: max(tps)==0 → return [0]*N instead of dividing
-- [ ] Include 3 Phase A tail samples in tps_curve build before Phase B
-      Captures gesture START (rider input before break detected) — most distinctive part
-- [ ] All struct changes in one commit + _F7_EVENTS_V=4 + clear all f7 caches
+### 7.4 — Cross-session matching
+<!-- 7.4.1 _f7_match_cross_session(), 7.4.2 _compare_sessions integration,
+     7.4.3 event struct improvements — all implemented in v2.6.92 -->
 
 #### 7.4.4 — Environmental context in matches
 - [ ] Per match: add context_a/context_b with baro/temp_amb/humidity/clt averages
@@ -430,11 +400,6 @@ aparece en VE para revisar y quemar. Sin WB — el tuning es relativo entre sesi
 
 
 # Backlog: UPS-Lite v1.3 — Power Management Features
-
-## 1. Gradiente de color bateria (BAT% y BATV) — HECHO (2026-06-02)
-El indicador BAT% en el dashboard ya cambia de color rojo->verde segun SOC.
-Usa interpolacion HSL: hue 0 (rojo, 0%) a 120 (verde, 100%).
-BATV tambien: 3.0V (rojo) a 4.2V (verde).
 
 ## 2. Limitar carga al 80%% para cuidar vida util de la bateria
 
