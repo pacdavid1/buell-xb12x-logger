@@ -71,6 +71,16 @@ before the return. It's in the backlog.
 | `web/launch.py` | 🔲 Next — `detect_launches`, `cluster_launches`, `match_clusters`, `_compare_sessions` |
 | `web/sessions_vs_engine.py` | 🔲 After launch — `_maps_differ`, `_merge_maps`, `_compare_sessions_cached` |
 
+## Commit workflow (mandatory order)
+
+1. Update CHANGELOG.md with the new version entry
+2.  ALL changed files INCLUDING CHANGELOG.md in the same command
+3.  — code + changelog go in the same commit, never separate
+4. Never commit code without a CHANGELOG entry in the same commit
+
+> Why: if you update the changelog after the commit, the previous commit has no
+> record of what changed. Future sessions see the old entry and get confused.
+
 ## Coding standards (mandatory)
 
 - **English only** — all code, comments, variable names, docstrings, frontend labels

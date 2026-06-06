@@ -537,7 +537,7 @@ def _compare_sessions(buell_dir, sa, sb):
         })
     delta.sort(key=lambda x: (x['flavor'], -(x['na']+x['nb'])))
 
-    return {
+    result = {
         'sa': {'id': sa, 'checksum': ma.get('checksum','?'), 'version': ma.get('version_string','?'),
                'created': ma.get('created_utc','')[:10], 'rides': ma.get('total_rides',0),
                'samples': len(ra), 'flavors': fca,
@@ -571,8 +571,7 @@ def _compare_sessions(buell_dir, sa, sb):
         result['f7_matches']   = _f7m
         result['f7_n_matches'] = len(_f7m)
     except Exception as _e:
-        import logging as _lg
-        _lg.warning(f'FASE7 cross-session: {_e}')
+        logging.warning(f'FASE7 cross-session: {_e}')
         result['f7_matches']   = []
         result['f7_n_matches'] = 0
         result['f7_error']     = str(_e)

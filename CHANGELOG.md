@@ -25,6 +25,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.00] — 2026-06-06
+
+### Fixed
+- web/launch.py: dead code after  in  — same-map detection
+  and FASE7 cross-session matching block were unreachable. Converted  to
+  , moved both blocks before the final .
+  Sessions VS and Sessions Launch now include  and  in response.
+
+### Docs
+- CLAUDE.md: added commit workflow rule — CHANGELOG must be updated before /,
+  not after. All changed files (including CHANGELOG.md) go in the same commit.
+
 ## [v2.6.99] — 2026-06-06
 
 ### Refactor
