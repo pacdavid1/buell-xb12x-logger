@@ -105,7 +105,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/gps_track': self._handle_gps_track,
             '/ride_note': self._handle_ride_note,
             '/session_events': self._handle_session_events,
-            '/session_events/data': self._handle_session_events_data,
+            '/session_events/data':     self._handle_session_events_data,
+            '/session_events/download': self._handle_session_events_download,
             '/sessions_launch': self._handle_sessions_launch,
             '/sessions_launch/data': self._handle_sessions_launch_data,
         }
@@ -2764,4 +2765,6 @@ def _compare_sessions(buell_dir, sa, sb):
         result['f7_matches']   = []
         result['f7_n_matches'] = 0
         result['f7_error']     = str(_e)
+
+    return result
     
