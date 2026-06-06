@@ -23,14 +23,10 @@ SWEET_FLAVORS = {'SWEET', 'SPICY_WOT'}
 
 
 def _find_cell(value, axis):
-    """Return the index of the last axis edge that is <= value (EEPROM bin lookup)."""
-    idx = 0
-    for i, edge in enumerate(axis):
-        if value >= edge:
-            idx = i
-        else:
-            break
-    return idx
+    """Return EEPROM bin index. bin[i] covers axis[i] <= value < axis[i+1]."""
+    import bisect
+    idx = bisect.bisect_right(axis, value) - 1
+    return max(0, min(idx, len(axis) - 1))
 
 
 def _vs_bin_center(lo, step=None, axis_values=None):
@@ -103,28 +99,31 @@ def generate_fuel_proposal(buell_dir, session_a, session_b, config=None):
         ri = _find_cell(tps_center, fuel_load)
         ci = _find_cell(rpm_center, fuel_rpm)
 
-        pw_a = row.get('pw_eff_a', 0)
-        if pw_a <= 0:
+        # Front (pw1) and rear (pw2) deltas computed independently
+        pw1_a = row.get('pw1_a', 0)
+        pw2_a = row.get('pw2_a', row.get('pw1_a', 0))
+        if pw1_a <= 0 and pw2_a <= 0:
             continue
 
-        # dpw_eff = pw_B - pw_A  (negative = B uses less = B more efficient)
-        # delta_pct: how much to change A's map to match B's efficiency
-        dpw = row['dpw_eff']
-        delta_pct = dpw / pw_a   # negative = reduce A's fuel (good if B is better)
-        delta_pct = max(-max_delta, min(max_delta, delta_pct))
+        dpw1 = row.get('dpw1', row.get('dpw_eff', 0))
+        dpw2 = row.get('dpw2', dpw1)
 
-        if abs(delta_pct) < MIN_DELTA_PCT:
+        def _clamp(v):
+            return max(-max_delta, min(max_delta, v))
+
+        dpct_ff = _clamp(dpw1 / pw1_a) if pw1_a > 0 else 0.0
+        dpct_fr = _clamp(dpw2 / pw2_a) if pw2_a > 0 else 0.0
+
+        if abs(dpct_ff) < MIN_DELTA_PCT and abs(dpct_fr) < MIN_DELTA_PCT:
             skipped_noise += 1
             continue
 
-        # Confidence: based on sample count (saturates at 200 samples)
         n_total = row['na'] + row['nb']
         conf = min(1.0, n_total / 200.0)
 
-        # Keep highest-confidence signal per cell (multiple VS bins may map to same cell)
         if conf > confidence[ri][ci]:
-            delta_ff[ri][ci]   = delta_pct
-            delta_fr[ri][ci]   = delta_pct  # both cylinders get same VS signal
+            delta_ff[ri][ci]   = dpct_ff
+            delta_fr[ri][ci]   = dpct_fr
             confidence[ri][ci] = conf
             source[ri][ci]     = f'vs_{flavor.lower()}'
 

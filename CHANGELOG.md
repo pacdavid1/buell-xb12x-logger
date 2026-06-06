@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.10] — 2026-06-06
+
+### Fixed
+- web/proposal.py: _find_cell() rewritten with bisect.bisect_right for clarity
+- web/proposal.py: front/rear fuel deltas now computed independently
+  using pw1/dpw1 for fuel_front and pw2/dpw2 for fuel_rear.
+  Session 248AE2 vs 47BF04: rear cylinder shows distinct deltas
+  (e.g. rear -3.6% vs front -0.8% at 5000rpm/WOT — expected for V-twin).
+  +15% clamp at low TPS confirmed as real map difference, not baro artifact
+  (248AE2 has no baro sensor data; delta is only ~0.5% from baro).
+
 ## [v2.7.09] — 2026-06-06
 
 ### Docs
