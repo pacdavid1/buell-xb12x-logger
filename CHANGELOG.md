@@ -25,6 +25,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.11] — 2026-06-06
+
+### Added
+- web/smoothing.py: IDW interpolation + Laplacian smoother for FASE 6 delta maps.
+  Written by freebuff (task 011). numpy only, no scipy required. <2ms on 12x13 grid.
+
+### Docs
+- CLAUDE.md: added rule — freebuff findings we can't apply now go to BACKLOG.md
+  immediately, with file/change/source reference. Verify code before applying.
+- BACKLOG.md: added pw1_norm fix (freebuff tasks 007/008/012) — keep pw1/pw2 raw,
+  add pw1_norm/pw2_norm, update Sessions VS to read normalized values.
+
 ## [v2.7.10] — 2026-06-06
 
 ### Fixed

@@ -200,6 +200,13 @@ It also validates code we write and acts as a supervisor.
 4. If finding changes the plan: add new TASK to TASKS.md BEFORE next freebuff run
 5. Tell user what freebuff said in 2-3 lines
 
+**MANDATORY: if freebuff gives code or fixes we can't apply right now:**
+-> Add the item to BACKLOG.md immediately (don't just note it mentally)
+-> Include: what file, what change, why it matters, source = freebuff task NNN
+-> Label it with the task number so we can trace it back
+-> The code freebuff provides may not match actual file contents — always verify
+   before applying; add to backlog with a 'VERIFY CODE BEFORE APPLY' note if unsure
+
 **When to ADD a task to freebuff (do this proactively, not when asked):**
 - After EVERY git commit with new code -> add validation task immediately
 - Any algorithm decision you're unsure about -> research task

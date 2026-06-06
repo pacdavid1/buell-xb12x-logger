@@ -112,6 +112,37 @@
 
 
 
+## BUG — pw1/pw2 in load_csv() should be raw + add pw1_norm/pw2_norm
+(Source: freebuff tasks 007, 008, 012)
+
+**Priority: HIGH — current code modifies pw1/pw2 in-place, breaking detect_launches()**
+
+### Problem
+Current load_csv() in web/launch.py normalizes pw1/pw2 in-place:
+  pw1 = sf(r['pw1']) * _baro_factor   <- raw value lost
+detect_launches() reads pw1 expecting raw physical PW (milliseconds).
+If thresholds are absolute (e.g. peak_pw > 15ms), baro normalization shifts them ~2-3%.
+
+### Fix (freebuff task 012 — VERIFY CODE BEFORE APPLYING, snippets may not match actual code)
+In load_csv() baro block:
+  1. Change guard: _baro_valid = 900 < _baro < 1100  (not just > 0)
+  2. Keep pw1/pw2 raw: 'pw1': sf(r['pw1']),  'pw2': sf(r.get('pw2', 0))
+  3. Add normalized: 'pw1_norm': sf(r['pw1']) * _baro_factor,
+                     'pw2_norm': sf(r.get('pw2', 0)) * _baro_factor
+  4. Add: 'baro_valid': _baro_valid
+
+Also update Sessions VS cell accumulation (web/launch.py build_index()):
+  Change c['pw1'] += r['pw1']  ->  c['pw1'] += r['pw1_norm']
+  Change c['pw2'] += r['pw2']  ->  c['pw2'] += r['pw2_norm']
+  (and same for pw_eff computation)
+
+Also bump CACHE_VERSION from 6 to 7 in web/vs_engine.py.
+
+- [ ] Apply pw1_norm fix to load_csv() in web/launch.py
+- [ ] Update build_index() to use pw1_norm/pw2_norm for cell accumulation
+- [ ] Bump CACHE_VERSION to 7
+- [ ] Verify detect_launches() peak_pw thresholds — are they absolute or relative?
+
 ## BUG — Barometric normalization missing in Sessions VS
 
 **Priority: CRITICAL — contaminates all cross-session PW comparisons**
