@@ -25,6 +25,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.98] — 2026-06-06
+
+### Refactor
+- web/f7.py: extracted FASE7 block from server.py (~669 lines)
+  server.py: 2770 → 2109 lines. Validated: /session_events/data returns 66 clusters.
+
 ## [v2.6.97] — 2026-06-06
 
 ### Changed
