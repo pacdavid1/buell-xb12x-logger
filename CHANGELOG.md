@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.02] — 2026-06-06
+
+### Changed
+- Nav menu: normalized names and ordered by pipeline step on all pages
+  Order: Session Events → Sessions VS → Launch → Tuner → Errors
+  Renamed: 'Tuner Studio' → 'Tuner', 'Errores' → 'Errors' (English),
+           'VS'/'Events' → 'Sessions VS'/'Session Events' (full names)
+
 ## [v2.7.01] — 2026-06-06
 
 ### Refactor
