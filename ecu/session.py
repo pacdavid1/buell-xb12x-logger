@@ -65,7 +65,8 @@ class SessionManager:
                 "created_utc": datetime.now(timezone.utc).isoformat(),
                 "total_rides": 0, "total_samples": 0,
                 "total_runtime_seconds": 0,
-                "rpm_min_seen": 99999, "rpm_max_seen": 0
+                "rpm_min_seen": 99999, "rpm_max_seen": 0,
+                "rider_notes": []
             }
             self.logger.info(f"Nueva sesión: {cs} firmware={version_str}")
         return sdir, meta

@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.18] — 2026-06-06
+
+### Added
+- ecu/session.py: rider_notes field in session_metadata (freebuff task 018)
+  New sessions initialize with rider_notes: []
+  Format: {ride: N, note: normal|knock_heard|hesitation|unknown, ts: ISO}
+  Existing sessions: backward compatible via .get('rider_notes', [])
+
 ## [v2.7.17] — 2026-06-06
 
 ### Fixed
