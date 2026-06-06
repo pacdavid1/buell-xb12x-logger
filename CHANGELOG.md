@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.01] — 2026-06-06
+
+### Refactor
+- web/vs_engine.py: extracted Sessions VS engine from server.py (~194 lines)
+  _maps_differ, _merge_maps, _fmtk, CACHE_VERSION, _cache_lock,
+  _eeprom_to_msq, _compare_sessions_cached
+  server.py: 1545 -> ~1355 lines
+
 ## [v2.7.00] — 2026-06-06
 
 ### Fixed
