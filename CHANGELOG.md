@@ -25,6 +25,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.09] — 2026-06-06
+
+### Docs
+- BACKLOG.md: consumed freebuff tasks 007-009. Key findings:
+  F7 pipeline needs baro normalization (explains 97% orphan rate),
+  pw1/pw2 should stay raw + add pw1_norm/pw2_norm for Sessions VS,
+  smoothing.py ready to implement (numpy IDW + Laplacian, 50 lines).
+- freebuff TASKS.md: added task 011 (write smoothing.py code) and
+  task 012 (add pw1_norm to load_csv). First code tasks for freebuff.
+
 ## [v2.7.08] — 2026-06-06
 
 ### Added
