@@ -25,6 +25,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.96] — 2026-06-06
+
+### Changed
+- web/templates: replaced flat hdr-nav links with hamburger dropdown (☰) on all
+  pages (sessions_vs, sessions_launch, session_events, tuner, errorlog_viz) — 
+  navigation is now identical across every page (UX backlog item)
+
 ## [v2.6.95] — 2026-06-06
 
 ### Fixed

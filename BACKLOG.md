@@ -52,12 +52,6 @@
 
 
 
-## UX — Hamburger Menu Consistency
-- [ ] Replicate the hamburger/nav menu across all pages (Dashboard, Sessions VS,
-  Launch Analysis, Session Events, VE/Tuner) so navigation is identical on every tab.
-  Currently the menu exists on some pages but not others — all pages should have
-  the same links and layout.
-
 ## UX — Grid Simplification (Cobertura)
 - [ ] Simplificar grid: eliminar modos EGO, O2 ADC, Confianza (no útiles con narrowband bloqueado a 100%)
 - [ ] Mantener solo: Segundos (cantidad de data) + SWEET + TIPIN + TIPOUT + WOT (calidad por condición)

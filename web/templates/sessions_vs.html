@@ -8,7 +8,14 @@
 body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;min-height:100dvh;display:flex;flex-direction:column}
 .hd{background:var(--p);border-bottom:2px solid var(--ac);padding:8px 12px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
 .hd h1{font-size:16px;font-weight:900;color:#fff;font-family:var(--mn)}
-.hd-links{display:flex;gap:6px}
+.nav-menu{position:relative;flex-shrink:0}
+.nav-menu-btn{font-size:18px;color:var(--dm);cursor:pointer;padding:4px 10px;border:1px solid var(--bd);border-radius:2px;background:none;font-family:var(--mn);letter-spacing:0}
+.nav-menu-btn:hover{color:var(--bl);border-color:var(--bl)}
+.nav-menu-drop{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--p);border:1px solid var(--bd);border-radius:3px;padding:4px;min-width:180px;z-index:999}
+.nav-menu-drop.open{display:block}
+.nav-menu-drop a{display:block;font-family:var(--mn);font-size:12px;color:var(--dm);text-decoration:none;padding:10px 14px;border-radius:2px}
+.nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-menu-drop a.active{color:var(--ac);background:rgba(255,255,255,.06)}
 .hd a{font-family:var(--mn);font-size:9px;color:var(--dm);text-decoration:none;border:1px solid var(--bd);padding:3px 6px;border-radius:2px}
 .hd a:hover{color:var(--bl);border-color:var(--bl)}
 .w{flex:1;padding:6px;display:flex;flex-direction:column;gap:6px;overflow:hidden;min-height:0}
@@ -53,12 +60,17 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
 </style></head><body>
 <div class="hd">
   <h1>BUELL LOGGER</h1>
-  <div class="hd-links">
-    <a href="/" target="_blank">Dashboard</a>
-    <a href="/sessions_vs" target="_blank" style="color:var(--ac);border-color:var(--ac)">Sessions VS</a>
-    <a href="/session_events" target="_blank">Events</a>
-    <a href="/tuner" target="_blank">Tuner Studio</a>
+<div class="nav-menu" id="navMenu">
+  <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
+  <div class="nav-menu-drop" id="navDrop">
+    <a href="/">Dashboard</a>
+    <a href="/sessions_vs" class="active">VS</a>
+    <a href="/sessions_launch">Launch</a>
+    <a href="/session_events">Events</a>
+    <a href="/tuner">Tuner</a>
+    <a href="/errorlog/viz">Errores</a>
   </div>
+</div>
 </div>
 <div class="w">
   <div class="sel">
@@ -824,4 +836,5 @@ function drawLaunchChart(canvas, series) {
   </div>
 </div>
 
+<script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>
 </body></html>
