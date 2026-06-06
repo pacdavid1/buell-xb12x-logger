@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.21] — 2026-06-06
+
+### Research
+- F7 orphan rate post-baro-fix: 97%% -> 96.4%% (no significant change).
+  Confirmed: baro fix helps cross-session matching, not within-session clustering.
+  Orphan rate is a within-session DTW threshold issue, not baro-related.
+- freebuff task 023 queued: frontend typography + font size research.
+
 ## [v2.7.20] — 2026-06-06
 
 ### Docs
