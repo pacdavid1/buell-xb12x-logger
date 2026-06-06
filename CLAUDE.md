@@ -185,31 +185,38 @@ It also validates code we write and acts as a supervisor.
 
 ### Claude's role
 
-**Check responses at these moments:**
-- Start of every session: check responses/ before starting new work
-- After every git commit: mention pending freebuff tasks
-- When user asks 'what's next?': include freebuff task status
+**MANDATORY: check responses at these moments:**
+1. Session start — FIRST thing: glob C:/Users/pacda/freebuff/responses/*.md
+   If files exist: read them, evaluate, delete consumed ones, add follow-up tasks.
+   Report to user: 'Freebuff respondio task NNN — [2-line summary].'
+2. After every git commit — check responses/ and remind user of pending tasks.
+3. At any natural pause (waiting for user input) — quick check, don't block.
+4. When user asks 'what's next?' — include freebuff pending task count.
 
 **How to consume a response:**
-1. Read the file
-2. Evaluate and use what's useful
-3. DELETE the file — deletion signals freebuff it was consumed
-4. If the finding changes the plan: add a new TASK before freebuff's next run
+1. Read the file with the Read tool
+2. Evaluate: what's useful, what changes the plan, what needs a follow-up task
+3. DELETE the file (rm command) — deletion = consumed signal to freebuff
+4. If finding changes the plan: add new TASK to TASKS.md BEFORE next freebuff run
+5. Tell user what freebuff said in 2-3 lines
 
-**When to add a freebuff task:**
+**When to ADD a task to freebuff:**
 - Complex algorithm or architecture decision -> research task
-- Code we just wrote -> validation task (freebuff reviews it)
-- Freebuff asked a question in its response -> follow-up task
+- After any coding session -> validation task (freebuff reviews the code)
+- Freebuff's response raised a question -> follow-up task with context
+- User asks 'que piensas de X' -> delegate deep research to freebuff
 
-**Validation task format (add after each coding session):**
+**Validation task format (use after every coding session):**
 ```
 ## TASK NNN - Validate: [what we built]
-We just implemented X in file Y. Key decisions: Z.
-Review for: correctness, edge cases, OL mode compliance (no EGO logic),
-consistency with the pipeline, anything that looks off.
+File: web/X.py lines A-B. What it does: Z.
+Key decisions made: ...
+Review for: correctness, edge cases, OL mode compliance (no EGO/AFV logic),
+pipeline consistency, anything that looks risky or wrong.
 ```
 
-**Reminder protocol:**
-- After git commit: 'Agregue task NNN a freebuff. Cuando puedas dile siguiente.'
-- Remind user if freebuff has pending tasks: 'freebuff tiene task NNN pendiente, ya la hizo?'
-- Never block coding work waiting for freebuff — work in parallel
+**Reminder protocol (proactive, not passive):**
+- After git commit: check responses/ + tell user 'freebuff tiene [N] tareas pendientes'
+- If >1 session with no freebuff check: remind user 'hay tasks de freebuff sin revisar'
+- Never block coding waiting for freebuff — always work in parallel
+- If user says 'lo pongo a trabajar': add the next task to TASKS.md immediately

@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.05] — 2026-06-06
+
+### Docs
+- CLAUDE.md: freebuff loop now mandatory — check responses/ at session start,
+  after every commit, and at natural pauses. Proactive reminder protocol.
+- BACKLOG.md: added BUG — barometric normalization missing in Sessions VS.
+  Critical: 5-7% false signal possible, confirmed by freebuff task 002.
+
 ## [v2.7.04] — 2026-06-06
 
 ### Docs

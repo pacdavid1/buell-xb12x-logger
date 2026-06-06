@@ -44,6 +44,36 @@
 
 
 
+## BUG — Barometric normalization missing in Sessions VS
+
+**Priority: CRITICAL — contaminates all cross-session PW comparisons**
+
+### Problem
+dpw_eff = mean_pw_B - mean_pw_A is computed WITHOUT baro correction.
+A Δbaro of 10 hPa between sessions creates ~1% false PW signal.
+Combined baro+temp can produce 5-7% false signal — our real deltas are 5-15%.
+This can mask or INVERT real map quality signals.
+
+### Fix
+In `web/launch.py` -> `_compare_sessions` -> `load_csv()`:
+```python
+# After loading each row, normalize PW to reference baro
+REF_BARO = 1013.25  # standard atmosphere hPa
+if row['baro'] > 0:
+    baro_factor = REF_BARO / row['baro']
+    row['pw1'] = row['pw1'] * baro_factor
+    row['pw2'] = row['pw2'] * baro_factor
+```
+- [ ] Apply normalization in load_csv() at row level
+- [ ] Add `baro_norm_ref` field to comparison result so UI can show it
+- [ ] Invalidate sessions_vs cache (bump CACHE_VERSION to 6)
+- [ ] Handle rows where baro=0: skip normalization, flag cell as 'no baro'
+- [ ] Add environmental similarity score per comparison (Δbaro, Δtemp, Δalt)
+
+### Confirmed by
+Freebuff task 002 analysis: 0.1% false signal per 1 hPa. Validated against
+DDFI2 speed-density behavior. This is the #1 confounder for dpw_eff.
+
 ## SISTEMA ACTUAL — OL sin WB (contexto crítico)
 
 **El sistema opera en Open Loop (OL) sin sensor wideband.**
