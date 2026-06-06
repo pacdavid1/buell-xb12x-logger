@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.12] — 2026-06-06
+
+### Docs
+- BACKLOG.md: added cleanup items from freebuff task 013 (_clamp outside loop,
+  per-cylinder confidence, side-by-side map display).
+- freebuff TASKS.md: added task 014 (smoothing integration) and
+  task 015 (apply delta to EEPROM + PROP_* session output).
+
 ## [v2.7.11] — 2026-06-06
 
 ### Added

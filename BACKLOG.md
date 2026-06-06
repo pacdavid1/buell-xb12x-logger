@@ -107,6 +107,14 @@
 
 
 
+## CLEANUP — proposal.py cosmetic fixes (freebuff task 013)
+- [ ] Move `_clamp` helper outside the VS row loop in generate_fuel_proposal()
+      (currently defined inside loop — cosmetic, Python dogma, no perf impact)
+- [ ] Track confidence separately for front and rear cylinders
+      (currently shared confidence for both — fine for v1, needed for v2)
+- [ ] Add side-by-side fuel_front / fuel_rear display in dashboard
+      when proposal is viewed
+
 ## CLEANUP — Dead Code
 
 
