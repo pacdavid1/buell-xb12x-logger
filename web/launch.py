@@ -8,6 +8,8 @@ from pathlib import Path
 
 from web.f7 import _f7_load_session_clusters, _f7_match_cross_session
 
+REF_BARO = 1013.25  # reference barometric pressure hPa (standard atmosphere)
+
 
 def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=8.0, min_rpm=1500):
     """Detect WOT tip-in events from CSV rows.
@@ -336,13 +338,16 @@ def _compare_sessions(buell_dir, sa, sb):
                 try:
                     rpm = sf(r['RPM'])
                     if rpm < 100: continue
+                    _baro = sf(r.get('baro_hPa', 0))
+                    _baro_factor = (REF_BARO / _baro) if _baro > 0 else 1.0
                     rows.append({
                         't':    sf(r['time_elapsed_s']) + time_offset,
                         'rpm':  rpm,
                         'tps':  sf(r.get('TPS_pct') or r.get('TPD', 0)),
                         'clt':  sf(r['CLT']),
-                        'pw1':  sf(r['pw1']),
-                        'pw2':  sf(r.get('pw2', 0)),
+                        'pw1':  sf(r['pw1']) * _baro_factor,
+                        'pw2':  sf(r.get('pw2', 0)) * _baro_factor,
+                        'baro': _baro,
                         'spark1':sf(r['spark1']),
                         'spark2':sf(r.get('spark2', sf(r['spark1']))),
                         'afv':  sf(r.get('AFV', 100)),

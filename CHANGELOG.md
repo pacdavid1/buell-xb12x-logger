@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.06] — 2026-06-06
+
+### Fixed
+- web/launch.py: barometric normalization in load_csv() — pw1/pw2 now normalized
+  to REF_BARO=1013.25 hPa before computing dpw_eff. Removes ~0.1%/hPa false signal.
+  Rows with baro=0 (sensor unavailable) keep raw PW unchanged.
+- web/vs_engine.py: bumped CACHE_VERSION 5->6 to invalidate pre-normalization caches.
+
 ## [v2.7.05] — 2026-06-06
 
 ### Docs

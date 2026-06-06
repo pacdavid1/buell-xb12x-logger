@@ -103,7 +103,7 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
 def _fmtk(n):
     if n >= 1000: return f"{n/1000:.1f}k"
     return str(n)
-CACHE_VERSION = 5  # bump when detect_launches, cluster_launches, or f7_matches schema changes
+CACHE_VERSION = 6  # bumped: baro-normalized PW in load_csv (v2.7.06)
 _cache_lock = threading.Lock()
 
 def _eeprom_to_msq(eeprom, session=''):
