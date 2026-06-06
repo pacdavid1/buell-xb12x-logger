@@ -25,6 +25,21 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.91] — 2026-06-05
+
+### Added
+- DESIGN.md: project design system added to repo root — complete token set
+  (CSS variables --bg/--p/--bd/--ac/--a2/--bl/--gn/--dm/--tx/--rd/--mn),
+  typography scale (7/8/9/10/11/13/14px only), component rules for header,
+  controls bar, chip strip, badge, cond-box, canvas chart, metric toggles,
+  members table; anti-patterns and QA checklist per page. Based on mono
+  design skill (typeui.sh) extended with project-specific tokens.
+- ECC web-design rules: mono SKILL.md installed at ~/.claude/skills/mono.md
+  for automatic design consistency in future frontend work
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.90] — 2026-06-04
 
 ### Docs
