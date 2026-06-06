@@ -41,15 +41,7 @@
 
 ## CLEANUP — Dead Code
 
-### app.js — funciones definidas pero nunca llamadas
-- [ ] `handleMsqDrop` (line 583): manejador drag/drop de MSQ — nunca enlazado
-- [ ] `markerSet` (line 1224): helper para marker en maps — nunca usado
-- [ ] `extractTransitions` (line 1249): parsing de transiciones — nunca llamado
-- [ ] `detectGearChanges` (line 1262): detección de cambios de marcha — nunca llamado
-- [ ] `detectWOT` (line 1274): detección de WOT — nunca llamado
-- [ ] `detectDTC` (line 1284): detección de DTCs — nunca llamado
-- [ ] `doKeepalive` (line 1919): mantener sesión activa — nunca llamado
-- [ ] `toggleEcu` (line 1957): conectar/desconectar ECU — nunca llamado (nota: hay un botón "ECU" en el panel de red, verificar si debería estar enlazado)
+
 
 
 ## NOTAS / REGLAS
@@ -107,8 +99,7 @@
 ### 🔴 Priority High — Confirmed Bugs
 
 ### 🟡 Priority Medium — Fragile Patterns
-- [ ] **#5 — Silent except: pass** (`ecu/session.py`): Multiple `except Exception` blocks log warnings but don't repair corrupted data. Swallows structural validation errors.
-- [ ] **#8 — No type guard on quality_ratio** (`ecu/session.py:208`): `total_valid_s / total_s` — protected against div by zero but not against `None` values from data corruption.
+<!-- #5 silent except and #8 quality_ratio already resolved in current code -->
 
 ### 🟢 Priority Low — Improvements
 - [ ] **#10 — Floating point drift in long sessions** (`ecu/session.py`): Cumulative sums of `seconds` and `ego_sum` use `round()` but drift over very long rides (>1h).
@@ -304,9 +295,7 @@ Cross session (mapas diferentes):
 - [ ] env_warning list: flag Δbaro>5hPa, Δtemp>10°C, Δhumidity>20%
 - [ ] These are warnings only — never filters
 
-#### 7.4.5 — Cache for cross-session FASE7 matches
-- [ ] Cache _f7_match results as sessions/<sa>_<sb>_f7matches.json
-- [ ] Invalidate when either session's cluster cache is newer
+
 
 ### 7.5 — Live "READY FOR EVENT" notification
 - [ ] ECU loop: monitor gear + RPM_bucket + TPS_bucket; emit event_ready in live.json if stable ≥3s

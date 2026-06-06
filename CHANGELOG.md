@@ -25,6 +25,21 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.95] — 2026-06-06
+
+### Fixed
+- web/server.py: CACHE_VERSION bumped 4→5 — invalidates Sessions VS caches
+  predating FASE7 integration; f7_matches now included in cached result (7.4.5)
+
+### Removed
+- web/static/app.js: deleted 10 dead functions with no callers or HTML bindings:
+  handleMsqDrop, handleMsqFile, parseMsq (MSQ drag-drop, never wired),
+  markerSet (scatter helper), extractTransitions, detectGearChanges,
+  detectWOT, detectDTC, doKeepalive, toggleEcu + ecuPanelOpen variable
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.94] — 2026-06-06
 
 ### Docs
