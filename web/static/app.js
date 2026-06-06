@@ -991,31 +991,6 @@ async function saveObj() {
   } catch(e){ alert('JSON invalido: '+e); }
 }
 
-// ── MSQ ────────────────────────────────────────────────────────────
-function handleMsqDrop(e){ e.preventDefault(); handleMsqFile(e.dataTransfer.files[0]); }
-function handleMsqFile(file){
-  if(!file) return;
-  const r=new FileReader();
-  r.onload=e=>parseMsq(e.target.result,file.name);
-  r.readAsText(file);
-}
-function parseMsq(xml,fname){
-  try{
-    const doc=new DOMParser().parseFromString(xml,'text/xml');
-    let front=null,rear=null;
-    doc.querySelectorAll('*').forEach(el=>{
-      const n=el.getAttribute&&el.getAttribute('name');
-      if(n==='veBins1'&&!front) front=el.textContent.trim();
-      if(n==='veBins2'&&!rear)  rear =el.textContent.trim();
-    });
-    if(!front){alert('No se encontraron tablas VE');return;}
-    const parse=s=>{const nums=s.trim().split(/\s+/).map(Number);const rows=[];for(let i=0;i<nums.length;i+=13)rows.push(nums.slice(i,i+13));return rows;};
-    fetch('/ve',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({front:parse(front),rear:rear?parse(rear):parse(front),source:'msq',filename:fname})});
-    $id('msqDrop').textContent='Cargado: '+fname;
-    $id('msqDrop').className='msq-drop loaded';
-  }catch(err){alert('Error: '+err);}
-}
 
 // ── CLOSE RIDE ─────────────────────────────────────────────────────
 async function closeRide(){
@@ -1664,13 +1639,6 @@ const C = {
   wot:'#0f8', gear:'#a8f', hot:'#f80', cold:'#4af',
 };
 
-// Scatter marker dataset
-function markerSet(label, data, color, symbol='circle', r=4){
-  return { label, data, type:'scatter', pointStyle:symbol,
-           pointRadius:r, pointHoverRadius:r+2,
-           backgroundColor:color+'cc', borderColor:color,
-           borderWidth:1, showLine:false, order:-1 };
-}
 
 // ── CSV PARSING ──────────────────────────────────────────────────
 function parseCSVtoRows(text){
@@ -1689,51 +1657,6 @@ function parseCSVtoRows(text){
   return rows;
 }
 
-// ── EXTRACT BIT CHANGE EVENTS ────────────────────────────────────
-function extractTransitions(rows, field, targetVal=1){
-  const events=[]; let prev=null;
-  for(const r of rows){
-    const v = r[field];
-    if(prev!=null && prev!==targetVal && v===targetVal)
-      events.push({x: r.time_elapsed_s, y: null});
-    prev = v;
-  }
-  return events;
-}
-
-
-// Detect gear changes by RPM jumps with stable VSS
-function detectGearChanges(rows){
-  const events=[];
-  for(let i=2;i<rows.length;i++){
-    const r=rows[i], p=rows[i-2];
-    const drpm = Math.abs((r.RPM||0)-(p.RPM||0));
-    const vss  = r.VSS_Count||0;
-    if(drpm>400 && vss>10) events.push({x:r.time_elapsed_s, y:null});
-  }
-  return events;
-}
-
-// Detect WOT (TPS > 80%)
-function detectWOT(rows){
-  const ev=[]; let inWOT=false;
-  for(const r of rows){
-    if(!inWOT && (r.TPS_pct||0)>80){ ev.push({x:r.time_elapsed_s,y:null}); inWOT=true; }
-    if(inWOT  && (r.TPS_pct||0)<60){ inWOT=false; }
-  }
-  return ev;
-}
-
-// Detect new DTC (CDiag0-4 changes to nonzero)
-function detectDTC(rows){
-  const ev=[]; let prev=0;
-  for(const r of rows){
-    const sum=(r.CDiag0||0)+(r.CDiag1||0)+(r.CDiag2||0)+(r.CDiag3||0)+(r.CDiag4||0);
-    if(sum>0 && prev===0) ev.push({x:r.time_elapsed_s,y:null});
-    prev=sum;
-  }
-  return ev;
-}
 
 // ── BUILD CHARTS ────────────────────────────────────────────────────
 function buildCharts(rows){
@@ -2363,14 +2286,6 @@ async function loadGraphRide(directFile){
 }
 
 
-// ── KEEPALIVE ──────────────────────────────────────────────────────
-async function doKeepalive(){
-  try{
-    await fetch('/keepalive',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-    const btn=document.querySelector('.btn.g');
-    if(btn){const o=btn.textContent;btn.textContent='5 min activos';setTimeout(()=>btn.textContent=o,2500);}
-  }catch(e){ console.warn("doKeepalive:", e); }
-}
 
 
 // ── SHUTDOWN ────────────────────────────────────────────────────────
@@ -2401,12 +2316,6 @@ async function doShutdown(){
 }
 
 // ── ECU CONFIG (EEPROM) ───────────────────────────────────────────
-let ecuPanelOpen = true;
-function toggleEcu(){
-  ecuPanelOpen = !ecuPanelOpen;
-  $id('ecuPanel').style.display = ecuPanelOpen ? '' : 'none';
-  $id('ecuToggleIcon').innerHTML = ecuPanelOpen ? '&#9660;' : '&#9654;';
-}
 function ecuRow(label, val, units, color){
   const c = color || '#ccc';
   return `<div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;padding:3px 0;border-bottom:1px solid #1e1e1e"><span style="color:var(--dim)">${label}</span><span style="color:${c};font-weight:600">${val} <span style="color:var(--dim);font-weight:400">${units}</span></span></div>`;
