@@ -806,9 +806,34 @@ No necesita learning cycle manual.
   Reconnect when SOC < 70%% for hysteresis
 
 ## Prioridad: BAJA
+## Prioridad: ALTA — Battery tiered shutdown (startup-aware)
+- [ ] Tiered shutdown logic based on startup battery level:
+  - startup_pct >= 30%: shutdown if drops below 30% (normal)
+  - startup_pct 20-29%: shutdown if drops below 20% (grace tier 1)
+  - startup_pct 10-19%: shutdown if drops below 10% (grace tier 2)
+  - startup_pct < 10%:  safe shutdown immediately on boot
+  - Always: if is_charging == True, NEVER shutdown regardless of %
+  Implementation: read pct at startup, store as BOOT_PCT, use tiered threshold
+  File: likely main.py or the CW2015 monitor loop
+  Dashboard: show which tier is active (normal / grace-1 / grace-2 / critical)
 - [ ] Wake-on-GPIO: connect UPS-Lite power detect pad to Pi RUN pin
   Requires: solder pads on UPS-Lite, wire to Pi header
   Effect: Pi turns on when USB power connected
 - [ ] INA219 current sensor for precise power consumption monitoring
 
 ---
+
+---
+
+# Backlog: Knowledge Graph de Mapas (FASE 7)
+
+## Prioridad: ALTA
+- [ ] Build maps_knowledge.db — SQLite knowledge graph for tuning history
+  Schema: maps (checksum, fuel_front, fuel_rear), sessions (conditions: baro/temp/alt),
+          performance (sweet_pct, spicy_pct, bitter_pct, dpw_eff, orphan_rate),
+          map_vectors (312-float embedding = fuel_front[12x13] + fuel_rear[12x13])
+  Queries: best map for given conditions, cosine similarity between maps, convergence trend
+  Library: sqlite-vec (pip) for KNN search, numpy already available
+  File: web/knowledge.py (~200 lines)
+  Powers: FASE 6 condition-aware proposal (weight deltas by historical sweet_pct at same baro)
+  Prerequisite: freebuff task 028 research first (condition buckets, ranking weights)

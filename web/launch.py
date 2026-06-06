@@ -339,7 +339,8 @@ def _compare_sessions(buell_dir, sa, sb):
                     rpm = sf(r['RPM'])
                     if rpm < 100: continue
                     _baro = sf(r.get('baro_hPa', 0))
-                    _baro_factor = (REF_BARO / _baro) if _baro > 0 else 1.0
+                    _baro_valid = 900 < _baro < 1100
+                    _baro_factor = REF_BARO / _baro if _baro_valid else 1.0
                     rows.append({
                         't':    sf(r['time_elapsed_s']) + time_offset,
                         'rpm':  rpm,
@@ -348,6 +349,7 @@ def _compare_sessions(buell_dir, sa, sb):
                         'pw1':  sf(r['pw1']) * _baro_factor,
                         'pw2':  sf(r.get('pw2', 0)) * _baro_factor,
                         'baro': _baro,
+                        'baro_valid': _baro_valid,
                         'spark1':sf(r['spark1']),
                         'spark2':sf(r.get('spark2', sf(r['spark1']))),
                         'afv':  sf(r.get('AFV', 100)),

@@ -25,6 +25,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.24] — 2026-06-06
+
+### Fixed
+- web/launch.py: baro normalization range gate and diagnostic field (freebuff audit task 024)
+  Range gate:  →  (matches f7.py spec, rejects sensor faults)
+  Added  field to row dict for diagnostics downstream
+  Note: pw1 in-place normalization confirmed correct for DTW — detect_launches() uses TPS/RPM
+  thresholds, not absolute pw1, so raw pw1 is not needed separately here.
+
+### AI
+- Claude Sonnet 4.6, Anthropic (freebuff task 024 audit findings)
+
 ## [v2.7.23] — 2026-06-06
 
 ### Changed
