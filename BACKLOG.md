@@ -194,6 +194,40 @@ if row['baro'] > 0:
 Freebuff task 002 analysis: 0.1% false signal per 1 hPa. Validated against
 DDFI2 speed-density behavior. This is the #1 confounder for dpw_eff.
 
+## FASE 6 — PROP_* session output (freebuff task 015)
+
+**Goal:** Save proposal as a burnable session that appears in Tuner automatically.
+
+### Key findings
+- Tuner scans `sessions/*/session_metadata.json` — PROP_* needs this file too
+- `encode_eeprom_maps()` is in `ecu/eeprom.py` (also imported in server.py line 757)
+- Save BOTH eeprom_decoded.json (display) and eeprom.bin (burn)
+
+### Files to create in sessions/PROP_YYYYMMDD_HHMMSS/
+- `session_metadata.json` — minimal: checksum=PROP_*, version_string='proposal', total_rides=0
+- `eeprom_decoded.json` — proposed fuel maps + current spark maps unchanged
+- `eeprom.bin` — binary from encode_eeprom_maps()
+- `proposal_metadata.json` — source sessions, stats, smoothing params, safety stats
+- `current_eeprom_decoded.json` — copy of session_a's EEPROM for reference
+
+### Apply delta formula (integer EEPROM values 0-250)
+```python
+proposed = np.round(current * (1 + smoothed_delta)).astype(int)
+proposed = np.clip(proposed, 0, 250)
+max_change = np.round(current * 0.15).astype(int)
+change = np.clip(proposed - current, -max_change, max_change)
+proposed = current + change
+```
+
+### New endpoint needed
+POST /eeprom/propose?a=SA&b=SB&save=1
+  save=0 (default) = dry run, return JSON only
+  save=1 = save PROP_* session to disk, return path + JSON
+
+- [ ] Implement save_proposal() function in proposal.py
+- [ ] Add save=0/1 param to _handle_eeprom_propose in server.py
+- [ ] Include diff_map (proposed - current) in response for heatmap display
+
 ## SISTEMA ACTUAL — OL sin WB (contexto crítico)
 
 **El sistema opera en Open Loop (OL) sin sensor wideband.**

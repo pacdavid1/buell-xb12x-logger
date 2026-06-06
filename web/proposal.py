@@ -12,6 +12,8 @@ import json
 import logging
 from pathlib import Path
 
+import numpy as np
+from web.smoothing import smooth_all_maps
 from web.vs_engine import _compare_sessions_cached
 
 log = logging.getLogger('Proposal')
@@ -135,17 +137,33 @@ def generate_fuel_proposal(buell_dir, session_a, session_b, config=None):
     log.info(f'Proposal {session_a} vs {session_b}: {mapped} VS rows mapped, '
              f'{cells_with_signal}/{n_rows*n_cols} EEPROM cells with signal')
 
+    # Apply smoothing: IDW interpolation + Laplacian
+    # smoothing.py works in percentage units (e.g. 15 = 15%)
+    # our deltas are fractions (e.g. 0.15 = 15%) -> scale up, then back
+    delta_front_np = np.array(delta_ff, dtype=float) * 100
+    delta_rear_np  = np.array(delta_fr, dtype=float) * 100
+    signal_mask    = np.array([[s != 'none' for s in row] for row in source])
+    smoothed_front_pct, smoothed_rear_pct = smooth_all_maps(
+        delta_front_np, delta_rear_np, signal_mask, map_type='fuel'
+    )
+    smoothed_front = smoothed_front_pct / 100
+    smoothed_rear  = smoothed_rear_pct  / 100
+
     return {
-        'session_a':        session_a,
-        'session_b':        session_b,
-        'delta_fuel_front': delta_ff,
-        'delta_fuel_rear':  delta_fr,
-        'confidence':       confidence,
-        'source':           source,
-        'coverage':         coverage,
-        'axes': {
-            'fuel_rpm':  fuel_rpm,
-            'fuel_load': fuel_load,
+        'session_a': session_a,
+        'session_b': session_b,
+        'axes': {'fuel_rpm': fuel_rpm, 'fuel_load': fuel_load},
+        'raw': {
+            'delta_fuel_front': delta_ff,
+            'delta_fuel_rear':  delta_fr,
+            'confidence':       confidence,
+            'source':           source,
+            'coverage':         coverage,
+        },
+        'smoothed': {
+            'delta_fuel_front': smoothed_front.tolist(),
+            'delta_fuel_rear':  smoothed_rear.tolist(),
+            'signal_mask':      signal_mask.tolist(),
         },
         'summary': {
             'cells_total':       n_rows * n_cols,
@@ -155,5 +173,6 @@ def generate_fuel_proposal(buell_dir, session_a, session_b, config=None):
             'skipped_noise':     skipped_noise,
             'max_delta_pct':     max_delta,
             'min_samples':       min_samples,
+            'smoothing':         'IDW + Laplacian',
         },
     }

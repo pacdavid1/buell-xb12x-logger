@@ -25,6 +25,29 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.16] — 2026-06-06
+
+### Added
+- web/proposal.py: smoothing integration (task 014) — IDW + Laplacian applied
+  to delta_fuel_front and delta_fuel_rear. Returns both raw and smoothed deltas.
+  signal_mask built from source grid (not delta values).
+
+### Docs
+- BACKLOG.md: added PROP_* session output spec from freebuff task 015.
+  encode_eeprom_maps() in ecu/eeprom.py. Tuner needs session_metadata.json
+  (scans sessions/*/session_metadata.json, not eeprom_decoded.json).
+
+## [v2.7.16] — 2026-06-06
+
+### Added
+- web/proposal.py: smoothing integration — IDW+Laplacian applied to fuel deltas.
+  Returns raw + smoothed deltas. scale fix: fractions*100 -> smooth -> /100.
+  Result: 17 signal cells, 139 interpolated, propagation working.
+
+### Docs
+- BACKLOG.md: PROP_* session output spec (task 015).
+  encode_eeprom_maps in ecu/eeprom.py, Tuner needs session_metadata.json.
+
 ## [v2.7.15] — 2026-06-06
 
 ### Docs
