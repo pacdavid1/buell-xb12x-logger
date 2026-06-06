@@ -166,9 +166,50 @@ curl -s 'http://localhost:8080/session_events/data?session=248AE2' | python3 -c 
 
 ## Priority backlog items
 
-1. Extract `web/launch.py` (next refactor step)
-2. Fix dead code in `_compare_sessions` (F7 block after return)
+1. **Baro normalization** — fix dpw_eff in `_compare_sessions`: pw_norm = pw * (1013.25/baro)
+2. FASE 6 — unified map proposal: F7 + Sessions VS delta -> EEPROM proposal
 3. Backlog 7.8 — Sessions Launch consumes F7 clusters instead of detect_launches
 4. Backlog 7.7 — all-sessions F7 event comparison, rank maps by acceleration win rate
 5. FASE 5.1 — editable VE heatmap cells + burn from browser
 6. FASE 6 — map proposal from Sessions VS delta → VE overlay
+
+## Freebuff — parallel AI agent workflow
+
+Freebuff is a second AI agent running in the user's terminal (`freebuff` CLI).
+It works on research/analysis tasks in parallel while Claude codes.
+It also validates code we write and acts as a supervisor.
+
+### Files
+- Tasks queue:  C:/Users/pacda/freebuff/TASKS.md  (Claude writes here)
+- Responses:    C:/Users/pacda/freebuff/responses/task_NNN_name.md  (freebuff writes here)
+
+### Claude's role
+
+**Check responses at these moments:**
+- Start of every session: check responses/ before starting new work
+- After every git commit: mention pending freebuff tasks
+- When user asks 'what's next?': include freebuff task status
+
+**How to consume a response:**
+1. Read the file
+2. Evaluate and use what's useful
+3. DELETE the file — deletion signals freebuff it was consumed
+4. If the finding changes the plan: add a new TASK before freebuff's next run
+
+**When to add a freebuff task:**
+- Complex algorithm or architecture decision -> research task
+- Code we just wrote -> validation task (freebuff reviews it)
+- Freebuff asked a question in its response -> follow-up task
+
+**Validation task format (add after each coding session):**
+```
+## TASK NNN - Validate: [what we built]
+We just implemented X in file Y. Key decisions: Z.
+Review for: correctness, edge cases, OL mode compliance (no EGO logic),
+consistency with the pipeline, anything that looks off.
+```
+
+**Reminder protocol:**
+- After git commit: 'Agregue task NNN a freebuff. Cuando puedas dile siguiente.'
+- Remind user if freebuff has pending tasks: 'freebuff tiene task NNN pendiente, ya la hizo?'
+- Never block coding work waiting for freebuff — work in parallel

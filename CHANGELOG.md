@@ -25,6 +25,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.04] — 2026-06-06
+
+### Docs
+- CLAUDE.md: added Freebuff parallel agent workflow — task queue protocol,
+  response consumption flow, reminder protocol, code validation task format.
+  Updated priority backlog (baro normalization now #1).
+- C:/Users/pacda/freebuff/TASKS.md: added code validator role for freebuff,
+  task 005 (zone boundaries/orphan confidence), task 006 (baro normalization).
+
 ## [v2.7.03] — 2026-06-06
 
 ### Docs
