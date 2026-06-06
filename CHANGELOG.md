@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.15] — 2026-06-06
+
+### Docs
+- freebuff TASKS.md: added tasks 016-019 from backlog
+  016: scipy check on Pi, 017: F7 baro normalization (HIGH),
+  018: rider_notes field in session_metadata, 019: smoothing integration.
+  All include exact current code so freebuff can produce matching replacements.
+
 ## [v2.7.14] — 2026-06-06
 
 ### Docs
