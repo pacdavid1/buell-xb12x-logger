@@ -25,6 +25,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.93] — 2026-06-06
+
+### Fixed
+- web/server.py: _compare_sessions() was returning None — FASE7 integration
+  appended code after result dict but omitted the return statement; Sessions VS
+  and Launch Analysis were silently broken (returned null to frontend)
+- web/server.py: /session_events/download route not registered in _routes dict
+  — handler existed but button returned 404 on every click
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.92] — 2026-06-06
 
 ### Added
