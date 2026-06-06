@@ -200,11 +200,18 @@ It also validates code we write and acts as a supervisor.
 4. If finding changes the plan: add new TASK to TASKS.md BEFORE next freebuff run
 5. Tell user what freebuff said in 2-3 lines
 
-**When to ADD a task to freebuff:**
-- Complex algorithm or architecture decision -> research task
-- After any coding session -> validation task (freebuff reviews the code)
-- Freebuff's response raised a question -> follow-up task with context
-- User asks 'que piensas de X' -> delegate deep research to freebuff
+**When to ADD a task to freebuff (do this proactively, not when asked):**
+- After EVERY git commit with new code -> add validation task immediately
+- Any algorithm decision you're unsure about -> research task
+- Any 'Questions for Claude' in a freebuff response -> follow-up task
+- User says 'que piensas de X' -> delegate to freebuff
+- Freebuff queue has < 2 PENDING tasks -> proactively add the next one
+
+**After every git commit (mandatory checklist):**
+1. Check responses/ for new freebuff files
+2. Add TASK NNN — Validate: [what we just built] to TASKS.md
+3. Tell user: 'Agregue task NNN a freebuff. Dile siguiente cuando puedas.'
+4. If freebuff has > 3 pending tasks: mention it so user can pace freebuff
 
 **Validation task format (use after every coding session):**
 ```

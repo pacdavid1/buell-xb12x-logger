@@ -25,6 +25,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.08] — 2026-06-06
+
+### Added
+- web/proposal.py: FASE 6 proposal engine v1 — generates per-EEPROM-cell
+  fuel delta from Sessions VS dpw_eff. Nearest-neighbor VS bin -> EEPROM cell
+  mapping. SWEET/SPICY_WOT flavors only, min 5 samples, +-15% clamp.
+  Fuel front and rear proposed independently.
+- web/server.py: GET /eeprom/propose?a=SA&b=SB endpoint.
+
 ## [v2.7.07] — 2026-06-06
 
 ### Docs
