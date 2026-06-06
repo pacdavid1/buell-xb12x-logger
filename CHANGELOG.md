@@ -25,6 +25,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.03] — 2026-06-06
+
+### Docs
+- CLAUDE.md: documented OL mode — EGO=100 locked, AFV=100 locked, no WB sensor.
+  Valid pipeline: F7 (PW/TPS physical) + Sessions VS (dpw/ddvss physical).
+  tuning_report flagged as inactive in OL — generates 0 suggestions by design.
+- BACKLOG.md: added OL mode section, WB integration future item,
+  tuning_report deprecation note, unified proposal pipeline spec.
+
 ## [v2.7.02] — 2026-06-06
 
 ### Changed

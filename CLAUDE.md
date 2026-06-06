@@ -71,6 +71,50 @@ before the return. It's in the backlog.
 | `web/launch.py` | 🔲 Next — `detect_launches`, `cluster_launches`, `match_clusters`, `_compare_sessions` |
 | `web/sessions_vs_engine.py` | 🔲 After launch — `_maps_differ`, `_merge_maps`, `_compare_sessions_cached` |
 
+## Sensor configuration — OL mode (CRITICAL context)
+
+The bike runs in **Open Loop (OL) without a wideband O2 sensor**.
+The narrowband EGO sensor is intentionally disconnected.
+
+**Confirmed in data (248AE2 sample, 500 rows):**
+- `EGO_Corr` = 100.0 always (locked — no signal)
+- `AFV`      = 100.0 always (long-term trim also locked)
+- `WUE`      = 100–131 (warm-up enrichment — works normally)
+- `Accel_Corr (AE)` = 0–25 (acceleration enrichment — works normally)
+
+**Consequence for JSON pipeline:**
+
+| Data / JSON | Status in OL | Reason |
+|-------------|-------------|--------|
+| `ride_*_f7events.json` | ✅ VALID | PW + TPS curves — pure physics |
+| `session_f7clusters` | ✅ VALID | DTW on PW curves — no EGO |
+| `sessions_vs delta` — dpw, ddvss | ✅ VALID | Injector pulse delta, speed delta |
+| `sessions_vs delta` — dpw_eff | ✅ VALID (= dpw) | AFV=100 so dpw_eff == dpw |
+| `eeprom_decoded.json` | ✅ VALID | Raw map data |
+| `WUE` / `AE` filters in classify() | ✅ VALID | ECU-generated, not O2-based |
+| `tuning_report_*.json` | ⛔ INACTIVE | ego_avg=100 always → 0 suggestions |
+| `ego_avg` in ride_summary | ⛔ NOISE | Always 100 |
+| `valid_ego_avg` in tuning cells | ⛔ NOISE | No valid EGO signal |
+
+**Current valid tuning pipeline (OL):**
+```
+F7 events (PW curves)  →  cross-session compare  →  which map accelerates better?
+Sessions VS (dpw/ddvss) →  cell-level compare    →  which map is more efficient?
+         ↓
+  unified map proposal (FASE 6 — pending)
+         ↓
+  burn EEPROM
+```
+
+**Future — when WB sensor is added:**
+- WB reads real AFR → compare vs target AFR map
+- EGO/AFV become meaningful again
+- tuning_report becomes useful: cell-level EGO trend = map correction signal
+- Integrate as third input to unified proposal (don't replace F7 + VS, add to it)
+
+**Rule: do NOT build any feature that depends on EGO_Corr or AFV
+until the WB sensor is installed and validated.**
+
 ## Commit workflow (mandatory order)
 
 1. Update CHANGELOG.md with the new version entry

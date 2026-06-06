@@ -44,6 +44,47 @@
 
 
 
+## SISTEMA ACTUAL — OL sin WB (contexto crítico)
+
+**El sistema opera en Open Loop (OL) sin sensor wideband.**
+El sensor EGO narrowband está desconectado intencionalmente.
+
+### Estado confirmado en datos
+- `EGO_Corr` = 100 siempre (locked)
+- `AFV`      = 100 siempre (locked)
+- `WUE`, `AE` = funcionan normal (no dependen del O2)
+
+### Pipeline válida en OL
+```
+F7 events (curvas PW físicas)  →  comparación cross-session  →  ¿cuál mapa acelera mejor?
+Sessions VS (dpw, ddvss)       →  comparación por celda      →  ¿cuál mapa es más eficiente?
+```
+**No usar EGO_Corr ni AFV para nada hasta tener WB instalado y validado.**
+
+### JSONs activos vs inactivos en OL
+
+| JSON | Estado | Nota |
+|------|--------|------|
+| `ride_*_f7events.json` | ✅ ACTIVO | PW + TPS físicos |
+| `session_f7clusters` | ✅ ACTIVO | DTW sobre PW |
+| `sessions_vs delta` (dpw, ddvss) | ✅ ACTIVO | Físico |
+| `eeprom_decoded.json` | ✅ ACTIVO | Mapa puro |
+| `tuning_report_*.json` | ⛔ INACTIVO | ego_avg=100 → 0 sugerencias |
+| `ego_avg` en ride_summary | ⛔ RUIDO | Siempre 100 |
+
+### Propuesta de mapa unificada (OL — sin EGO)
+- [ ] Combinar F7 cross-session (¿cuál mapa acelera más?) con Sessions VS delta
+      (¿cuál mapa consume menos en crucero?) para generar una propuesta por celda
+- [ ] Cada celda del EEPROM recibe: señal F7 (WOT) + señal VS (SWEET) + confianza
+- [ ] Celdas sin cobertura de ninguno de los dos: sin cambio
+- [ ] Output: eeprom propuesto que el Tuner puede revisar y quemar (FASE 6)
+
+### Futuro — integración WB
+- [ ] Cuando WB esté instalado: leer AFR real → comparar vs target map
+- [ ] Con WB: `tuning_report` se vuelve útil (EGO trend = corrección real por celda)
+- [ ] Integrar WB como tercer input a la propuesta unificada (suma a F7 + VS, no reemplaza)
+- [ ] Validar primero con WB en paralelo (passthrough) antes de integrarlo al loop
+
 ## NOTAS / REGLAS
 - Solo mover UN mapa a la vez entre sesiones (fuel_front, fuel_rear, spark_front, spark_rear)
 - Si se mueven 2+ mapas → datos no atribuibles → no merge
