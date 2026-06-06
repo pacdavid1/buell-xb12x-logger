@@ -25,6 +25,31 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.6.92] — 2026-06-06
+
+### Added
+- web/server.py: _f7_match_cross_session() — cross-session cluster matching
+  using TPS-curve DTW (not PW DTW; rider gesture is common input, PW difference
+  is the signal). Bucket A compatibility: gear exact, RPM±300, TPS±5%, VSS±15kph.
+  Computes delta_pw[t], delta_vss[t], conf_match[t], efficiency_delta, balance_shift.
+  Sorts by confidence-weighted score (avg_conf × tps_dtw × min(n_a, n_b)).
+- web/server.py: FASE7 integrated into _compare_sessions() — result now includes
+  f7_session_a, f7_session_b, f7_matches, f7_n_matches. Failure is non-fatal.
+- web/server.py: same_map detection in _compare_sessions() — compares eeprom.bin
+  bytes; sets result['same_map']=True when sessions share identical map
+
+### Changed
+- web/server.py: _F7_EVENTS_V bumped to 4 — event struct extended with:
+  tps_curve_norm [0,1] including 3 Phase A tail samples + Phase B (captures
+  gesture start for cross-session DTW; edge case max(tps)==0 returns [0]*N);
+  gps_slope computed from stable window GPS altitude;
+  baro_hpa, temp_amb_c (baro_temp_c), clt_avg, gps_slope added to each event
+- web/server.py: _load_csv_rows in _f7_load_session_clusters now reads
+  gps_alt_m, gps_valid, baro_temp_c from CSV
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.6.91] — 2026-06-05
 
 ### Added
