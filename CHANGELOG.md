@@ -25,6 +25,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.20] — 2026-06-06
+
+### Docs
+- BACKLOG.md: PROPOSAL tab design from freebuff task 020. RdBu diverging
+  color scale, async button trigger, sessionStorage cache, 70-line JS plan.
+- freebuff TASKS.md: cleaned — 19 DONE tasks removed, 3 PENDING remain.
+
 ## [v2.7.19] — 2026-06-06
 
 ### Docs

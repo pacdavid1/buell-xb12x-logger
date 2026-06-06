@@ -294,6 +294,56 @@ Sessions VS (dpw, ddvss)       →  comparación por celda      →  ¿cuál map
 - [ ] El logger ya captura Accel_Corr, WUE, EGO_Corr — se puede loggear la señal del wideband como columna extra en CSV
 - [ ] Seguridad: limits de corrección máximos para evitar daño al motor si el WB falla
 
+## UX — PROPOSAL tab in Tuner page (freebuff task 020)
+
+**Goal:** Add a PROPOSAL tab to tuner.html showing the fuel delta heatmap.
+
+### Design decisions (freebuff task 020)
+- Trigger: "Generate Proposal" button (NOT on page load — takes 2-3s)
+- Color scale: RdBu diverging — blue=lean(-15%), white=0%, red=rich(+15%)
+- Interpolated cells: white dot overlay (signal_mask=false)
+- UX: async/await + spinner + disabled button + error fallback
+- Cache: sessionStorage keyed by `${sa}_${sb}` for instant re-visit
+- Data: `data.smoothed.delta_fuel_front`, `data.smoothed.signal_mask`
+
+### Changes needed in tuner.html
+
+**A) Tab button (1 line):**
+```html
+<button class="tab-btn" data-tab="proposal">PROPOSAL</button>
+```
+
+**B) Tab content div (~20 lines):**
+- Canvas `proposal-canvas` 520x480
+- Dropdowns: Smoothed/Raw/Signal/Confidence + Front/Rear cylinder
+- Status span + error div
+
+**C) JS functions (~70 lines total):**
+```js
+function deltaColor(pct, maxAbs=15) {  // RdBu diverging
+  const t = Math.max(-1, Math.min(1, pct/maxAbs));
+  return t < 0
+    ? `rgb(${Math.round(255*(1+t))},${Math.round(255*(1+t))},255)`
+    : `rgb(255,${Math.round(255*(1-t))},${Math.round(255*(1-t))})`;
+}
+
+function renderDeltaHeatmap(canvasId, data, signalMask, maxAbsPct=15) {
+  // 20-line canvas renderer with color + dots + value labels
+  // see freebuff task 020 full snippet
+}
+
+async function generateProposal() {
+  // async/await, spinner, fetch /eeprom/propose?a=SA&b=SB
+  // cache in sessionStorage[`${sa}_${sb}`]
+}
+```
+
+- [ ] Add PROPOSAL tab button to tuner.html tab-header
+- [ ] Add tab content div with canvas + dropdowns + status
+- [ ] Implement deltaColor() + renderDeltaHeatmap() in JS
+- [ ] Implement generateProposal() with async/await + spinner + sessionStorage cache
+- [ ] Wire dropdown switches (front/rear, raw/smooth) to re-render
+
 ## CODE STANDARDS
 
 ### AI Agent Header Note (incremental cleanup)
