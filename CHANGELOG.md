@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.07] — 2026-06-06
+
+### Docs
+- BACKLOG.md: added FASE 6 algorithm section with all freebuff findings
+  (tasks 001-006): zone arbitration, confidence formula, smoothing params,
+  spark safety rules, baro validation, rider_notes field, EGT suggestion.
+- freebuff TASKS.md: added tasks 008 (baro design decision) and 009 (scipy/interpolation).
+
 ## [v2.7.06] — 2026-06-06
 
 ### Fixed

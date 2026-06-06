@@ -1,5 +1,73 @@
 # BACKLOG — Buell Logger / Tuner
 
+## FASE 6 — Algoritmo: hallazgos de freebuff (tareas 001-006)
+
+### Combinación F7 + Sessions VS (task 001 + 005)
+- [ ] Usar PEAK TPS del evento (no Bucket_A TPS) para clasificar zona
+  Zonas: WOT (peak>60%) → F7 priority | Mid (20-60%) → F7 blend | Light (<20%) → VS
+- [ ] Mantener dos delta maps separados: f7_delta y vs_delta, fusionar por zona
+  No promediar — son señales de objetivos distintos (aceleración vs eficiencia)
+- [ ] Bias hacia rico cuando hay conflicto (seguridad en OL sin WB)
+- [ ] Fórmula de confianza F7 (3 componentes):
+  w_f7 = w_multi_session * w_dtw_quality * w_cross_match
+  donde: w_multi_session=min(1, n_sessions/2), w_dtw_quality=avg_DTW_sim,
+         w_cross_match=1.0 si hay par cross-session, 0.7 si orphan
+- [ ] Cross-session matched pairs: bonus de confianza (1.0x vs 0.7x orphan)
+- [ ] Probar: 2s stable bucket (vs 3s actual) y DTW 0.80 intra-sesión (vs 0.85)
+  para reducir tasa de huérfanos del 97% actual
+- [ ] Coverage mask por celda: marcar si dato es real, interpolado, o sin dato
+- [ ] Front y rear maps fusionados INDEPENDIENTEMENTE (no mezclar cilindros)
+
+### Suavizado del mapa (task 003)
+- [ ] Dos pasos: 1) Interpolar celdas vacías (bilinear sin deps, bicubic con scipy)
+               2) Laplacian sobre el delta COMPLETO (incluyendo interpoladas)
+- [ ] Verificar si scipy está disponible en el Pi: python3 -c "import scipy; print('ok')"
+- [ ] Orden correcto: computar delta → ponderar por confianza → CLAMP ±15% → interpolar → smooth → second clamp
+- [ ] Terminación por convergencia (no por número fijo de iteraciones):
+  Fuel: threshold=0.5 units, max 5 iter | Spark: threshold=0.1-0.2°, max 6 iter
+- [ ] Bias asimétrico SOLO en la iteración final (no acumular):
+  Fuel: rico x1.1 | Spark: retard x1.1
+- [ ] Parámetros separados por tipo de mapa:
+  Fuel: lambda=0.25 | Spark: lambda=0.10 (más conservador)
+- [ ] NO suavizar a través de fronteras de zona (idle <1500 RPM, WOT >60% TPS)
+  Suavizar cada zona independientemente
+- [ ] Celdas con dato medido: aplicar smooth a lambda*0.5 (preservar señal real)
+- [ ] Rear cylinder: lambda más conservador que front (corre 30-50°C más caliente)
+
+### Spark map sin knock sensing (task 004)
+- [ ] Limit ±2° por iteración, ±1° por celda (más estricto que fuel)
+- [ ] Gate: solo advance si delta_vss > +3% | retard si delta_vss < -3%
+  delta_vss > +5% → +1.0° | 3-5% → +0.5° | -3% a -5% → -0.5° | < -5% → -1.0°
+- [ ] Default cuando no hay datos: -0.5° de retard de seguridad (NUNCA advance sin datos)
+- [ ] Regla del 2-session: requerir 2+ pares independientes antes de cualquier advance
+- [ ] NUNCA exceder el advance máximo de fábrica del ECU (es el límite de seguridad)
+- [ ] Rear cylinder SIEMPRE 1-2° más retardado que front
+- [ ] Fuel-before-spark ordering: aplicar cambios de fuel primero (2-3 iteraciones),
+  luego spark. Fuel incorrecto contamina el delta_vss del spark.
+- [ ] IAT retard: spark_retard = max(0, (iat - 40) * 0.07) grados (≈0.7°/10°C sobre 40°C)
+- [ ] El DDFI2 SÍ tiene spark_front y spark_rear separados (confirmado en EEPROM)
+- [ ] Agregar campo rider_notes a session_metadata.json: opciones (normal, knock_heard,
+  hesitation, unknown) — el rider como sensor zero-cost
+- [ ] Futuro: EGT sensor en cilindro trasero (~$40, Type-K + MAX6675) = mejor upgrade
+
+### Normalización barométrica (task 006 — valida nuestra implementación)
+- [ ] Nuestra implementación (row level, 1013.25 hPa, baro=0 skip) es CORRECTA ✅
+- [ ] NO agregar corrección de temperatura — ECU ya maneja IAT en sus tablas
+- [ ] Mejora pendiente: GPS altitude como fallback si baro=0:
+  baro_est = 1013.25 * (1 - 0.0065 * gps_alt / 288.15) ** 5.255
+  (válido para <3000m, precisión ±5 hPa)
+- [ ] Validar rango baro: solo aplicar si 900 < baro < 1100 hPa
+- [ ] Si >10% de rows sin baro válido en una sesión: skip normalization para esa sesión + flag
+- [ ] Considerar: preservar pw1/pw2 raw y agregar pw1_norm/pw2_norm
+  (actualmente modificamos pw1/pw2 in-place — design decision pendiente)
+- [ ] Dashboard: mostrar avg_baro, baro_valid_pct, Δbaro por comparación
+
+### Preguntas de freebuff que necesitan respuesta nuestra
+- ¿scipy disponible en Pi? → verificar antes de implementar interpolación bicubic
+- ¿Valores máximos de spark en los EEPROM.bin existentes? → extraer para definir ceiling
+- ¿El tps_peak field existe en los f7events JSON? → SÍ, confirmado en f7.py
+- ¿Existe infraestructura para acumular deltas cross-session? → NO, pendiente FASE 6
+
 ## FASE 1 — Merge RAW de mapas
 - [ ] Detector de eventos LAUNCH: crucero estable ≥3s (TPS/RPM/KPH con delta mínimo) → WOT (delta TPS grande o 100%) → fin cuando TPS sale de WOT. Necesario para etiquetar pulls válidos en el merge.
 - [ ] Auto-detección de qué mapa cambió entre sesiones (comparar eeprom.bin byte a byte)
