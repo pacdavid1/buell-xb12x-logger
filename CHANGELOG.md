@@ -25,6 +25,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.17] — 2026-06-06
+
+### Fixed
+- web/f7.py: baro normalization in _load_csv_rows() (freebuff task 017)
+  pw1/pw2 now normalized to 1013.25 hPa. Range gate: 900-1100 hPa.
+  baro_valid field added to row dict for downstream diagnostics.
+  May reduce 97%% orphan rate in cross-session F7 matching.
+  scipy 1.15.3 confirmed available on Pi (task 016).
+
 ## [v2.7.16] — 2026-06-06
 
 ### Added

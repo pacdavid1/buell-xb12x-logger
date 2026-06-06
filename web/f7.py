@@ -576,17 +576,21 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
                 rpm = _sf(r['RPM'])
                 if rpm < 100:
                     continue
+                _baro = _sf(r.get('baro_hPa', 0))
+                _baro_valid = 900 < _baro < 1100
+                _baro_factor = 1013.25 / _baro if _baro_valid else 1.0
                 rows.append({
                     't':      _sf(r['time_elapsed_s']),
                     'rpm':    rpm,
                     'tps':    _sf(r.get('TPS_pct') or r.get('TPD', 0)),
                     'spd':    _sf(r.get('VS_KPH', 0)),
-                    'pw1':    _sf(r['pw1']),
-                    'pw2':    _sf(r.get('pw2', 0)),
+                    'pw1':    _sf(r['pw1']) * _baro_factor,
+                    'pw2':    _sf(r.get('pw2', 0)) * _baro_factor,
                     'gear':   _sf(r.get('Gear', 0)),
                     'clt':    _sf(r['CLT']),
                     'ae':     _sf(r.get('Accel_Corr', 100)),
-                    'baro':      _sf(r.get('baro_hPa', 0)),
+                    'baro':   _baro,
+                    'baro_valid': _baro_valid,
                     'temp_amb':  _sf(r.get('baro_temp_c', 0)),
                     'gps_alt':   _sf(r.get('gps_alt_m', 0)),
                     'gps_valid': r.get('gps_valid', '').strip() == 'TRUE',
