@@ -1535,7 +1535,7 @@ import math as _math
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
 _F7_THRESH  = 0.85  # default DTW threshold
-_F7_EVENTS_V = 3     # bump when event struct fields change
+_F7_EVENTS_V = 4     # bump when event struct fields change
 
 
 def _f7_resample(series, n=_F7_N):
@@ -1712,6 +1712,29 @@ def _f7_detect_events(rows):
                         pre_vss_c = _f7_resample([r['spd'] for r in win], _PRE_N)
                         pre_tps_c = _f7_resample([r['tps'] for r in win], _PRE_N)
 
+                        # tps_curve_norm: Phase A tail (3 samples) + Phase B, normalized [0,1]
+                        # Captures start of rider gesture for cross-session DTW matching
+                        _tail_tps = [r['tps'] for r in stable_buf[-3:]]
+                        _full_tps = _tail_tps + tps_s2
+                        _mx = max(_full_tps) if max(_full_tps) > 0 else 1.0
+                        tps_curve_norm = _f7_resample([v / _mx for v in _full_tps])
+
+                        # GPS slope from stable window (Bucket A terrain context)
+                        _gw = [r for r in win if r.get('gps_valid') and r.get('gps_alt', 0) != 0]
+                        if len(_gw) >= 4:
+                            _alt_d = _gw[-1]['gps_alt'] - _gw[0]['gps_alt']
+                            _t_sp  = _gw[-1]['t'] - _gw[0]['t']
+                            _vavg  = sum(r['spd'] for r in _gw) / len(_gw)
+                            _dist  = _vavg * _t_sp * 1000 / 3600
+                            gps_slope = round(_alt_d / _dist * 100, 2) if _dist > 5 else 0.0
+                        else:
+                            gps_slope = 0.0
+
+                        # Environmental context from Bucket A window
+                        _baro_vals = [r['baro'] for r in win if r.get('baro', 0) > 0]
+                        _temp_vals = [r['temp_amb'] for r in win if r.get('temp_amb', 0) != 0]
+                        _clt_vals  = [r['clt'] for r in win if r.get('clt', 0) > 0]
+
                         events.append({
                             'event_type': _ev_type,
                             'break_t':    round(t0, 2),
@@ -1723,7 +1746,8 @@ def _f7_detect_events(rows):
                             'pw2_curve':  _f7_resample(pw2_s),
                             'rpm_curve':  _f7_resample(rpm_s),
                             'vss_curve':  _f7_resample(vss_s),
-                            'tps_curve':  _f7_resample(tps_s2),
+                            'tps_curve':      _f7_resample(tps_s2),
+                            'tps_curve_norm': tps_curve_norm,
                             'pre_pw_curve':  pre_pw_c,
                             'pre_rpm_curve': pre_rpm_c,
                             'pre_vss_curve': pre_vss_c,
@@ -1735,6 +1759,10 @@ def _f7_detect_events(rows):
                             'tps_peak':   round(max(tps_s2), 1),
                             'vss_delta':  round(vss_d, 1),
                             'very_short': dur < 0.5,
+                            'gps_slope':  gps_slope,
+                            'baro_hpa':   round(sum(_baro_vals)/len(_baro_vals), 1) if _baro_vals else None,
+                            'temp_amb_c': round(sum(_temp_vals)/len(_temp_vals), 1) if _temp_vals else None,
+                            'clt_avg':    round(sum(_clt_vals)/len(_clt_vals), 1) if _clt_vals else None,
                         })
             in_stable = False
             stable_buf = [row]
@@ -1935,6 +1963,116 @@ def _f7_temporal_stats(cluster, n=_F7_N):
     }
 
 
+def _f7_match_cross_session(clusters_a, clusters_b, threshold=0.85):
+    """Match FASE7 accel clusters across sessions using TPS-curve DTW.
+
+    Within-session clustering uses PW DTW (same map = deterministic PW).
+    Cross-session matching uses TPS DTW: rider gesture is the common input;
+    PW differs because the map changed and that difference is the signal.
+    """
+    matches = []
+    for ca in clusters_a:
+        if ca.get('orphan') or ca.get('cluster_type') != 'accel':
+            continue
+        sa = ca.get('stats') or {}
+        if not sa.get('pw_avg'):
+            continue
+        for cb in clusters_b:
+            if cb.get('orphan') or cb.get('cluster_type') != 'accel':
+                continue
+            sb = cb.get('stats') or {}
+            if not sb.get('pw_avg'):
+                continue
+
+            # Bucket A compatibility
+            ba_a, ba_b = ca['bucket_a'], cb['bucket_a']
+            if ba_a['gear'] != ba_b['gear']:
+                continue
+            if abs(ba_a['rpm_center'] - ba_b['rpm_center']) > 300:
+                continue
+            if abs(ba_a['tps_center'] - ba_b['tps_center']) > 5:
+                continue
+            if abs(ba_a['vss_center'] - ba_b['vss_center']) > 15:
+                continue
+
+            # Average tps_curve_norm across members (falls back to raw tps_curve)
+            def _avg_norm(cluster):
+                curves = [m.get('tps_curve_norm') or m.get('tps_curve', [])
+                          for m in cluster['members']]
+                curves = [c for c in curves if c]
+                if not curves:
+                    return []
+                n = len(curves[0])
+                return [sum(c[i] for c in curves) / len(curves) for i in range(n)]
+
+            tps_a = _avg_norm(ca)
+            tps_b = _avg_norm(cb)
+            if not tps_a or not tps_b:
+                continue
+
+            def _norm01(v):
+                mx = max(v) if max(v) > 0 else 1.0
+                return [x / mx for x in v]
+
+            tps_sim = _f7_dtw(_norm01(tps_a), _norm01(tps_b))
+            if tps_sim < threshold:
+                continue
+
+            pw_a    = sa['pw_avg']
+            pw_b    = sb['pw_avg']
+            vss_a   = sa.get('vss_avg', [])
+            vss_b   = sb.get('vss_avg', [])
+            conf_a  = sa.get('confidence', [])
+            conf_b  = sb.get('confidence', [])
+            pd_a    = sa.get('pw_diff_avg', [])
+            pd_b    = sb.get('pw_diff_avg', [])
+
+            n = min(len(pw_a), len(pw_b))
+            if n == 0:
+                continue
+
+            delta_pw  = [round(pw_b[i] - pw_a[i], 3) for i in range(n)]
+            delta_vss = [round(vss_b[i] - vss_a[i], 2)
+                         for i in range(min(n, len(vss_a), len(vss_b)))]
+            if not delta_vss:
+                delta_vss = [0.0] * n
+            conf_match = [round(min(conf_a[i] if i < len(conf_a) else 0,
+                                    conf_b[i] if i < len(conf_b) else 0), 2)
+                          for i in range(n)]
+
+            sum_pw_a   = sum(pw_a[:n]) or 1e-6
+            efficiency = round(sum(delta_vss) / sum_pw_a, 4)
+
+            nb = min(len(pd_a), len(pd_b))
+            balance_shift = round(
+                sum(pd_b[:nb]) / nb - sum(pd_a[:nb]) / nb, 3
+            ) if nb > 0 else 0.0
+
+            avg_conf   = sum(conf_match) / len(conf_match) if conf_match else 0
+            sort_score = round(avg_conf * tps_sim * min(ca['n'], cb['n']), 4)
+
+            matches.append({
+                'cluster_a_id':     ca['cluster_id'],
+                'cluster_b_id':     cb['cluster_id'],
+                'n_a':              ca['n'],
+                'n_b':              cb['n'],
+                'tps_dtw':          round(tps_sim, 3),
+                'bucket_a':         ba_a,
+                'bucket_b':         ba_b,
+                'delta_pw':         delta_pw,
+                'delta_vss':        delta_vss,
+                'conf_match':       conf_match,
+                'efficiency_delta': efficiency,
+                'balance_shift':    balance_shift,
+                'pw_diff_max_a':    sa.get('pw_diff_max', 0),
+                'pw_diff_max_b':    sb.get('pw_diff_max', 0),
+                'sort_score':       sort_score,
+            })
+
+    matches.sort(key=lambda m: -m['sort_score'])
+    return matches
+
+
 def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
     """
     Load or compute clusters for a session.
@@ -1971,7 +2109,10 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
                     'gear':   _sf(r.get('Gear', 0)),
                     'clt':    _sf(r['CLT']),
                     'ae':     _sf(r.get('Accel_Corr', 100)),
-                    'baro':   _sf(r.get('baro_hPa', 0)),
+                    'baro':      _sf(r.get('baro_hPa', 0)),
+                    'temp_amb':  _sf(r.get('baro_temp_c', 0)),
+                    'gps_alt':   _sf(r.get('gps_alt_m', 0)),
+                    'gps_valid': r.get('gps_valid', '').strip() == 'TRUE',
                     'fl_fc':  r.get('fl_fuel_cut', '0').strip() in ('1', 'True', 'true'),
                     'fl_eng': r.get('fl_engine_run', '1').strip() in ('1', 'True', 'true'),
                 })
@@ -2602,4 +2743,25 @@ def _compare_sessions(buell_dir, sa, sb):
         'common': len(common),
         'delta': delta,
     }
+
+    # Same-map detection
+    ep_a = Path(buell_dir) / 'sessions' / sa / 'eeprom.bin'
+    ep_b = Path(buell_dir) / 'sessions' / sb / 'eeprom.bin'
+    result['same_map'] = (ep_a.exists() and ep_b.exists() and ep_a.read_bytes() == ep_b.read_bytes())
+
+    # FASE7 cross-session matching
+    try:
+        _f7a = _f7_load_session_clusters(buell_dir, sa)
+        _f7b = _f7_load_session_clusters(buell_dir, sb)
+        _f7m = _f7_match_cross_session(_f7a.get('clusters',[]), _f7b.get('clusters',[]))
+        result['f7_session_a'] = _f7a
+        result['f7_session_b'] = _f7b
+        result['f7_matches']   = _f7m
+        result['f7_n_matches'] = len(_f7m)
+    except Exception as _e:
+        import logging as _lg
+        _lg.warning(f'FASE7 cross-session: {_e}')
+        result['f7_matches']   = []
+        result['f7_n_matches'] = 0
+        result['f7_error']     = str(_e)
     
