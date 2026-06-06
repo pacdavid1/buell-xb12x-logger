@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Buell XB12X</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <style>
@@ -11,7 +12,7 @@
   --bg:#0a0a0b;--panel:#111114;--border:#1e1e24;
   --accent:#e8420a;--accent2:#f5a623;--green:#2cdd6e;
   --blue:#3d9eff;--dim:#55555e;--text:#c8c8cc;
-  --red:#ff4444;--mono:'Share Tech Mono',monospace;
+  --red:#ff4444;--mono:'JetBrains Mono',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-serif;
@@ -300,10 +301,10 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
 </div>
 <div id="ecuLostBanner" style="display:none;pointer-events:none;background:transparent;text-align:center;padding:6px 0 2px">
-  <div style="font-family:monospace;font-size:2.2rem;font-weight:900;color:#e74c3c;letter-spacing:2px;line-height:1">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:2.2rem;font-weight:900;color:#e74c3c;letter-spacing:2px;line-height:1">
     通信斷開
   </div>
-  <div style="font-family:monospace;font-size:0.7rem;color:#e74c3c;letter-spacing:3px;margin-top:2px">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#e74c3c;letter-spacing:3px;margin-top:2px">
     ECU SIGNAL LOST · <span id="ecuLostSecs">0</span>s
     · <span onclick="doReconnect()" style="cursor:pointer;text-decoration:underline;pointer-events:auto">RECONNECT</span>
   </div>
@@ -460,7 +461,7 @@ table.veg td:active{filter:brightness(1.6)}
     <!-- Tuning values panel -->
     <div id="tunePanel" style="position:fixed; right:10px; top:120px; width:140px; 
          background:rgba(10,10,10,0.95); border:1px solid #333; padding:12px; 
-         font-family:monospace; z-index:1000; border-radius:4px;">
+         font-family:'JetBrains Mono',monospace; z-index:1000; border-radius:4px;">
       <div style="color:#666; font-size:9px; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; border-bottom:1px solid #333; padding-bottom:4px;">
         Datos Cursor
       </div>

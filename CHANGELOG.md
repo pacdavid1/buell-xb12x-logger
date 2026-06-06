@@ -25,6 +25,25 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.23] — 2026-06-06
+
+### Changed
+- web/templates/*.html (6 files): Replace Share Tech Mono with JetBrains Mono font.
+  Added Google Fonts <link> for JetBrains Mono 400/700 weights to every template.
+  Share Tech Mono had no bold weight and poor readability at small sizes (freebuff task 023).
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.22] — 2026-06-06
+
+### Added
+- web/proposal.py: save_proposal() function (freebuff task 022)
+  Creates PROP_YYYYMMDD_HHMMSS/ session with session_metadata.json,
+  eeprom_decoded.json (proposed fuel maps), eeprom.bin, proposal_metadata.json.
+  encode_eeprom_maps() confirmed safe (no checksum, only touches offsets 670-1205).
+  Units fix: smoothed deltas passed as percentages (not fractions) to the function.
+
 ## [v2.7.21] — 2026-06-06
 
 ### Research

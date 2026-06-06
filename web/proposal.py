@@ -10,6 +10,8 @@ v2 will add F7 cross-session events and zone arbitration.
 
 import json
 import logging
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -37,6 +39,84 @@ def _vs_bin_center(lo, step=None, axis_values=None):
     if step:
         return lo + step / 2
     return lo  # fallback
+
+
+def save_proposal(buell_dir, session_a, session_b,
+                  smoothed_front_pct, smoothed_rear_pct,
+                  current_eeprom_decoded, summary):
+    """
+    Save a PROPOSAL session to disk.
+    smoothed_front_pct / smoothed_rear_pct: 12x13 arrays in PERCENTAGE units (15 = 15%).
+    Creates PROP_YYYYMMDD_HHMMSS/ with session_metadata, eeprom_decoded,
+    eeprom.bin, and proposal_metadata.
+    Returns path to PROP_* directory or None on failure.
+    """
+    try:
+        ff_cur = np.array(current_eeprom_decoded['maps']['fuel_front'], dtype=float)
+        fr_cur = np.array(current_eeprom_decoded['maps']['fuel_rear'],  dtype=float)
+        d_ff   = np.array(smoothed_front_pct, dtype=float)
+        d_fr   = np.array(smoothed_rear_pct,  dtype=float)
+
+        prop_ff = np.clip(np.round(ff_cur * (1.0 + d_ff / 100.0)), 0, 250).astype(int)
+        prop_fr = np.clip(np.round(fr_cur * (1.0 + d_fr / 100.0)), 0, 250).astype(int)
+
+        proposed_maps = {
+            'axes':        current_eeprom_decoded['maps']['axes'],
+            'fuel_front':  prop_ff.tolist(),
+            'fuel_rear':   prop_fr.tolist(),
+            'spark_front': current_eeprom_decoded['maps']['spark_front'],
+            'spark_rear':  current_eeprom_decoded['maps']['spark_rear'],
+        }
+        proposed_eeprom = {
+            'params': current_eeprom_decoded.get('params', {}),
+            'maps':   proposed_maps,
+        }
+
+        ts = datetime.now(timezone.utc)
+        prop_name = 'PROP_' + ts.strftime('%Y%m%d_%H%M%S')
+        prop_path = str(Path(buell_dir) / 'sessions' / prop_name)
+        os.makedirs(prop_path, exist_ok=True)
+
+        meta = {
+            'checksum': prop_name, 'version_string': 'proposal',
+            'created_utc': ts.isoformat(),
+            'total_rides': 0, 'total_samples': 0,
+            'total_runtime_seconds': 0,
+            'rpm_min_seen': 0, 'rpm_max_seen': 0,
+            'rider_notes': [],
+        }
+        with open(os.path.join(prop_path, 'session_metadata.json'), 'w') as f:
+            json.dump(meta, f, indent=2)
+
+        with open(os.path.join(prop_path, 'eeprom_decoded.json'), 'w') as f:
+            json.dump(proposed_eeprom, f, indent=2)
+
+        # Generate eeprom.bin from session_a's original binary
+        orig_bin = Path(buell_dir) / 'sessions' / session_a / 'eeprom.bin'
+        if orig_bin.exists():
+            from ecu.eeprom import encode_eeprom_maps
+            proposed_binary = encode_eeprom_maps(orig_bin.read_bytes(), proposed_maps)
+            with open(os.path.join(prop_path, 'eeprom.bin'), 'wb') as f:
+                f.write(proposed_binary)
+
+        prop_meta = {
+            'type': 'proposal', 'generated_utc': ts.isoformat(),
+            'source_sessions': [session_a, session_b],
+            'cells_with_signal':  summary.get('cells_with_signal', 0),
+            'cells_interpolated': summary.get('cells_interpolated', 0),
+            'smoothing_applied':  summary.get('smoothing', 'IDW + Laplacian'),
+            'max_delta_pct':      summary.get('max_delta_pct', MAX_DELTA * 100),
+        }
+        with open(os.path.join(prop_path, 'proposal_metadata.json'), 'w') as f:
+            json.dump(prop_meta, f, indent=2)
+
+        log.info(f'Proposal saved: {prop_name} ({summary.get("cells_with_signal",0)} signal cells)')
+        return prop_path
+
+    except Exception as e:
+        log.error(f'save_proposal failed: {e}')
+        return None
+
 
 
 def generate_fuel_proposal(buell_dir, session_a, session_b, config=None):
@@ -149,10 +229,18 @@ def generate_fuel_proposal(buell_dir, session_a, session_b, config=None):
     smoothed_front = smoothed_front_pct / 100
     smoothed_rear  = smoothed_rear_pct  / 100
 
+    # Store pct versions for save_proposal (expects % not fractions)
+    smoothed_ff_pct = (smoothed_front * 100).tolist()
+    smoothed_fr_pct = (smoothed_rear  * 100).tolist()
+
     return {
         'session_a': session_a,
         'session_b': session_b,
         'axes': {'fuel_rpm': fuel_rpm, 'fuel_load': fuel_load},
+        'smoothed_pct': {
+            'delta_fuel_front': smoothed_ff_pct,
+            'delta_fuel_rear':  smoothed_fr_pct,
+        },
         'raw': {
             'delta_fuel_front': delta_ff,
             'delta_fuel_rear':  delta_fr,
