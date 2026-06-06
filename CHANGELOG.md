@@ -25,6 +25,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.13] — 2026-06-06
+
+### Docs
+- BACKLOG.md: added 4 items that were missing from freebuff tasks 007-013:
+  F7 baro normalization (HIGH — f7.py has own CSV loader, same fix needed),
+  CACHE_VERSION cache key verification (MEDIUM),
+  ddvss cross-check for proposal v2 (LOW),
+  pw1/pw2 data mismatch edge case in proposal.py (MINOR).
+
 ## [v2.7.12] — 2026-06-06
 
 ### Docs

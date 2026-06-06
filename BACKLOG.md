@@ -62,6 +62,14 @@
   (actualmente modificamos pw1/pw2 in-place — design decision pendiente)
 - [ ] Dashboard: mostrar avg_baro, baro_valid_pct, Δbaro por comparación
 
+### Items pendientes para proposal.py v2 (freebuff tasks 010, 013)
+- [ ] ddvss cross-check in proposal.py: dpw_eff alone doesn't say if B is better
+  Cross-reference with ddvss: if dpw_eff<0 AND ddvss>0 → B more efficient (high conf)
+  if dpw_eff<0 AND ddvss<0 → B leaner but less power (low conf). Add for v2.
+- [ ] Handle pw1/pw2 data mismatch: if pw1 has signal for a cell but pw2 doesn't
+  (or vice versa), the current code may apply 0.0 delta to the missing cylinder.
+  Add explicit check: if pw2_a == 0, use pw1 delta as fallback for rear, flag as low-conf.
+
 ### Preguntas de freebuff que necesitan respuesta nuestra
 - ¿scipy disponible en Pi? → verificar antes de implementar interpolación bicubic
 - ¿Valores máximos de spark en los EEPROM.bin existentes? → extraer para definir ceiling
@@ -150,6 +158,11 @@ Also bump CACHE_VERSION from 6 to 7 in web/vs_engine.py.
 - [ ] Update build_index() to use pw1_norm/pw2_norm for cell accumulation
 - [ ] Bump CACHE_VERSION to 7
 - [ ] Verify detect_launches() peak_pw thresholds — are they absolute or relative?
+- [ ] Verify CACHE_VERSION is included in vs_engine cache key (freebuff task 007)
+  If not, old normalized caches will be served silently. Check _compare_sessions_cached.
+- [ ] Add baro normalization to f7.py load_csv_rows() — HIGH priority (freebuff task 007)
+  Same REF_BARO logic, same range gate (900-1100 hPa). May reduce 97% orphan rate.
+  f7.py has its own CSV loader that does NOT share code with launch.py.
 
 ## BUG — Barometric normalization missing in Sessions VS
 
