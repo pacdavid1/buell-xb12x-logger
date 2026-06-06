@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.19] — 2026-06-06
+
+### Docs
+- freebuff TASKS.md: queued tasks 020-022
+  020: proposal heatmap in Tuner page (research + JS snippet)
+  021: F7 orphan rate validation script (will baro fix help?)
+  022: save_proposal() full implementation + encode_eeprom_maps safety
+
 ## [v2.7.18] — 2026-06-06
 
 ### Added
