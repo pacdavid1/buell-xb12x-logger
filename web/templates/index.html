@@ -43,12 +43,12 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospa
 .nav-links a.on{color:var(--accent);border-color:var(--accent)}
 .hdr-stats{display:flex;gap:0;flex:1;overflow:hidden}
 .hdr-comms{display:flex;gap:0;flex:1;overflow:hidden}
-.hs-sm{display:flex;flex-direction:row;align-items:center;padding:1px 6px;gap:4px;
+.hs-sm{display:flex;flex-direction:row;align-items:center;padding:1px 6px 1px 2px;gap:2px;
     border-right:1px solid var(--border);width:60px;height:33px;flex-shrink:0;box-sizing:border-box}
 .hs-sm:last-child{border-right:none}
 .hs-sm .hs-label,.hs .hs-label{font-family:var(--mono);color:var(--dim);letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;flex-shrink:0;line-height:1}
 .hs-sm .hs-val{font-size:20px;font-weight:700;line-height:1;flex:1;text-align:left}
-.hs{width:60px;height:33px;display:flex;flex-direction:row;align-items:center;gap:4px;padding:1px 6px;box-sizing:border-box;
+.hs{width:60px;height:33px;display:flex;flex-direction:row;align-items:center;gap:2px;padding:1px 6px 1px 2px;box-sizing:border-box;
     border-right:1px solid var(--border);flex-shrink:0;overflow:hidden}
 .hs:last-child{border-right:none}
 .hs-val{font-size:24px;font-weight:900;line-height:1;flex:1;text-align:left}
@@ -66,6 +66,14 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospa
 .rdot{width:5px;height:5px;border-radius:50%;background:var(--green);
       display:inline-block;animation:blink 2s infinite;flex-shrink:0}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+@media (max-width:600px){
+  .hdr{padding:4px 4px}
+  .hdr-row{gap:4px}
+  .hs,.hs-sm{flex:1;width:auto;min-width:0;flex-shrink:1}
+  .hs-val{font-size:20px}
+  .big-num{font-size:64px}
+}
+
 
 /* TABS */
 
@@ -245,7 +253,7 @@ table.veg td:active{filter:brightness(1.6)}
 <!-- HEADER -->
 <div class="hdr" id="hdrMain">
   <div class="hdr-row" id="hdrLogoRow" style="justify-content:space-between">
-    <div id="hdrLogo" style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em;display:flex;align-items:center;gap:8px">BUELL LOGGER<span id="hdrVersion" style="font-weight:400;color:#7df;font-size:11px">--LOGGER_VERSION--</span><span id="freezeIndicator" style="font-size:10px;font-weight:700;color:#2ecc71;margin-left:6px">OK</span></div>
+    <div id="hdrLogo" style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em;display:flex;align-items:center;gap:8px">BUELL LOGGER<span id="hdrVersion" style="font-weight:400;color:#7df;font-size:11px">--LOGGER_VERSION--</span><span id="freezeIndicator" style="font-size:10px;font-weight:700;color:#2ecc71;margin-left:6px">OK</span><div id="hPill" class="pill-dot off" style="margin-left:6px"></div></div>
     <div class="nav-menu" id="navMenu">
       <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
       <div class="nav-menu-drop" id="navDrop">
@@ -303,7 +311,6 @@ table.veg td:active{filter:brightness(1.6)}
       <div class="hs"><span class="hs-label">RID</span><div class="hs-val wh" id="hRide">--</div></div>
       <div class="hs"><span class="hs-label">SER</span><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
     </div>
-    <div id="hPill" class="pill-dot off"></div>
   </div>
   <!-- Row 2: serial communication -->
   <div class="hdr-row" id="hdrRowSerial">
@@ -374,9 +381,7 @@ table.veg td:active{filter:brightness(1.6)}
     <div class="grid-wrap">
       <table class="veg" id="cobertGrid"></table>
     </div>
-    <div id="cobert-legend" class="legend"></div>
     <div class="obj-row-compact" id="cobert-summary"></div>
-    <div id="cobert-status" style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:2px">Conectando...</div>
     <div class="btns" id="cobert-btns" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">
       <button class="btn cobert-btn active" data-mode="seconds" onclick="setCobertMode('seconds')" style="font-size:8px;padding:3px 6px;border-color:var(--accent2);color:var(--accent2)">Segundos</button>
       <button class="btn cobert-btn" data-mode="ego" onclick="setCobertMode('ego')" style="font-size:8px;padding:3px 6px">EGO</button>

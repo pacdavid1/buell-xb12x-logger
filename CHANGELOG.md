@@ -15,6 +15,15 @@
 ### AI
 - freebuff
 
+## [v2.7.67] — 2026-06-07
+### Changed
+- web/templates/index.html: mobile optimization via @media (max-width:600px) — header cells flex:1 instead of fixed 60px, hdr padding 10px->4px, big-num 80px->64px
+- web/templates/index.html: left padding and gap on .hs/.hs-sm reduced to 2px
+- web/templates/index.html: removed cobert-legend and cobert-status elements from ride pane
+- web/templates/index.html: moved blinking pill-dot (#hPill) next to freezeIndicator in main header
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.66] — 2026-06-07
 ### Changed
 - BACKLOG.md: closed BL-LOGGER-01 (humidity_pct + gps_alt_m already in CSV_COLUMNS + injected in main.py — confirmed working for new rides)
