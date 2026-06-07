@@ -25,6 +25,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.28] — 2026-06-06
+
+### Fixed
+- main.py: voltage shutdown threshold now tiered to match SOC tier (freebuff task 027 audit WARN)
+  boot>=30%: v<3.50V | boot 20-29%: v<3.40V | boot 10-19%: v<3.30V | boot<10%: v<3.20V
+  _get_shutdown_threshold() now returns (soc_threshold, voltage_threshold) tuple
+
+### Changed
+- BACKLOG.md: removed freebuff audit sections (audits belong in responses/, not BACKLOG)
+
+### AI
+- Claude Sonnet 4.6, Anthropic (freebuff task 027 audit warning resolved)
+
 ## [v2.7.27] — 2026-06-06
 
 ### Changed

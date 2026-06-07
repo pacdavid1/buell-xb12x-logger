@@ -891,3 +891,35 @@ No necesita learning cycle manual.
 - [ ] Step 2: ingest_all_sessions() to bootstrap from existing 22 sessions
 - [ ] Step 3: GET /knowledge/best?baro=&temp=&alt= + GET /knowledge/similar/<checksum>
 - [ ] Step 4: Dashboard card showing best historical map for current conditions
+
+
+
+---
+
+# Backlog: Validacion freebuff - TASK 036 (pw1_norm fix v2.7.25)
+
+## Prioridad: VALIDADA - Todo correcto
+
+Commit: 2b87e4f - fix: pw1/pw2 raw preserved in rows, pw1_norm for cross-session
+
+### Check de validacion
+
+| # | Que se valido | Resultado |
+|---|---------------|-----------|
+| 1 | pw1 RAW en rows.append() | PASA - sf(r["pw1"]) sin factor |
+| 2 | pw1_norm con baro factor | PASA - sf(r["pw1"]) * _baro_factor (line 351) |
+| 3 | detect_launches() usa pw1 raw | PASA - peak_pw calculado con r["pw1"] raw |
+| 4 | CACHE_VERSION bump a 7 | PASA - vs_engine.py line 106 (v2.7.25) |
+| 5 | pw1_norm en cross-session | PASA - lines 437,446: c["pw1"] += r["pw1_norm"] |
+| 6 | Import check sin errores | PASA - python OK |
+| 7 | Commit 2b87e4f existe | PASA |
+
+### Veredicto
+El fix de pw1_norm esta correctamente implementado:
+- pw1 preserva el valor RAW (no contaminado por baro)
+- pw1_norm se usa para acumulacion cross-session (normalizado)
+- detect_launches() usa pw1 raw (no afectado por el fix)
+- CACHE_VERSION bump a 7 invalida cache viejos
+- No hay regresiones en imports
+
+- [x] Claude: confirmar que la validacion es correcta y cerrar este item.

@@ -299,14 +299,14 @@ class BuellLogger:
             _v   = stats.get('bat_voltage')
             _is_charging = stats.get('bat_charging', False)
             if not _is_charging and self._boot_soc is not None:
-                _threshold = self._get_shutdown_threshold()
+                _threshold, _v_threshold = self._get_shutdown_threshold()
                 _v_crit = _threshold <= 0  # boot SOC < 10%
                 _soc_low = _soc is not None and _soc < (_threshold if _threshold > 0 else 10.0)
-                _v_low   = _v is not None and _v < 3.50
+                _v_low   = _v is not None and _v < _v_threshold
                 if _v_crit or _soc_low or _v_low:
                     self.logger.warning(
                         f"BATERIA: {_v:.2f}V / {_soc:.0f}%% "
-                        f"(boot={self._boot_soc:.0f}%%, threshold={_threshold:.0f}%%) - apagando..."
+                        f"(boot={self._boot_soc:.0f}%%, soc_thr={_threshold:.0f}%%, v_thr={_v_threshold:.2f}V) - apagando..."
                     )
                     self._poweroff_requested = True
                     self._running = False
@@ -573,12 +573,12 @@ class BuellLogger:
 
 
     def _get_shutdown_threshold(self):
-        """Return SOC shutdown threshold based on boot SOC (tiered grace logic)."""
+        """Return (soc_threshold, voltage_threshold) based on boot SOC tier."""
         boot = self._boot_soc if self._boot_soc is not None else 100.0
-        if boot >= 30:   return 30.0
-        elif boot >= 20: return 20.0
-        elif boot >= 10: return 10.0
-        else:            return -1.0  # boot < 10% -> shutdown immediately
+        if boot >= 30:   return 30.0, 3.50  # normal: ~10% SOC floor
+        elif boot >= 20: return 20.0, 3.40  # grace-1: ~5% SOC floor
+        elif boot >= 10: return 10.0, 3.30  # grace-2: near HW cutoff
+        else:            return -1.0, 3.20  # boot<10%: shutdown immediately
 
     def run(self):
         """Loop principal."""
