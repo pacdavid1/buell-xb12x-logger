@@ -25,6 +25,52 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.42] — 2026-06-07
+### Fixed
+- web/f7.py: gps_valid comparison was case-sensitive ('TRUE') but CSV writes 'True'
+  gps_alt_avg was always None even when GPS data existed — now fixed
+- web/launch.py: same gps_valid case bug fixed
+  gps_slope now correctly computed from GPS altitude during Bucket A window
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.41] — 2026-06-07
+### Added
+- web/f7.py: f7events now include 6 new fields per event
+  mat_avg (MAT air temp from ECU), spark_avg (avg spark advance),
+  iat_corr_avg (IAT correction), humidity_avg (AHT20, if available),
+  gps_alt_avg (GPS altitude, if available), gear_detected (post-ride)
+  _F7_EVENTS_V bumped 4→5 — all f7events auto-regenerate on next access
+  Cache check updated: missing mat_avg also triggers regeneration
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.40] — 2026-06-07
+### Removed
+- web/templates/tuner.html: PROPOSAL tab eliminated
+  Tab button, propPanel div, generateProposal/renderPropCanvas/renderPropData/propColor JS
+  Tab switch logic simplified (no more isProp branch)
+  Backend proposal.py and smoothing.py kept for future use
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.39] — 2026-06-07
+### Fixed
+- web/proposal.py: use eeprom.bin directly instead of requiring eeprom_decoded.json
+  eeprom_decoded.json may not exist in older sessions — eeprom.bin is always present
+  Falls back to session_b eeprom.bin if session_a is also missing
+- CLAUDE.md: data reuse principle + no-new-tab principle documented
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.38] — 2026-06-07
+### Fixed
+- web/templates/tuner.html: PROPOSAL tab — error responses no longer cached in sessionStorage
+  renderPropData now checks d.error before accessing d.smoothed_pct/d.raw
+  Prevents Cannot read properties of undefined crash on stale cached error
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.37] — 2026-06-06
 ### Fixed
 - web/proposal.py: zone classification in generate_fuel_proposal() now uses
@@ -1388,17 +1434,6 @@ both the live dashboard and CSV logs. Now fully functional.
 ### Fixed
 - **Bug #1 — `o2_adc_avg` variable scope:** Fixed NameError in `_update_tuning_report` (`ecu/session.py:341`). Changed `v["o2_adc_sum"]` to `a["o2_adc_sum"]` — `v` was from an outer loop scope while all other fields correctly used the aggregated dict `a`.
 
-## [v2.6.28] - 2026-05-26
-### Added
-- web/templates/index.html + web/static/app.js: error log viewer modal — el badge ⚠️ ahora es clickeable y abre un modal con resumen de errores (tabla de conteos por tipo) y lista cronológica de eventos con contexto del motor (RPM, CLT, TPS, VSS, BATT) para cada error
-### AI
-- Implemented error log viewer feature: clickable errBadge in ride list opens modal fetching /errorlog/{ride_num} and renders summary table + event timeline with ctx
-
-### Fixed
-- Bug: session-mismatch en /errorlog/ — endpoint buscaba solo por ride_num, devolviendo datos de sesión incorrecta cuando existían rides con el mismo número en distintas sesiones. Se agregó session al path (/errorlog/<session>/<ride_num>).
-- Bug: _get_rides() no poblaba has_errorlog/errorlog_events — backend no enviaba los campos que el frontend ya esperaba para mostrar el badge ⚠️.
-- Bug: modal mostraba "No se encontraron eventos" — frontend checkeaba !d.has_errorlog pero el endpoint devuelve el JSON crudo sin ese campo. Se eliminó la condición redundante.
-- Bug: errBadge no era clickeable (backfill) — se agregó onclick con openErrorLog(sk, ride_num).
 ## [v2.6.29] - 2026-05-26
 
 ### Added
@@ -1415,6 +1450,17 @@ both the live dashboard and CSV logs. Now fully functional.
 ### Fixed
 - La ruta /errorlog/viz se antepone al prefix /errorlog/ para evitar conflicto.
 
+## [v2.6.28] - 2026-05-26
+### Added
+- web/templates/index.html + web/static/app.js: error log viewer modal — el badge ⚠️ ahora es clickeable y abre un modal con resumen de errores (tabla de conteos por tipo) y lista cronológica de eventos con contexto del motor (RPM, CLT, TPS, VSS, BATT) para cada error
+### AI
+- Implemented error log viewer feature: clickable errBadge in ride list opens modal fetching /errorlog/{ride_num} and renders summary table + event timeline with ctx
+
+### Fixed
+- Bug: session-mismatch en /errorlog/ — endpoint buscaba solo por ride_num, devolviendo datos de sesión incorrecta cuando existían rides con el mismo número en distintas sesiones. Se agregó session al path (/errorlog/<session>/<ride_num>).
+- Bug: _get_rides() no poblaba has_errorlog/errorlog_events — backend no enviaba los campos que el frontend ya esperaba para mostrar el badge ⚠️.
+- Bug: modal mostraba "No se encontraron eventos" — frontend checkeaba !d.has_errorlog pero el endpoint devuelve el JSON crudo sin ese campo. Se eliminó la condición redundante.
+- Bug: errBadge no era clickeable (backfill) — se agregó onclick con openErrorLog(sk, ride_num).
 ## [v2.6.27] - 2026-05-26
 ### Added
 - ANL6: added valid_for_tuning flag to ride summary JSON
@@ -2617,49 +2663,3 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ---
 
 - **Bug #14: No threading locks on shared state** — Added `threading.RLock()` in `web/server.py` (`_data_lock`) protecting `serial_stats`, `ecu_live`, `gps`, and `eeprom_maps` from concurrent access by HTTP threads, ECU loop, and sysmon loop. Used via `self.web._data_lock` in main.py.
-
-## [v2.7.38] — 2026-06-07
-### Fixed
-- web/templates/tuner.html: PROPOSAL tab — error responses no longer cached in sessionStorage
-  renderPropData now checks d.error before accessing d.smoothed_pct/d.raw
-  Prevents Cannot read properties of undefined crash on stale cached error
-### AI
-- Claude Sonnet 4.6, Anthropic
-
-## [v2.7.39] — 2026-06-07
-### Fixed
-- web/proposal.py: use eeprom.bin directly instead of requiring eeprom_decoded.json
-  eeprom_decoded.json may not exist in older sessions — eeprom.bin is always present
-  Falls back to session_b eeprom.bin if session_a is also missing
-- CLAUDE.md: data reuse principle + no-new-tab principle documented
-### AI
-- Claude Sonnet 4.6, Anthropic
-
-## [v2.7.40] — 2026-06-07
-### Removed
-- web/templates/tuner.html: PROPOSAL tab eliminated
-  Tab button, propPanel div, generateProposal/renderPropCanvas/renderPropData/propColor JS
-  Tab switch logic simplified (no more isProp branch)
-  Backend proposal.py and smoothing.py kept for future use
-### AI
-- Claude Sonnet 4.6, Anthropic
-
-## [v2.7.41] — 2026-06-07
-### Added
-- web/f7.py: f7events now include 6 new fields per event
-  mat_avg (MAT air temp from ECU), spark_avg (avg spark advance),
-  iat_corr_avg (IAT correction), humidity_avg (AHT20, if available),
-  gps_alt_avg (GPS altitude, if available), gear_detected (post-ride)
-  _F7_EVENTS_V bumped 4→5 — all f7events auto-regenerate on next access
-  Cache check updated: missing mat_avg also triggers regeneration
-### AI
-- Claude Sonnet 4.6, Anthropic
-
-## [v2.7.42] — 2026-06-07
-### Fixed
-- web/f7.py: gps_valid comparison was case-sensitive ('TRUE') but CSV writes 'True'
-  gps_alt_avg was always None even when GPS data existed — now fixed
-- web/launch.py: same gps_valid case bug fixed
-  gps_slope now correctly computed from GPS altitude during Bucket A window
-### AI
-- Claude Sonnet 4.6, Anthropic

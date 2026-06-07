@@ -144,9 +144,33 @@ A new view mode or button within an existing tab is almost always better.
 ## Commit workflow (mandatory order)
 
 1. Update CHANGELOG.md with the new version entry
-2.  ALL changed files INCLUDING CHANGELOG.md in the same command
-3.  — code + changelog go in the same commit, never separate
+2. git add ALL changed files INCLUDING CHANGELOG.md in the same command
+3. git commit — code + changelog go in the same commit, never separate
 4. Never commit code without a CHANGELOG entry in the same commit
+
+### CHANGELOG format — CRITICAL
+
+New entries go at the TOP of the file, immediately after the header block.
+NEVER use `cat >> CHANGELOG.md` — that appends to the bottom.
+Always use a Python prepend script:
+
+```python
+path = '/home/pi/buell/CHANGELOG.md'
+entry = '''
+## [vX.Y.Z] — YYYY-MM-DD
+### Changed
+- description
+### AI
+- Claude Sonnet 4.6, Anthropic
+'''
+with open(path) as f: content = f.read()
+# Find where version entries start
+import re
+m = re.search(r'
+## \[v', content)
+content = content[:m.start()] + entry + content[m.start():]
+with open(path, 'w') as f: f.write(content)
+```
 
 > Why: if you update the changelog after the commit, the previous commit has no
 > record of what changed. Future sessions see the old entry and get confused.
