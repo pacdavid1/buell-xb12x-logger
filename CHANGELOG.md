@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.45] — 2026-06-07
+### Changed
+- web/templates/index.html: moved #hdrRowBike, #hdrRowSerial, #hdrRowSensor
+  from #hdrMain into #pane-ride (above #bigDisplay)
+  Header now shows only logo + nav menu
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.44] — 2026-06-07
 ### Changed
 - web/templates/index.html: dashboard big-card labels auto-scale to card height
