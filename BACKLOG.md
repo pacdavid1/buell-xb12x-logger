@@ -1,5 +1,68 @@
 # BACKLOG — Buell Logger / Tuner
 
+## UX — Mejoras urgentes (2026-06-07)
+
+### BL-UX-01 — Burn de propuesta completa (no celda por celda)
+**Priority:** HIGH
+**Pages:** Tuner (PROPOSAL tab)
+
+El flujo correcto es: ver propuesta → editar si hace falta → quemar el mapa completo.
+NO se quema celda por celda ni con límite de 20 celdas.
+El PROPOSAL tab debe generar el mapa propuesto completo y quemarlo igual que el VE subtab:
+generate MSQ → burn full EEPROM (usando la lógica existente de write_full_eeprom).
+- Eliminar límite de 20 celdas del endpoint /eeprom/burn
+- Eliminar límite de 20 celdas del JS en tuner.html (commitStage/burnStaged)
+- PROPOSAL tab: botón BURN PROPOSAL quema el mapa suavizado completo (smoothed_pct),
+  no las celdas staged manualmente
+
+### BL-UX-02 — Tabs faltantes en navegación
+**Priority:** HIGH
+**Pages:** TBD (user reportó tabs que no aparecen)
+
+Auditar el menú de navegación de todas las páginas y verificar que todos los tabs
+estén presentes y visibles. Confirmar con el usuario cuáles faltan específicamente.
+
+### BL-UX-03 — Baro como estadística del ride, no como factor de normalización PW
+**Priority:** HIGH
+**Pages:** Dashboard, Session Events, Sessions VS
+
+El usuario cuestiona la normalización PW × (1013/baro):
+- El baro SÍ afecta la densidad del aire y por lo tanto el PW correcto — la normalización
+  es matemáticamente válida para comparar sesiones a distinta altitud.
+- PERO: el baro debe ser VISIBLE como gráfica de estadísticas del ride, no un ajuste silencioso.
+- Agregar en Session Events y Sessions VS: stats de baro promedio, altitud, temperatura ambiente
+  y humedad para cada sesión comparada.
+- El usuario debe poder ver: "sesión A a 870 hPa / 2200m, sesión B a 1010 hPa / 200m"
+  y entender por qué los PW normalizados difieren de los raw.
+
+### BL-UX-04 — Session Events: curva de muestra única se ve como línea delgada
+**Priority:** MEDIUM
+**Pages:** Session Events (session_events.html)
+
+Cuando un cluster tiene n=1 evento, la curva se renderiza como línea muy delgada
+(no tiene área de desviación std). Debe verse igual que clusters multi-muestra:
+misma curva promedio, sin área sombreada si n=1 pero con el mismo grosor de línea.
+
+### BL-UX-05 — Session Events: agregar stats ambientales por evento
+**Priority:** MEDIUM
+**Pages:** Session Events (session_events.html)
+
+Incluir en cada evento/cluster: baro_hPa, gps_alt_m, gps_slope, temp_amb_c, humedad.
+Mostrar como fila de stats debajo del gráfico o como tooltip al hover.
+Permite ver: "este evento WOT fue cuesta arriba a 2100m y 28°C" —
+contexto crítico para entender por qué el PW fue mayor o menor.
+
+### BL-UX-06 — Dashboard: labels a la izquierda, rotados 90°, números más grandes
+**Priority:** MEDIUM
+**Pages:** Dashboard (index.html)
+
+Actualmente: label del parámetro en la parte superior del contenedor, número abajo.
+Cambio: label a la izquierda del contenedor, rotado 90° (texto vertical), número ocupa
+todo el ancho restante → números visiblemente más grandes desde la moto.
+Afecta el layout CSS de los contenedores de cada variable en index.html.
+
+---
+
 ## FASE 6 — Algoritmo: hallazgos de freebuff (tareas 001-006)
 
 ### Combinación F7 + Sessions VS (task 001 + 005)
