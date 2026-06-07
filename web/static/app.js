@@ -58,7 +58,7 @@ function buildCobertGrid() {
   const t = $id('cobertGrid');
   if (!t) return;
   let h = '<thead><tr>';
-  for (const r of RPM_BINS) h += '<th>'+(r===0?'0':r>=1000?(r/1000)+'k':r)+'</th>';
+  for (const r of RPM_BINS) h += '<th>'+Math.round(r/100)+'</th>';
   h += '<th class="rh">L</th></tr></thead><tbody>';
   for (let li = LOAD_BINS.length-1; li >= 0; li--) {
     h += '<tr>';
@@ -296,10 +296,6 @@ function updateHeader(d) {
   const rideEl = $id('hRide');
   if(rideEl) rideEl.textContent = d.ride_active ? fmtTime(d.elapsed_s||0) : (d.ride_num ? 'R'+String(d.ride_num).padStart(3,'0') : '--');
 
-  const pill = $id('hPill');
-  if(d.ride_active)     { pill.textContent=''; pill.className='pill-dot on'; }
-  else if(d.waiting)    { pill.textContent=''; pill.className='pill-dot yw'; }
-  else                  { pill.textContent=''; pill.className='pill-dot off'; }
 
 
 
@@ -309,6 +305,12 @@ function updateHeader(d) {
     egoEl.className = 'hs-val '+(lv.EGO_Corr>106?'ac':lv.EGO_Corr<94?'bl':'gn');
 
   // Big CHT
+  const pill = $id('hPill');
+  if(pill){
+    if(d.ride_active)  { pill.className='pill-dot on'; }
+    else if(d.waiting) { pill.className='pill-dot yw'; }
+    else               { pill.className='pill-dot off'; }
+  }
   const bcht = $id('bigCHT');
   if(lv.CLT != null){
     bcht.textContent = lv.CLT.toFixed(0);
@@ -534,8 +536,6 @@ function updateLaunchUI(state, data) {
   var cardRPM = $id('cardRPM');
   var gearHs = $id('hGear');
   var gearParent = gearHs ? gearHs.closest('.hs') : null;
-  var bar = $id('launchBar');
-  var fill = $id('launchBarFill');
 
   if(cardCHT) { cardCHT.className = 'big-card hot'; }
   if(cardTPSEl) { cardTPSEl.className = 'big-card tps'; }

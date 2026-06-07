@@ -15,6 +15,17 @@
 ### AI
 - freebuff
 
+## [v2.7.68] — 2026-06-07
+### Changed
+- web/templates/index.html: app.js cache-buster now uses --LOGGER_VERSION-- (auto-injected, never needs manual update)
+- web/templates/index.html: RPM grid headers rotated 90deg, font-size 16px
+- web/static/app.js: RPM label format changed from N.N (1.4k) to NN (14, no decimal, no K)
+- web/templates/index.html: removed launch-bar (dead code, never activated)
+- web/templates/index.html: removed cobert-legend and cobert-status elements
+- web/static/app.js: restored hPill blinking dot logic
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.67] — 2026-06-07
 ### Changed
 - web/templates/index.html: mobile optimization via @media (max-width:600px) — header cells flex:1 instead of fixed 60px, hdr padding 10px->4px, big-num 80px->64px
