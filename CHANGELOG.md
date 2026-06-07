@@ -34,7 +34,7 @@ PROMPT_END -->
   Previously both updated in ecu_loop — hung sysmon would never be detected
 
 ### AI
-- Claude Sonnet 4.6, Anthropic + freebuff audit
+- Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (heartbeat thread isolation: _ecu_heartbeat in _ecu_loop, _sysmon_heartbeat in _sysmon_loop)
 
@@ -47,7 +47,7 @@ PROMPT_END -->
   (freebuff audit v2.7.29 WARN caught this)
 
 ### AI
-- Claude Sonnet 4.6, Anthropic + freebuff audit
+- Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (smoothed_pct color scale fix: renderPropData uses d.smoothed_pct with fallback)
 
@@ -60,7 +60,7 @@ PROMPT_END -->
   Before ECU restart: self.ecu.ser.close() to avoid zombie file descriptors
 
 ### AI
-- Claude Sonnet 4.6, Anthropic (freebuff task 033 research)
+- Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (watchdog heartbeat: _check_threads(), stale limits 10s/15s, serial close)
 
@@ -73,7 +73,7 @@ PROMPT_END -->
   Uses existing Base+Mod session selectors — no new selectors needed
 
 ### AI
-- Claude Sonnet 4.6, Anthropic (freebuff tasks 020, 029 research)
+- Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (PROPOSAL tab UI: tab, panel, canvas, RdBu scale, session cache)
 
@@ -88,7 +88,7 @@ PROMPT_END -->
 - BACKLOG.md: removed freebuff audit sections (audits belong in responses/, not BACKLOG)
 
 ### AI
-- Claude Sonnet 4.6, Anthropic (freebuff task 027 audit warning resolved)
+- Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (tiered voltage threshold)
 
@@ -101,7 +101,7 @@ PROMPT_END -->
 - BACKLOG.md: freebuff task 025 audit entries added (PROPOSAL tab, cleanup items)
 
 ### AI
-- Claude Sonnet 4.6, Anthropic + freebuff (task 025 audit)
+- Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (_clamp module-level)
 
@@ -115,7 +115,7 @@ PROMPT_END -->
   Log message includes boot SOC and active threshold for diagnostics
 
 ### AI
-- Claude Sonnet 4.6, Anthropic (freebuff task 027 research)
+- Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (tiered shutdown + charging)
 
@@ -128,7 +128,7 @@ PROMPT_END -->
 - web/vs_engine.py: CACHE_VERSION bumped 6→7 to invalidate stale sessions_vs caches
 
 ### AI
-- Claude Sonnet 4.6, Anthropic (freebuff task 025 backlog review)
+- Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (pw1_norm 8/8 checks)
 
@@ -142,7 +142,7 @@ PROMPT_END -->
   thresholds, not absolute pw1, so raw pw1 is not needed separately here.
 
 ### AI
-- Claude Sonnet 4.6, Anthropic (freebuff task 024 audit findings)
+- Claude Sonnet 4.6, Anthropic
 
 ## [v2.7.23] — 2026-06-06
 
@@ -2562,6 +2562,8 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (FASE 6 v2: zone fusion, 7/7)
+**Audited:** PASS — freebuff 2026-06-06 (TASK 042: FASE 6 v2 zone fusion — tps_peak classification correct, OL clean)
+
 ## [v2.7.34] — 2026-06-06
 ### Added
 - web/templates/tuner.html: FASE 5.1 — click-to-edit VE heatmap cells
@@ -2575,6 +2577,8 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS — freebuff 2026-06-06 (TASK 044: FASE 5.1 click-to-edit VE — 8/8 checks, STAGE+burn+reset OK)
+
 ## [v2.7.35] — 2026-06-06
 ### Fixed
 - web/proposal.py: _compute_f7_delta() now uses tps_peak (max from cluster members)
@@ -2584,3 +2588,5 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   Now: F7 cells classified correctly (WOT/Mid/Light) based on real event peak TPS
 ### AI
 - Claude Sonnet 4.6, Anthropic
+
+**Audited:** PASS — freebuff 2026-06-06 (TASK 045: tps_peak zone fix — cells land in correct zone, generate_fuel_proposal OK)
