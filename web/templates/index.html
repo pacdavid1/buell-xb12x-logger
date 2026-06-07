@@ -77,13 +77,15 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 /* BIG DISPLAY */
 .big-display{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
 .big-card{background:var(--panel);border:1px solid var(--border);
-          padding:5px 8px;display:flex;flex-direction:column;align-items:center;
+          padding:5px 6px;display:flex;flex-direction:row;align-items:center;gap:6px;
           border-top:2px solid var(--border)}
 .big-card.hot{border-top-color:var(--accent)}
 .big-card.tps{border-top-color:var(--blue)}
-.big-label{font-family:var(--mono);font-size:8px;color:var(--dim);
-           letter-spacing:.15em;text-transform:uppercase;margin-bottom:2px}
-.big-num{font-size:72px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.big-label{font-family:var(--mono);font-size:7px;color:var(--dim);
+           letter-spacing:.18em;text-transform:uppercase;
+           writing-mode:vertical-rl;transform:rotate(180deg);
+           white-space:nowrap;flex-shrink:0}
+.big-num{font-size:80px;font-weight:900;line-height:1;letter-spacing:-.02em}
 .big-unit{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:2px}
 .big-val-row{display:flex;align-items:baseline;gap:4px}
 .big-unit-inline{font-family:var(--mono);font-size:14px;color:var(--dim);font-weight:400;line-height:1}
@@ -328,18 +330,22 @@ table.veg td:active{filter:brightness(1.6)}
 <div class="pane active content" id="pane-ride" style="user-select:none;-webkit-user-select:none">
   <div class="big-display">
     <div class="big-card hot">
+      <span class="big-label">CHT</span>
       <div class="big-val-row">
         <div class="big-num ac" id="bigCHT">--</div>
         <span class="big-unit-inline">°C</span>
       </div>
     </div>
     <div class="big-card" style="border-top-color:#2ecc71">
+      <span class="big-label">KPH</span>
       <div class="big-val-row">
         <div class="big-num" style="color:#2ecc71" id="bigKPH">--</div>
         <span class="big-unit-inline">km/h</span>
       </div>
     </div>
     <div class="big-card tps">
+      <span class="big-label">TPS</span>
+      <div>
       <div class="big-val-row">
         <div class="big-num bl" id="bigTPS">--</div>
         <span class="big-unit-inline">%</span>
@@ -347,9 +353,11 @@ table.veg td:active{filter:brightness(1.6)}
       <div style="font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:2px">
         <span id="bigTPSPct" style="color:var(--blue);font-weight:700">--°</span>
       </div>
+      </div>
     </div>
     <!-- RPM -->
     <div class="big-card" id="cardRPM" style="border-top-color:#ff4444">
+      <span class="big-label">RPM</span>
       <div class="big-val-row">
         <div class="big-num" style="color:#ff4444" id="bigRPM">--</div>
         <span class="big-unit-inline">rpm</span>

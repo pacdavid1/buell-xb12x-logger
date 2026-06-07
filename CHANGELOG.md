@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.43] — 2026-06-07
+### Changed
+- web/templates/index.html: dashboard big-card labels rotated 90° on left side
+  Label (CHT/KPH/TPS/RPM) now vertical-left, number font-size 72→80px
+  big-card layout: column→row, writing-mode:vertical-rl + rotate(180deg)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.42] — 2026-06-07
 ### Fixed
 - web/f7.py: gps_valid comparison was case-sensitive ('TRUE') but CSV writes 'True'
