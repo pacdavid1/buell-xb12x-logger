@@ -43,10 +43,10 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 .nav-links a.on{color:var(--accent);border-color:var(--accent)}
 .hdr-stats{display:flex;gap:0;flex:1;overflow:hidden}
 .hdr-comms{display:flex;gap:0;flex:1;overflow:hidden}
-.hs-sm{display:flex;flex-direction:column;align-items:center;padding:1px 8px;
+.hs-sm{display:flex;flex-direction:row;align-items:center;padding:1px 6px;gap:4px;
     border-right:1px solid var(--border);min-width:50px}
 .hs-sm:last-child{border-right:none}
-.hs-sm .hs-label{font-family:var(--mono);font-size:6px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase}
+.hs-sm .hs-label{font-family:var(--mono);color:var(--dim);letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;flex-shrink:0;line-height:1}
 .hs-sm .hs-val{font-size:13px;font-weight:700;line-height:1.2}
 .hs{width:60px;height:33px;display:flex;align-items:center;justify-content:center;
     border-right:1px solid var(--border);flex-shrink:0;overflow:hidden}
@@ -728,6 +728,12 @@ function fitLabels(){
     var h=card.offsetHeight-10;
     var n=el.textContent.trim().length||1;
     el.style.fontSize=Math.max(10,Math.floor(h/n*0.82))+'px';
+  });
+  document.querySelectorAll('.hs-sm .hs-label').forEach(function(el){
+    var box=el.closest('.hs-sm');if(!box)return;
+    var h=box.offsetHeight-4;
+    var n=el.textContent.trim().length||1;
+    el.style.fontSize=Math.max(6,Math.floor(h/n*0.82))+'px';
   });
 }
 window.addEventListener('resize',fitLabels);

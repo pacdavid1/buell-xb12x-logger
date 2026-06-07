@@ -25,6 +25,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.46] — 2026-06-07
+### Changed
+- web/templates/index.html: #hdrRowSerial and #hdrRowSensor labels rotated 90°
+  .hs-sm: flex-direction column→row, label on left vertical
+  .hs-sm .hs-label: writing-mode vertical-rl + rotate(180deg), no fixed font-size
+  fitLabels() extended to auto-scale .hs-label height same as big-card labels
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.45] — 2026-06-07
 ### Changed
 - web/templates/index.html: moved #hdrRowBike, #hdrRowSerial, #hdrRowSensor
