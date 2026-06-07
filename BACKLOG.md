@@ -1141,3 +1141,52 @@ Add _launch_from_f7clusters() for sessions that have F7 clusters.
 - [ ] f7.py: add ae, gps_alt to event struct
 - [ ] launch.py: _launch_from_f7clusters() converter
 - [ ] launch.py: _load_launch_data() dual-mode router
+---
+
+## FASE 6.1 — F7 + VS zone fusion design (freebuff task 037)
+
+### Zone classification by peak TPS
+- WOT: tps_peak >= 85% -> trust VS only (few F7 WOT events)
+- Mid: 40% <= tps_peak < 85% -> F7 + VS weighted fusion
+- Light: tps_peak < 40% -> F7 only (VS poor at low TPS)
+- tps_peak field CONFIRMED in f7events JSON (value: 98.9)
+
+### Dual delta fusion formula
+  f7_weight = f7_confidence (n_clusters * dtw_score)
+  vs_weight = vs_confidence (n_samples, capped 1.0)
+  delta = (f7_delta * f7_weight + vs_delta * vs_weight) / (f7_weight + vs_weight)
+  Rich bias on conflict: if signs differ, delta = max(f7_delta, vs_delta)
+
+### Implementation
+1. web/proposal.py: _compute_f7_delta() — calls _f7_match_cross_session(), maps to EEPROM cells
+2. web/proposal.py: zone classification by tps_peak (85%/40% thresholds)
+3. web/proposal.py: generate_fuel_proposal() fuses f7_delta + vs_delta
+4. Prerequisite: F7 cross-session clusters must exist for both proposal sessions
+
+## Prioridad: ALTA — prerequisite for full FASE 6
+- [ ] _compute_f7_delta() in proposal.py
+- [ ] Zone classification by tps_peak
+- [ ] Weighted fusion + rich bias in generate_fuel_proposal()
+
+---
+
+## FASE 6.3 — Map smoothing upgrades (freebuff task 038)
+
+### Key finding: scipy 1.15.3 IS available on Pi
+smoothing.py has fallback comment — scipy is confirmed available, use it.
+
+### Improvements
+1. Bicubic upgrade: scipy.interpolate.griddata(method='cubic') vs current IDW
+2. Rear cylinder lambda: LAPLACIAN_LAMBDA_FUEL_REAR = 0.20 (vs front 0.25)
+3. Zone-aware boundaries: skip neighbors with different zone_id in laplacian_smooth()
+
+### Implementation
+1. web/smoothing.py: add LAPLACIAN_LAMBDA_FUEL_REAR = 0.20
+2. web/smoothing.py: upgrade interpolate_fill() to use scipy griddata cubic (fallback IDW)
+3. web/smoothing.py: optional zone_mask param to laplacian_smooth() — skip cross-zone neighbors
+Note: zone-aware boundaries depend on FASE 6.1 zone fusion being implemented first
+
+## Prioridad: MEDIA (after FASE 6.1)
+- [ ] LAPLACIAN_LAMBDA_FUEL_REAR = 0.20 in smoothing.py
+- [ ] scipy griddata cubic in interpolate_fill()
+- [ ] zone_mask param in laplacian_smooth()
