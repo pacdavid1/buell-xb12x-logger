@@ -2625,3 +2625,12 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   Prevents Cannot read properties of undefined crash on stale cached error
 ### AI
 - Claude Sonnet 4.6, Anthropic
+
+## [v2.7.39] — 2026-06-07
+### Fixed
+- web/proposal.py: use eeprom.bin directly instead of requiring eeprom_decoded.json
+  eeprom_decoded.json may not exist in older sessions — eeprom.bin is always present
+  Falls back to session_b eeprom.bin if session_a is also missing
+- CLAUDE.md: data reuse principle + no-new-tab principle documented
+### AI
+- Claude Sonnet 4.6, Anthropic

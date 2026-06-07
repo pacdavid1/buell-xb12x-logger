@@ -212,13 +212,15 @@ def generate_fuel_proposal(buell_dir, session_a, session_b, config=None):
     max_delta   = config.get('max_delta_pct', MAX_DELTA)
     min_samples = config.get('min_samples', MIN_SAMPLES)
 
-    # Load EEPROM axes from session A
-    ep_path = buell_dir / 'sessions' / session_a / 'eeprom_decoded.json'
-    if not ep_path.exists():
-        return {'error': f'No eeprom_decoded.json for session {session_a}'}
-
-    with open(ep_path) as f:
-        eeprom = json.load(f)
+    # Load EEPROM axes — decode from eeprom.bin directly (always present)
+    # eeprom_decoded.json may not exist in older sessions; don't require it
+    from ecu.eeprom import decode_eeprom_maps
+    bin_path = buell_dir / 'sessions' / session_a / 'eeprom.bin'
+    if not bin_path.exists():
+        bin_path = buell_dir / 'sessions' / session_b / 'eeprom.bin'
+    if not bin_path.exists():
+        return {'error': f'No eeprom.bin found for sessions {session_a} or {session_b}'}
+    eeprom = {'maps': decode_eeprom_maps(bin_path.read_bytes()), 'params': {}}
 
     axes      = eeprom['maps']['axes']
     fuel_rpm  = axes['fuel_rpm']   # list of RPM edges, len=13

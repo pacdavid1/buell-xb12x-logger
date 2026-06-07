@@ -83,12 +83,6 @@ There is NO MAP sensor. The ECU does NOT compute air density from manifold press
 - PW differences between sessions reflect MAP calibration differences, not baro offsets
 - We measure with physics: PW is what the injector actually did, TPS is what the rider did
 
-### DDFI2 built-in baro compensation (PENDING RESEARCH)
-The DDFI2 has an internal baro compensation parameter in EEPROM that adjusts
-injection for altitude changes. This IS adjustable via EcmSpy and should eventually
-be adjustable from the Pi. See BACKLOG BL-DDFI2-01.
-Do NOT confuse this internal ECU compensation with external post-processing normalization.
-
 ### Sensor configuration — OL mode (CRITICAL context)
 
 The bike runs in **Open Loop (OL) without a wideband O2 sensor**.
@@ -132,6 +126,20 @@ Sessions VS (dpw/ddvss) →  cell-level compare    →  which map is more effici
 
 **Rule: do NOT build any feature that depends on EGO_Corr or AFV
 until the WB sensor is installed and validated.**
+
+## Data reuse — CRITICAL principle
+
+**Before creating any new JSON file or endpoint, check what already exists.**
+
+- `eeprom.bin` is always present in every session — use `decode_eeprom_maps(bin)` directly
+  Do NOT require `eeprom_decoded.json` — it may not exist in older sessions
+- `session_f7clusters_0_85.json` — use it, don't regenerate unless stale
+- `sessions_vs` cache — already computed, reuse via `_compare_sessions_cached()`
+- If data exists in another JSON: read it from there, don't create a parallel file
+
+**Before adding a new UI tab or panel, check if it fits in an existing one.**
+New tabs are only justified when the workflow is genuinely different.
+A new view mode or button within an existing tab is almost always better.
 
 ## Commit workflow (mandatory order)
 
