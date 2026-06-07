@@ -243,7 +243,7 @@ table.veg td:active{filter:brightness(1.6)}
 <body>
 
 <!-- HEADER -->
-<div class="hdr">
+<div class="hdr" id="hdrMain">
   <div class="hdr-row" style="justify-content:space-between">
     <div style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em;display:flex;align-items:center;gap:8px">BUELL LOGGER<span id="hdrVersion" style="font-weight:400;color:#7df;font-size:11px">--LOGGER_VERSION--</span></div>
     <div class="nav-menu" id="navMenu">
@@ -266,7 +266,7 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
   </div>
   <!-- Row 1: bike params -->
-  <div class="hdr-row">
+  <div class="hdr-row" id="hdrRowBike">
     <div class="hdr-stats">
       <div class="hs"><div class="hs-val gn" id="hEGO">--</div></div>
       <div class="hs"><div class="hs-val bl" id="hMAT">--</div></div>
@@ -278,7 +278,7 @@ table.veg td:active{filter:brightness(1.6)}
     <div id="hPill" class="pill-dot off"></div>
   </div>
   <!-- Row 2: serial communication -->
-  <div class="hdr-row">
+  <div class="hdr-row" id="hdrRowSerial">
     <div class="hdr-comms">
       <div class="hs-sm"><div class="hs-label">TTL%</div><div class="hs-val gn" id="hTTL">--</div></div>
       <div class="hs-sm"><div class="hs-label">BPS</div><div class="hs-val" id="hBPS" style="color:#888">--</div></div>
@@ -289,7 +289,7 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
   </div>
   <!-- Row 3: system -->
-  <div class="hdr-row">
+  <div class="hdr-row" id="hdrRowSensor">
     <div class="hdr-comms">
       <div class="hs-sm"><div class="hs-label">系統</div><div class="hs-val" id="freezeIndicator" style="color:#2ecc71">正常</div></div>
       <div class="hs-sm"><div class="hs-label">SAT</div><div class="hs-val gn" id="hSat">--</div></div>
@@ -328,22 +328,22 @@ table.veg td:active{filter:brightness(1.6)}
 
 <!-- PANE RIDE -->
 <div class="pane active content" id="pane-ride" style="user-select:none;-webkit-user-select:none">
-  <div class="big-display">
-    <div class="big-card hot">
+  <div class="big-display" id="bigDisplay">
+    <div class="big-card hot" id="cardCHT">
       <span class="big-label">CHT</span>
       <div class="big-val-row">
         <div class="big-num ac" id="bigCHT">--</div>
         <span class="big-unit-inline">°C</span>
       </div>
     </div>
-    <div class="big-card" style="border-top-color:#2ecc71">
+    <div class="big-card" id="cardKPH" style="border-top-color:#2ecc71">
       <span class="big-label">KPH</span>
       <div class="big-val-row">
         <div class="big-num" style="color:#2ecc71" id="bigKPH">--</div>
         <span class="big-unit-inline">km/h</span>
       </div>
     </div>
-    <div class="big-card tps">
+    <div class="big-card tps" id="cardTPS">
       <span class="big-label">TPS</span>
       <div>
       <div class="big-val-row">
@@ -369,7 +369,7 @@ table.veg td:active{filter:brightness(1.6)}
     <div class="launch-bar-fill" id="launchBarFill"></div>
   </div>
 
-  <div class="ind-row" id="indicators"></div>      <div class="grid-section">
+  <div class="ind-row" id="indicators"></div>      <div class="grid-section" id="sectionGrid">
     <div class="grid-wrap">
       <table class="veg" id="cobertGrid"></table>
     </div>
