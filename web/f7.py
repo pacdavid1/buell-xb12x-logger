@@ -509,6 +509,11 @@ def _f7_match_cross_session(clusters_a, clusters_b, threshold=0.85):
                 continue
 
             delta_pw  = [round(pw_b[i] - pw_a[i], 3) for i in range(n)]
+            pw1_a = sa.get('pw1_avg', pw_a); pw1_b = sb.get('pw1_avg', pw_b)
+            pw2_a = sa.get('pw2_avg', pw_a); pw2_b = sb.get('pw2_avg', pw_b)
+            n1 = min(len(pw1_a), len(pw1_b)); n2 = min(len(pw2_a), len(pw2_b))
+            delta_pw1 = [round(pw1_b[i] - pw1_a[i], 3) for i in range(n1)]
+            delta_pw2 = [round(pw2_b[i] - pw2_a[i], 3) for i in range(n2)]
             delta_vss = [round(vss_b[i] - vss_a[i], 2)
                          for i in range(min(n, len(vss_a), len(vss_b)))]
             if not delta_vss:
@@ -544,6 +549,8 @@ def _f7_match_cross_session(clusters_a, clusters_b, threshold=0.85):
                 'pw_diff_max_a':    sa.get('pw_diff_max', 0),
                 'pw_diff_max_b':    sb.get('pw_diff_max', 0),
                 'sort_score':       sort_score,
+                'delta_pw1':        delta_pw1,
+                'delta_pw2':        delta_pw2,
             })
 
     matches.sort(key=lambda m: -m['sort_score'])

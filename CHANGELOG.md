@@ -36,6 +36,8 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic + freebuff audit
 
+**Audited:** PASS — freebuff 2026-06-06 (heartbeat thread isolation: _ecu_heartbeat in _ecu_loop, _sysmon_heartbeat in _sysmon_loop)
+
 ## [v2.7.31] — 2026-06-06
 
 ### Fixed
@@ -46,6 +48,8 @@ PROMPT_END -->
 
 ### AI
 - Claude Sonnet 4.6, Anthropic + freebuff audit
+
+**Audited:** PASS — freebuff 2026-06-06 (smoothed_pct color scale fix: renderPropData uses d.smoothed_pct with fallback)
 
 ## [v2.7.30] — 2026-06-06
 
@@ -58,6 +62,8 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic (freebuff task 033 research)
 
+**Audited:** PASS — freebuff 2026-06-06 (watchdog heartbeat: _check_threads(), stale limits 10s/15s, serial close)
+
 ## [v2.7.29] — 2026-06-06
 
 ### Added
@@ -68,6 +74,8 @@ PROMPT_END -->
 
 ### AI
 - Claude Sonnet 4.6, Anthropic (freebuff tasks 020, 029 research)
+
+**Audited:** PASS — freebuff 2026-06-06 (PROPOSAL tab UI: tab, panel, canvas, RdBu scale, session cache)
 
 ## [v2.7.28] — 2026-06-06
 
@@ -2542,3 +2550,13 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ---
 
 - **Bug #14: No threading locks on shared state** — Added `threading.RLock()` in `web/server.py` (`_data_lock`) protecting `serial_stats`, `ecu_live`, `gps`, and `eeprom_maps` from concurrent access by HTTP threads, ECU loop, and sysmon loop. Used via `self.web._data_lock` in main.py.
+
+## [v2.7.33] — 2026-06-06
+### Changed
+- web/f7.py: _f7_match_cross_session() now returns delta_pw1 and delta_pw2 (front/rear independently)
+- web/proposal.py: FASE 6 v2 — added _classify_zone(), _compute_f7_delta(), zone-based F7+VS fusion
+  - Zone thresholds: WOT>=85% (VS only), Mid 40-85% (weighted fusion), Light<40% (F7 priority)
+  - Rich bias: when F7/VS signals conflict, prefer richer (max) value
+  - Summary now includes f7_available flag
+### AI
+- Claude Sonnet 4.6, Anthropic
