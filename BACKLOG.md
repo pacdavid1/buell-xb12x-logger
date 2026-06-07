@@ -837,3 +837,29 @@ No necesita learning cycle manual.
   File: web/knowledge.py (~200 lines)
   Powers: FASE 6 condition-aware proposal (weight deltas by historical sweet_pct at same baro)
   Prerequisite: freebuff task 028 research first (condition buckets, ranking weights)
+
+
+---
+
+# Backlog: Auditoría freebuff — TASK 025 (v2.7.25)
+
+## Prioridad: ALTA
+- [ ] PROPOSAL tab en Tuner page (no implementado — freebuff task 025 top-1)
+  Context: tuner.html tiene tabs BASE/DELTA/MOD con renderizado heatmap, pero NO existe
+  un tab PROPOSAL. Solo falta anadir: boton en tab-bar, <div id="proposal"> con canvas,
+  y JS fetch a /eeprom/propose?a=SA&b=SB.
+  Referencia: responses/task_020_delta_heatmap_tuner.md (diseno completo)
+  Estimado: 2-3h
+
+## Prioridad: MEDIA
+- [ ] proposal.py _clamp() sigue siendo nested function (cosmetic cleanup — freebuff task 025 top-3)
+  Problema: _clamp(v) esta definida DENTRO de otra funcion, redefiniendose en cada llamada.
+  Fix: extraer a nivel modulo como def _clamp(v, max_delta), aceptando max_delta como parametro.
+  Archivo: web/proposal.py linea ~192
+  Estimado: 10min
+
+## Prioridad: HECHA (v2.7.25) - Verificada por freebuff
+- [x] pw1/pw2 raw preserved in load_csv() - BUG FIXED
+  Commit 2b87e4f. pw1 ahora es RAW, pw1_norm agregado, CACHE_VERSION bump a 7.
+  detect_launches() usa pw1 raw correctamente.
+  Archivos: launch.py, vs_engine.py, CHANGELOG.md

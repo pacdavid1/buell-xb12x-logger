@@ -26,6 +26,10 @@ MIN_DELTA_PCT = 0.005  # ignore deltas smaller than 0.5% (noise floor)
 SWEET_FLAVORS = {'SWEET', 'SPICY_WOT'}
 
 
+def _clamp(v, max_delta=MAX_DELTA):
+    return max(-max_delta, min(max_delta, v))
+
+
 def _find_cell(value, axis):
     """Return EEPROM bin index. bin[i] covers axis[i] <= value < axis[i+1]."""
     import bisect
@@ -190,11 +194,8 @@ def generate_fuel_proposal(buell_dir, session_a, session_b, config=None):
         dpw1 = row.get('dpw1', row.get('dpw_eff', 0))
         dpw2 = row.get('dpw2', dpw1)
 
-        def _clamp(v):
-            return max(-max_delta, min(max_delta, v))
-
-        dpct_ff = _clamp(dpw1 / pw1_a) if pw1_a > 0 else 0.0
-        dpct_fr = _clamp(dpw2 / pw2_a) if pw2_a > 0 else 0.0
+        dpct_ff = _clamp(dpw1 / pw1_a, max_delta) if pw1_a > 0 else 0.0
+        dpct_fr = _clamp(dpw2 / pw2_a, max_delta) if pw2_a > 0 else 0.0
 
         if abs(dpct_ff) < MIN_DELTA_PCT and abs(dpct_fr) < MIN_DELTA_PCT:
             skipped_noise += 1

@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.27] — 2026-06-06
+
+### Changed
+- web/proposal.py: extract _clamp() from nested function to module-level helper
+  Signature: _clamp(v, max_delta=MAX_DELTA) — accepts explicit max_delta param
+  No behavior change — pure cosmetic cleanup (freebuff task 025 top-3)
+- BACKLOG.md: freebuff task 025 audit entries added (PROPOSAL tab, cleanup items)
+
+### AI
+- Claude Sonnet 4.6, Anthropic + freebuff (task 025 audit)
+
 ## [v2.7.26] — 2026-06-06
 
 ### Added
