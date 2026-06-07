@@ -15,6 +15,15 @@
 ### AI
 - freebuff
 
+## [v2.7.65] — 2026-06-07
+### Fixed
+- ecu/connection.py: disconnect() and get_version() now locked with self._lock (prevents serial close/send race during concurrent ECU operations)
+### Notes
+- BUG-B (ZeroDivisionError VSS): false positive — guard already exists at protocol.py:389 (if vss > 0 and cpkm25 > 0)
+- .bak files (gps/reader.py.bak, index.html.bak.grid, sessions_launch.html.bak): already deleted in prior session
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [vX.Y.Z] — YYYY-MM-DD
        ### Changed / Added / Fixed / Removed
        - file: description of change
