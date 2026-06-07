@@ -26,6 +26,12 @@
 PROMPT_END -->
 
 
+## [v2.7.51] — 2026-06-07
+### Changed
+- web/static/app.js: removed trend arrow (↑↓→) from VLT battery voltage display
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.50] — 2026-06-07
 ### Changed
 - web/templates/index.html: removed charging arrow (hBatChg ⚡) from BAT cell

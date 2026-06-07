@@ -265,8 +265,7 @@ function updateHeader(d) {
     const bv = ss.bat_voltage;
     const ch = ss.bat_charging;
     const tr = ss.bat_trend || (ch ? 'up' : 'down');
-    const arr = bv != null ? (tr === 'up' ? '↑' : tr === 'down' ? '↓' : '→') : '';
-    batVEl.textContent = bv != null ? bv.toFixed(2) + ' ' + arr : '--';
+    batVEl.textContent = bv != null ? bv.toFixed(2) : '--';
     batVEl.className = 'hs-val';
     if(bv != null){
       const hue = ((bv - 3.0) / (4.2 - 3.0)) * 120;
