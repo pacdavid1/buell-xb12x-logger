@@ -2574,3 +2574,13 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - web/server.py: _handle_eeprom_burn — server-side ±15% per-cell gate + max 20 cells limit
 ### AI
 - Claude Sonnet 4.6, Anthropic
+
+## [v2.7.35] — 2026-06-06
+### Fixed
+- web/proposal.py: _compute_f7_delta() now uses tps_peak (max from cluster members)
+  instead of bucket_a.tps_center for zone classification
+  bucket_a.tps_center is pre-WOT stable TPS (~10-15%); tps_peak is actual WOT peak (60-99%)
+  Previous: all F7 cells incorrectly landed in Light zone, contributing 0 signal
+  Now: F7 cells classified correctly (WOT/Mid/Light) based on real event peak TPS
+### AI
+- Claude Sonnet 4.6, Anthropic

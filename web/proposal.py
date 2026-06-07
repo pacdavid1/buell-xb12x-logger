@@ -81,12 +81,12 @@ def _compute_f7_delta(buell_dir, session_a, session_b, fuel_rpm, fuel_load):
 
     for match in matches:
         ba = match['bucket_a']
-        ri = _find_cell(ba['tps_center'], fuel_load)
-        ci = _find_cell(ba['rpm_center'], fuel_rpm)
-
         ca = ca_by_id.get(match['cluster_a_id'])
         if not ca:
             continue
+        tps_pk = max((m.get('tps_peak', 0) for m in ca.get('members', []) if m.get('tps_peak', 0) > 0), default=0)
+        ri = _find_cell(tps_pk if tps_pk > 0 else ba['tps_center'], fuel_load)
+        ci = _find_cell(ba['rpm_center'], fuel_rpm)
         sa     = ca.get('stats', {})
         pw1_a  = sa.get('pw1_avg', sa.get('pw_avg', []))
         pw2_a  = sa.get('pw2_avg', sa.get('pw_avg', []))
