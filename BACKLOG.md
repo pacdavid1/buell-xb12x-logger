@@ -1190,3 +1190,31 @@ Note: zone-aware boundaries depend on FASE 6.1 zone fusion being implemented fir
 - [ ] LAPLACIAN_LAMBDA_FUEL_REAR = 0.20 in smoothing.py
 - [ ] scipy griddata cubic in interpolate_fill()
 - [ ] zone_mask param in laplacian_smooth()
+---
+
+## FASE 6.4 — Spark map without knock sensing (freebuff task 039)
+
+### Factory spark limits (from session 248AE2 EEPROM)
+- spark_front max: 36 deg BTDC (high RPM/load)
+- spark_rear max: 35 deg BTDC (1 deg more retarded than front)
+- Rear already 1-2 deg retarded vs front at high loads
+
+### Design
+- Per-iteration limit: +/-2 deg | Per-cell limit: +/-1 deg
+- Advance gate: only if delta_vss > +3% (harder acceleration = spark advance working)
+- Retard gate: only if delta_vss < -3%
+- 2-session rule: require 2+ independent session pairs before any advance
+- Fuel-before-spark: apply fuel deltas first, then spark in next iteration
+- Never exceed factory max: 36 front, 35 rear
+- Rear always 1-2 deg more retarded than front
+
+### Implementation (web/proposal.py)
+1. _compute_spark_delta() with +/-2 deg limit + delta_vss gates
+2. 2-session rule check before any advance
+3. fuel-before-spark ordering in generate_fuel_proposal()
+4. Ceiling: never exceed factory max
+
+## Prioridad: MEDIA (after FASE 6.1 F7+VS fusion)
+- [ ] _compute_spark_delta() in proposal.py
+- [ ] 2-session rule for advance
+- [ ] fuel-before-spark ordering
