@@ -26,6 +26,12 @@
 PROMPT_END -->
 
 
+## [v2.7.60] — 2026-06-07
+### Changed
+- web/templates/index.html: values inside 60x33 containers left-aligned (text-align:left)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.59] — 2026-06-07
 ### Changed
 - web/templates/index.html: .hs-val and .hs-sm .hs-val centered (flex:1 + text-align:center)
