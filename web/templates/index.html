@@ -46,7 +46,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
 .hs-sm{display:flex;flex-direction:row;align-items:center;padding:1px 6px;gap:4px;
     border-right:1px solid var(--border);width:60px;height:33px;flex-shrink:0;box-sizing:border-box}
 .hs-sm:last-child{border-right:none}
-.hs-sm .hs-label{font-family:var(--mono);color:var(--dim);letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;flex-shrink:0;line-height:1}
+.hs-sm .hs-label,.hs .hs-label{font-family:var(--mono);color:var(--dim);letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;flex-shrink:0;line-height:1}
 .hs-sm .hs-val{font-size:18px;font-weight:700;line-height:1}
 .hs{width:60px;height:33px;display:flex;flex-direction:row;align-items:center;gap:4px;padding:1px 6px;box-sizing:border-box;
     border-right:1px solid var(--border);flex-shrink:0;overflow:hidden}
@@ -324,7 +324,7 @@ table.veg td:active{filter:brightness(1.6)}
       <div class="hs-sm"><div class="hs-label">BAR</div><div class="hs-val gn" id="hBaro">--</div></div>
       <div class="hs-sm"><div class="hs-label">AMB</div><div class="hs-val gn" id="hBaroTemp">--</div></div>
             <div class="hs-sm"><div class="hs-label">HUM%</div><div class="hs-val gn" id="hHum">--</div></div>
-            <div class="hs-sm"><div class="hs-label">BAT</div><div class="hs-val gn" id="hBatPct"><span id="hBatPctVal">--</span><span id="hBatChg" style="font-size:11px;display:none;margin-left:3px">⚡</span></div></div>
+            <div class="hs-sm"><div class="hs-label">BAT</div><div class="hs-val gn" id="hBatPct"><span id="hBatPctVal">--</span></div></div>
             <div class="hs-sm"><div class="hs-label">VLT</div><div class="hs-val gn" id="hBatV">--</div></div>
 
     </div>

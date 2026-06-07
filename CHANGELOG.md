@@ -25,6 +25,25 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+
+## [v2.7.50] — 2026-06-07
+### Changed
+- web/templates/index.html: removed charging arrow (hBatChg ⚡) from BAT cell
+- .hs .hs-label now shares same 90° rotation CSS as .hs-sm .hs-label
+  All three header rows now have uniform vertical labels
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.47] — 2026-06-07
+### Changed
+- web/f7.py: _F7_THRESH lowered 0.85 → 0.75 to reduce orphan rate (estimated 30-40% reduction)
+- web/f7.py: _f7_ba_consistent RPM threshold 250 → 400, TPS threshold 3.0 → 5.0 (doubles compatible pairs)
+- web/f7.py: _F7_EVENTS_V bumped 5 → 6 to invalidate stale f7events/f7clusters caches
+### Fixed
+- web/server.py: added logging to 2 silent except Exception blocks (eeprom serial parse + session list loop)
+### AI
+- freebuff (analysis agent)
+
 ## [v2.7.49] — 2026-06-07
 ### Changed
 - web/templates/index.html: #hdrRowBike cells now have 3-letter labels (EGO/MAT/BAT/GER/RID/SER)
