@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.31] — 2026-06-06
+
+### Fixed
+- web/templates/tuner.html: PROPOSAL tab color scale was using fractional deltas (0.15)
+  instead of percentage deltas (15%). Now uses smoothed_pct which has correct units.
+  renderPropData(): smoothed mode now reads d.smoothed_pct instead of d.smoothed
+  (freebuff audit v2.7.29 WARN caught this)
+
+### AI
+- Claude Sonnet 4.6, Anthropic + freebuff audit
+
 ## [v2.7.30] — 2026-06-06
 
 ### Fixed

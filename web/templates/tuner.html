@@ -660,7 +660,7 @@ async function generateProposal(){
   finally{document.getElementById('propBtn').disabled=false;}
 }
 function renderPropData(d,cyl,mode){
-  var src=mode==='smoothed'?d.smoothed:d.raw;
+  var src=mode==='smoothed'?(d.smoothed_pct||d.smoothed):d.raw;
   var data=src[cyl.replace('fuel_','delta_fuel_')];
   var mask=d.smoothed&&d.smoothed.signal_mask?d.smoothed.signal_mask:null;
   if(!data){document.getElementById('propSt').textContent='No data for '+cyl;return;}
