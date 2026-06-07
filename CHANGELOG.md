@@ -26,6 +26,16 @@
 PROMPT_END -->
 
 
+## [v2.7.63] — 2026-06-07
+### Fixed
+- ecu/connection.py: added threading.RLock — get_rt_data and write_full_eeprom are now mutually exclusive (prevents serial stream corruption during concurrent EEPROM burn)
+- tools/health_journal.py: atomic write via tmp+os.replace() — prevents JSON corruption on crash during write
+- main.py: OOM restart now closes active ride session before serial disconnect (prevents ride data loss)
+### Removed
+- connection.py, protocol.py (root): legacy pre-refactor duplicates, never imported, deleted
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.62] — 2026-06-07
 ### Fixed
 - ecu/eeprom_params.py: added 2s complement conversion for size==4 params (was missing, size==2 already had it)

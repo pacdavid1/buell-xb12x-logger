@@ -17,6 +17,7 @@ import os
 import time
 
 import serial
+import threading
 
 from typing import Any
 
@@ -64,6 +65,7 @@ class DDFI2Connection:
         self.ser: serial.Serial | None = None
         self.last_dirty_byte: str | None = None
         self.logger = logging.getLogger("DDFI2")
+        self._lock = threading.RLock()
 
     def connect(self) -> None:
         deadline = time.monotonic() + 15.0
@@ -129,11 +131,12 @@ class DDFI2Connection:
             self.logger.warning(f"USB power cycle falló: {e}")
             return False
     def _send(self, pdu: bytes) -> None:
-        if not self.ser:
-            raise RuntimeError("Serial port not connected")
-        self.ser.reset_input_buffer()
-        self.ser.write(pdu)
-        self.ser.flush()
+        with self._lock:
+            if not self.ser:
+                raise RuntimeError("Serial port not connected")
+            self.ser.reset_input_buffer()
+            self.ser.write(pdu)
+            self.ser.flush()
 
     def _read_exact(self, n: int, timeout_s: float = 1.0) -> bytes:
         if not self.ser:
@@ -197,6 +200,11 @@ class DDFI2Connection:
             return False
 
     def get_rt_data(self) -> dict[str, Any] | None:
+        """Lee un frame RT de la ECU. Retorna dict de parametros o None."""
+        with self._lock:
+            return self._get_rt_data_impl()
+
+    def _get_rt_data_impl(self) -> dict[str, Any] | None:
         """Lee un frame RT de la ECU. Retorna dict de parámetros o None."""
         self.last_dirty_byte = None
         try:
@@ -275,6 +283,13 @@ class DDFI2Connection:
             return False
 
     def write_full_eeprom(self, proposed: bytes,
+                          safe_start: int = 670,
+                          safe_end:   int = 1205) -> dict:
+        """Locked wrapper — prevents concurrent serial access during EEPROM burn."""
+        with self._lock:
+            return self._write_full_eeprom_impl(proposed, safe_start, safe_end)
+
+    def _write_full_eeprom_impl(self, proposed: bytes,
                           safe_start: int = 670,
                           safe_end:   int = 1205) -> dict:
         """Burn proposed EEPROM to ECU using BurnDiffs approach.

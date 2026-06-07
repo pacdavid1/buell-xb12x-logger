@@ -1,3 +1,4 @@
+import os
 import json, os, time
 
 HEALTH_FILE = '/home/pi/buell/system_health.json'
@@ -40,8 +41,10 @@ def check(serial_stats, ecu_alive):
         data.setdefault('last_seen', {})[key] = now
     if len(data['issues']) > MAX_ENTRIES:
         data['issues'] = data['issues'][-MAX_ENTRIES:]
-    with open(HEALTH_FILE, 'w') as f:
+    tmp = HEALTH_FILE + '.tmp'
+    with open(tmp, 'w') as f:
         json.dump(data, f, indent=2)
+    os.replace(tmp, HEALTH_FILE)
 
 def get_summary():
     data = {}

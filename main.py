@@ -234,6 +234,13 @@ class BuellLogger:
                     self.logger.error(f"MEM {stats['mem_pct']}% — restarting to avoid OOM crash")
                     import os, sys
                     try:
+                        if self.session and self.session.current_csv_fh:
+                            self.session.close_current_ride("OOM-restart",
+                                tracker_snapshot=self.tracker.snapshot(),
+                                objectives_cfg=self.objectives_cfg)
+                    except Exception:
+                        pass
+                    try:
                         self.ecu.disconnect()
                     except Exception:
                         pass
