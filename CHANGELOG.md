@@ -21,6 +21,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.70] — 2026-06-07
+### Fixed
+- web/static/app.js: loadGraphRide title — escapeHtml was applied to datePart (HTML string), causing literal <span style...> visible in UI
+- web/static/app.js: flags chart now uses logic-analyzer style (renderFlagsChart) — each flag gets its own vertical band with label, stepped fill
+- web/templates/index.html: chartFlags height 130px -> 220px to accommodate 11 flag bands
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.69] — 2026-06-07
 ### Fixed
 - CLAUDE.md: CHANGELOG prepend script now searches after PROMPT_END block — prevents entries from being inserted inside the instruction comment

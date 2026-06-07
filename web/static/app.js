@@ -1991,6 +1991,62 @@ function buildCharts(rows){
     return scales;
   }
 
+
+  // Logic-analyzer style chart for binary flags — each flag gets its own vertical band
+  function renderFlagsChart(chartId, keys) {
+    const canvas = document.getElementById(chartId);
+    if (!canvas) return null;
+    const ctx = canvas.getContext('2d');
+    const N = keys.length;
+    const datasets = keys.map((key, i) => {
+      const sig = SIG_MAP[key];
+      if (!sig) return null;
+      const base = i * 2;
+      const data = rows.map(r => ({
+        x: r.time_elapsed_s,
+        y: r[key] != null ? base + (r[key] > 0 ? 1.4 : 0) : null
+      }));
+      return {
+        _key: key,
+        label: sig.label.replace('FL: ',''),
+        data,
+        borderColor: sig.color,
+        backgroundColor: sig.color + '40',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        stepped: 'before',
+        fill: { target: { value: base }, above: sig.color + '38', below: 'transparent' },
+        yAxisID: 'y_flags',
+      };
+    }).filter(Boolean);
+    return new Chart(ctx, {
+      type: 'line',
+      data: { datasets },
+      options: {
+        ...CHART_BASE,
+        scales: {
+          x: CHART_BASE.scales.x,
+          y_flags: {
+            type: 'linear', display: true, min: -0.3, max: N * 2,
+            afterBuildTicks: axis => {
+              axis.ticks = keys.map((key, i) => ({ value: i * 2 + 0.7 }));
+            },
+            ticks: {
+              color: '#666',
+              font: { size: 8, family: 'JetBrains Mono, monospace' },
+              callback: (v, idx) => {
+                const key = keys[idx];
+                return key ? (SIG_MAP[key]?.label.replace('FL: ','') || key) : '';
+              }
+            },
+            grid: { color: 'rgba(255,255,255,0.05)', drawTicks: false },
+            border: { display: false },
+          }
+        }
+      }
+    });
+  }
+
   // ── Render one chart ──────────────────────────────────────
   function renderChart(chartId, keys, chartKey){
     const canvas = document.getElementById(chartId);
@@ -2014,7 +2070,7 @@ function buildCharts(rows){
   _charts.tps   = renderChart('chartTPS',   chartCfgs[2].keys, 2);
   _charts.spk   = renderChart('chartSPK',   chartCfgs[3].keys, 3);
   _charts.batt  = renderChart('chartBatt',  chartCfgs[4].keys, 4);
-  _charts.flags = renderChart('chartFlags', chartCfgs[5].keys, 5);
+  _charts.flags = renderFlagsChart('chartFlags', chartCfgs[5].keys);
 
   // ── Signal selector UI ────────────────────────────────────
   // Inject ⚙ button into each chart-wrap if not already present
@@ -2276,7 +2332,7 @@ async function loadGraphRide(directFile){
     status.textContent = `${rows.length} muestras · ${dur}s`;
     if(titleEl){
       const datePart = dateStr ? `  <span style="color:#888;font-size:10px">${dateStr}</span>` : '';
-      titleEl.innerHTML = '▶ ' + escapeHtml(rideLabel) + escapeHtml(datePart);
+      titleEl.innerHTML = "▶ " + escapeHtml(rideLabel) + datePart;
       titleEl.style.display='block';
     }
     buildCharts(rows);
