@@ -10,7 +10,7 @@ def check(serial_stats, ecu_alive):
         try:
             with open(HEALTH_FILE) as f:
                 data = json.load(f)
-        except:
+        except Exception:
             pass
     now = time.time()
     new = []
@@ -49,7 +49,7 @@ def get_summary():
         try:
             with open(HEALTH_FILE) as f:
                 data = json.load(f)
-        except:
+        except Exception:
             data = {}
     recent = []
     for i in data.get('issues', []):

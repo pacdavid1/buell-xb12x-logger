@@ -26,6 +26,16 @@
 PROMPT_END -->
 
 
+## [v2.7.61] — 2026-06-07
+### Fixed
+- tools/health_journal.py: bare except -> except Exception in check() and get_summary()
+### Changed
+- CHANGELOG.md: renamed 4 duplicate version entries to .1 suffix (v2.7.16, v2.6.27, v2.6.20, v2.5.44)
+### Added
+- BACKLOG.md: BL-DOCS-01 README full rewrite task (freebuff readme_gap_analysis 2026-06-07)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.60] — 2026-06-07
 ### Changed
 - web/templates/index.html: values inside 60x33 containers left-aligned (text-align:left)
@@ -473,7 +483,7 @@ PROMPT_END -->
   encode_eeprom_maps() in ecu/eeprom.py. Tuner needs session_metadata.json
   (scans sessions/*/session_metadata.json, not eeprom_decoded.json).
 
-## [v2.7.16] — 2026-06-06
+## [v2.7.16.1] — 2026-06-06
 
 ### Added
 - web/proposal.py: smoothing integration — IDW+Laplacian applied to fuel deltas.
@@ -1627,7 +1637,7 @@ both the live dashboard and CSV logs. Now fully functional.
 ### AI
 - DeepSeek V4 Flash
 
-## [v2.6.27] - 2026-05-26
+## [v2.6.27.1] - 2026-05-26
 ### Fixed
 - web/static/app.js: added missing `confColor()` function — was nested inside `pctColor()`, breaking JS execution before `fetchLive()` could display version
 - web/static/app.js: cleaned corrupted `renderCobertLegend()` — had grid code (variables `c`, `populated`, `bg`) mistakenly inserted between legend blocks
@@ -1714,7 +1724,7 @@ both the live dashboard and CSV logs. Now fully functional.
   (static, csv, ride, errorlog, wifi/redirect_url).
 - do_POST: dict dispatcher dispatching to _handle_post_* methods.
 
-## [v2.6.20] — 2026-05-24
+## [v2.6.20.1] — 2026-05-24
 ### Changed
 - web/server.py: refactored monolithic do_GET (~26 routes) and do_POST (~12 routes)
   into named _handle_* methods with clean dict-based dispatchers.
@@ -1989,7 +1999,7 @@ both the live dashboard and CSV logs. Now fully functional.
 
 ---
 
-## [v2.5.44] — 2026-04-11
+## [v2.5.44.1] — 2026-04-11
 ### Fixed
 - Tooltip "aplastado": eliminado fondo transparente, ajustado padding y tamaños de fuente
 - Gráficas borrosas/distorsionadas: corregido aspect ratio eliminando `!important` en CSS canvas

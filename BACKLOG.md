@@ -743,6 +743,19 @@ aparece en VE para revisar y quemar. Sin WB — el tuning es relativo entre sesi
 
 ## Mantenimiento / Limpieza de código
 
+### BL-DOCS-01 — README.md full rewrite (freebuff audit 2026-06-07)
+**Priority:** LOW
+**Source:** freebuff readme_gap_analysis.md
+
+README.md is severely outdated — documents ~30% of actual project capabilities.
+Missing: 15+ Python modules, 20+ features, 50+ API endpoints, 6 HTML pages,
+full session data structure (10+ file types), hardware details.
+Key gaps: WiFi/Hotspot management, error log viz, gear detection, GPS, system health,
+battery shutdown, baro normalization, VE heatmap editing, MSQ export, F7 pipeline.
+Use readme_annotated.md (freebuff output) as draft template when implementing.
+
+
+
 ### Código muerto Python (confirmado — 0 referencias en todo el codebase)
 - [ ] Eliminar  — ecu/eeprom_params.py (función de compat nunca llamada)
 - [ ] Eliminar  — ecu/session.py (nunca referenciada)
