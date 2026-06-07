@@ -1068,3 +1068,51 @@ main.py: +11 lineas total (init + 2 heartbeats + stale check)
 2. Zone boundary protection in smoothing.py (item 10) — MEDIUM
 3. Multi-session coverage mask (item 5) — MEDIUM
 4. Rear cylinder lambda*0.5 (item 11) — LOW
+---
+
+## Backlog 7.7 — Batch compare all-sessions (freebuff task 031)
+
+### Infrastructure already exists
+-  in f7.py — reuse directly, no reimplementation
+-  in f7.py — auto-generates clusters if missing
+- 4 of 33 sessions already have f7clusters JSON (248AE2, 47BF04, 91B225, 9ECD1E)
+
+### New file: web/batch_compare.py (~145 lines)
+-  — calls _f7_load_session_clusters() for all sessions
+-  — loops all pairs via _f7_match_cross_session(), aggregates wins
+-  — sort by win_rate, filter min 5 matches, opponent breakdown
+- Output: sessions/_batch_compare_ranking.json (cached)
+- GET /batch_compare endpoint in server.py (+15 lines)
+- Button in dashboard (+10 lines)
+
+### Win determination
+vss_curve is 20-point resampled. idx_3s = min(int(3.0 / duration * 20), 19).
+win = delta_vss_A[idx] > delta_vss_B[idx]. Ties = 0.5 each.
+
+## Prioridad: ALTA
+- [ ] Create web/batch_compare.py with 3 core functions
+- [ ] GET /batch_compare endpoint in server.py
+- [ ] Dashboard button Rank maps by acceleration
+
+---
+
+## FASE 5.3 — AI context export (freebuff task 035)
+
+### Key finding
+BUEIB.xml has 477 eeoffsets but only 35 are user-facing tuning params.
+EGO/AFV always 100.0 in OL — exclude from AI context (misleading to LLM).
+
+### Safe vs dangerous params
+- WHITELIST: fuel maps, spark maps, fan temps, soft temp limits
+- BLACKLIST: KTemp_Kill_Hi/Lo, KTemp_Hard_Hi/Lo, CEL params, EEPROM version fields
+
+### Implementation: server.py (~85 lines)
+-  — builds JSON with 35 safe params + 4 maps
+- GET /eeprom/ai_context?session=X
+- Dashboard button Copy AI context
+- Token estimate: ~1,125 tokens total — fits any LLM context
+
+## Prioridad: BAJA
+- [ ] _build_ai_context() helper in server.py with whitelist/blacklist
+- [ ] GET /eeprom/ai_context?session=X endpoint
+- [ ] Dashboard Copy AI context button
