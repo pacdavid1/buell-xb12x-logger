@@ -62,7 +62,10 @@ todo el ancho restante → números visiblemente más grandes desde la moto.
 Afecta el layout CSS de los contenedores de cada variable en index.html.
 
 ### BL-DDFI2-01 — Investigar y exponer parámetro de compensación barométrica de la DDFI2
-**Priority:** HIGH
+**Priority:** CLOSED — freebuff research 2026-06-07: DDFI2 NO tiene KBaro/baro_comp nativo.
+Stock DDFI-2 compensates via closed-loop AFV + narrow-band O2 (not a lookup table).
+In OL mode (our setup), there is NO barometric compensation at all.
+Use BMP280 (already reading) to display baro as ride stat only (BL-UX-03).
 **Files:** ecu/eeprom.py, ecu/BUEIB.xml, web/server.py
 
 La DDFI2 tiene un parámetro interno en EEPROM que ajusta la inyección por cambios
@@ -742,6 +745,17 @@ aparece en VE para revisar y quemar. Sin WB — el tuning es relativo entre sesi
 - [ ] Sin piggy: open loop, propuesta relativa entre sesiones (FASE 6.1-6.4)
 
 ## Mantenimiento / Limpieza de código
+### BL-BUG-01 — Low priority bugs from freebuff audit (2026-06-07)
+**Priority:** LOW
+
+- AHT20 sensor (sensors/aht20.py): no retry on init failure — if sensor is in transient state post power-up, it fails permanently until process restart. Fix: add 3 retry attempts with 100ms delay in begin().
+- CW2015 (sensors/cw2015.py): does not write MODE register (0x0A) to ensure active mode on init. Fix: write 0x00 to register 0x0A at startup.
+- Gear detect (web/gear_detect.py): returns gear 1 when rpm > 1500 and vss > 5 but bike is in neutral. Fix: return 0 (unknown) when rpm/vss ratio doesn't match any gear range.
+- network/manager.py: multiple threads can launch nmcli simultaneously (no lock on _switch_status). Fix: add threading.Lock around nmcli calls.
+- web/static/app.js: 37 fetch() calls without AbortSignal — requests hang forever if server stops responding. Fix: use AbortController with 10s timeout on all fetch() calls.
+- web/vs_engine.py: _compare_sessions_cached uses total_samples as cache key — stale if data changes without sample count change. Fix: include file mtime or content hash in key.
+
+
 
 ### BL-DOCS-01 — README.md full rewrite (freebuff audit 2026-06-07)
 **Priority:** LOW
@@ -1355,3 +1369,9 @@ Verificar que ambas columnas se graben correctamente y con la frecuencia adecuad
 humidity_pct del sensor AHT20 no está siendo grabada en el CSV.
 gps_alt_m del GPS sí está en el CSV pero gps_valid=True casi nunca coincide con eventos F7.
 Verificar que ambas columnas se graben correctamente y con la frecuencia adecuada.
+
+## Fixes aplicados por freebuff (2026-06-07)
+- [x] connection.py (root) eliminado - duplicado de ecu/connection.py (freebuff)
+- [x] protocol.py (root) eliminado - duplicado de ecu/protocol.py (freebuff)
+- [x] tools/test_ecu.py.save eliminado - backup leftover (freebuff)
+- [x] tools/health_journal.py: atomic write fix (tmp+os.replace) (freebuff)

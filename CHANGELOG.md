@@ -26,6 +26,15 @@
 PROMPT_END -->
 
 
+## [v2.7.64] — 2026-06-07
+### Changed
+- BACKLOG.md: closed BL-DDFI2-01 (freebuff research confirms DDFI2 has no KBaro/baro_comp)
+- BACKLOG.md: added BL-BUG-01 with 6 low-priority bugs from freebuff audit
+### Removed
+- web/server.py.bak: stale backup file
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.63] — 2026-06-07
 ### Fixed
 - ecu/connection.py: added threading.RLock — get_rt_data and write_full_eeprom are now mutually exclusive (prevents serial stream corruption during concurrent EEPROM burn)
