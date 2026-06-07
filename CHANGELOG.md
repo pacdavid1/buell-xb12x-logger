@@ -25,6 +25,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.47] — 2026-06-07
+### Changed
+- web/templates/index.html: all dashboard labels shortened to 3 letters
+  TTL%→TTL, BUF%→BUF, MEM%→MEM, CPU%→CPU, BARO hPa→BAR,
+  AMB°C→AMB, BAT%→BAT, BATV→VLT, TEMP→TMP
+- freezeIndicator (正常/OK) moved from hdrRowSensor to #hdrMain next to version
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.46] — 2026-06-07
 ### Changed
 - web/templates/index.html: #hdrRowSerial and #hdrRowSensor labels rotated 90°
