@@ -26,6 +26,13 @@
 PROMPT_END -->
 
 
+## [v2.7.53] — 2026-06-07
+### Changed
+- web/templates/index.html: #hdrMain logo text auto-scales to 90% of row height via fitLabels()
+  Added id="hdrLogoRow" and id="hdrLogo" for targeting
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.52] — 2026-06-07
 ### Fixed
 - web/templates/index.html: restored hBatChg ⚡ span in BAT cell (removed by mistake in v2.7.50)
