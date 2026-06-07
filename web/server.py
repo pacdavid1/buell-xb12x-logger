@@ -757,11 +757,16 @@ class DashboardHandler(BaseHTTPRequestHandler):
         from ecu.eeprom import encode_eeprom_maps, decode_eeprom_maps
         try:
             if changes:
+                if len(changes) > 20:
+                    self._json({'error': 'too many changes: ' + str(len(changes)) + ' (max 20 per burn)'}); return
                 current_maps = decode_eeprom_maps(current_bin)
                 for ch in changes:
                     mk = ch.get('map'); ri = int(ch.get('ri',0)); ci = int(ch.get('ci',0)); val = float(ch.get('val',0))
                     if mk not in current_maps or not isinstance(current_maps[mk], list): continue
                     if ri >= len(current_maps[mk]) or ci >= len(current_maps[mk][ri]): continue
+                    orig = current_maps[mk][ri][ci]
+                    if orig > 0 and abs(val - orig) > orig * 0.15:
+                        self._json({'error': 'cell [' + str(ri) + ',' + str(ci) + '] exceeds +-15%: ' + str(round(orig,1)) + ' to ' + str(round(val,1))}); return
                     if mk not in maps:
                         maps[mk] = [row[:] for row in current_maps[mk]]
                     maps[mk][ri][ci] = val

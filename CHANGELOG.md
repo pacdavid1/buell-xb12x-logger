@@ -2560,3 +2560,17 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   - Summary now includes f7_available flag
 ### AI
 - Claude Sonnet 4.6, Anthropic
+
+**Audited:** PASS — freebuff 2026-06-06 (FASE 6 v2: zone fusion, 7/7)
+## [v2.7.34] — 2026-06-06
+### Added
+- web/templates/tuner.html: FASE 5.1 — click-to-edit VE heatmap cells
+  - Click any fuel/spark cell → inline input overlay appears
+  - Staged cells turn amber; BURN/RESET buttons shown in header bar
+  - BURN: POST /eeprom/burn with all staged changes
+  - RESET: clears all staged changes
+  - Client-side ±15% gate with range feedback
+  - Max 20 cells per burn enforced client-side and server-side
+- web/server.py: _handle_eeprom_burn — server-side ±15% per-cell gate + max 20 cells limit
+### AI
+- Claude Sonnet 4.6, Anthropic

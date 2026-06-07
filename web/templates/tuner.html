@@ -103,7 +103,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <button class="tab" data-m="spark_front">SPARK FRONT</button>
 <button class="tab" data-m="spark_rear">SPARK REAR</button><button class="tab" data-m="proposal" id="tabProp">PROPOSAL</button>
 </div>
-<div class="ps"><div class="pi" id="pw"></div></div>
+<div class="ps"><div style="display:flex;gap:4px;padding:2px 4px;flex-shrink:0;align-items:center"><button id="burnBtn" onclick="burnStaged()" disabled style="font-family:var(--mn);font-size:8px;font-weight:700;padding:2px 10px;background:#c0392b;color:#fff;border:none;border-radius:2px;cursor:pointer;letter-spacing:.06em;opacity:.4">BURN</button><button id="resetBtn" onclick="resetStaged()" disabled style="font-family:var(--mn);font-size:8px;padding:2px 8px;background:var(--p);color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer;opacity:.4">RESET</button><span id="stageSt" style="font-family:var(--mn);font-size:8px;color:var(--dm)"></span></div><div class="pi" id="pw"></div></div>
 <div id="propPanel" style="display:none;flex-direction:column;gap:8px;padding:8px;flex:1;overflow:auto">
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <select id="propCyl" style="background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:11px;padding:4px;border-radius:2px">
@@ -152,6 +152,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
 var mB=null,mM=null,mMerge=null,mergeMode='BALANCE',cur='fuel_front';
+var STAGE={},MAX_STAGE_CELLS=20;
 
 function dlMsq(selId) {
   var sid = document.getElementById(selId).value;
@@ -226,7 +227,7 @@ function render(){
   function tbl(data,cap){
     var rng=range(data),zN=rng[0],zX=rng[1];
     var h='<table class="v"><caption>'+cap+'</caption>'+hdr();
-    for(var i=rows-1;i>=0;i--){h+='<tr><th class="r">'+lod[i]+'</th>';for(var j=0;j<cols;j++){var t=(data[i][j]-zN)/(zX-zN);h+='<td data-rpm="'+rpm[j]+'" data-tps="'+lod[i]+'" data-val="'+data[i][j].toFixed(1)+'" style="background:'+heatRGB(t)+'">'+data[i][j].toFixed(0)+'</td>'}h+='</tr>'}
+    for(var i=rows-1;i>=0;i--){h+='<tr><th class="r">'+lod[i]+'</th>';for(var j=0;j<cols;j++){var t=(data[i][j]-zN)/(zX-zN);var sk=i+','+j,sv=(STAGE[cur]||{})[sk];var bg=sv!==undefined?'#a07800':heatRGB(t);var dv=sv!==undefined?sv.toFixed(0):data[i][j].toFixed(0);h+='<td data-ri="'+i+'" data-ci="'+j+'" data-rpm="'+rpm[j]+'" data-tps="'+lod[i]+'" data-val="'+data[i][j].toFixed(1)+'" style="background:'+bg+';cursor:pointer">'+dv+'</td>'}h+='</tr>'}
     return h+'</table>';
   }
   function dtbl(){
@@ -688,5 +689,63 @@ function downloadMerge(){
   a.click();
   URL.revokeObjectURL(a.href);
 }
+// ---- FASE 5.1: click-to-edit VE heatmap ----
+document.getElementById('pw').addEventListener('click',function(e){
+  var td=e.target.closest('td[data-ri]');
+  if(!td||cur==='proposal')return;
+  var ri=parseInt(td.dataset.ri),ci=parseInt(td.dataset.ci),orig=parseFloat(td.dataset.val);
+  var stKey=ri+','+ci,cv=(STAGE[cur]||{})[stKey];
+  stageInput(td,ri,ci,orig,cv!==undefined?cv:orig);
+});
+function stageInput(td,ri,ci,orig,current){
+  var inp=document.getElementById('stageInp');
+  if(!inp){inp=document.createElement('input');inp.id='stageInp';inp.type='number';inp.step='0.1';
+    inp.style.cssText='position:fixed;background:#1a1a1a;border:1px solid var(--ac);color:#fff;font-family:var(--mn);font-size:10px;text-align:center;z-index:9999;padding:0 2px;border-radius:2px;box-sizing:border-box';
+    document.body.appendChild(inp);}
+  var r=td.getBoundingClientRect();
+  inp.style.left=r.left+'px';inp.style.top=r.top+'px';inp.style.width=r.width+'px';inp.style.height=r.height+'px';
+  inp._ri=ri;inp._ci=ci;inp._orig=orig;
+  inp.value=current.toFixed(1);inp.style.display='block';inp.focus();inp.select();
+  inp.onkeydown=function(e){if(e.key==='Enter'){commitStage(inp);}if(e.key==='Escape'){inp.style.display='none';}};
+  inp.onblur=function(){setTimeout(function(){inp.style.display='none';},200);};
+}
+function commitStage(inp){
+  var newVal=parseFloat(inp.value);
+  if(isNaN(newVal)||newVal<0){inp.style.display='none';return;}
+  var ri=inp._ri,ci=inp._ci,orig=inp._orig;
+  var lo=parseFloat((orig*0.85).toFixed(1)),hi=parseFloat((orig*1.15).toFixed(1));
+  if(newVal<lo||newVal>hi){setStageSt('Limit +-15%: '+lo+'-'+hi);inp.style.display='none';return;}
+  if(!STAGE[cur])STAGE[cur]={};
+  var stKey=ri+','+ci,isNew=!(stKey in STAGE[cur]);
+  var total=Object.values(STAGE).reduce(function(s,m){return s+Object.keys(m).length;},0);
+  if(isNew&&total>=MAX_STAGE_CELLS){setStageSt('Max '+MAX_STAGE_CELLS+' cells - burn or reset');inp.style.display='none';return;}
+  STAGE[cur][stKey]=newVal;
+  inp.style.display='none';
+  updateBurnBtn();render();
+  var n=Object.values(STAGE).reduce(function(s,m){return s+Object.keys(m).length;},0);
+  setStageSt(n+' cell'+(n===1?'':'s')+' staged');
+}
+function setStageSt(t){var el=document.getElementById('stageSt');if(el)el.textContent=t;}
+function updateBurnBtn(){
+  var total=Object.values(STAGE).reduce(function(s,m){return s+Object.keys(m).length;},0);
+  var btn=document.getElementById('burnBtn'),rst=document.getElementById('resetBtn');
+  if(btn){btn.disabled=total===0;btn.style.opacity=total>0?'1':'0.4';btn.textContent=total>0?'BURN ('+total+')':'BURN';}
+  if(rst){rst.disabled=total===0;rst.style.opacity=total>0?'1':'0.4';}
+}
+async function burnStaged(){
+  var changes=[];
+  for(var mk in STAGE)for(var key in STAGE[mk]){var p=key.split(',');changes.push({map:mk,ri:parseInt(p[0]),ci:parseInt(p[1]),val:STAGE[mk][key]});}
+  if(!changes.length)return;
+  if(!confirm('Burn '+changes.length+' change'+(changes.length===1?'':'s')+' to EEPROM?'))return;
+  setStageSt('Burning...');
+  try{
+    var r=await fetch('/eeprom/burn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({changes:changes})});
+    var d=await r.json();
+    if(d.error){setStageSt('Burn failed: '+d.error);return;}
+    STAGE={};updateBurnBtn();render();
+    setStageSt('Burned '+(d.cells_changed||changes.length)+' cell(s). Reload page to refresh map.');
+  }catch(e){setStageSt('Error: '+e.message);}
+}
+function resetStaged(){STAGE={};updateBurnBtn();render();setStageSt('');}
 </script><script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>
 </body></html>
