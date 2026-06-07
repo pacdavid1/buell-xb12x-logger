@@ -9,8 +9,9 @@ I run on the user machine and communicate via files on the Pi.
 ### Phase 1 - Analysis
 1. User assigns a task (directly or via TASKS.md)
 2. I research / analyze / design
-3. I write findings to /home/pi/buell/inbox/NNN_topic.md
-4. Claude reads inbox -> implements -> commits
+3. I write findings to: C:/Users/pacda/freebuff/responses/task_NNN_name.md
+   (NOT to the Pi inbox — that is only for urgent Claude tasks)
+4. Claude reads the response file, applies changes, commits
 
 ### Phase 2 - Audit
 1. After Claude commits, I SSH to Pi and verify code
@@ -47,8 +48,10 @@ After each Claude commit:
 | freebuff audits | SSH pi@192.168.100.80 |
 
 ## Sources of truth
-- TASKS.md - my task queue (local)
-- BACKLOG.md - project backlog (Pi)
-- CLAUDE.md - Claude instructions (Pi)
-- CHANGELOG.md - version history (Pi)
+- TASKS.md - my task queue: C:/Users/pacda/freebuff/TASKS.md
+- FREEBUFF.md - my role definition: /home/pi/buell/FREEBUFF.md (this file)
+- BACKLOG.md - project backlog (Pi): /home/pi/buell/BACKLOG.md
+- CLAUDE.md - Claude instructions (Pi): /home/pi/buell/CLAUDE.md
+- CHANGELOG.md - version history (Pi): /home/pi/buell/CHANGELOG.md
+  NOTE: newest entries are at the TOP — use head not tail
 - Actual code on Pi - always SSH, never trust local
