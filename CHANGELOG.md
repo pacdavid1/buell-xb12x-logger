@@ -25,6 +25,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.48] — 2026-06-07
+### Changed
+- web/templates/index.html: .hs-sm containers set to 60x33px matching .hs
+  All cells in #hdrRowBike, #hdrRowSerial, #hdrRowSensor now uniform size
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.47] — 2026-06-07
 ### Changed
 - web/templates/index.html: all dashboard labels shortened to 3 letters
