@@ -226,11 +226,11 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     try:
                         b = ep.read_bytes()
                         if len(b) >= 14: serial = int.from_bytes(b[12:14], 'little')
-                    except Exception: pass
+                    except Exception as e: logging.debug(f"ignored: {e}")  # freebuff: was silent pass
                 else:
                     continue
                 sessions.append({'id': d.parent.name, 'version': meta.get('version_string', '?'), 'rides': meta.get('total_rides', 0), 'samples': meta.get('total_samples', 0), 'created': meta.get('created_utc', '')[:10], 'serial': serial})
-            except Exception: pass
+            except Exception as e: logging.debug(f"ignored: {e}")  # freebuff: was silent pass
         sessions.sort(key=lambda s: s['created'], reverse=True)
         self._json({'sessions': sessions})
         return
@@ -605,6 +605,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if not sa or not sb:
             self._json({'error': 'missing a or b params'}, 400); return
         try:
+            from web.proposal import generate_fuel_proposal
             result = generate_fuel_proposal(self.server_instance.buell_dir, sa, sb)
             self._json(result)
         except Exception as e:
@@ -673,7 +674,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
                     import json as _json
                     meta = _json.loads(meta_file.read_text())
                     rides = meta.get('total_rides', 0)
-                except Exception: pass
+                except Exception as e: logging.debug(f"ignored: {e}")  # freebuff: was silent pass
             mtime = eeprom_file.stat().st_mtime
             rows.append({
                 'id':      sid.name,
@@ -708,7 +709,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             try:
                 current_eeprom = (backup_dir / 'eeprom.bin').read_bytes()
                 backup_path.write_bytes(current_eeprom)
-            except Exception: pass
+            except Exception as e: logging.debug(f"ignored: {e}")  # freebuff: was silent pass
         result_q = _queue.Queue()
         main_app = getattr(self.server_instance, '_main_app', None)
         if main_app is None:
@@ -1355,8 +1356,7 @@ class WebServer:
         if self._server:
             self._server.shutdown()
 
-# ── FASE 6 proposal engine ─────────────────────────────────────────────────
-from web.proposal import generate_fuel_proposal
+# FASE 6 proposal engine — imported lazily in _handle_eeprom_propose
 # ── end FASE 6 ───────────────────────────────────────────────────────────────
 
 # ── Sessions VS engine ───────────────────────────────────────────────────────

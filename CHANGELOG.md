@@ -26,6 +26,15 @@
 PROMPT_END -->
 
 
+## [v2.7.58] — 2026-06-07
+### Fixed
+- web/server.py: proposal.py import moved from module level to lazy (inside handler)
+  numpy + scipy_openblas64 were loading at startup consuming ~180MB RAM
+  Now only loads when /eeprom/propose endpoint is called (which has no UI)
+  MEM% at startup: 51% (219MB) -> 7.5% (32MB)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.57] — 2026-06-07
 ### Added
 - main.py: memory watchdog in _sysmon_loop — auto-restarts process via os.execv if MEM% > 90%
