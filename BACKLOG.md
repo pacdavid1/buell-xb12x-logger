@@ -1218,3 +1218,24 @@ Note: zone-aware boundaries depend on FASE 6.1 zone fusion being implemented fir
 - [ ] _compute_spark_delta() in proposal.py
 - [ ] 2-session rule for advance
 - [ ] fuel-before-spark ordering
+---
+
+## FASE 6.6 — Baro normalization remaining items (freebuff task 040)
+
+### Already done
+- baro_valid range gate (900-1100 hPa): launch.py + f7.py ✅
+- pw1_norm/pw2_norm split: v2.7.25 ✅
+- Note: gps_alt_m IS in CSV (launch.py line 362 reads it) — GPS fallback possible if needed
+
+### Missing
+1. Skip-flag: if session has < 90% baro_valid rows → skip baro normalization, flag session
+2. Dashboard: show avg_baro, baro_valid_pct, delta_baro per session comparison
+
+### Implementation
+1. web/launch.py: _compute_baro_stats(session_id) → {avg_baro, baro_valid_pct, skip_normalization}
+2. web/launch.py: if skip_normalization → use baro_factor=1.0 for all rows
+3. Dashboard template: add baro stats columns to session list
+
+## Prioridad: BAJA
+- [ ] _compute_baro_stats() in launch.py + skip flag
+- [ ] Dashboard baro columns (avg_baro, baro_valid_pct)
