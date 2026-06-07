@@ -1116,3 +1116,28 @@ EGO/AFV always 100.0 in OL — exclude from AI context (misleading to LLM).
 - [ ] _build_ai_context() helper in server.py with whitelist/blacklist
 - [ ] GET /eeprom/ai_context?session=X endpoint
 - [ ] Dashboard Copy AI context button
+---
+
+## Backlog 7.8 — Migrate Launch to consume F7 events (freebuff task 032)
+
+### Recommendation: Dual mode
+Keep detect_launches() for sessions WITHOUT f7clusters (29/33).
+Add _launch_from_f7clusters() for sessions that have F7 clusters.
+
+### F7 field mapping
+- gear, pre_rpm/spd/tps, clt, baro, pw1/pw2 curves: YES
+- peak_rpm, peak_spd, peak_pw, rpm_gain, spd_gain: YES
+- pre_alt_m: NO (F7 has slope, not absolute alt)
+- ae accel enrichment: NO
+- raw timestamps dt: NO
+
+### Implementation plan (+60 lines)
+1. f7.py: add ae + gps_alt to event struct (+5 lines)
+2. launch.py: _launch_from_f7clusters() converter (+40 lines)
+3. launch.py: _load_launch_data() dual-mode router (+15 lines)
+4. Bump events_v cache version (+1 line)
+
+## Prioridad: MEDIA
+- [ ] f7.py: add ae, gps_alt to event struct
+- [ ] launch.py: _launch_from_f7clusters() converter
+- [ ] launch.py: _load_launch_data() dual-mode router
