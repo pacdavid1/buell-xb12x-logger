@@ -335,6 +335,7 @@ class BuellLogger:
                     except Exception as e:
                         self.logger.warning(f"GPS restart failed: {e}")
                     
+            self._sysmon_heartbeat = time.monotonic()
             time.sleep(GPS_RESTART_DELAY)
 
     def _ecu_loop(self):
@@ -565,7 +566,6 @@ class BuellLogger:
                 _serial_window = _now
 
             time.sleep(max(0, INTERVAL - (time.monotonic() - t0)))
-            self._sysmon_heartbeat = time.monotonic()
             self._ecu_heartbeat = time.monotonic()
 
         # ── Cierre al detener el servicio ──────────────────────────────

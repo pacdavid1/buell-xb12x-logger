@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.32] — 2026-06-06
+
+### Fixed
+- main.py: heartbeat updates now in correct threads (freebuff audit v2.7.30 WARN)
+  _ecu_heartbeat updated only in _ecu_loop (not sysmon)
+  _sysmon_heartbeat updated only in _sysmon_loop (not ecu)
+  Previously both updated in ecu_loop — hung sysmon would never be detected
+
+### AI
+- Claude Sonnet 4.6, Anthropic + freebuff audit
+
 ## [v2.7.31] — 2026-06-06
 
 ### Fixed
