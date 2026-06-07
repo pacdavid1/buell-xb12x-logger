@@ -2643,3 +2643,14 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   Backend proposal.py and smoothing.py kept for future use
 ### AI
 - Claude Sonnet 4.6, Anthropic
+
+## [v2.7.41] — 2026-06-07
+### Added
+- web/f7.py: f7events now include 6 new fields per event
+  mat_avg (MAT air temp from ECU), spark_avg (avg spark advance),
+  iat_corr_avg (IAT correction), humidity_avg (AHT20, if available),
+  gps_alt_avg (GPS altitude, if available), gear_detected (post-ride)
+  _F7_EVENTS_V bumped 4→5 — all f7events auto-regenerate on next access
+  Cache check updated: missing mat_avg also triggers regeneration
+### AI
+- Claude Sonnet 4.6, Anthropic

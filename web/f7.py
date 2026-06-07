@@ -13,7 +13,7 @@ from pathlib import Path
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
 _F7_THRESH  = 0.85  # default DTW threshold
-_F7_EVENTS_V = 4     # bump when event struct fields change
+_F7_EVENTS_V = 5     # bump when event struct fields change
 
 
 def _f7_resample(series, n=_F7_N):
@@ -209,9 +209,15 @@ def _f7_detect_events(rows):
                             gps_slope = 0.0
 
                         # Environmental context from Bucket A window
-                        _baro_vals = [r['baro'] for r in win if r.get('baro', 0) > 0]
-                        _temp_vals = [r['temp_amb'] for r in win if r.get('temp_amb', 0) != 0]
-                        _clt_vals  = [r['clt'] for r in win if r.get('clt', 0) > 0]
+                        _baro_vals = [r['baro']      for r in win if r.get('baro',     0) > 0]
+                        _temp_vals = [r['temp_amb']  for r in win if r.get('temp_amb', 0) != 0]
+                        _clt_vals  = [r['clt']       for r in win if r.get('clt',      0) > 0]
+                        _mat_vals  = [r['mat']       for r in win if r.get('mat',      0) > 0]
+                        _spark_vals= [r['spark']     for r in win if r.get('spark',    0) > 0]
+                        _iat_vals  = [r['iat_corr']  for r in win if r.get('iat_corr', 0) > 0]
+                        _hum_vals  = [r['humidity']  for r in win if r.get('humidity', 0) > 0]
+                        _alt_vals  = [r['gps_alt']   for r in win if r.get('gps_valid') and r.get('gps_alt', 0) != 0]
+                        _gd_vals   = [r['gear_detected'] for r in win if r.get('gear_detected', 0) > 0]
 
                         events.append({
                             'event_type': _ev_type,
@@ -238,9 +244,15 @@ def _f7_detect_events(rows):
                             'vss_delta':  round(vss_d, 1),
                             'very_short': dur < 0.5,
                             'gps_slope':  gps_slope,
-                            'baro_hpa':   round(sum(_baro_vals)/len(_baro_vals), 1) if _baro_vals else None,
-                            'temp_amb_c': round(sum(_temp_vals)/len(_temp_vals), 1) if _temp_vals else None,
-                            'clt_avg':    round(sum(_clt_vals)/len(_clt_vals), 1) if _clt_vals else None,
+                            'baro_hpa':    round(sum(_baro_vals)/len(_baro_vals),  1) if _baro_vals  else None,
+                            'temp_amb_c':  round(sum(_temp_vals)/len(_temp_vals),  1) if _temp_vals  else None,
+                            'clt_avg':     round(sum(_clt_vals)/len(_clt_vals),    1) if _clt_vals   else None,
+                            'mat_avg':     round(sum(_mat_vals)/len(_mat_vals),    1) if _mat_vals   else None,
+                            'spark_avg':   round(sum(_spark_vals)/len(_spark_vals),2) if _spark_vals else None,
+                            'iat_corr_avg':round(sum(_iat_vals)/len(_iat_vals),    1) if _iat_vals   else None,
+                            'humidity_avg':round(sum(_hum_vals)/len(_hum_vals),    1) if _hum_vals   else None,
+                            'gps_alt_avg': round(sum(_alt_vals)/len(_alt_vals),    1) if _alt_vals   else None,
+                            'gear_detected': max(set(_gd_vals), key=_gd_vals.count) if _gd_vals else 0,
                         })
             in_stable = False
             stable_buf = [row]
@@ -597,7 +609,11 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
                     'gear':          _sf(r.get('Gear', 0)),
                     'gear_detected':  _detect_gear(rpm, _sf(r.get('VS_KPH', 0))),
                     'clt':    _sf(r['CLT']),
-                    'ae':     _sf(r.get('Accel_Corr', 100)),
+                    'ae':      _sf(r.get('Accel_Corr', 100)),
+                    'mat':     _sf(r.get('MAT', 0)),
+                    'spark':   (_sf(r.get('spark1', 0)) + _sf(r.get('spark2', 0))) / 2,
+                    'iat_corr': _sf(r.get('IAT_Corr', 100)),
+                    'humidity': _sf(r.get('humidity_pct', 0)),
                     'baro':   _baro,
                     'baro_valid': _baro_valid,
                     'temp_amb':  _sf(r.get('baro_temp_c', 0)),
@@ -619,7 +635,7 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
         if not _regen:
             try:
                 _s = json.loads(ef.read_text())
-                if not _s or 'pre_pw_curve' not in _s[0]:
+                if not _s or 'pre_pw_curve' not in _s[0] or 'mat_avg' not in _s[0]:
                     _regen = True
             except Exception:
                 _regen = True
