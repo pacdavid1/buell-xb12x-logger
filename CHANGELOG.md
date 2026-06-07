@@ -25,6 +25,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.49] — 2026-06-07
+### Changed
+- web/templates/index.html: #hdrRowBike cells now have 3-letter labels (EGO/MAT/BAT/GER/RID/SER)
+  .hs switched to flex-row matching .hs-sm, labels rotate 90° via fitLabels()
+  Font sizes increased: hs-sm .hs-val 13→18px, .hs-val 20→22px
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.48] — 2026-06-07
 ### Changed
 - web/templates/index.html: .hs-sm containers set to 60x33px matching .hs

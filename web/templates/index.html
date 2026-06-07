@@ -47,11 +47,11 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
     border-right:1px solid var(--border);width:60px;height:33px;flex-shrink:0;box-sizing:border-box}
 .hs-sm:last-child{border-right:none}
 .hs-sm .hs-label{font-family:var(--mono);color:var(--dim);letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;flex-shrink:0;line-height:1}
-.hs-sm .hs-val{font-size:13px;font-weight:700;line-height:1.2}
-.hs{width:60px;height:33px;display:flex;align-items:center;justify-content:center;
+.hs-sm .hs-val{font-size:18px;font-weight:700;line-height:1}
+.hs{width:60px;height:33px;display:flex;flex-direction:row;align-items:center;gap:4px;padding:1px 6px;box-sizing:border-box;
     border-right:1px solid var(--border);flex-shrink:0;overflow:hidden}
 .hs:last-child{border-right:none}
-.hs-val{font-size:20px;font-weight:900;line-height:1;text-align:center}
+.hs-val{font-size:22px;font-weight:900;line-height:1}
 .ac{color:var(--accent)} .gn{color:var(--green)} .bl{color:var(--blue)}
 .wh{color:#fff}          .yw{color:var(--accent2)}
 .pill{padding:3px 7px;font-family:var(--mono);font-size:8px;border:1px solid;
@@ -296,12 +296,12 @@ table.veg td:active{filter:brightness(1.6)}
   <!-- Row 1: bike params -->
   <div class="hdr-row" id="hdrRowBike">
     <div class="hdr-stats">
-      <div class="hs"><div class="hs-val gn" id="hEGO">--</div></div>
-      <div class="hs"><div class="hs-val bl" id="hMAT">--</div></div>
-      <div class="hs"><div class="hs-val yw" id="hBatt">--</div></div>
-      <div class="hs"><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
-      <div class="hs"><div class="hs-val wh" id="hRide">--</div></div>
-      <div class="hs"><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
+      <div class="hs"><span class="hs-label">EGO</span><div class="hs-val gn" id="hEGO">--</div></div>
+      <div class="hs"><span class="hs-label">MAT</span><div class="hs-val bl" id="hMAT">--</div></div>
+      <div class="hs"><span class="hs-label">BAT</span><div class="hs-val yw" id="hBatt">--</div></div>
+      <div class="hs"><span class="hs-label">GER</span><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
+      <div class="hs"><span class="hs-label">RID</span><div class="hs-val wh" id="hRide">--</div></div>
+      <div class="hs"><span class="hs-label">SER</span><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
     </div>
     <div id="hPill" class="pill-dot off"></div>
   </div>
@@ -729,8 +729,8 @@ function fitLabels(){
     var n=el.textContent.trim().length||1;
     el.style.fontSize=Math.max(10,Math.floor(h/n*0.82))+'px';
   });
-  document.querySelectorAll('.hs-sm .hs-label').forEach(function(el){
-    var box=el.closest('.hs-sm');if(!box)return;
+  document.querySelectorAll('.hs-sm .hs-label,.hs .hs-label').forEach(function(el){
+    var box=el.closest('.hs-sm,.hs');if(!box)return;
     var h=box.offsetHeight-4;
     var n=el.textContent.trim().length||1;
     el.style.fontSize=Math.max(6,Math.floor(h/n*0.82))+'px';
