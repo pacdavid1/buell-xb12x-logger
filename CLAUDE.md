@@ -164,11 +164,14 @@ entry = '''
 - Claude Sonnet 4.6, Anthropic
 '''
 with open(path) as f: content = f.read()
-# Find where version entries start
+# Find insertion point AFTER PROMPT_END block (never inside the instruction comments)
 import re
+prompt_end = 'PROMPT_END -->'
+after_header = content.index(prompt_end) + len(prompt_end)
 m = re.search(r'
-## \[v', content)
-content = content[:m.start()] + entry + content[m.start():]
+## \[v', content[after_header:])
+insert_at = after_header + m.start()
+content = content[:insert_at] + entry + content[insert_at:]
 with open(path, 'w') as f: f.write(content)
 ```
 

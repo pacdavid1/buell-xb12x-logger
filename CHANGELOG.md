@@ -21,6 +21,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.69] — 2026-06-07
+### Fixed
+- CLAUDE.md: CHANGELOG prepend script now searches after PROMPT_END block — prevents entries from being inserted inside the instruction comment
+- freebuff/TASKS.md: added CRITICAL warning — freebuff must never create new version entries, only add audit lines inside existing ones
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.68] — 2026-06-07
 ### Changed
 - web/templates/index.html: app.js cache-buster now uses --LOGGER_VERSION-- (auto-injected, never needs manual update)
