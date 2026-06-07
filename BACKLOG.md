@@ -912,7 +912,8 @@ Commit: 2b87e4f - fix: pw1/pw2 raw preserved in rows, pw1_norm for cross-session
 | 4 | CACHE_VERSION bump a 7 | PASA - vs_engine.py line 106 (v2.7.25) |
 | 5 | pw1_norm en cross-session | PASA - lines 437,446: c["pw1"] += r["pw1_norm"] |
 | 6 | Import check sin errores | PASA - python OK |
-| 7 | Commit 2b87e4f existe | PASA |
+| 7 | pw2_norm tambien existe (front + rear) | PASA - linea 446 usa ambos |
+| 8 | Commit 2b87e4f existe | PASA |
 
 ### Veredicto
 El fix de pw1_norm esta correctamente implementado:
@@ -923,3 +924,147 @@ El fix de pw1_norm esta correctamente implementado:
 - No hay regresiones en imports
 
 - [x] Claude: confirmar que la validacion es correcta y cerrar este item.
+
+
+---
+
+# Backlog: Investigacion freebuff - TASK 033 (Bug #13 daemon thread watchdog)
+
+## Prioridad: HECHA (Research) - Watchdog existe pero con gaps
+
+### Estado actual en main.py
+El watchdog YA existe (lineas 658-675) pero tiene limitaciones:
+
+| Aspecto | Estado actual |
+|---------|--------------|
+| _check_threads() | EXISTE - llamado cada ~1s desde el main loop |
+| Deteccion de threads muertos | es alive() check - detecta si el thread termino |
+| Restart con cooldown | 30s - evita restart loops |
+| Heartbeat timestamp por thread | NO existe - no detecta threads colgados |
+| Health metric (ej: last_read) | NO existe - no sabe si el thread progresa |
+| Restart de ecu-rt | SI - crea nuevo Thread y lo arranca |
+| Restart de sysmon | SI - misma logica |
+
+### Gaps identificados
+
+1. **Thread colgado vs thread muerto**
+   is_alive() solo detecta si el thread termino (return o exception no capturada).
+   Un thread trabado en read()/write() (blocking I/O) aparece vivo pero no progresa.
+   Solucion: agregar timestamp heartbeat que cada thread actualice en cada iteracion.
+
+2. **Sin health check**
+   No hay metricas como "ultimo sample de ECU recibido" o "ultima lectura de sysmon".
+   Solucion: agregar stats["ecu_last_read"] y stats["sysmon_last_read"] para monitoreo.
+
+3. **Sin heartbeat en ecu_loop**
+   El _ecu_loop no reporta si esta vivo. Si serial.read() cuelga, no hay recovery.
+   Solucion: ecu_loop agrega self._ecu_heartbeat = time.monotonic() en cada iteracion.
+
+### Propuesta de implementacion
+
+Agregar a main.py:
+
+
+### Efecto secundario: zombie threads en restart
+Riesgo real: si el thread viejo esta trabado en read() (kernel nivel), el .start()
+del nuevo thread no mata al viejo. El recurso (serial port) podria quedar lockeado.
+
+Mitigacion:
+- Antes de restart: self.ecu.disconnect() libera el puerto serial
+- Para sysmon: no hay recurso compartido, bajo riesgo
+
+### Archivos a modificar
+| Archivo | Cambio | Lineas |
+|---------|--------|--------|
+| main.py | Agregar self._ecu_heartbeat y _sysmon_heartbeat | +4 en init |
+| main.py | Actualizar heartbeats en _ecu_loop y _sysmon_loop | +2 lineas |
+| main.py | _check_threads: agregar chequeo de stale heartbeat | +5 lineas |
+
+### Estado: RESEARCH HECHA
+- [ ] Claude: revisar el analisis e implementar heartbeat check + stale detection
+- [ ] Claude: decidir si vale la pena o el is_alive() actual es suficiente
+
+
+---
+
+# Backlog: Investigacion freebuff - TASK 033 (Bug #13 daemon thread watchdog)
+
+## Prioridad: HECHA (Research) - Watchdog existe pero con gaps
+
+### Estado actual en main.py
+El watchdog YA existe (lineas 658-675) pero tiene limitaciones:
+
+| Aspecto | Estado actual |
+|---------|--------------|
+| _check_threads() | EXISTE - llamado cada ~1s desde el main loop |
+| Deteccion de threads muertos | is_alive() check - detecta si el thread termino |
+| Restart con cooldown | 30s - evita restart loops |
+| Heartbeat timestamp por thread | NO existe - no detecta threads colgados |
+| Health metric (ej: last_read) | NO existe - no sabe si el thread progresa |
+| Restart de ecu-rt | SI - crea nuevo Thread y lo arranca |
+| Restart de sysmon | SI - misma logica |
+
+### Gaps identificados
+
+1. Thread colgado vs thread muerto - is_alive() no detecta I/O blocking
+2. Sin health check - no metricas de progreso
+3. Sin heartbeat en ecu_loop
+
+### Propuesta de implementacion
+- self._ecu_heartbeat = time.monotonic() en cada iteracion del loop
+- self._sysmon_heartbeat idem
+- _check_threads: si heartbeat stale > 10s, restart
+- Antes de restart ecu: cerrar serial primero
+
+### Archivos a modificar
+main.py: +11 lineas total (init + 2 heartbeats + stale check)
+
+### Estado: RESEARCH HECHA
+- [ ] Claude: revisar analisis e implementar heartbeat + stale detection
+---
+
+## FASE 5.1 — Click-to-edit VE heatmap (freebuff task 029)
+
+### Infrastructure already in place
+- /eeprom/burn endpoint EXISTS (server.py line 725): safety gate, auto-backup, encode/decode
+- tuner.html has canvases for Base/Delta/Mod — no click handler yet
+
+### Architecture
+- STAGE.dirty = { fuel_front: { "3,5": new_value } } — JS dict tracking edits
+- Click cell → overlay input → store in STAGE.dirty → redraw yellow overlay
+- BURN button: POST /eeprom/burn { changes: { fuel_front: {"3,5": 45.2} } }
+- Backend: per-cell ±15% gate + max 20 cells per burn
+
+### Files to modify
+- tuner.html: STAGE object + click handler + overlay input + BURN/RESET buttons (~+80 lines)
+- server.py: changes validation in _handle_eeprom_burn (~+15 lines)
+
+## Prioridad: ALTA
+- [ ] tuner.html: add STAGE.dirty tracking + canvas click handler + cell input overlay
+- [ ] tuner.html: BURN button (POST /eeprom/burn with changes dict) + RESET button
+- [ ] server.py: validate changes in _handle_eeprom_burn (±15% per cell, max 20 cells)
+---
+
+## FASE 6 — Readiness matrix (freebuff task 030, 2026-06-06)
+
+### Status: 5/11 spec items done
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | F7 + VS zone fusion (peak TPS → WOT/Mid/Light) | ❌ MISSING — v2 work |
+| 2 | Two delta maps: f7_delta + vs_delta separate | ❌ MISSING — only VS delta exists |
+| 3 | Rich bias on conflict | ⚠️ PARTIAL — in smoothing, no F7 vs VS conflict logic |
+| 4 | F7 confidence formula (w_multi * w_dtw * w_cross) | ❌ MISSING — sample-based only |
+| 5 | Coverage mask per cell (multi-session) | ⚠️ PARTIAL — signal_mask exists, not multi-session |
+| 6 | Front/rear merged independently | ✅ DONE |
+| 7 | Smoothing pipeline: clamp→interp→smooth→clamp | ✅ DONE |
+| 8 | Convergence termination | ✅ DONE |
+| 9 | Asymmetric bias only on last iteration | ✅ DONE |
+| 10 | No smoothing across zone boundaries | ❌ MISSING |
+| 11 | Rear cylinder lambda*0.5 for measured cells | ❌ MISSING |
+
+### Next implementation order (FASE 6 v2)
+1. F7 delta integration in proposal.py (items 1, 2, 4) — HIGH
+2. Zone boundary protection in smoothing.py (item 10) — MEDIUM
+3. Multi-session coverage mask (item 5) — MEDIUM
+4. Rear cylinder lambda*0.5 (item 11) — LOW
