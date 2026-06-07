@@ -26,6 +26,13 @@
 PROMPT_END -->
 
 
+## [v2.7.59] — 2026-06-07
+### Changed
+- web/templates/index.html: .hs-val and .hs-sm .hs-val centered (flex:1 + text-align:center)
+  Font sizes: hs-val 22→24px, hs-sm .hs-val 18→20px
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.58] — 2026-06-07
 ### Fixed
 - web/server.py: proposal.py import moved from module level to lazy (inside handler)
