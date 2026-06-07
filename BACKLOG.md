@@ -1326,3 +1326,19 @@ Note: zone-aware boundaries depend on FASE 6.1 zone fusion being implemented fir
 ## Prioridad: BAJA
 - [ ] _compute_baro_stats() in launch.py + skip flag
 - [ ] Dashboard baro columns (avg_baro, baro_valid_pct)
+
+### BL-LOGGER-01 — Grabar humidity_pct y gps_alt_m en el CSV
+**Priority:** MEDIUM
+**File:** main.py o el logger de CSV
+
+humidity_pct del sensor AHT20 no está siendo grabada en el CSV.
+gps_alt_m del GPS sí está en el CSV pero gps_valid=True casi nunca coincide con eventos F7.
+Verificar que ambas columnas se graben correctamente y con la frecuencia adecuada.
+
+### BL-LOGGER-01 — Grabar humidity_pct y gps_alt_m en el CSV
+**Priority:** MEDIUM
+**File:** main.py o el logger de CSV
+
+humidity_pct del sensor AHT20 no está siendo grabada en el CSV.
+gps_alt_m del GPS sí está en el CSV pero gps_valid=True casi nunca coincide con eventos F7.
+Verificar que ambas columnas se graben correctamente y con la frecuencia adecuada.
