@@ -2634,3 +2634,12 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - CLAUDE.md: data reuse principle + no-new-tab principle documented
 ### AI
 - Claude Sonnet 4.6, Anthropic
+
+## [v2.7.40] — 2026-06-07
+### Removed
+- web/templates/tuner.html: PROPOSAL tab eliminated
+  Tab button, propPanel div, generateProposal/renderPropCanvas/renderPropData/propColor JS
+  Tab switch logic simplified (no more isProp branch)
+  Backend proposal.py and smoothing.py kept for future use
+### AI
+- Claude Sonnet 4.6, Anthropic
