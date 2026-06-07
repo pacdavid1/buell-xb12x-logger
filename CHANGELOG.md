@@ -26,6 +26,14 @@
 PROMPT_END -->
 
 
+## [v2.7.54] — 2026-06-07
+### Fixed
+- web/templates: replaced 'Barlow Condensed' with 'JetBrains Mono' as body font
+  index.html, session_events.html, sessions_launch.html — Barlow was declared but never loaded
+  JetBrains Mono already loaded via Google Fonts link, now consistent everywhere
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.53] — 2026-06-07
 ### Changed
 - web/templates/index.html: #hdrMain logo text auto-scales to 90% of row height via fitLabels()
