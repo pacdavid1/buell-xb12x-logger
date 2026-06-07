@@ -26,6 +26,13 @@
 PROMPT_END -->
 
 
+## [v2.7.55] — 2026-06-07
+### Changed
+- web/templates/index.html: #hdrLogoRow fixed height 40px, BUELL LOGGER font-size 36px
+  Removed JS auto-scaling for logo (was miscalculating)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.54] — 2026-06-07
 ### Fixed
 - web/templates: replaced 'Barlow Condensed' with 'JetBrains Mono' as body font
