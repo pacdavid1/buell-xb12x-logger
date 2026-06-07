@@ -863,3 +863,31 @@ No necesita learning cycle manual.
   Commit 2b87e4f. pw1 ahora es RAW, pw1_norm agregado, CACHE_VERSION bump a 7.
   detect_launches() usa pw1 raw correctamente.
   Archivos: launch.py, vs_engine.py, CHANGELOG.md
+---
+
+# Backlog: Knowledge Graph de Mapas — Diseño (freebuff task 028)
+
+## Schema (Pure SQLite — no sqlite-vec, PEP 668 blocks pip on Pi)
+
+- maps(checksum PK, fuel_front JSON 12x13, fuel_rear JSON 12x13, axes_rpm, axes_load, n_sessions)
+- sessions(session_id PK, checksum FK, avg_baro, avg_temp, avg_alt, date_utc, is_proposal)
+- performance(session_id PK FK, sweet_pct, spicy_pct, bitter_pct, dpw_eff_avg, orphan_rate, sample_count)
+- Similarity: 312-float vector (fuel_front flat + fuel_rear flat), numpy cosine, no DB extension needed
+
+## Condition buckets
+- baro: 20 hPa bands | temp: 5C bands | alt: 500m bands
+- Fallback: nearest-neighbor Euclidean when < 3 sessions in bucket
+
+## Performance ranking formula
+  map_score = sweet_pct*0.35 + |dpw_eff_avg|*10*0.25 + (100-orphan_rate)*0.25 + spicy_pct*0.15
+
+## File: web/knowledge.py (~200 lines)
+## Effort: 5-6h total (schema + 3 core functions + 2 endpoints + ingestion + dashboard card)
+
+## Prioridad: ALTA — implementar despues de PROPOSAL tab
+
+## Prioridad: ALTA
+- [ ] Step 1: web/knowledge.py — DB schema + ingest_session() + best_maps_for_conditions() + map_similarity()
+- [ ] Step 2: ingest_all_sessions() to bootstrap from existing 22 sessions
+- [ ] Step 3: GET /knowledge/best?baro=&temp=&alt= + GET /knowledge/similar/<checksum>
+- [ ] Step 4: Dashboard card showing best historical map for current conditions
