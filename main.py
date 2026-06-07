@@ -230,6 +230,10 @@ class BuellLogger:
                     _mem = {k.strip(): int(v.split()[0]) for line in f for k, v in [line.split(':')]}
                 _mt, _mf = _mem['MemTotal'], _mem['MemAvailable']
                 stats['mem_pct'] = round((_mt - _mf) / _mt * 100, 1)
+                if stats['mem_pct'] > 90:
+                    self.logger.error(f"MEM {stats['mem_pct']}% — restarting to avoid OOM crash")
+                    import os, sys
+                    os.execv(sys.executable, [sys.executable] + sys.argv)
             except Exception as e: self.logger.debug(f"sysmon: {e}")
 
             if self._bmp280:

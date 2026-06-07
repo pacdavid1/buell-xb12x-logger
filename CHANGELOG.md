@@ -26,6 +26,13 @@
 PROMPT_END -->
 
 
+## [v2.7.57] — 2026-06-07
+### Added
+- main.py: memory watchdog in _sysmon_loop — auto-restarts process via os.execv if MEM% > 90%
+  Prevents OOM kernel crash (which reboots the Pi) with a clean process restart instead
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.56] — 2026-06-07
 ### Reverted
 - web/templates/index.html: BUELL LOGGER header back to original (14px, no fixed row height)
