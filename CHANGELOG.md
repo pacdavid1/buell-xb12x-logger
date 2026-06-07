@@ -2663,3 +2663,11 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ---
 
 - **Bug #14: No threading locks on shared state** — Added `threading.RLock()` in `web/server.py` (`_data_lock`) protecting `serial_stats`, `ecu_live`, `gps`, and `eeprom_maps` from concurrent access by HTTP threads, ECU loop, and sysmon loop. Used via `self.web._data_lock` in main.py.
+
+<!-- CHANGELOG_TAIL
+  You are reading the BOTTOM of the changelog.
+  The MOST RECENT entries are at the TOP of this file.
+  If you used tail to read this, go to head for the latest version.
+  Current latest version: check ## [v2.7.XX] at the top.
+  To read latest: head -50 /home/pi/buell/CHANGELOG.md
+-->
