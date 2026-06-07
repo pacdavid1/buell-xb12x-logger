@@ -71,7 +71,25 @@ before the return. It's in the backlog.
 | `web/launch.py` | 🔲 Next — `detect_launches`, `cluster_launches`, `match_clusters`, `_compare_sessions` |
 | `web/sessions_vs_engine.py` | 🔲 After launch — `_maps_differ`, `_merge_maps`, `_compare_sessions_cached` |
 
-## Sensor configuration — OL mode (CRITICAL context)
+## ECU logic — CRITICAL: read before writing any fuel/spark logic
+
+### Alpha-N fueling (not Speed Density)
+The DDFI2 runs **Alpha-N**: fuel is calculated from **TPS position + RPM only**.
+There is NO MAP sensor. The ECU does NOT compute air density from manifold pressure.
+
+**Consequences — do NOT assume Speed Density behavior:**
+- Barometric pressure does NOT directly enter the fuel equation
+- Do NOT normalize PW by (1013/baro) as if it were Speed Density
+- PW differences between sessions reflect MAP calibration differences, not baro offsets
+- We measure with physics: PW is what the injector actually did, TPS is what the rider did
+
+### DDFI2 built-in baro compensation (PENDING RESEARCH)
+The DDFI2 has an internal baro compensation parameter in EEPROM that adjusts
+injection for altitude changes. This IS adjustable via EcmSpy and should eventually
+be adjustable from the Pi. See BACKLOG BL-DDFI2-01.
+Do NOT confuse this internal ECU compensation with external post-processing normalization.
+
+### Sensor configuration — OL mode (CRITICAL context)
 
 The bike runs in **Open Loop (OL) without a wideband O2 sensor**.
 The narrowband EGO sensor is intentionally disconnected.

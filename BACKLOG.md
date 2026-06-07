@@ -61,6 +61,30 @@ Cambio: label a la izquierda del contenedor, rotado 90° (texto vertical), núme
 todo el ancho restante → números visiblemente más grandes desde la moto.
 Afecta el layout CSS de los contenedores de cada variable en index.html.
 
+### BL-DDFI2-01 — Investigar y exponer parámetro de compensación barométrica de la DDFI2
+**Priority:** HIGH
+**Files:** ecu/eeprom.py, ecu/BUEIB.xml, web/server.py
+
+La DDFI2 tiene un parámetro interno en EEPROM que ajusta la inyección por cambios
+barométricos (altitud). EcmSpy puede leerlo y escribirlo. La Pi debería poder hacer lo mismo.
+
+### Qué investigar (freebuff task pendiente)
+1. Identificar el parámetro en BUEIB.xml — buscar: baro, altitude, KBaro, baro_comp, KAlt
+   `grep -i 'baro\|altitude\|kalt\|kbaro' /home/pi/buell/ecu/BUEIB.xml | head -20`
+2. Leer el valor actual del parámetro desde el EEPROM de una sesión
+3. Entender el rango válido y la unidad (hPa? factor? offset?)
+4. Diseñar el endpoint GET/POST /eeprom/baro_comp para leer y escribir el valor
+5. Agregar al VE tab o Tuner: mostrar el valor actual y permitir ajustarlo
+
+### Contexto importante
+- La moto es Alpha-N: TPS+RPM determinan la inyección base
+- Este parámetro es una corrección SOBRE esa base, no el cálculo principal
+- No confundir con la normalización post-ride (PW × 1013/baro) que implementamos
+  en f7.py/launch.py — esa es nuestra normalización de análisis, independiente del ECU
+- El parámetro del ECU actúa en tiempo real durante la ride
+
+---
+
 ---
 
 ## FASE 6 — Algoritmo: hallazgos de freebuff (tareas 001-006)
