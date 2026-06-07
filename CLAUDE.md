@@ -173,75 +173,38 @@ curl -s 'http://localhost:8080/session_events/data?session=248AE2' | python3 -c 
 5. FASE 5.1 — editable VE heatmap cells + burn from browser
 6. FASE 6 — map proposal from Sessions VS delta → VE overlay
 
-## Freebuff — parallel AI agent workflow
+## Freebuff - inbox protocol
 
-Freebuff is a second AI agent running in the user's terminal (`freebuff` CLI).
-It works on research/analysis tasks in parallel while Claude codes.
-It also validates code we write and acts as a supervisor.
+Freebuff is a second AI agent running on the user machine.
+It writes research, audits, and task assignments to the inbox folder below.
 
-### Files
-- Tasks queue:  C:/Users/pacda/freebuff/TASKS.md  (Claude writes here)
-- Responses:    C:/Users/pacda/freebuff/responses/task_NNN_name.md  (freebuff writes here)
+### How it works
 
-### Claude's role
+1. freebuff writes to /home/pi/buell/inbox/NNN_topic.md via SSH
+2. Claude reads inbox after every commit - process ALL files in order
+3. Claude processes each file:
+   - Code changes -> apply immediately, commit with version bump
+   - Research findings -> save to BACKLOG.md if not actionable
+   - Audits -> add Audited line to CHANGELOG.md
+4. Claude deletes the inbox file after processing (signals done)
+5. Claude reports to user about what was processed
 
-**MANDATORY: check responses at these moments:**
-1. Session start — FIRST thing: glob C:/Users/pacda/freebuff/responses/*.md
-   If files exist: read them, evaluate, delete consumed ones, add follow-up tasks.
-   Report to user: 'Freebuff respondio task NNN — [2-line summary].'
-2. After every git commit — check responses/ and remind user of pending tasks.
-3. At any natural pause (waiting for user input) — quick check, don't block.
-4. When user asks 'what's next?' — include freebuff pending task count.
+### Mandatory: check inbox at these moments
 
-**How to consume a response — DO NOT DELETE until all steps are done:**
+1. AFTER every git commit - run: ls /home/pi/buell/inbox/
+2. At session start - check inbox before anything else
+3. When user mentions freebuff - check inbox immediately
+4. At natural pauses while waiting for user input
 
-Step 1 — READ: Read the full file with the Read tool.
+### Inbox file format
 
-Step 2 — PROCESS every finding (do ALL of these before deleting):
-  a) Things we can apply NOW -> apply them, add to CHANGELOG, commit
-  b) Things we CAN'T apply now -> add to BACKLOG.md with:
-       - file/function to change, what to change, why it matters
-       - source tag: (freebuff task NNN)
-       - 'VERIFY CODE BEFORE APPLY' if freebuff's snippet may not match real code
-  c) Follow-up questions freebuff raised -> add new TASK to TASKS.md
-  d) Code freebuff wrote (new files) -> copy to Pi, validate import, commit
+Files are named NNN_topic.md (e.g. 001_pending_priorities.md).
+Each file starts with a header: # NNN - Topic, then content.
 
-Step 3 — VERIFY: Before deleting, ask yourself:
-  'Is there ANY finding in this file not yet in code, backlog, or new task?'
-  If yes -> process it first.
+### Processing rules
 
-Step 4 — DELETE: Only now delete the file.
-  rm command — deletion signals freebuff the response was consumed.
+1. Process files in numeric order (001 before 002)
+2. After processing: delete the file: rm /home/pi/buell/inbox/001_*
+3. If a file needs user decision: keep it, flag to user, wait
+4. Never skip an inbox file - every file is there for a reason
 
-Step 5 — REPORT: Tell user in 2-3 lines what freebuff said and what was done with it.
-
-**Why this order matters:** Deleting before processing loses the work permanently.
-Freebuff's research takes time. Every finding must land somewhere: code, backlog, or task.
-
-**When to ADD a task to freebuff (do this proactively, not when asked):**
-- After EVERY git commit with new code -> add validation task immediately
-- Any algorithm decision you're unsure about -> research task
-- Any 'Questions for Claude' in a freebuff response -> follow-up task
-- User says 'que piensas de X' -> delegate to freebuff
-- Freebuff queue has < 2 PENDING tasks -> proactively add the next one
-
-**After every git commit (mandatory checklist):**
-1. Check responses/ for new freebuff files
-2. Add TASK NNN — Validate: [what we just built] to TASKS.md
-3. Tell user: 'Agregue task NNN a freebuff. Dile siguiente cuando puedas.'
-4. If freebuff has > 3 pending tasks: mention it so user can pace freebuff
-
-**Validation task format (use after every coding session):**
-```
-## TASK NNN - Validate: [what we built]
-File: web/X.py lines A-B. What it does: Z.
-Key decisions made: ...
-Review for: correctness, edge cases, OL mode compliance (no EGO/AFV logic),
-pipeline consistency, anything that looks risky or wrong.
-```
-
-**Reminder protocol (proactive, not passive):**
-- After git commit: check responses/ + tell user 'freebuff tiene [N] tareas pendientes'
-- If >1 session with no freebuff check: remind user 'hay tasks de freebuff sin revisar'
-- Never block coding waiting for freebuff — always work in parallel
-- If user says 'lo pongo a trabajar': add the next task to TASKS.md immediately
