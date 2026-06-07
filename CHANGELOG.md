@@ -21,6 +21,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.71] — 2026-06-07
+### Added
+- BACKLOG.md: BUG-DISC-01 — ECU disconnection investigation (11.2s gaps during rides)
+  Pattern: consistent 11.2-11.4s blackouts across all 47BF04 rides, RPM non-zero, no dirty bytes
+  Hypothesis: get_version() 5 attempts x 2.3s = 11.5s blocking the ECU loop
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.70] — 2026-06-07
 ### Fixed
 - web/static/app.js: loadGraphRide title — escapeHtml was applied to datePart (HTML string), causing literal <span style...> visible in UI

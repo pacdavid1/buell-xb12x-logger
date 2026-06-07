@@ -744,6 +744,43 @@ aparece en VE para revisar y quemar. Sin WB — el tuning es relativo entre sesi
 - [ ] Con piggy activo: EGO correction real → propuesta VE basada en AFR absoluto
 - [ ] Sin piggy: open loop, propuesta relativa entre sesiones (FASE 6.1-6.4)
 
+
+## BUG-DISC-01 — ECU disconnection gaps during rides (~11s periodic blackouts)
+
+**Priority:** HIGH
+**Sessions affected:** 47BF04 (all rides), likely all sessions
+**Symptoms:** CSV shows gaps of exactly 11.2-11.4s at random times during rides, with engine still running (RPM > 0 after gap). Some rides also have longer gaps (20-165s).
+
+### Data pattern (47BF04 ride_001 sample)
+- GAP 80s->92s=11.2s RPM=1083
+- GAP 135s->147s=11.2s RPM=2591
+- GAP 284s->296s=11.7s RPM=3491
+All gaps: 11.2-11.4s. No dirty bytes. Engine running throughout.
+
+### Hypothesis
+The ~11.2s gap =  blocking: 5 attempts x (2.0s timeout + 0.3s sleep) = 11.5s.
+This is called by the hard reconnect path in  when .
+But if get_version() ALSO blocks during the accumulation phase, or is triggered by
+a different path, the total observed gap could be shorter than 10+11.5s.
+
+### What to investigate (freebuff task)
+1. SSH and read the buell log during a ride:  while riding
+2. Find any Hard reconnect or get_version log lines and correlate timestamps
+3. Check if  is called from any path outside the hard reconnect block
+4. Check if  triggers a disconnect during a ride
+   (currently guarded by  at line ~458 of main.py — verify this is correct)
+5. Measure actual duration of  failing: 5 x 2.3s = 11.5s matches the gaps
+
+### Proposed fix options
+A. Skip  during active rides — use  directly as the liveness check
+B. Reduce get_version to 1-2 attempts (not 5) during a ride
+C. Add a fast ping: send PDU_VERSION, read 1 byte with 0.5s timeout — if SOH received, ECU is alive
+D. Log every get_version() call with timestamp to buell.log
+
+### Related files
+- main.py: _ecu_loop(), hard reconnect block (~line 465), MAX_CONSEC_ERRORS=30
+- ecu/connection.py: _get_version_impl() (5 attempts x 2.3s), get_rt_data()
+
 ## Mantenimiento / Limpieza de código
 ### BL-BUG-01 — Low priority bugs from freebuff audit (2026-06-07)
 **Priority:** LOW
