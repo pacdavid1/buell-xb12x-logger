@@ -648,7 +648,7 @@ async function generateProposal(){
   var cyl=document.getElementById('propCyl').value,mode=document.getElementById('propMode').value;
   var ckey=a+'_'+b;
   var cached=sessionStorage.getItem('prop_'+ckey);
-  if(cached){var d=JSON.parse(cached);renderPropData(d,cyl,mode);return;}
+  if(cached){var d=JSON.parse(cached);if(!d.error){renderPropData(d,cyl,mode);return;}sessionStorage.removeItem('prop_'+ckey);}
   document.getElementById('propBtn').disabled=true;
   document.getElementById('propSt').textContent='Computing proposal... (2-5s)';
   try{
