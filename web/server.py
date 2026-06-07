@@ -93,7 +93,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/suggested_msq': self._handle_suggested_msq,
             '/eeprom/download': self._handle_eeprom_download,
             '/eeprom/sessions-list': self._handle_eeprom_sessions_list,
-            '/eeprom/propose':  self._handle_eeprom_propose,
+            "/eeprom/propose":  self._handle_eeprom_propose,
             '/eeprom/msq':      self._handle_eeprom_msq,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
@@ -595,23 +595,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header('Content-Length', str(len(data)))
         self.end_headers()
         self.wfile.write(data)
-
-    def _handle_eeprom_propose(self, path=None):
-        """GET /eeprom/propose?a=SA&b=SB — generate FASE 6 fuel proposal."""
-        import urllib.parse as _up
-        qs = _up.parse_qs(_up.urlparse(self.path).query)
-        sa = (qs.get('a', [''])[0]).strip().upper()
-        sb = (qs.get('b', [''])[0]).strip().upper()
-        if not sa or not sb:
-            self._json({'error': 'missing a or b params'}, 400); return
-        try:
-            from web.proposal import generate_fuel_proposal
-            result = generate_fuel_proposal(self.server_instance.buell_dir, sa, sb)
-            self._json(result)
-        except Exception as e:
-            import traceback
-            self._json({'error': str(e), 'trace': traceback.format_exc()}, 500)
-
     def _handle_eeprom_msq(self, path=None):
         """Generate MSQ from eeprom_decoded.json for a session (no tuning modifications)."""
         import urllib.parse, re
@@ -819,7 +802,14 @@ class DashboardHandler(BaseHTTPRequestHandler):
             'attachment; filename="suggested_' + session + '.msq"')
         self.send_header('Content-Length', str(len(data)))
         self.end_headers()
-        self.wfile.write(data)
+
+    def _handle_eeprom_propose(self, path=None):
+        """GET /eeprom/propose - DEPRECATED: log warning only."""
+        logging.getLogger("WebServer").warning(
+            "DEPRECATED: /eeprom/propose was called from %s",
+            self.client_address[0]
+        )
+        self._json({"error": "endpoint deprecated", "message": "PROPOSAL tab was removed"}, 410)
 
     def _handle_maps(self, path=None):
         # Soporte para pedir mapa de una sesion especifica: /maps?session=XXXX
@@ -1356,8 +1346,6 @@ class WebServer:
         if self._server:
             self._server.shutdown()
 
-# FASE 6 proposal engine — imported lazily in _handle_eeprom_propose
-# ── end FASE 6 ───────────────────────────────────────────────────────────────
 
 # ── Sessions VS engine ───────────────────────────────────────────────────────
 from web.vs_engine import (

@@ -103,6 +103,10 @@ class DDFI2Connection:
         self.logger.info(f"Puerto serial abierto: {self.port}")
 
     def disconnect(self) -> None:
+        with self._lock:
+            self._disconnect_impl()
+
+    def _disconnect_impl(self) -> None:
         try:
             if self.ser and self.ser.is_open:
                 self.ser.close()
@@ -155,6 +159,11 @@ class DDFI2Connection:
 
     def get_version(self) -> str | None:
         """Reintentar hasta 5 veces con flush — ECU puede estar en modo RT."""
+        with self._lock:
+            return self._get_version_impl()
+
+    def _get_version_impl(self) -> str | None:
+        """Internal — called under self._lock."""
         for attempt in range(5):
             try:
                 self.ser.reset_input_buffer()

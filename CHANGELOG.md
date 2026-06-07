@@ -7,7 +7,15 @@
   INSTRUCTIONS FOR AI ASSISTANTS:
   1. All changelog entries MUST be written in English.
   2. Each new entry follows this format:
-       ## [vX.Y.Z] — YYYY-MM-DD
+       ## [v2.7.64] — 2026-06-07
+
+### Removed
+- `gps/reader.py.bak`, `web/templates/index.html.bak.grid`, `web/templates/sessions_launch.html.bak`: Deleted stale backup files left over from previous refactors.
+
+### AI
+- freebuff
+
+## [vX.Y.Z] — YYYY-MM-DD
        ### Changed / Added / Fixed / Removed
        - file: description of change
        ### AI

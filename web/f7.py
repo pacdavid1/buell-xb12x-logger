@@ -12,8 +12,8 @@ from pathlib import Path
 
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
-_F7_THRESH  = 0.85  # default DTW threshold
-_F7_EVENTS_V = 5     # bump when event struct fields change
+_F7_THRESH  = 0.75  # default DTW threshold
+_F7_EVENTS_V = 6     # bump when event struct fields change
 
 
 def _f7_resample(series, n=_F7_N):
@@ -271,8 +271,8 @@ def _f7_ba_consistent(events):
     vsss  = [e['bucket_a']['vss_avg'] for e in events]
     return (
         len(set(gears)) == 1 and
-        max(rpms) - min(rpms) <= 250 and
-        max(tpss) - min(tpss) <= 3.0 and
+        max(rpms) - min(rpms) <= 400 and
+        max(tpss) - min(tpss) <= 5.0 and
         max(vsss) - min(vsss) <= 10.0
     )
 
