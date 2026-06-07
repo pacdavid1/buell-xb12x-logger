@@ -2617,3 +2617,11 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ---
 
 - **Bug #14: No threading locks on shared state** — Added `threading.RLock()` in `web/server.py` (`_data_lock`) protecting `serial_stats`, `ecu_live`, `gps`, and `eeprom_maps` from concurrent access by HTTP threads, ECU loop, and sysmon loop. Used via `self.web._data_lock` in main.py.
+
+## [v2.7.38] — 2026-06-07
+### Fixed
+- web/templates/tuner.html: PROPOSAL tab — error responses no longer cached in sessionStorage
+  renderPropData now checks d.error before accessing d.smoothed_pct/d.raw
+  Prevents Cannot read properties of undefined crash on stale cached error
+### AI
+- Claude Sonnet 4.6, Anthropic

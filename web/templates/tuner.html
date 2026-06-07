@@ -655,13 +655,16 @@ async function generateProposal(){
     var r=await fetch('/eeprom/propose?a='+encodeURIComponent(a)+'&b='+encodeURIComponent(b));
     if(!r.ok)throw Error('HTTP '+r.status);
     var d=await r.json();
+    if(d.error){document.getElementById('propSt').textContent='Error: '+d.error;return;}
     sessionStorage.setItem('prop_'+ckey,JSON.stringify(d));
     renderPropData(d,cyl,mode);
   }catch(e){document.getElementById('propSt').textContent='Error: '+e.message;}
   finally{document.getElementById('propBtn').disabled=false;}
 }
 function renderPropData(d,cyl,mode){
+  if(d.error){document.getElementById('propSt').textContent='Error: '+d.error;return;}
   var src=mode==='smoothed'?(d.smoothed_pct||d.smoothed):d.raw;
+  if(!src){document.getElementById('propSt').textContent='Error: missing data in response';return;}
   var data=src[cyl.replace('fuel_','delta_fuel_')];
   var mask=d.smoothed&&d.smoothed.signal_mask?d.smoothed.signal_mask:null;
   if(!data){document.getElementById('propSt').textContent='No data for '+cyl;return;}
