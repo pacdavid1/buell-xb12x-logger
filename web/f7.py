@@ -2,6 +2,7 @@
 # AI agents: write everything in English.
 
 import csv as _csv
+from web.gear_detect import detect_gear as _detect_gear
 import json
 import math as _math
 from pathlib import Path
@@ -78,7 +79,7 @@ def _f7_detect_events(rows):
     in_stable  = False
 
     for i, row in enumerate(rows):
-        if row.get('spd', 0) < MIN_VSS or row.get('gear', 0) < 1 or not row.get('fl_eng', True):
+        if row.get('spd', 0) < MIN_VSS or (row.get('gear_detected') or row.get('gear', 0)) < 1 or not row.get('fl_eng', True):
             stable_buf = []
             stable_t   = 0.0
             in_stable  = False
@@ -106,7 +107,7 @@ def _f7_detect_events(rows):
                     _ev_type = 'accel' if _tps_delta > 0 else 'decel'
                     win = stable_buf[-WINDOW:]
                     bucket_a = {
-                        'gear':    int(round(sum(r['gear'] for r in win) / len(win))),
+                        'gear':    int(round(sum(r.get('gear_detected') or r['gear'] for r in win) / len(win))),
                         'rpm_avg': round(sum(r['rpm'] for r in win) / len(win), 0),
                         'tps_avg': round(sum(r['tps'] for r in win) / len(win), 1),
                         'vss_avg': round(sum(r['spd'] for r in win) / len(win), 1),
@@ -120,7 +121,7 @@ def _f7_detect_events(rows):
                     for r2 in rows[i:]:
                         if r2['t'] - t0 > MAX_DUR:
                             break
-                        if int(round(r2.get('gear', 0))) != gear0:
+                        if int(round(r2.get('gear_detected') or r2.get('gear', 0))) != gear0:
                             break
                         if r2.get('fl_fc', False):
                             break
@@ -593,7 +594,8 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
                     'spd':    _sf(r.get('VS_KPH', 0)),
                     'pw1':    _sf(r['pw1']) * _baro_factor,
                     'pw2':    _sf(r.get('pw2', 0)) * _baro_factor,
-                    'gear':   _sf(r.get('Gear', 0)),
+                    'gear':          _sf(r.get('Gear', 0)),
+                    'gear_detected':  _detect_gear(rpm, _sf(r.get('VS_KPH', 0))),
                     'clt':    _sf(r['CLT']),
                     'ae':     _sf(r.get('Accel_Corr', 100)),
                     'baro':   _baro,

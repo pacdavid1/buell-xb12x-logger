@@ -2,6 +2,7 @@
 # AI agents: write everything in English.
 
 import csv
+from web.gear_detect import detect_gear as _detect_gear
 import json
 import logging
 from pathlib import Path
@@ -34,7 +35,7 @@ def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=8.0, min_rpm
     def _mode_gear(samples):
         counts = {}
         for r in samples:
-            g = int(r.get('gear', 0))
+            g = int(r.get('gear_detected') or r.get('gear', 0))
             if g > 0:
                 counts[g] = counts.get(g, 0) + 1
         return max(counts, key=counts.get) if counts else 0
@@ -56,7 +57,7 @@ def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=8.0, min_rpm
                 i += 1; continue
 
             # Gear stability: discard if gear changed during pre-window
-            gear_vals = [int(r.get('gear', 0)) for r in tail if int(r.get('gear', 0)) > 0]
+            gear_vals = [int(r.get('gear_detected') or r.get('gear', 0)) for r in tail if int(r.get('gear_detected') or r.get('gear', 0)) > 0]
             gear_stable = bool(gear_vals) and all(g == gear for g in gear_vals)
             if not gear_stable:
                 i += 1; continue
@@ -357,7 +358,8 @@ def _compare_sessions(buell_dir, sa, sb):
                         'afv':  sf(r.get('AFV', 100)),
                         'wue':  sf(r.get('WUE', 100)),
                         'ae':   sf(r.get('Accel_Corr', 100)),
-                        'gear': sf(r.get('Gear', 0)),
+                        'gear':          sf(r.get('Gear', 0)),
+                        'gear_detected':  _detect_gear(rpm, sf(r.get('VS_KPH', 0))),
                         'spd':  sf(r.get('VS_KPH', 0)),
                         'alt':  sf(r.get('gps_alt_m'), None) if r.get('gps_valid','').strip()=='TRUE' else None,
                         'fl_wot':  r.get('fl_wot','0').strip() in ('1','True','true'),

@@ -2590,3 +2590,18 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - Claude Sonnet 4.6, Anthropic
 
 **Audited:** PASS — freebuff 2026-06-06 (TASK 045: tps_peak zone fix — cells land in correct zone, generate_fuel_proposal OK)
+
+## [v2.7.36] — 2026-06-06
+### Added
+- web/gear_detect.py: post-ride gear detection from RPM/VSS ratio
+  Thresholds from session 248AE2 (96.9% accuracy, confusion only between adjacent gears)
+  detect_gear(rpm, vss_kph) returns gear 1-5 or 0 if neutral/uncertain
+### Changed
+- web/f7.py: _load_csv_rows() adds gear_detected field per row
+  Event detection gate, bucket_a gear avg, phase_b consistency check
+  all use gear_detected with fallback to ECU Gear field
+- web/launch.py: load_csv() adds gear_detected field per row
+  _mode_gear() and gear_vals stability check use gear_detected with fallback
+- Cache: deleted 89 stale f7events + f7clusters files (regenerate on next access)
+### AI
+- Claude Sonnet 4.6, Anthropic
