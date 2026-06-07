@@ -7,13 +7,19 @@
   INSTRUCTIONS FOR AI ASSISTANTS:
   1. All changelog entries MUST be written in English.
   2. Each new entry follows this format:
-       ## [v2.7.64] — 2026-06-07
-
-### Removed
-- `gps/reader.py.bak`, `web/templates/index.html.bak.grid`, `web/templates/sessions_launch.html.bak`: Deleted stale backup files left over from previous refactors.
-
-### AI
-- freebuff
+       ## [vX.Y.Z] — YYYY-MM-DD
+  3. The ### AI section is MANDATORY for every new entry.
+     If multiple AIs contributed, list each one.
+     If no AI was involved, write: "- No AI assistance"
+  4. Do not modify existing entries.
+  5. Add new entries at the top, below this header block.
+  6. After every change to this repo, run:
+       git add <changed files> && git commit -m "vX.Y.Z: description" && git push
+     This keeps history clean and allows rollback to any previous state.
+  7. Before every commit, check for leftover fix_*.py scripts and delete them:
+       ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
+     Never commit fix_*.py files to the repo — they are temporary patch scripts.
+PROMPT_END -->
 
 ## [v2.7.68] — 2026-06-07
 ### Changed
@@ -53,24 +59,6 @@
 - .bak files (gps/reader.py.bak, index.html.bak.grid, sessions_launch.html.bak): already deleted in prior session
 ### AI
 - Claude Sonnet 4.6, Anthropic
-
-## [vX.Y.Z] — YYYY-MM-DD
-       ### Changed / Added / Fixed / Removed
-       - file: description of change
-       ### AI
-       - <AI name and provider> (e.g. "Claude Sonnet 4.6, Anthropic")
-  3. The ### AI section is MANDATORY for every new entry.
-     If multiple AIs contributed, list each one.
-     If no AI was involved, write: "- No AI assistance"
-  4. Do not modify existing entries.
-  5. Add new entries at the top, below this header block.
-  6. After every change to this repo, run:
-       git add <changed files> && git commit -m "vX.Y.Z: description" && git push
-     This keeps history clean and allows rollback to any previous state.
-  7. Before every commit, check for leftover fix_*.py scripts and delete them:
-       ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
-     Never commit fix_*.py files to the repo — they are temporary patch scripts.
-PROMPT_END -->
 
 
 ## [v2.7.64] — 2026-06-07
