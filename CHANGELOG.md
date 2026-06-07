@@ -26,6 +26,12 @@
 PROMPT_END -->
 
 
+## [v2.7.52] — 2026-06-07
+### Fixed
+- web/templates/index.html: restored hBatChg ⚡ span in BAT cell (removed by mistake in v2.7.50)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.51] — 2026-06-07
 ### Changed
 - web/static/app.js: removed trend arrow (↑↓→) from VLT battery voltage display
