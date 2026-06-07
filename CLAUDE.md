@@ -196,6 +196,19 @@ It writes research, audits, and task assignments to the inbox folder below.
 3. When user mentions freebuff - check inbox immediately
 4. At natural pauses while waiting for user input
 
+### Also check: local responses folder
+
+freebuff writes validation/research responses to:
+  C:/Users/pacda/freebuff/responses/
+
+Check this folder at session start and after every commit.
+For each .md file found:
+1. Read it
+2. If audit already in CHANGELOG (freebuff inserted it): just delete the file
+3. If audit NOT in CHANGELOG: insert the Audited line, then delete the file
+4. If it has Action items: apply them, commit, then delete the file
+Never leave response files sitting there — freebuff expects Claude to consume and delete them
+
 ### Inbox file format
 
 Files are named NNN_topic.md (e.g. 001_pending_priorities.md).

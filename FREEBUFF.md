@@ -32,6 +32,11 @@ After each Claude commit:
 5. Insert audit line in CHANGELOG:
    Format: **Audited:** PASS - freebuff YYYY-MM-DD (description)
    Python insertion script via SSH
+6. DELETE the response file after inserting the audit line:
+   If you wrote to responses/task_NNN_*.md -> delete it immediately after audit
+   import os; os.remove(r'C:/Users/pacda/freebuff/responses/task_NNN_name.md')
+   Do NOT leave response files sitting in responses/ —
+   Claude will clean them up if you forget, but clean up after yourself
 
 ## Communication
 | Direction | Method |
