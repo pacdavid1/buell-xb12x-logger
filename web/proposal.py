@@ -78,6 +78,7 @@ def _compute_f7_delta(buell_dir, session_a, session_b, fuel_rpm, fuel_load):
     f7_fr   = [[0.0]    * n_cols for _ in range(n_rows)]
     f7_conf = [[0.0]    * n_cols for _ in range(n_rows)]
     f7_src  = [['none'] * n_cols for _ in range(n_rows)]
+    f7_tpk  = [[0.0]    * n_cols for _ in range(n_rows)]
 
     for match in matches:
         ba = match['bucket_a']
@@ -110,8 +111,9 @@ def _compute_f7_delta(buell_dir, session_a, session_b, fuel_rpm, fuel_load):
             f7_fr[ri][ci]   = dpct_fr
             f7_conf[ri][ci] = conf
             f7_src[ri][ci]  = 'f7'
+            f7_tpk[ri][ci]  = tps_pk
 
-    return f7_ff, f7_fr, f7_conf, f7_src
+    return f7_ff, f7_fr, f7_conf, f7_src, f7_tpk
 
 
 def save_proposal(buell_dir, session_a, session_b,
@@ -285,14 +287,15 @@ def generate_fuel_proposal(buell_dir, session_a, session_b, config=None):
     # F7 delta + zone-based fusion (FASE 6 v2)
     f7_result = _compute_f7_delta(buell_dir, session_a, session_b, fuel_rpm, fuel_load)
     if f7_result:
-        f7_ff, f7_fr, f7_conf, f7_src = f7_result
+        f7_ff, f7_fr, f7_conf, f7_src, f7_tpk = f7_result
         for ri in range(n_rows):
             tps_lo = fuel_load[ri]
             tps_hi = fuel_load[ri + 1] if ri + 1 < len(fuel_load) else tps_lo + 10
-            zone   = _classify_zone((tps_lo + tps_hi) / 2)
+            cell_tps_mid = (tps_lo + tps_hi) / 2
             for ci in range(n_cols):
                 has_vs = source[ri][ci] != 'none'
                 has_f7 = f7_src[ri][ci] != 'none'
+                zone   = _classify_zone(f7_tpk[ri][ci] if has_f7 and f7_tpk[ri][ci] > 0 else cell_tps_mid)
                 if not has_f7 or zone == 'WOT':
                     continue
                 if zone == 'Mid' and has_vs:

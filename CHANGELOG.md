@@ -2605,3 +2605,13 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 - Cache: deleted 89 stale f7events + f7clusters files (regenerate on next access)
 ### AI
 - Claude Sonnet 4.6, Anthropic
+
+## [v2.7.37] — 2026-06-06
+### Fixed
+- web/proposal.py: zone classification in generate_fuel_proposal() now uses
+  f7_tpk (tps_peak of the F7 cluster) instead of the VS cell center TPS
+  _compute_f7_delta() now returns 5-tuple including f7_tpk grid
+  Edge case: Mid F7 event (tps_peak 40-85%) mapped to low TPS cell no longer
+  misclassified as Light — zone uses the real event peak, not cell midpoint
+### AI
+- Claude Sonnet 4.6, Anthropic
