@@ -1,264 +1,117 @@
-# Buell XB12X — DDFI2 ECU Logger
+# Buell XB12X — DDFI2 Datalogger + AI Tuning Platform
 
-Raspberry Pi Zero 2W · CH343P USB-Serial · Python 3 · 9600,8N1
+> Raspberry Pi · Python 3 · DDFI2 ECU · Alpha-N · Open Loop
 
-> **Note:** WORKING_METHOD.md has been archived (v2.6.10). Refer to BACKLOG.md for current workflow rules.
-
-Real-time data logger for the **Delphi DDFI2 ECU** used in Buell XB motorcycles.
-
-This project captures ECU data, stores it, and provides a live dashboard accessible from any device on the same network.
-
-The long-term goal is to build an **open telemetry and tuning platform for Buell motorcycles**.
+Real-time datalogger and AI-assisted tuning platform for the **Buell XB12X** with a Delphi DDFI2 ECU.
+Current version: see top of `CHANGELOG.md`.
 
 ---
 
-# What it Does
+## What this project does
 
-• Real-time capture — reads the 107-byte DDFI2 protocol frame at ~8Hz  
-• Live web dashboard available at:  
-http://[PI-IP]:8080  
+```
+LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR
+Dashboard  Session Events  Sessions VS + Launch  Tuner  VE tab
+```
 
-• Ride graphs — RPM, KPH, CLT, ignition advance, injector pulse width, TPS, battery voltage  
-• Fuel map heatmap — visualize fuel and ignition maps read from EEPROM  
-• Ride sessions — every engine start becomes a new ride  
-• Structured error logs — dirty bytes, timeouts, reconnection events  
-• Gear detection — calculates current gear (1–5) from KPH/RPM ratio  
-• Automatic reconnection — DTR toggle + USB reset if ECU connection is lost  
+1. **LOG** — Pi connects to ECU via serial, captures 80+ parameters at 8Hz per ride
+2. **ACOTAR** — F7 algorithm detects stable-condition events (Bucket A) and WOT transitions
+3. **COMPARAR** — Cross-session comparison: which map accelerates better? Which cells are efficient?
+4. **PROPONER** — Unified map proposal from F7 events + Sessions VS delta (FASE 6)
+5. **QUEMAR** — Burn proposed EEPROM changes directly from the browser
 
 ---
 
-# Captured Parameters (Selection)
+## Hardware
 
-| Parameter | Description |
-|-----------|-------------|
-| RPM, Load | Engine speed and load |
-| CLT, MAT | Cylinder head and intake air temperature |
-| TPS%, TPD | Calibrated throttle position |
-| spark1 / spark2 | Ignition advance per cylinder (°BTDC) |
-| pw1 / pw2 | Injector pulse width per cylinder |
-| EGO_Corr | Closed loop fuel correction |
-| AFV | Adaptive fuel value |
-| WUE | Warm-up enrichment |
-| VS_KPH | Vehicle speed |
-| Gear | Calculated gear |
-| Batt_V | Battery voltage |
-| fl_hot / fl_wot | ECU state flags |
-| DTC | Active diagnostic trouble codes |
+| Component | Detail |
+|-----------|--------|
+| Bike | Buell XB12X, DDFI2 ECU (Delphi dual-fire, Alpha-N) |
+| Logger | Raspberry Pi at 192.168.100.80, port 8080 |
+| Sensors | BMP280 (baro/temp), AHT20 (humidity), CW2015 (battery), GPS |
+| Serial | CH343P USB-Serial, 9600 8N1 |
 
-The logger currently records **80+ ECU parameters per cycle**.
+**ECU mode:** Alpha-N (TPS + RPM only, no MAP sensor, no barometric correction in fueling).
+**O2 sensor:** disconnected. Always Open Loop. EGO_Corr = AFV = 100 always.
 
 ---
 
-# Hardware
+## Key files
 
-Minimum hardware required:
-
-• Buell XB12X motorcycle  
-• Raspberry Pi Zero 2 W  
-• CH343P isolated USB-Serial adapter  
-• microSD card (32GB+ recommended)  
-• USB OTG adapter  
-
-Connection diagram:
-
-Buell XB12X  
-└── Diagnostic connector (under seat)  
-  └── CH343P isolated USB-Serial (9600,8N1)  
-    └── Raspberry Pi Zero 2 W  
-      └── WiFi → Web dashboard  
+| File | Purpose |
+|------|---------|
+| `main.py` | Entry point — ECU loop, sensor threads, watchdog |
+| `web/server.py` | HTTP handlers + REST endpoints |
+| `web/f7.py` | F7 event detection + DTW clustering |
+| `web/launch.py` | Launch detection pipeline |
+| `web/vs_engine.py` | Sessions VS comparison engine |
+| `web/gear_detect.py` | Post-ride gear detection via RPM/VSS ratio |
+| `ecu/eeprom.py` | EEPROM decode/encode (fuel + spark maps) |
+| `CLAUDE.md` | Instructions for Claude Code AI agent |
+| `FREEBUFF.md` | Instructions for freebuff analysis agent |
+| `BACKLOG.md` | All pending work organized by FASE |
+| `CHANGELOG.md` | Version history — newest entries at the TOP |
 
 ---
 
-# Installation
+## AI agent system
 
-## Manual Installation (Current)
+This project uses two AI agents working in parallel:
 
-Clone the repository:
+### Claude Code (implementer)
+- Writes and commits all code changes
+- Reads instructions from `CLAUDE.md` on this Pi
+- Checks `inbox/` after every commit for messages from freebuff
+- Never modifies `BACKLOG.md` without removing completed items
 
+### freebuff (analyst + validator)
+- Runs on the user machine
+- Task queue: `C:/Users/pacda/freebuff/TASKS.md`
+- Role definition: `FREEBUFF.md` on this Pi
+- Writes research responses to: `C:/Users/pacda/freebuff/responses/`
+- Sends urgent tasks to Claude via: `/home/pi/buell/inbox/`
+- Audits every Claude commit via SSH — adds `**Audited:**` line to CHANGELOG
+
+### Workflow
 ```
-git clone https://github.com/pacdavid1/buell-xb12x-logger.git
-cd buell-xb12x-logger
-```
-
-Install dependency:
-
-```
-pip install pyserial
-```
-
-Run the logger:
-
-```
-python3 ddfi2_logger.py --port /dev/ttyUSB0 --sessions /home/pi/buell/sessions
+User assigns task → freebuff researches → writes response
+→ Claude applies + commits → freebuff audits → PASS/FAIL
+→ Claude adds validation task → cycle repeats
 ```
 
 ---
 
-# Easy Install
-
-One-command installation on a clean Raspberry Pi OS image:
-
-Example:
-
-```
-curl -s https://raw.githubusercontent.com/pacdavid1/buell-xb12x-logger/main/install.sh | bash
-```
-
-The script will automatically:
-
-• update the system  
-• install Python dependencies  
-• download the latest code  
-• configure the logger  
-• enable automatic startup  
-
----
-
-# Preconfigured Image (Future)
-
-A ready-to-use **Raspberry Pi image (.img)** will also be available.
-
-Steps:
-
-1. Download the image  
-2. Flash it using Raspberry Pi Imager  
-3. Insert the SD card  
-4. Boot the Pi  
-
-The logger will start automatically.
-
-This option is designed for users with no Linux experience.
-
----
-
-# Generated File Structure
-
-Logs are stored per ECU session:
+## Session data structure
 
 ```
 sessions/
-└── [checksum-ECU]/
-    ├── ride_001.csv
-    ├── ride_001_summary.json
-    ├── ride_001_notes.txt
-    └── ride_001_errorlog.json
+└── [EEPROM-checksum]/
+    ├── ride_NNN.csv              — raw ECU data (80+ cols, ~8Hz)
+    ├── ride_NNN_f7events.json    — F7 events: Bucket A + accel curves + env stats
+    ├── ride_NNN_summary.json     — ride summary
+    ├── session_f7clusters_*.json — DTW-clustered events across all rides
+    └── eeprom.bin                — EEPROM snapshot for this session
 ```
 
-File descriptions:
-
-ride_001.csv — full real-time ECU log  
-ride_001_summary.json — ride summary  
-ride_001_notes.txt — optional rider notes  
-ride_001_errorlog.json — communication errors  
+Each `f7events` file contains per-event fields including:
+`mat_avg`, `spark_avg`, `baro_hpa`, `gps_alt_avg`, `gear_detected`, `tps_peak`, `vss_delta`
 
 ---
 
-# DDFI2 Protocol
-
-The Buell DDFI2 ECU uses a **Delphi proprietary protocol over RS232**.
-
-Communication parameters:
-
-9600 baud  
-8 data bits  
-no parity  
-1 stop bit  
-
-Real-time frame structure:
-
-```
-SOH [len] [cmd] [data×107] [checksum] EOT
-```
-
-The implementation is based on reverse engineering and references from **EcmDroid**.
-
----
-
-# Future Goals
-
-This project aims to evolve into a **complete telemetry platform for Buell motorcycles**.
-
-Planned features include:
-
-• GPS logging  
-• IMU sensors (acceleration / lean angle)  
-• Wideband lambda integration  
-• Lap timing  
-• Power estimation  
-• Acceleration maps  
-• Remote ride analysis  
-• ECU tuning assistance  
-
-Long-term vision:
-
-Create an open telemetry system for Buell motorcycles similar to motorsport data loggers.
-
----
-
-# Contributing
-
-Contributions are welcome.
-
-Possible areas:
-
-• ECU protocol research  
-• sensor integrations  
-• ride analysis tools  
-• dashboard improvements  
-• documentation
-
----
-
-# Version
-
-Current version:
-
-v2.5.28
-
-See CHANGELOG.md for full history.
-
----
-
-# License
-
-MIT License.
-
-Free for personal and community use.
-
-If you use it on your Buell, a ⭐ on the repo is appreciated.
-
----
-
-## Documentation
-
-Detailed technical documentation, architecture decisions, and
-installation flow live in the `/docs` directory of this repository.
-
-If you are developing, debugging, or modifying the system,
-start there.
-
----
-
-## Installation Modes
-
-### Development / Manual Run
-This mode is intended for development and testing.
-The logger is started manually using Python.
-
-### Appliance Mode (Recommended)
-The system is installed on a clean Raspberry Pi OS image
-
----
-
-## Quick Start — Appliance Mode (Recommended)
-
-The recommended way to use this project is as a dedicated headless appliance
-installed on a clean Raspberry Pi OS image.
-
-This mode is intended for users who want a plug‑and‑play system with
-automatic startup, networking, and web dashboard access.
+## Running the server
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/pacdavid1/buell-xb12x-logger/main/install.sh | bash
+cd /home/pi/buell
+nohup python3 main.py --port /dev/ttyECU --sessions-dir /home/pi/buell/sessions --buell-dir /home/pi/buell > /tmp/buell.log 2>&1 &
+```
+
+Validate:
+```bash
+curl -s http://localhost:8080/live | python3 -c 'import sys,json; print(json.load(sys.stdin).get("session_id","?"))'
+```
 
 ---
+
+## License
+
+MIT — free for personal and community use.
