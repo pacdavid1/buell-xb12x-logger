@@ -103,7 +103,7 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
 def _fmtk(n):
     if n >= 1000: return f"{n/1000:.1f}k"
     return str(n)
-CACHE_VERSION = 6  # bumped: baro-normalized PW in load_csv (v2.7.06)
+CACHE_VERSION = 7  # bumped: pw1/pw2 raw preserved, pw1_norm added (v2.7.25)
 _cache_lock = threading.Lock()
 
 def _eeprom_to_msq(eeprom, session=''):

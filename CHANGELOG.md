@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.25] — 2026-06-06
+
+### Fixed
+- web/launch.py: pw1/pw2 now preserved raw in rows dict; pw1_norm/pw2_norm added as baro-normalized fields
+  build_index() cell accumulation uses pw1_norm/pw2_norm for accurate cross-session PW comparison
+  detect_launches() series keeps raw pw1 (shows actual ECU pulse width to user)
+- web/vs_engine.py: CACHE_VERSION bumped 6→7 to invalidate stale sessions_vs caches
+
+### AI
+- Claude Sonnet 4.6, Anthropic (freebuff task 025 backlog review)
+
 ## [v2.7.24] — 2026-06-06
 
 ### Fixed

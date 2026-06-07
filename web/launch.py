@@ -346,8 +346,10 @@ def _compare_sessions(buell_dir, sa, sb):
                         'rpm':  rpm,
                         'tps':  sf(r.get('TPS_pct') or r.get('TPD', 0)),
                         'clt':  sf(r['CLT']),
-                        'pw1':  sf(r['pw1']) * _baro_factor,
-                        'pw2':  sf(r.get('pw2', 0)) * _baro_factor,
+                        'pw1':      sf(r['pw1']),
+                        'pw2':      sf(r.get('pw2', 0)),
+                        'pw1_norm': sf(r['pw1']) * _baro_factor,
+                        'pw2_norm': sf(r.get('pw2', 0)) * _baro_factor,
                         'baro': _baro,
                         'baro_valid': _baro_valid,
                         'spark1':sf(r['spark1']),
@@ -432,8 +434,8 @@ def _compare_sessions(buell_dir, sa, sb):
             k  = (fl, rb, tb)
             c  = idx[k]
             c['n']    += 1
-            c['pw1']  += r['pw1']
-            c['pw2']  += r['pw2']
+            c['pw1']  += r['pw1_norm']
+            c['pw2']  += r['pw2_norm']
             c['spark1']+= r['spark1']
             c['spark2']+= r['spark2']
             c['clt']  += r['clt']
@@ -441,7 +443,7 @@ def _compare_sessions(buell_dir, sa, sb):
             c['drpm'] += abs(r.get('drpm',0))
             c['spd']  += r['spd']
             c['dvss'] += r.get('dvss', 0)
-            c['pw_eff'] += ((r['pw1']+r['pw2'])/2) * r['afv'] / 100.0
+            c['pw_eff'] += ((r['pw1_norm']+r['pw2_norm'])/2) * r['afv'] / 100.0
             c['gear']  += r.get('gear', 0)
             if r.get('dalt') is not None:
                 c['dalt']   += r['dalt']
