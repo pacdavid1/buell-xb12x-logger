@@ -1358,6 +1358,7 @@ Note: zone-aware boundaries depend on FASE 6.1 zone fusion being implemented fir
 - [ ] Dashboard baro columns (avg_baro, baro_valid_pct)
 
 ### BL-LOGGER-01 — Grabar humidity_pct y gps_alt_m en el CSV
+**Status: DONE** — already in CSV_COLUMNS (protocol.py) and injected in main.py before write_sample. Old rides (Apr 2026) have 98 cols but new rides have 108.
 **Priority:** MEDIUM
 **File:** main.py o el logger de CSV
 

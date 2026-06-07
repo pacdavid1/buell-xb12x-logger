@@ -15,6 +15,16 @@
 ### AI
 - freebuff
 
+## [v2.7.66] — 2026-06-07
+### Changed
+- BACKLOG.md: closed BL-LOGGER-01 (humidity_pct + gps_alt_m already in CSV_COLUMNS + injected in main.py — confirmed working for new rides)
+### Notes
+- BUG-B (ZeroDivisionError VSS): false positive — protocol.py:389 already has guard (if vss > 0 and cpkm25 > 0)
+- BUG-C (AbortSignal 37 fetch calls): deferred to BL-BUG-01 in BACKLOG
+- .bak files (reader.py.bak, index.html.bak.grid, sessions_launch.html.bak): already removed in prior session
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.65] — 2026-06-07
 ### Fixed
 - ecu/connection.py: disconnect() and get_version() now locked with self._lock (prevents serial close/send race during concurrent ECU operations)
