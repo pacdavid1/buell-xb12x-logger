@@ -26,6 +26,17 @@
 PROMPT_END -->
 
 
+## [v2.7.62] — 2026-06-07
+### Fixed
+- ecu/eeprom_params.py: added 2s complement conversion for size==4 params (was missing, size==2 already had it)
+- main.py: call self.ecu.disconnect() before os.execv() in OOM restart — prevents inherited open serial FD
+- web/static/app.js: exitHistory() now restarts _cobertInterval (was cleared in viewSelectedRides but never restarted)
+### Removed
+- add_map_diff.py, _update_cl_v268.py, tools/ecm_bridge.py, tools/test_csv_humidity.py, tools/test_ecu.py, tools/test_write.py
+  Orphaned standalone scripts — no imports from anywhere. Logic already covered by ecu/eeprom.py and ecu/connection.py.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.61] — 2026-06-07
 ### Fixed
 - tools/health_journal.py: bare except -> except Exception in check() and get_summary()

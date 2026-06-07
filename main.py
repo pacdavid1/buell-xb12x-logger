@@ -233,6 +233,10 @@ class BuellLogger:
                 if stats['mem_pct'] > 90:
                     self.logger.error(f"MEM {stats['mem_pct']}% — restarting to avoid OOM crash")
                     import os, sys
+                    try:
+                        self.ecu.disconnect()
+                    except Exception:
+                        pass
                     os.execv(sys.executable, [sys.executable] + sys.argv)
             except Exception as e: self.logger.debug(f"sysmon: {e}")
 

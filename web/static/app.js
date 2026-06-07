@@ -1565,6 +1565,7 @@ async function pollCobertGrid() {
 function exitHistory(){
   window._viewingHistory=false;
   // Restart live polling intervals (they were stopped in viewSelectedRides)
+  _cobertInterval = setInterval(pollCobertGrid, 1000);
   _liveInterval = setInterval(fetchLive, 500);
   _freezeInterval = setInterval(()=>{
     const frozen = (Date.now() - _lastLiveOk) > 5000;
