@@ -25,6 +25,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.44] — 2026-06-07
+### Changed
+- web/templates/index.html: dashboard big-card labels auto-scale to card height
+  fitLabels() computes font-size = card_height / n_chars × 0.82
+  Runs on load (setTimeout 150ms) and on window resize
+  CSS: removed fixed font-size:7px from .big-label
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.43] — 2026-06-07
 ### Changed
 - web/templates/index.html: dashboard big-card labels rotated 90° on left side

@@ -81,10 +81,10 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow Condensed',sans-
           border-top:2px solid var(--border)}
 .big-card.hot{border-top-color:var(--accent)}
 .big-card.tps{border-top-color:var(--blue)}
-.big-label{font-family:var(--mono);font-size:7px;color:var(--dim);
-           letter-spacing:.18em;text-transform:uppercase;
+.big-label{font-family:var(--mono);color:var(--dim);
+           letter-spacing:.12em;text-transform:uppercase;
            writing-mode:vertical-rl;transform:rotate(180deg);
-           white-space:nowrap;flex-shrink:0}
+           white-space:nowrap;flex-shrink:0;line-height:1}
 .big-num{font-size:80px;font-weight:900;line-height:1;letter-spacing:-.02em}
 .big-unit{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:2px}
 .big-val-row{display:flex;align-items:baseline;gap:4px}
@@ -720,5 +720,17 @@ table.veg td:active{filter:brightness(1.6)}
 </div>
 
 <script src="/static/app.js"></script>
+<script>
+function fitLabels(){
+  document.querySelectorAll('.big-label').forEach(function(el){
+    var card=el.closest('.big-card');if(!card)return;
+    var h=card.offsetHeight-10;
+    var n=el.textContent.trim().length||1;
+    el.style.fontSize=Math.max(10,Math.floor(h/n*0.82))+'px';
+  });
+}
+window.addEventListener('resize',fitLabels);
+setTimeout(fitLabels,150);
+</script>
 <script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script></body>
 </html>
