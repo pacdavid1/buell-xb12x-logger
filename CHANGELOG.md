@@ -2654,3 +2654,12 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   Cache check updated: missing mat_avg also triggers regeneration
 ### AI
 - Claude Sonnet 4.6, Anthropic
+
+## [v2.7.42] — 2026-06-07
+### Fixed
+- web/f7.py: gps_valid comparison was case-sensitive ('TRUE') but CSV writes 'True'
+  gps_alt_avg was always None even when GPS data existed — now fixed
+- web/launch.py: same gps_valid case bug fixed
+  gps_slope now correctly computed from GPS altitude during Bucket A window
+### AI
+- Claude Sonnet 4.6, Anthropic

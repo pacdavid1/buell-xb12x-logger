@@ -618,7 +618,7 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
                     'baro_valid': _baro_valid,
                     'temp_amb':  _sf(r.get('baro_temp_c', 0)),
                     'gps_alt':   _sf(r.get('gps_alt_m', 0)),
-                    'gps_valid': r.get('gps_valid', '').strip() == 'TRUE',
+                    'gps_valid': r.get('gps_valid', '').strip().lower() in ('true', '1'),
                     'fl_fc':  r.get('fl_fuel_cut', '0').strip() in ('1', 'True', 'true'),
                     'fl_eng': r.get('fl_engine_run', '1').strip() in ('1', 'True', 'true'),
                 })

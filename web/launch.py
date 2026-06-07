@@ -361,7 +361,7 @@ def _compare_sessions(buell_dir, sa, sb):
                         'gear':          sf(r.get('Gear', 0)),
                         'gear_detected':  _detect_gear(rpm, sf(r.get('VS_KPH', 0))),
                         'spd':  sf(r.get('VS_KPH', 0)),
-                        'alt':  sf(r.get('gps_alt_m'), None) if r.get('gps_valid','').strip()=='TRUE' else None,
+                        'alt':  sf(r.get('gps_alt_m'), None) if r.get('gps_valid','').strip().lower() in ('true','1') else None,
                         'fl_wot':  r.get('fl_wot','0').strip() in ('1','True','true'),
                         'fl_decel':r.get('fl_decel','0').strip() in ('1','True','true'),
                         'fl_fc':   r.get('fl_fuel_cut','0').strip() in ('1','True','true'),
