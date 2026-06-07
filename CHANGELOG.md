@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.29] — 2026-06-06
+
+### Added
+- web/templates/tuner.html: PROPOSAL tab — shows fuel delta heatmap from /eeprom/propose
+  RdBu diverging color scale (blue=lean, red=rich), dot overlay for interpolated cells
+  Dropdown: Fuel Front/Rear, Smoothed/Raw | sessionStorage cache per session pair
+  Uses existing Base+Mod session selectors — no new selectors needed
+
+### AI
+- Claude Sonnet 4.6, Anthropic (freebuff tasks 020, 029 research)
+
 ## [v2.7.28] — 2026-06-06
 
 ### Fixed

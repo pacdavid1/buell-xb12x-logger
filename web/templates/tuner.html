@@ -101,9 +101,25 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <button class="tab on" data-m="fuel_front">FUEL FRONT</button>
 <button class="tab" data-m="fuel_rear">FUEL REAR</button>
 <button class="tab" data-m="spark_front">SPARK FRONT</button>
-<button class="tab" data-m="spark_rear">SPARK REAR</button>
+<button class="tab" data-m="spark_rear">SPARK REAR</button><button class="tab" data-m="proposal" id="tabProp">PROPOSAL</button>
 </div>
 <div class="ps"><div class="pi" id="pw"></div></div>
+<div id="propPanel" style="display:none;flex-direction:column;gap:8px;padding:8px;flex:1;overflow:auto">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <select id="propCyl" style="background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:11px;padding:4px;border-radius:2px">
+      <option value="fuel_front">Fuel Front</option>
+      <option value="fuel_rear">Fuel Rear</option>
+    </select>
+    <select id="propMode" style="background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:11px;padding:4px;border-radius:2px">
+      <option value="smoothed">Smoothed</option>
+      <option value="raw">Raw</option>
+    </select>
+    <button id="propBtn" onclick="generateProposal()" style="padding:4px 12px;font-family:var(--mn);font-size:9px;font-weight:700;background:var(--ac);color:#fff;border:none;border-radius:2px;cursor:pointer;letter-spacing:.06em">GENERATE PROPOSAL</button>
+    <span id="propSt" style="font-family:var(--mn);font-size:9px;color:var(--dm)">Select Base and Mod sessions, then click Generate.</span>
+  </div>
+  <canvas id="propCanvas" width="520" height="420" style="border:1px solid var(--bd);border-radius:2px;background:var(--p);max-width:100%"></canvas>
+  <div id="propLeg" style="font-family:var(--mn);font-size:8px;color:var(--dm);display:flex;gap:12px;align-items:center"></div>
+</div>
 <div class="c3bar" style="display:flex;gap:8px;align-items:center;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0">
 <span style="font-family:var(--mn);font-size:8px;color:var(--a2);letter-spacing:.08em;font-weight:700">3D</span>
 <span style="font-family:var(--mn);font-size:7px;color:var(--dm);margin-left:4px">&#916;</span>
@@ -561,7 +577,11 @@ document.getElementById('sM').onchange=function(){load('mod')};
 document.getElementById('tabs').onclick=function(e){
   var b=e.target.closest('.tab');if(!b)return;
   var all=document.querySelectorAll('.tab');for(var i=0;i<all.length;i++)all[i].classList.remove('on');
-  b.classList.add('on');cur=b.dataset.m;render();
+  b.classList.add('on');cur=b.dataset.m;
+  var isProp=cur==='proposal';
+  document.getElementById('pw').style.display=isProp?'none':'';
+  document.getElementById('propPanel').style.display=isProp?'flex':'none';
+  if(!isProp)render();
 };
 function setView(t,r,v){document.getElementById("inTps").value=t;document.getElementById("inRpm").value=r;document.getElementById("inVal").value=v;applyAngles()}
 function wrap(v,mx){return((v%mx)+mx)%mx}
@@ -588,6 +608,75 @@ function applyAngles(){
   for(var k in C3){C3[k].ang=tpsR;C3[k].tilt=rpmR;C3[k].roll=valR}
   drawAll();
 }
+
+// ---- PROPOSAL TAB ----
+function propColor(pct,maxAbs){
+  maxAbs=maxAbs||15;
+  var t=Math.max(-1,Math.min(1,pct/maxAbs));
+  if(t<0){var r=Math.round(67+(188-67)*(1+t)),g=Math.round(147+(214-147)*(1+t)),b=Math.round(195+(234-195)*(1+t));return'rgb('+r+','+g+','+b+')';}
+  var r=Math.round(244+(178-244)*t),g=Math.round(109+(24-109)*t),b=Math.round(67+(43-67)*t);return'rgb('+r+','+g+','+b+')';
+}
+function renderPropCanvas(data,mask){
+  var ca=document.getElementById('propCanvas'),ctx=ca.getContext('2d');
+  var rows=data.length,cols=data[0].length;
+  var cw=ca.width,ch=ca.height;
+  var cellW=Math.floor(cw/cols),cellH=Math.floor(ch/rows);
+  ctx.clearRect(0,0,cw,ch);
+  var maxAbs=0;for(var i=0;i<rows;i++)for(var j=0;j<cols;j++)if(Math.abs(data[i][j])>maxAbs)maxAbs=Math.abs(data[i][j]);
+  maxAbs=Math.max(maxAbs,1);
+  for(var i=0;i<rows;i++){
+    for(var j=0;j<cols;j++){
+      var x=j*cellW,y=(rows-1-i)*cellH,v=data[i][j];
+      ctx.fillStyle=propColor(v,maxAbs);
+      ctx.fillRect(x,y,cellW,cellH);
+      ctx.strokeStyle='rgba(0,0,0,0.15)';ctx.strokeRect(x,y,cellW,cellH);
+      if(mask&&!mask[i][j]){ctx.fillStyle='rgba(255,255,255,0.25)';ctx.beginPath();ctx.arc(x+cellW/2,y+cellH/2,3,0,Math.PI*2);ctx.fill();}
+      ctx.fillStyle='rgba(0,0,0,0.7)';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText((v>0?'+':'')+v.toFixed(1)+'%',x+cellW/2,y+cellH/2);
+    }
+  }
+  document.getElementById('propLeg').innerHTML=
+    '<span style="display:inline-block;width:12px;height:12px;background:rgb(67,147,195);border-radius:2px"></span> Lean (add fuel)&nbsp;&nbsp;'+
+    '<span style="display:inline-block;width:12px;height:12px;background:#eee;border:1px solid #999;border-radius:2px"></span> No change&nbsp;&nbsp;'+
+    '<span style="display:inline-block;width:12px;height:12px;background:rgb(178,24,43);border-radius:2px"></span> Rich (cut fuel)&nbsp;&nbsp;'+
+    '<span style="display:inline-block;width:8px;height:8px;background:rgba(255,255,255,0.5);border-radius:50%;border:1px solid #999"></span> Interpolated';
+}
+async function generateProposal(){
+  var a=document.getElementById('sB').value,b=document.getElementById('sM').value;
+  if(!a||!b){document.getElementById('propSt').textContent='Select Base and Mod sessions first.';return;}
+  var cyl=document.getElementById('propCyl').value,mode=document.getElementById('propMode').value;
+  var ckey=a+'_'+b;
+  var cached=sessionStorage.getItem('prop_'+ckey);
+  if(cached){var d=JSON.parse(cached);renderPropData(d,cyl,mode);return;}
+  document.getElementById('propBtn').disabled=true;
+  document.getElementById('propSt').textContent='Computing proposal... (2-5s)';
+  try{
+    var r=await fetch('/eeprom/propose?a='+encodeURIComponent(a)+'&b='+encodeURIComponent(b));
+    if(!r.ok)throw Error('HTTP '+r.status);
+    var d=await r.json();
+    sessionStorage.setItem('prop_'+ckey,JSON.stringify(d));
+    renderPropData(d,cyl,mode);
+  }catch(e){document.getElementById('propSt').textContent='Error: '+e.message;}
+  finally{document.getElementById('propBtn').disabled=false;}
+}
+function renderPropData(d,cyl,mode){
+  var src=mode==='smoothed'?d.smoothed:d.raw;
+  var data=src[cyl.replace('fuel_','delta_fuel_')];
+  var mask=d.smoothed&&d.smoothed.signal_mask?d.smoothed.signal_mask:null;
+  if(!data){document.getElementById('propSt').textContent='No data for '+cyl;return;}
+  renderPropCanvas(data,mask);
+  var n=d.summary&&d.summary.cells_with_signal||'?';
+  document.getElementById('propSt').textContent='Proposal: '+n+' cells with signal. Dot=interpolated.';
+}
+document.getElementById('propCyl').onchange=function(){
+  var cached=sessionStorage.getItem('prop_'+document.getElementById('sB').value+'_'+document.getElementById('sM').value);
+  if(cached)renderPropData(JSON.parse(cached),this.value,document.getElementById('propMode').value);
+};
+document.getElementById('propMode').onchange=function(){
+  var cached=sessionStorage.getItem('prop_'+document.getElementById('sB').value+'_'+document.getElementById('sM').value);
+  if(cached)renderPropData(JSON.parse(cached),document.getElementById('propCyl').value,this.value);
+};
+// ---- END PROPOSAL TAB ----
 init();init3D();
 function downloadMerge(){
   if(!mMerge){st('No hay merge');return}
