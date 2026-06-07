@@ -118,6 +118,7 @@ class BuellLogger:
         self._aht20 = None
         self._bat_voltages = []       # rolling buffer for voltage trend
         self._bat_socs = []          # rolling buffer for SOC smoothing
+        self._boot_soc = None        # SOC at first stable boot reading (tiered shutdown)
         self._cw2015 = None
         self._smbus = None
         if _BMP280_OK or _AHT20_OK or _CW2015_OK:
@@ -265,6 +266,10 @@ class BuellLogger:
                 if len(self._bat_socs) > 5:
                     self._bat_socs.pop(0)
                 stats['bat_soc'] = sum(self._bat_socs) / len(self._bat_socs)
+            # Capture boot SOC once we have 3+ stable readings
+            if self._boot_soc is None and len(self._bat_socs) >= 3:
+                self._boot_soc = stats['bat_soc']
+                self.logger.info(f"Boot SOC captured: {self._boot_soc:.1f}%%")
             # Charging detection with hysteresis
             # rising > 0.005V -> charging, falling < -0.005V -> not charging
             # stable -> keep previous (hysteresis); fallback: voltage > 3.85V
@@ -289,14 +294,23 @@ class BuellLogger:
             # Health journal: log system issues
             _health_check(stats, self._ecu_alive if hasattr(self, '_ecu_alive') else True)
 
-            # Low battery watchdog: graceful shutdown before hardware cut (2.7V)
+            # Low battery watchdog — tiered shutdown based on boot SOC
             _soc = stats.get('bat_soc')
-            _v = stats.get('bat_voltage')
-            if (_soc is not None and _soc < 30.0) or (_v is not None and _v < 3.50):
-                self.logger.warning(f"BATERIA CRITICA: {_v:.2f}V / {_soc:.0f}%% - apagando sistema...")
-                self._poweroff_requested = True
-                self._running = False
-                return
+            _v   = stats.get('bat_voltage')
+            _is_charging = stats.get('bat_charging', False)
+            if not _is_charging and self._boot_soc is not None:
+                _threshold = self._get_shutdown_threshold()
+                _v_crit = _threshold <= 0  # boot SOC < 10%
+                _soc_low = _soc is not None and _soc < (_threshold if _threshold > 0 else 10.0)
+                _v_low   = _v is not None and _v < 3.50
+                if _v_crit or _soc_low or _v_low:
+                    self.logger.warning(
+                        f"BATERIA: {_v:.2f}V / {_soc:.0f}%% "
+                        f"(boot={self._boot_soc:.0f}%%, threshold={_threshold:.0f}%%) - apagando..."
+                    )
+                    self._poweroff_requested = True
+                    self._running = False
+                    return
             # Merge — no reemplazar!
             with self.web._data_lock:
                 existing = self.web.serial_stats if self.web.serial_stats else {}
@@ -556,6 +570,15 @@ class BuellLogger:
             self.error_log.flush()
         self.logger.info("ECU loop detenido")
 
+
+
+    def _get_shutdown_threshold(self):
+        """Return SOC shutdown threshold based on boot SOC (tiered grace logic)."""
+        boot = self._boot_soc if self._boot_soc is not None else 100.0
+        if boot >= 30:   return 30.0
+        elif boot >= 20: return 20.0
+        elif boot >= 10: return 10.0
+        else:            return -1.0  # boot < 10% -> shutdown immediately
 
     def run(self):
         """Loop principal."""

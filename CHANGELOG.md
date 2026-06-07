@@ -25,6 +25,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.26] — 2026-06-06
+
+### Added
+- main.py: tiered battery shutdown based on boot SOC (freebuff task 027)
+  _boot_soc captured once after 3+ stable CW2015 readings
+  _get_shutdown_threshold(): boot>=30->30%, boot 20-29->20%, boot 10-19->10%, boot<10->shutdown now
+  Watchdog: skips shutdown entirely when bat_charging=True (charger connected)
+  Log message includes boot SOC and active threshold for diagnostics
+
+### AI
+- Claude Sonnet 4.6, Anthropic (freebuff task 027 research)
+
 ## [v2.7.25] — 2026-06-06
 
 ### Fixed
