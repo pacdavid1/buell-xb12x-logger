@@ -25,6 +25,72 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.37] — 2026-06-06
+### Fixed
+- web/proposal.py: zone classification in generate_fuel_proposal() now uses
+  f7_tpk (tps_peak of the F7 cluster) instead of the VS cell center TPS
+  _compute_f7_delta() now returns 5-tuple including f7_tpk grid
+  Edge case: Mid F7 event (tps_peak 40-85%) mapped to low TPS cell no longer
+  misclassified as Light — zone uses the real event peak, not cell midpoint
+### AI
+- Claude Sonnet 4.6, Anthropic
+* **Audited:** PASS — freebuff 2026-06-06 (TASK 047: F7 tps_peak zone fusion fix, 2/2 FIXED)
+
+## [v2.7.36] — 2026-06-06
+### Added
+- web/gear_detect.py: post-ride gear detection from RPM/VSS ratio
+  Thresholds from session 248AE2 (96.9% accuracy, confusion only between adjacent gears)
+  detect_gear(rpm, vss_kph) returns gear 1-5 or 0 if neutral/uncertain
+### Changed
+- web/f7.py: _load_csv_rows() adds gear_detected field per row
+  Event detection gate, bucket_a gear avg, phase_b consistency check
+  all use gear_detected with fallback to ECU Gear field
+- web/launch.py: load_csv() adds gear_detected field per row
+  _mode_gear() and gear_vals stability check use gear_detected with fallback
+- Cache: deleted 89 stale f7events + f7clusters files (regenerate on next access)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.35] — 2026-06-06
+### Fixed
+- web/proposal.py: _compute_f7_delta() now uses tps_peak (max from cluster members)
+  instead of bucket_a.tps_center for zone classification
+  bucket_a.tps_center is pre-WOT stable TPS (~10-15%); tps_peak is actual WOT peak (60-99%)
+  Previous: all F7 cells incorrectly landed in Light zone, contributing 0 signal
+  Now: F7 cells classified correctly (WOT/Mid/Light) based on real event peak TPS
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+**Audited:** PASS — freebuff 2026-06-06 (TASK 045: tps_peak zone fix — cells land in correct zone, generate_fuel_proposal OK)
+
+## [v2.7.34] — 2026-06-06
+### Added
+- web/templates/tuner.html: FASE 5.1 — click-to-edit VE heatmap cells
+  - Click any fuel/spark cell → inline input overlay appears
+  - Staged cells turn amber; BURN/RESET buttons shown in header bar
+  - BURN: POST /eeprom/burn with all staged changes
+  - RESET: clears all staged changes
+  - Client-side ±15% gate with range feedback
+  - Max 20 cells per burn enforced client-side and server-side
+- web/server.py: _handle_eeprom_burn — server-side ±15% per-cell gate + max 20 cells limit
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+**Audited:** PASS — freebuff 2026-06-06 (TASK 044: FASE 5.1 click-to-edit VE — 8/8 checks, STAGE+burn+reset OK)
+
+## [v2.7.33] — 2026-06-06
+### Changed
+- web/f7.py: _f7_match_cross_session() now returns delta_pw1 and delta_pw2 (front/rear independently)
+- web/proposal.py: FASE 6 v2 — added _classify_zone(), _compute_f7_delta(), zone-based F7+VS fusion
+  - Zone thresholds: WOT>=85% (VS only), Mid 40-85% (weighted fusion), Light<40% (F7 priority)
+  - Rich bias: when F7/VS signals conflict, prefer richer (max) value
+  - Summary now includes f7_available flag
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+**Audited:** PASS — freebuff 2026-06-06 (FASE 6 v2: zone fusion, 7/7)
+**Audited:** PASS — freebuff 2026-06-06 (TASK 042: FASE 6 v2 zone fusion — tps_peak classification correct, OL clean)
+
 ## [v2.7.32] — 2026-06-06
 
 ### Fixed
@@ -1433,6 +1499,7 @@ both the live dashboard and CSV logs. Now fully functional.
   actual version.
 ### AI
 - Claude Sonnet 4.6, Anthropic
+* **Audited:** PASS — freebuff 2026-06-06 (TASK 048: post-ride gear detection v2.7.36, 96.9% accuracy)
 
 ## [v2.6.21] — 2026-05-24
 ### Fixed
@@ -1444,7 +1511,7 @@ both the live dashboard and CSV logs. Now fully functional.
   connection state — previously GPS fields were absent when ECU was disconnected.
 - web/static/app.js: dashboard SAT field now correctly reflects live satellite count.
 ### AI
-- Claude Sonnet 4.6, Anthropic
+
 
 ## [v2.6.20] — 2026-05-24
 ### Changed
@@ -2550,68 +2617,3 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ---
 
 - **Bug #14: No threading locks on shared state** — Added `threading.RLock()` in `web/server.py` (`_data_lock`) protecting `serial_stats`, `ecu_live`, `gps`, and `eeprom_maps` from concurrent access by HTTP threads, ECU loop, and sysmon loop. Used via `self.web._data_lock` in main.py.
-
-## [v2.7.33] — 2026-06-06
-### Changed
-- web/f7.py: _f7_match_cross_session() now returns delta_pw1 and delta_pw2 (front/rear independently)
-- web/proposal.py: FASE 6 v2 — added _classify_zone(), _compute_f7_delta(), zone-based F7+VS fusion
-  - Zone thresholds: WOT>=85% (VS only), Mid 40-85% (weighted fusion), Light<40% (F7 priority)
-  - Rich bias: when F7/VS signals conflict, prefer richer (max) value
-  - Summary now includes f7_available flag
-### AI
-- Claude Sonnet 4.6, Anthropic
-
-**Audited:** PASS — freebuff 2026-06-06 (FASE 6 v2: zone fusion, 7/7)
-**Audited:** PASS — freebuff 2026-06-06 (TASK 042: FASE 6 v2 zone fusion — tps_peak classification correct, OL clean)
-
-## [v2.7.34] — 2026-06-06
-### Added
-- web/templates/tuner.html: FASE 5.1 — click-to-edit VE heatmap cells
-  - Click any fuel/spark cell → inline input overlay appears
-  - Staged cells turn amber; BURN/RESET buttons shown in header bar
-  - BURN: POST /eeprom/burn with all staged changes
-  - RESET: clears all staged changes
-  - Client-side ±15% gate with range feedback
-  - Max 20 cells per burn enforced client-side and server-side
-- web/server.py: _handle_eeprom_burn — server-side ±15% per-cell gate + max 20 cells limit
-### AI
-- Claude Sonnet 4.6, Anthropic
-
-**Audited:** PASS — freebuff 2026-06-06 (TASK 044: FASE 5.1 click-to-edit VE — 8/8 checks, STAGE+burn+reset OK)
-
-## [v2.7.35] — 2026-06-06
-### Fixed
-- web/proposal.py: _compute_f7_delta() now uses tps_peak (max from cluster members)
-  instead of bucket_a.tps_center for zone classification
-  bucket_a.tps_center is pre-WOT stable TPS (~10-15%); tps_peak is actual WOT peak (60-99%)
-  Previous: all F7 cells incorrectly landed in Light zone, contributing 0 signal
-  Now: F7 cells classified correctly (WOT/Mid/Light) based on real event peak TPS
-### AI
-- Claude Sonnet 4.6, Anthropic
-
-**Audited:** PASS — freebuff 2026-06-06 (TASK 045: tps_peak zone fix — cells land in correct zone, generate_fuel_proposal OK)
-
-## [v2.7.36] — 2026-06-06
-### Added
-- web/gear_detect.py: post-ride gear detection from RPM/VSS ratio
-  Thresholds from session 248AE2 (96.9% accuracy, confusion only between adjacent gears)
-  detect_gear(rpm, vss_kph) returns gear 1-5 or 0 if neutral/uncertain
-### Changed
-- web/f7.py: _load_csv_rows() adds gear_detected field per row
-  Event detection gate, bucket_a gear avg, phase_b consistency check
-  all use gear_detected with fallback to ECU Gear field
-- web/launch.py: load_csv() adds gear_detected field per row
-  _mode_gear() and gear_vals stability check use gear_detected with fallback
-- Cache: deleted 89 stale f7events + f7clusters files (regenerate on next access)
-### AI
-- Claude Sonnet 4.6, Anthropic
-
-## [v2.7.37] — 2026-06-06
-### Fixed
-- web/proposal.py: zone classification in generate_fuel_proposal() now uses
-  f7_tpk (tps_peak of the F7 cluster) instead of the VS cell center TPS
-  _compute_f7_delta() now returns 5-tuple including f7_tpk grid
-  Edge case: Mid F7 event (tps_peak 40-85%) mapped to low TPS cell no longer
-  misclassified as Light — zone uses the real event peak, not cell midpoint
-### AI
-- Claude Sonnet 4.6, Anthropic
