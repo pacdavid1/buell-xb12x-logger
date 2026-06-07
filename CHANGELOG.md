@@ -26,6 +26,12 @@
 PROMPT_END -->
 
 
+## [v2.7.56] — 2026-06-07
+### Reverted
+- web/templates/index.html: BUELL LOGGER header back to original (14px, no fixed row height)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.55] — 2026-06-07
 ### Changed
 - web/templates/index.html: #hdrLogoRow fixed height 40px, BUELL LOGGER font-size 36px
