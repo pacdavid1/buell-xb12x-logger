@@ -2490,3 +2490,16 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
 ---
 
 - **Bug #14: No threading locks on shared state** — Added `threading.RLock()` in `web/server.py` (`_data_lock`) protecting `serial_stats`, `ecu_live`, `gps`, and `eeprom_maps` from concurrent access by HTTP threads, ECU loop, and sysmon loop. Used via `self.web._data_lock` in main.py.
+
+
+### v2.7.25 — validated by freebuff 2026-06-06
+- pw1_norm fix: 8/8 checks PASS (pw1 raw preserved, pw1_norm, CACHE_VERSION=7, detect_launches ok)
+
+### v2.7.26 — validated by freebuff 2026-06-06
+- Tiered battery shutdown: boot SOC capture, charging-aware, tiered thresholds (30/20/10/-1)
+
+### v2.7.27 — validated by freebuff 2026-06-06
+- _clamp module-level refactor: PASS (def _clamp at line 29, calls updated)
+
+### v2.7.28 — validated by freebuff 2026-06-06
+- Tiered voltage threshold: PASS (3.50/3.40/3.30/3.20V segun SOC boot)
