@@ -25,6 +25,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.30] — 2026-06-06
+
+### Fixed
+- main.py: thread watchdog now detects hung threads via heartbeat timestamps (freebuff task 033)
+  _ecu_heartbeat + _sysmon_heartbeat updated each loop iteration
+  _check_threads(): stale >10s (ECU) or >15s (sysmon) triggers restart even if thread is alive
+  Before ECU restart: self.ecu.ser.close() to avoid zombie file descriptors
+
+### AI
+- Claude Sonnet 4.6, Anthropic (freebuff task 033 research)
+
 ## [v2.7.29] — 2026-06-06
 
 ### Added

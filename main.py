@@ -119,6 +119,8 @@ class BuellLogger:
         self._bat_voltages = []       # rolling buffer for voltage trend
         self._bat_socs = []          # rolling buffer for SOC smoothing
         self._boot_soc = None        # SOC at first stable boot reading (tiered shutdown)
+        self._ecu_heartbeat = time.monotonic()    # updated each ECU loop iteration
+        self._sysmon_heartbeat = time.monotonic() # updated each sysmon loop iteration
         self._cw2015 = None
         self._smbus = None
         if _BMP280_OK or _AHT20_OK or _CW2015_OK:
@@ -563,6 +565,8 @@ class BuellLogger:
                 _serial_window = _now
 
             time.sleep(max(0, INTERVAL - (time.monotonic() - t0)))
+            self._sysmon_heartbeat = time.monotonic()
+            self._ecu_heartbeat = time.monotonic()
 
         # ── Cierre al detener el servicio ──────────────────────────────
         if ride_active:
@@ -656,22 +660,35 @@ class BuellLogger:
         self.shutdown()
     
     def _check_threads(self):
-        """Watchdog: restart dead background threads with cooldown."""
+        """Watchdog: restart dead or hung background threads with cooldown."""
         now = time.monotonic()
+        heartbeats = {"ecu-rt": self._ecu_heartbeat, "sysmon": self._sysmon_heartbeat}
+        stale_limits = {"ecu-rt": 10.0, "sysmon": 15.0}
         for name, thread in [("ecu-rt", self._ecu_thread), ("sysmon", self._sysmon_thread)]:
-            if not thread.is_alive():
-                last = getattr(self, f"_last_{name}_restart", 0)
-                if now - last < 30:
-                    self.logger.warning(f"Thread {name} dead, skipping restart (cooldown {now-last:.0f}s < 30s)")
-                    continue
-                self.logger.critical("Thread %s is dead - restarting", name)
-                setattr(self, f"_last_{name}_restart", now)
-                if name == "ecu-rt":
-                    self._ecu_thread = threading.Thread(target=self._ecu_loop, daemon=True, name="ecu-rt")
-                    self._ecu_thread.start()
-                elif name == "sysmon":
-                    self._sysmon_thread = threading.Thread(target=self._sysmon_loop, daemon=True, name="sysmon")
-                    self._sysmon_thread.start()
+            last_hb = heartbeats.get(name, now)
+            stale = now - last_hb > stale_limits[name]
+            if stale and thread.is_alive():
+                self.logger.warning(f"Thread {name} HUNG (no heartbeat {now-last_hb:.1f}s) — will restart")
+            dead = not thread.is_alive()
+            if not dead and not stale:
+                continue
+            last = getattr(self, f"_last_{name}_restart", 0)
+            if now - last < 30:
+                self.logger.warning(f"Thread {name} dead/hung, skipping restart (cooldown {now-last:.0f}s < 30s)")
+                continue
+            self.logger.critical("Thread %s is %s - restarting", name, "hung" if stale else "dead")
+            setattr(self, f"_last_{name}_restart", now)
+            if name == "ecu-rt":
+                try:
+                    if self.ecu.ser and self.ecu.ser.is_open:
+                        self.ecu.ser.close()
+                except Exception:
+                    pass
+                self._ecu_thread = threading.Thread(target=self._ecu_loop, daemon=True, name="ecu-rt")
+                self._ecu_thread.start()
+            elif name == "sysmon":
+                self._sysmon_thread = threading.Thread(target=self._sysmon_loop, daemon=True, name="sysmon")
+                self._sysmon_thread.start()
 
     def shutdown(self):
         """Limpieza al salir."""
