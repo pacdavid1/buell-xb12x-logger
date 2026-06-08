@@ -97,6 +97,8 @@ function _fuelColor(pct){
   return pct>35?'#2ecc71':pct>18.6?'#f1c40f':pct>9?'#e67e22':'#e74c3c';
 }
 function _kmColor(km){
+  // amber when fuel is at/below reserve level (3.1L) — distinct from low-km red
+  if(_fuelSt.level_L!=null && _fuelSt.level_L<=3.1) return '#e67e22';
   return km>80?'#2ecc71':km>30?'#f1c40f':'#e74c3c';
 }
 
@@ -141,7 +143,9 @@ async function fetchFuelStatus(){
     if(_gwb){
       const _km = _fuelSt.km_remaining;
       const _v  = _km != null ? _km.toFixed(0) : '--';
-      const _c  = _km != null ? (_km>80?'#2ecc71':_km>30?'#f1c40f':'#e74c3c') : '#f1c40f';
+      const _inRes = _fuelSt.level_L!=null && _fuelSt.level_L<=3.1;
+      const _c  = _inRes ? '#e67e22'
+                : _km != null ? (_km>80?'#2ecc71':_km>30?'#f1c40f':'#e74c3c') : '#f1c40f';
       _gwb.querySelector('.gw-val').textContent = _v;
       _gwb.querySelector('.gw-val').style.color = _c;
     }

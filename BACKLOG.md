@@ -877,7 +877,7 @@ total_km = SUM(km_per_sample) from reserve trigger
 
 ## FASE 8 — Fuel Tracker: pending features (step by step)
 
-### BL-FUEL-10 — Reset / Tanque lleno button [NEXT]
+### BL-FUEL-10 — Reset / Tanque lleno button ~~[NEXT]~~ **[DONE v2.7.83]**
 **Priority:** HIGH
 When user fills up to full (or wants to reset the estimate):
 - Add toggle in fill-up form: "Tanque lleno"
@@ -887,7 +887,7 @@ When user fills up to full (or wants to reset the estimate):
   Could be: undocumented short ride, disconnections, calculation error
 - discrepancy is stored in the refuel entry for future calibration analysis
 
-### BL-FUEL-11 — Consumption per ride (L/100km, km/L)
+### BL-FUEL-11 — Consumption per ride (L/100km, km/L) **[DONE v2.7.84]**
 **Priority:** MEDIUM
 Calculate fuel consumption for each ride:
 - Read pw1+pw2 from each ride CSV, apply injector constant
@@ -943,7 +943,7 @@ different spray patterns (front P0026.1AA, rear P0027.1AA, 12.25 ohm each).
 
 ## Mantenimiento / Limpieza de código
 
-### BL-FUEL-15 — Fuel level indicator bar in page headers
+### BL-FUEL-15 — Fuel level indicator bar in page headers **[DONE v2.7.85]**
 - Show a compact left-to-right fill bar in ALL page headers (index, sessions, tuner, etc.)
 - Reads from /fuel/status (level_pct) via a lightweight fetch on page load
 - No polling — one fetch on load, optional manual refresh

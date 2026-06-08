@@ -116,6 +116,13 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
   .form-label{font-size:12px;width:60px}
   input[type=number],select{font-size:15px}
 }
+.onboard{background:rgba(61,158,255,.07);border:1px solid rgba(61,158,255,.3);
+  border-radius:4px;padding:12px 14px;margin-bottom:10px;display:none}
+.onboard.show{display:block}
+.onboard-title{font-size:13px;font-weight:700;color:#7df;letter-spacing:.12em;margin-bottom:8px}
+.onboard-step{font-size:13px;color:var(--dim);padding:4px 0;display:flex;gap:8px}
+.onboard-step b{color:var(--text);min-width:14px}
+.onboard-note{font-size:11px;color:var(--dim);margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
 </style>
 </head>
 <body>
@@ -136,6 +143,14 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 </div>
 <div class="content">
 
+  <div class="onboard" id="onboardBanner">
+    <div class="onboard-title">HOW TO ACTIVATE FUEL TRACKING</div>
+    <div class="onboard-step"><b>1.</b><span>When the <b style="color:var(--accent)">reserve light</b> turns on, press <b>ACTIVATE RESERVE</b> below</span></div>
+    <div class="onboard-step"><b>2.</b><span>Ride normally — the logger counts km and fuel pulse width</span></div>
+    <div class="onboard-step"><b>3.</b><span>Fill up, enter liters, check <b>FULL TANK RESET</b>, press <b>SAVE FILL-UP</b></span></div>
+    <div class="onboard-step"><b>4.</b><span>From the next reserve activation onward, all widgets show live data</span></div>
+    <div class="onboard-note">The system auto-calibrates the injector constant each cycle using the 13.6 L hard window (full→reserve)</div>
+  </div>
   <div class="section">
     <div class="section-title">Trip since last reserve</div>
     <div class="trip-row">
@@ -224,6 +239,8 @@ async function loadStatus(){
     updateGauge(d);
     updateReserveBtn(d);
     renderHistory(d.refuels || []);
+    const noData = !d.refuels || d.refuels.length === 0;
+    document.getElementById('onboardBanner').classList.toggle('show', noData);
   }catch(e){ console.warn(e); }
 }
 

@@ -21,6 +21,26 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.102] — 2026-06-08
+
+### Added
+- `fuel.html`: onboarding banner shown when no fill-ups registered — explains the
+  4-step activation flow (reserve light → ACTIVATE RESERVE → fill up → FULL TANK RESET);
+  auto-hides once the first fill-up is saved
+- `app.js` (BL-FUEL-18): reserve-aware color for ~KM widget — when `level_L <= 3.1`
+  (XB12X reserve threshold from service manual), both the grid widget B and widget A
+  ~KM mode show amber `#e67e22` instead of the normal green/yellow/red km scale;
+  reserve amber is visually distinct from the low-km red (<30km)
+
+### Changed
+- `BACKLOG.md`: marked BL-FUEL-10 (full tank reset), BL-FUEL-11 (ride consumption),
+  BL-FUEL-15 (header fuel bar) as DONE — all implemented in v2.7.83–v2.7.85
+
+### AI
+- Claude Sonnet 4.6
+
+---
+
 ## [v2.7.101] — 2026-06-08
 
 ### Added
