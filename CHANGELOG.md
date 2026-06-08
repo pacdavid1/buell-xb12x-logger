@@ -30,6 +30,8 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS — freebuff 2026-06-07 (corrected_audit + validation_v2: ZeroDivision x5 FALSE POSITIVE guards confirmed, json.loads 13/13 with try/except, RLock by-design — Claude was correct on all counts)
+
 ## [v2.7.82] — 2026-06-07
 ### Changed
 - web/fuel_tracker.py: km pivot is reserve activation — trip_km counts from reserve_ts, survives fill-up, resets only on next reserve activation; add_refuel clears reserve_active but keeps reserve_ts
