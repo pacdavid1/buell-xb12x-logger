@@ -21,6 +21,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.79] — 2026-06-07
+### Added
+- web/templates/index.html: Combustible link added to hamburger menu (opens /fuel)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.78] — 2026-06-07
 ### Added
 - web/fuel_tracker.py: fuel tracking module (reserve toggle, refuel logging, PW-based consumption estimate, iterative calibration)
