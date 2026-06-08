@@ -54,6 +54,16 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 .disc-warn{color:var(--yellow)}
 .empty{font-size:10px;color:var(--dim);text-align:center;padding:16px}
 .status-msg{font-size:9px;color:var(--dim);text-align:center;min-height:14px;margin-top:6px}
+
+.cons-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.cons-row{display:flex;align-items:baseline;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.cons-row:last-child{border-bottom:none}
+.cons-date{color:var(--dim);font-size:9px;width:90px;flex-shrink:0}
+.cons-km{color:var(--text);width:50px;text-align:right;flex-shrink:0}
+.cons-l{color:var(--blue);width:44px;text-align:right;flex-shrink:0}
+.cons-l100{font-weight:700;width:52px;text-align:right;flex-shrink:0}
+.cons-sess{color:var(--dim);font-size:9px;margin-left:6px;flex:1;text-align:right}
+.cons-hdr{display:flex;justify-content:space-between;font-size:8px;color:var(--dim);letter-spacing:.08em;padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -123,6 +133,19 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
   <div class="section">
     <div class="section-title">Fill-up history</div>
     <div id="historyList"><div class="empty">Loading...</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Consumption per ride</div>
+    <div class="cons-summary">
+      <div class="g-stat"><div class="g-stat-val" id="cAvgL100">--</div><div class="g-stat-lbl">avg L/100</div></div>
+      <div class="g-stat"><div class="g-stat-val" id="cAvgKmL">--</div><div class="g-stat-lbl">avg km/L</div></div>
+      <div class="g-stat"><div class="g-stat-val" id="cTotalKm">--</div><div class="g-stat-lbl">total km</div></div>
+    </div>
+    <div class="cons-hdr">
+      <span>DATE</span><span style="margin-left:auto;margin-right:4px">KM</span><span style="width:44px;text-align:right">LITERS</span><span style="width:52px;text-align:right">L/100</span><span style="width:54px;text-align:right">SESSION</span>
+    </div>
+    <div id="consList"><div class="empty">Loading...</div></div>
   </div>
 
 </div>
@@ -258,7 +281,46 @@ function fmtDate(iso){
     + ' ' + d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
 }
 
+async function loadConsumption(){
+  try{
+    const r = await fetch('/fuel/consumption');
+    const rides = await r.json();
+    renderConsumption(rides);
+  }catch(e){ document.getElementById('consList').innerHTML='<div class="empty">Error loading</div>'; }
+}
+
+function renderConsumption(rides){
+  const el = document.getElementById('consList');
+  if(!rides||!rides.length){ el.innerHTML='<div class="empty">No ride data yet</div>'; return; }
+  const valid = rides.filter(r => r.l_per_100 && r.km > 1);
+  if(valid.length){
+    const avgL100 = valid.reduce((s,r)=>s+r.l_per_100,0)/valid.length;
+    const avgKmL  = valid.reduce((s,r)=>s+r.km_per_l,0)/valid.length;
+    const totKm   = valid.reduce((s,r)=>s+r.km,0);
+    document.getElementById('cAvgL100').textContent = avgL100.toFixed(1);
+    document.getElementById('cAvgKmL').textContent  = avgKmL.toFixed(1);
+    document.getElementById('cTotalKm').textContent = totKm.toFixed(0);
+  }
+  function l100col(v){ return v<7?'var(--green)':v<10?'var(--yellow)':v<14?'var(--orange)':'var(--red)'; }
+  el.innerHTML = rides.slice(0,30).map(r => {
+    const d = new Date(r.date);
+    const ds = d.toLocaleDateString('en',{day:'2-digit',month:'short'})
+              +' '+d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
+    const l100 = r.l_per_100 ? r.l_per_100.toFixed(1) : '--';
+    const col  = r.l_per_100 ? l100col(r.l_per_100) : 'var(--dim)';
+    return '<div class="cons-row">'
+      +'<span class="cons-date">'+ds+'</span>'
+      +'<span class="cons-km">'+r.km.toFixed(1)+' km</span>'
+      +'<span class="cons-l">'+r.liters.toFixed(2)+' L</span>'
+      +'<span class="cons-l100" style="color:'+col+'">'+l100+'</span>'
+      +'<span class="cons-sess">'+r.session+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+
 loadStatus();
+loadConsumption();
 setInterval(loadStatus, 10000);
 </script>
 </body>

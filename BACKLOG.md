@@ -1551,3 +1551,20 @@ Verificar que ambas columnas se graben correctamente y con la frecuencia adecuad
 - [x] protocol.py (root) eliminado - duplicado de ecu/protocol.py (freebuff)
 - [x] tools/test_ecu.py.save eliminado - backup leftover (freebuff)
 - [x] tools/health_journal.py: atomic write fix (tmp+os.replace) (freebuff)
+
+### BL-BUG-02 — VSS auto-calibration via GPS comparison
+**Priority:** MEDIUM
+**Source:** user request 2026-06-07
+
+The VSS_CPKM25 constant (1518.0) is hardcoded. When GPS has a valid fix, compare
+GPS-derived kph vs VSS-derived kph and auto-adjust the calibration constant over time.
+
+Goal:
+- When GPS signal is valid (hdop < 2.0, speed > 10 kph), log ratio: gps_kph / vss_kph
+- Apply exponential moving average to refine VSS_CPKM25 in real time
+- Persist the calibrated value so it survives restarts
+- Benefit: handles tire size changes, sprocket swaps, any mechanical variation
+- When GPS unavailable, use the learned constant — independent and accurate
+
+**Freebuff task:** Investigate if this mechanism already exists (grep VSS_CPKM25,
+gps_kph comparison in protocol.py / main.py). If not, design the calibration loop.

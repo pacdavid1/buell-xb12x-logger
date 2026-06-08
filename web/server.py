@@ -114,6 +114,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             '/fuel/status': self._handle_fuel_status,
             '/fuel/reserve': self._handle_fuel_reserve,
             '/fuel/refuel': self._handle_fuel_refuel,
+            '/fuel/consumption': self._handle_fuel_consumption,
         }
         handler = _routes.get(path)
         if handler:
@@ -327,7 +328,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
 
     def _handle_fuel_status(self, path=None):
         from web.fuel_tracker import get_status
-        self._json(get_status(str(self._sessions_dir)))
+        self._json(get_status(str(self.server_instance.buell_dir / "sessions")))
 
     def _handle_fuel_reserve(self, path=None):
         from web.fuel_tracker import toggle_reserve
@@ -349,8 +350,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._json({'error': 'invalid body'}, 400); return
         if liters <= 0:
             self._json({'error': 'liters must be > 0'}, 400); return
-        self._json(add_refuel(liters, octane, str(self._sessions_dir), full_tank))
+        self._json(add_refuel(liters, octane, str(self.server_instance.buell_dir / "sessions"), full_tank))
 
+
+    def _handle_fuel_consumption(self, path=None):
+        from web.fuel_tracker import calc_ride_consumption
+        self._json(calc_ride_consumption(str(self.server_instance.buell_dir / "sessions")))
 
     def _handle_sessions_launch(self, path=None):
         """Serve the Launch Analysis page."""

@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.84] — 2026-06-07
+### Fixed
+- web/server.py: _handle_fuel_status, _handle_fuel_refuel, _handle_fuel_consumption — replaced undefined self._sessions_dir with self.server_instance.buell_dir / 'sessions' (bug since v2.7.78)
+### Added
+- web/templates/fuel.html: Consumption per ride section — summary stats (avg L/100, avg km/L, total km) + per-ride table with date/km/liters/L/100 color-coded by efficiency
+- BACKLOG.md: BL-BUG-02 VSS auto-calibration via GPS comparison
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.83] — 2026-06-07
 ### Added
 - web/fuel_tracker.py: full_tank flag in add_refuel() — when set, level resets to 16.7L; discrepancy_L logged (calc_remaining vs actual fill gap); level_override_L stored in refuel entry
