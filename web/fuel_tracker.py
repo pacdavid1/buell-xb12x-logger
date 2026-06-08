@@ -12,6 +12,10 @@ RESERVE_L          = 3.1      # level at which reserve light activates
 FUEL_FILE = '/home/pi/buell/fuel_tracking.json'
 
 
+# --- avg_l100 cache (recomputed at most every 5 min) ---
+_avg_cache: dict = {"ts": 0.0, "avg_l100": None}
+_AVG_TTL = 300  # seconds
+
 def _load() -> dict:
     try:
         with open(FUEL_FILE) as f:
@@ -119,6 +123,27 @@ def get_status(sessions_dir: str) -> dict:
                 level_l = max(0.0, RESERVE_L - consumed_res)
                 result['level_L']   = round(level_l, 2)
                 result['level_pct'] = round(level_l / TANK_TOTAL_L * 100, 1)
+
+    # --- Avg L/100 and km remaining (cached, recomputed every 5 min) ---
+    import time as _time
+    global _avg_cache
+    try:
+        if _time.time() - _avg_cache['ts'] > _AVG_TTL or _avg_cache['avg_l100'] is None:
+            rides = calc_ride_consumption(sessions_dir, limit=50)
+            valid = [r for r in rides if r.get('km', 0) >= 5.0]
+            if valid:
+                tot_km = sum(r['km'] for r in valid)
+                tot_l  = sum(r['liters'] for r in valid)
+                if tot_km > 0:
+                    _avg_cache['avg_l100'] = round(tot_l / tot_km * 100, 2)
+            _avg_cache['ts'] = _time.time()
+        avg_l100 = _avg_cache['avg_l100']
+        if avg_l100:
+            result['avg_l100'] = avg_l100
+            if 'level_L' in result and avg_l100 > 0:
+                result['km_remaining'] = round(result['level_L'] / avg_l100 * 100, 1)
+    except Exception:
+        pass
 
     return result
 
@@ -233,6 +258,8 @@ def _calc_ride_from_csv(csv_path: str, cc_per_ms: float) -> dict | None:
 
 
 def save_ride_consumption_cache(csv_path: str) -> dict | None:
+    global _avg_cache; _avg_cache['ts'] = 0.0  # invalidate avg cache
+
     """Compute and persist <ride>_consumption.json. Called at ride close."""
     import os
     cc = _load()['injector_cc_per_ms']

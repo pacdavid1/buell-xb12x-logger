@@ -189,7 +189,7 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", mime or "application/octet-stream")
             self.send_header("Content-Length", str(len(body)))
-            self.send_header("Cache-Control", "max-age=3600")
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
             self.end_headers()
             self.wfile.write(body)
             return
@@ -1378,6 +1378,7 @@ class WebServer:
     def start(self):
         DashboardHandler.server_instance = self
         self._server = ThreadingHTTPServer((self.host, self.port), DashboardHandler)
+        self._server.daemon_threads = True  # reclaim threads after each request
         self._thread = threading.Thread(
             target=self._server.serve_forever,
             daemon=True,

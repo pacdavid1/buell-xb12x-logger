@@ -54,15 +54,128 @@ function showTab(id) {
 let _cobertMode = 'seconds';
 let _cobertData = null;
 
+// ── Configurable widgets ─────────────────────────────────────────────────
+// Widget A: tap the RPM big-card to cycle.
+// Widget B: tap the dead-zone cell in the coverage grid to cycle.
+const _WA = [
+  {id:'rpm',    label:'RPM',    unit:'rpm',   color:'#ff4444'},
+  {id:'km_est', label:'~KM',    unit:'est',   color:'#f1c40f'},
+  {id:'fuel_l', label:'GAS',    unit:'L',     color:'#2ecc71'},
+  {id:'fuel_%', label:'TNK',   unit:'%',     color:'#2ecc71'},
+];
+let _waIdx = parseInt(localStorage.getItem('waIdx')||'0') % _WA.length;
+let _fuelSt = {};
+
+function showWAMenu(){
+  const spd = lastData?.live?.VS_KPH ?? 0;
+  const m = $id('waMenu');
+  if(!m) return;
+  if(spd > 0){
+    // Locked while moving — flash label briefly
+    const lbl = $id('waLabel');
+    const prev = lbl.textContent;
+    lbl.textContent = 'LOCK';
+    setTimeout(()=>{ lbl.textContent = prev; }, 700);
+    return;
+  }
+  m.innerHTML = _WA.map((w,i)=>
+    '<div class="wa-opt'+(i===_waIdx?' sel':'')+'"'
+    +' onclick="setWidgetA('+i+')">'+w.label
+    +' <span style="color:'+w.color+';font-size:8px">&#9679;</span></div>'
+  ).join('');
+  m.classList.add('open');
+  setTimeout(()=>document.addEventListener('click',_closeWAMenu,{once:true,capture:true}),0);
+}
+function _closeWAMenu(){ $id('waMenu')?.classList.remove('open'); }
+function setWidgetA(idx){
+  _waIdx=idx; localStorage.setItem('waIdx',_waIdx);
+  $id('waMenu')?.classList.remove('open');
+  _paintA();
+}
+
+function _fuelColor(pct){
+  return pct>35?'#2ecc71':pct>18.6?'#f1c40f':pct>9?'#e67e22':'#e74c3c';
+}
+function _kmColor(km){
+  return km>80?'#2ecc71':km>30?'#f1c40f':'#e74c3c';
+}
+
+function _widgetVal(id, lv){
+  const p=_fuelSt.level_pct||0;
+  switch(id){
+    case 'rpm':
+      return {v: lv?.RPM!=null?String(Math.round(lv.RPM)):'--', col:'#ff4444'};
+    case 'km_est':
+      return {v: _fuelSt.km_remaining!=null?_fuelSt.km_remaining.toFixed(0):'--',
+              col: _fuelSt.km_remaining!=null?_kmColor(_fuelSt.km_remaining):'#f1c40f'};
+    case 'fuel_l':
+      return {v: _fuelSt.level_L!=null?_fuelSt.level_L.toFixed(1):'--', col:_fuelColor(p)};
+    case 'fuel_%':
+      return {v: _fuelSt.level_pct!=null?_fuelSt.level_pct.toFixed(0):'--', col:_fuelColor(p)};
+    case 'avg_l100':
+      return {v: _fuelSt.avg_l100!=null?_fuelSt.avg_l100.toFixed(1):'--', col:'#7df'};
+    default: return {v:'--', col:'#888'};
+  }
+}
+
+function _paintA(lv){
+  const m=_WA[_waIdx], card=$id('cardWidgetA');
+  if(!card) return;
+  $id('waLabel').textContent=m.label;
+  $id('waUnit').textContent=m.unit;
+  const {v,col}=_widgetVal(m.id,lv);
+  $id('waVal').textContent=v;
+  $id('waVal').style.color=col;
+  card.style.borderTopColor=col;
+}
+
+
+async function fetchFuelStatus(){
+  try{
+    const r=await fetch('/fuel/status');
+    if(!r.ok) return;
+    _fuelSt=await r.json();
+    _paintA();
+    // Paint grid widget B (fixed: km remaining)
+    const _gwb = document.getElementById('gridWidgetB');
+    if(_gwb){
+      const _km = _fuelSt.km_remaining;
+      const _v  = _km != null ? _km.toFixed(0) : '--';
+      const _c  = _km != null ? (_km>80?'#2ecc71':_km>30?'#f1c40f':'#e74c3c') : '#f1c40f';
+      _gwb.querySelector('.gw-val').textContent = _v;
+      _gwb.querySelector('.gw-val').style.color = _c;
+    }
+  }catch(e){}
+}
+
 function buildCobertGrid() {
   const t = $id('cobertGrid');
   if (!t) return;
   let h = '<thead><tr>';
   for (const r of RPM_BINS) h += '<th>'+Math.round(r/100)+'</th>';
   h += '<th class="rh">L</th></tr></thead><tbody>';
+  const _DR=2, _DC=3;
   for (let li = LOAD_BINS.length-1; li >= 0; li--) {
+    const _ro = LOAD_BINS.length-1-li;
     h += '<tr>';
     for (let ri = 0; ri < RPM_BINS.length; ri++) {
+      if(_ro<_DR && ri<_DC){
+        if(_ro===0 && ri===0){
+          h+='<td id="gridWidgetB" rowspan="'+_DR+'" colspan="'+_DC+'"'
+            +' style="padding:0;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08)">'
+            +'<div style="display:flex;height:100%;min-height:54px;align-items:stretch">'
+            +'<div class="gw-lbl" style="writing-mode:vertical-rl;transform:rotate(180deg);'
+            +'font-family:var(--mono);font-size:7px;color:var(--dim);letter-spacing:.1em;'
+            +'border-right:1px solid rgba(255,255,255,.06);padding:0 3px;'
+            +'display:flex;align-items:center;justify-content:center">~KM</div>'
+            +'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">'
+            +'<div class="gw-val" style="font-family:var(--mono);font-size:16px;font-weight:700;color:#f1c40f;line-height:1">--</div>'
+            +'</div>'
+            +'</div>'
+            +'</td>';
+        }
+        continue;
+      }
       const k = RPM_BINS[ri]+'_'+LOAD_BINS[li];
       h += '<td id="gc_'+k+'" class="c0"><div class="cv" id="gs_'+k+'"></div></td>';
     }
@@ -322,9 +435,8 @@ function updateHeader(d) {
   const bkph = $id('bigKPH');
   if(bkph) bkph.textContent = lv.VS_KPH != null ? lv.VS_KPH.toFixed(0) : '--';
 
-  // Big RPM
-  const brpm = $id('bigRPM');
-  if(brpm) brpm.textContent = lv.RPM != null ? Math.round(lv.RPM) : '--';
+  // Big RPM / widget A
+  _paintA(lv);
 
   // Big TPS — show % (calibrated in Python) and degrees
   const tpsPct = lv.TPS_pct;
@@ -2535,7 +2647,7 @@ async function gitPull() {
 
 
 // Load cal on startup (not only on tab open)
-document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); _cobertInterval = setInterval(pollCobertGrid, 1000); });
+document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); _cobertInterval = setInterval(pollCobertGrid, 1000); fetchFuelStatus(); setInterval(fetchFuelStatus, 30000); });
 
 
 // ── Error Log Viewer ──

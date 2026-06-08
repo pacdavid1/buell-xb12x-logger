@@ -242,6 +242,13 @@ table.veg td:active{filter:brightness(1.6)}
 .hs.launch-gear{background:rgba(170,136,255,.12) !important}
 .fuel-bar-track{height:4px;background:#111;width:100%}
 .fuel-bar-fill{height:100%;width:0%;transition:width .8s ease,background .5s}
+.wa-menu{display:none;position:absolute;inset:0;z-index:20;background:rgba(10,10,11,.96);
+  border-radius:inherit;flex-direction:column;justify-content:center;gap:2px;padding:10px 12px;
+  border:1px solid var(--border)}
+.wa-menu.open{display:flex}
+.wa-opt{font-family:var(--mono);font-size:11px;padding:6px 8px;cursor:pointer;
+  border-radius:2px;color:var(--dim);white-space:nowrap}
+.wa-opt:hover,.wa-opt.sel{background:rgba(255,255,255,.08);color:#fff}
 </style>
 <script>window.LOGGER_VERSION = "--LOGGER_VERSION--";</script>
 </head>
@@ -362,13 +369,16 @@ table.veg td:active{filter:brightness(1.6)}
       </div>
       </div>
     </div>
-    <!-- RPM -->
-    <div class="big-card" id="cardRPM" style="border-top-color:#ff4444">
-      <span class="big-label">RPM</span>
+    <!-- RPM / configurable widget A (tap for menu) -->
+    <div class="big-card" id="cardWidgetA"
+         style="border-top-color:#ff4444;position:relative;cursor:pointer;user-select:none"
+         onclick="showWAMenu()">
+      <span class="big-label" id="waLabel">RPM</span>
       <div class="big-val-row">
-        <div class="big-num" style="color:#ff4444" id="bigRPM">--</div>
-        <span class="big-unit-inline">rpm</span>
+        <div class="big-num" id="waVal" style="color:#ff4444">--</div>
+        <span class="big-unit-inline" id="waUnit">rpm</span>
       </div>
+      <div id="waMenu" class="wa-menu"></div>
     </div>
   </div>
   <!-- Launch progress bar -->

@@ -55,3 +55,25 @@ After each Claude commit:
 - CHANGELOG.md - version history (Pi): /home/pi/buell/CHANGELOG.md
   NOTE: newest entries are at the TOP — use head not tail
 - Actual code on Pi - always SSH, never trust local
+
+## Lessons Learned
+
+### 2026-06-07: False positive bug report (ZeroDivision y RLock)
+Que paso: Audite el source tree del proyecto en mi maquina local y reporte
+5 ZeroDivision y 2 RLock faltantes como bugs. Pero Claude ya los habia
+fixeado en commits v2.7.62 a v2.7.77 ANTES de que yo auditara.
+
+Por que paso: Use el source tree del proyecto que tengo cacheado en mi
+contexto, en vez de leer el codigo ACTUAL del Pi via SSH.
+
+Protocolo correctivo:
+1. ANTES de reportar un bug, leer el archivo actual del Pi:
+   ssh cat archivo.py | grep/sed
+2. No confiar en el source tree local ni en cache del contexto.
+   El Pi es la fuente de verdad. Claude hace commits sin avisarme.
+3. Cross-check: si Claude commitio algo que parece fixear el bug,
+   verificar con git log antes de reportar.
+4. git log --oneline -10 en el Pi para ver el estado real de commits.
+
+Resultado: 70% de mis hallazgos eran falsos positivos. Perdimos tiempo.
+No volver a repetir.

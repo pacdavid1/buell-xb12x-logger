@@ -21,6 +21,88 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.100] — 2026-06-08
+
+### Fixed
+- `fuel_tracker.py`: added 5-min TTL module-level cache for `avg_l100` computation —
+  previously `calc_ride_consumption()` read up to 50 JSON files on every `/fuel/status`
+  request (~3 req/s across 6 pages); cache invalidated automatically on new ride save
+
+### AI
+- Claude Sonnet 4.6
+
+---
+
+## [v2.7.99] — 2026-06-08
+
+### Fixed
+- `server.py`: set `daemon_threads = True` on `ThreadingHTTPServer` — request handler
+  threads now exit when the request completes instead of accumulating; thread count
+  dropped from 42+ to 8 at steady state
+
+### AI
+- Claude Sonnet 4.6
+
+---
+
+## [v2.7.98] — 2026-06-07
+
+### Fixed
+- `app.js`: broken JS string literal in `buildCobertGrid()` — unclosed quote left by
+  previous patch caused entire coverage grid to disappear; merged split style string
+
+---
+
+## [v2.7.97] — 2026-06-07
+
+### Changed
+- `app.js`: widget B (grid dead zone) simplified to fixed `~KM` display — removed
+  `_WB`, `_wbIdx`, `cycleWidgetB`, `_paintB`; value and color updated directly in
+  `fetchFuelStatus()`; cell no longer has onclick
+
+---
+
+## [v2.7.96] — 2026-06-07
+
+### Changed
+- `app.js`: `FUEL` label → `GAS` in widget A and B metric arrays
+- `app.js`: grid widget B cell HTML — removed `gw-unit` (suffix) and `gw-dots`
+  (4 indicator dots); cell now shows only vertical label + big value
+- `server.py`: static file `Cache-Control` changed from `max-age=3600` to
+  `no-cache, must-revalidate` — browser always loads latest `app.js` after updates
+
+---
+
+## [v2.7.95] — 2026-06-07
+
+### Changed
+- `app.js` + `index.html`: widget A long-press replaced with simple tap → shows
+  option list overlay; list is locked (shows "LOCK" flash) when `VS_KPH > 0`
+- `app.js`: `TANK` label → `TNK` (3-char limit) in both widget A and B arrays
+- `app.js`: grid widget B cell reformatted — vertical label (`writing-mode:vertical-rl`)
+  on left edge, value centered on right; matches column-header style of coverage grid
+
+---
+
+## [v2.7.94] — 2026-06-07
+
+### Added
+- `fuel_tracker.py`: `get_status()` now computes `avg_l100` (weighted avg from rides ≥5km)
+  and `km_remaining` (if fuel level is known) — appended to `/fuel/status` JSON response
+- `app.js` + `index.html`: RPM big-card replaced with **widget A** — tap to cycle through
+  RPM / ~km remaining / fuel L / tank %; selection persisted to localStorage
+- `app.js`: TPS=255/175 × RPM=0/800/1000 dead zone in coverage grid replaced with
+  **widget B** — tap to cycle through ~km / fuel L / tank % / avg L/100; independent selection
+- Both widgets update from `/fuel/status` polled every 30 seconds
+
+## [v2.7.93] — 2026-06-07
+
+### Changed
+- `fuel.html`: mobile responsive CSS via `@media (max-width:420px)` — scales fonts,
+  padding, and column widths for narrow screens; desktop layout unchanged
+- `fuel.html`: removed `white-space:nowrap` from `.sg-stat-val` to allow stat values
+  to wrap naturally when cards are narrow
+
 ## [v2.7.92] — 2026-06-07
 ### Changed
 - fuel.html: +3px to all font-size values <=14px (CSS + inline)
