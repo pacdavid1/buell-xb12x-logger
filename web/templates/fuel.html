@@ -56,14 +56,26 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 .status-msg{font-size:9px;color:var(--dim);text-align:center;min-height:14px;margin-top:6px}
 
 .cons-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
-.cons-row{display:flex;align-items:baseline;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:11px}
+.sg-group{margin-bottom:3px}
+.sg-hdr{display:flex;align-items:center;gap:6px;padding:7px 8px;cursor:pointer;background:var(--bg);border:1px solid var(--border);border-radius:3px;transition:border-color .15s;user-select:none}
+.sg-hdr:hover{border-color:var(--accent)}
+.sg-hdr.open{border-color:var(--blue);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.sg-arrow{font-size:8px;color:var(--dim);transition:transform .2s;flex-shrink:0}
+.sg-hdr.open .sg-arrow{transform:rotate(90deg)}
+.sg-id{font-size:11px;font-weight:700;color:var(--text);flex-shrink:0;width:60px}
+.sg-date{font-size:9px;color:var(--dim);flex:1}
+.sg-km{color:var(--text);font-size:11px;width:56px;text-align:right;flex-shrink:0}
+.sg-l{color:var(--blue);font-size:11px;width:44px;text-align:right;flex-shrink:0}
+.sg-l100{font-weight:700;font-size:11px;width:52px;text-align:right;flex-shrink:0}
+.sg-rides{display:none;border:1px solid var(--blue);border-top:none;border-radius:0 0 3px 3px;padding:0 0 2px}
+.sg-rides.open{display:block}
+.cons-hdr{display:flex;gap:4px;font-size:8px;color:var(--dim);letter-spacing:.06em;padding:3px 8px;border-bottom:1px solid var(--border)}
+.cons-row{display:flex;align-items:baseline;gap:4px;padding:4px 8px;border-bottom:1px solid var(--border);font-size:11px}
 .cons-row:last-child{border-bottom:none}
-.cons-date{color:var(--dim);font-size:9px;width:90px;flex-shrink:0}
-.cons-km{color:var(--text);width:50px;text-align:right;flex-shrink:0}
+.cons-date{color:var(--dim);font-size:9px;flex:1}
+.cons-km{color:var(--text);width:56px;text-align:right;flex-shrink:0}
 .cons-l{color:var(--blue);width:44px;text-align:right;flex-shrink:0}
 .cons-l100{font-weight:700;width:52px;text-align:right;flex-shrink:0}
-.cons-sess{color:var(--dim);font-size:9px;margin-left:6px;flex:1;text-align:right}
-.cons-hdr{display:flex;justify-content:space-between;font-size:8px;color:var(--dim);letter-spacing:.08em;padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:4px}
 </style>
 </head>
 <body>
@@ -141,9 +153,6 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
       <div class="g-stat"><div class="g-stat-val" id="cAvgL100">--</div><div class="g-stat-lbl">avg L/100</div></div>
       <div class="g-stat"><div class="g-stat-val" id="cAvgKmL">--</div><div class="g-stat-lbl">avg km/L</div></div>
       <div class="g-stat"><div class="g-stat-val" id="cTotalKm">--</div><div class="g-stat-lbl">total km</div></div>
-    </div>
-    <div class="cons-hdr">
-      <span>DATE</span><span style="margin-left:auto;margin-right:4px">KM</span><span style="width:44px;text-align:right">LITERS</span><span style="width:52px;text-align:right">L/100</span><span style="width:54px;text-align:right">SESSION</span>
     </div>
     <div id="consList"><div class="empty">Loading...</div></div>
   </div>
@@ -292,34 +301,72 @@ async function loadConsumption(){
 function renderConsumption(rides){
   const el = document.getElementById('consList');
   if(!rides||!rides.length){ el.innerHTML='<div class="empty">No ride data yet</div>'; return; }
-  // Use km>5 threshold so short warm-up rides don't skew the average.
-  // Weighted average: total_liters/total_km (not mean of per-ride ratios).
+
+  // Summary stats: weighted total, rides >=5km only
   const valid = rides.filter(r => r.l_per_100 && r.km >= 5);
   if(valid.length){
     const totL  = valid.reduce((s,r)=>s+r.liters,0);
     const totKm = valid.reduce((s,r)=>s+r.km,0);
-    const avgL100 = totL / totKm * 100;
-    const avgKmL  = totKm / totL;
-    document.getElementById('cAvgL100').textContent = avgL100.toFixed(1);
-    document.getElementById('cAvgKmL').textContent  = avgKmL.toFixed(1);
+    document.getElementById('cAvgL100').textContent = (totL/totKm*100).toFixed(1);
+    document.getElementById('cAvgKmL').textContent  = (totKm/totL).toFixed(1);
     document.getElementById('cTotalKm').textContent = totKm.toFixed(0);
   }
+
   function l100col(v){ return v<7?'var(--green)':v<10?'var(--yellow)':v<14?'var(--orange)':'var(--red)'; }
-  const sorted=[...rides].sort((a,b)=>new Date(b.date)-new Date(a.date));
-  el.innerHTML = sorted.slice(0,30).map(r => {
-    const d = new Date(r.date);
-    const ds = d.toLocaleDateString('en',{day:'2-digit',month:'short'})
-              +' '+d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
-    const l100 = r.l_per_100 ? r.l_per_100.toFixed(1) : '--';
-    const col  = r.l_per_100 ? l100col(r.l_per_100) : 'var(--dim)';
-    return '<div class="cons-row">'
-      +'<span class="cons-date">'+ds+'</span>'
-      +'<span class="cons-km">'+r.km.toFixed(1)+' km</span>'
-      +'<span class="cons-l">'+r.liters.toFixed(2)+' L</span>'
-      +'<span class="cons-l100" style="color:'+col+'">'+l100+'</span>'
-      +'<span class="cons-sess">'+r.session+'</span>'
+
+  // Group by session preserving newest-first order from server
+  const sessMap = new Map();
+  for(const r of rides){
+    if(!sessMap.has(r.session))
+      sessMap.set(r.session,{session:r.session,rides:[],km:0,liters:0,date:r.date});
+    const sg = sessMap.get(r.session);
+    sg.rides.push(r);
+    sg.km     += r.km;
+    sg.liters += r.liters;
+    if(r.date < sg.date) sg.date = r.date;
+  }
+
+  el.innerHTML = [...sessMap.values()].map((sg,i)=>{
+    const l100  = sg.liters>0&&sg.km>0 ? sg.liters/sg.km*100 : null;
+    const l100s = l100 ? l100.toFixed(1) : '--';
+    const col   = l100 ? l100col(l100) : 'var(--dim)';
+    const ds    = new Date(sg.date).toLocaleDateString('en',{day:'2-digit',month:'short',year:'2-digit'});
+    const rideRows = sg.rides.map(r=>{
+      const rds  = new Date(r.date).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
+      const rnum = (r.ride||'').split('_')[2]||'?';
+      const rl   = r.l_per_100 ? r.l_per_100.toFixed(1) : '--';
+      const rc   = r.l_per_100 ? l100col(r.l_per_100) : 'var(--dim)';
+      return '<div class="cons-row">'
+        +'<span class="cons-date">ride '+rnum+' · '+rds+'</span>'
+        +'<span class="cons-km">'+r.km.toFixed(1)+' km</span>'
+        +'<span class="cons-l">'+r.liters.toFixed(2)+' L</span>'
+        +'<span class="cons-l100" style="color:'+rc+'">'+rl+'</span>'
+        +'</div>';
+    }).join('');
+    const first = i===0;
+    return '<div class="sg-group">'
+      +'<div class="sg-hdr'+(first?' open':'')+'" onclick="toggleSessGroup(this)">'
+      +'<span class="sg-arrow">▶</span>'
+      +'<span class="sg-id">'+sg.session+'</span>'
+      +'<span class="sg-date">'+ds+' · '+sg.rides.length+' ride'+(sg.rides.length>1?'s':'')+'</span>'
+      +'<span class="sg-km">'+sg.km.toFixed(1)+' km</span>'
+      +'<span class="sg-l">'+sg.liters.toFixed(2)+' L</span>'
+      +'<span class="sg-l100" style="color:'+col+'">'+l100s+'</span>'
+      +'</div>'
+      +'<div class="sg-rides'+(first?' open':'')+'">'
+      +'<div class="cons-hdr"><span style="flex:1">RIDE · TIME</span>'
+      +'<span style="width:56px;text-align:right">KM</span>'
+      +'<span style="width:44px;text-align:right">LITERS</span>'
+      +'<span style="width:52px;text-align:right">L/100</span></div>'
+      +rideRows
+      +'</div>'
       +'</div>';
   }).join('');
+}
+
+function toggleSessGroup(hdr){
+  hdr.classList.toggle('open');
+  hdr.nextElementSibling.classList.toggle('open');
 }
 
 

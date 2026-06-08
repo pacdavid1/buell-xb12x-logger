@@ -247,8 +247,8 @@ def save_ride_consumption_cache(csv_path: str) -> dict | None:
     return data
 
 
-def calc_ride_consumption(sessions_dir: str) -> list:
-    """Return per-ride consumption, reading from cache when available."""
+def calc_ride_consumption(sessions_dir: str, limit: int = 200) -> list:
+    """Return per-ride consumption (newest first, capped at limit), reading from cache."""
     cc = _load()['injector_cc_per_ms']
     results = []
     for csv_path in sorted(glob.glob(f'{sessions_dir}/*/ride_*.csv')):
@@ -269,4 +269,4 @@ def calc_ride_consumption(sessions_dir: str) -> list:
         if data is not None:
             results.append(data)
     results.sort(key=lambda r: r['date'], reverse=True)
-    return results
+    return results[:limit]

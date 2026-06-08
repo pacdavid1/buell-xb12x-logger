@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.87] — 2026-06-07
+### Changed
+- BL-FUEL-11 (session accordion): replace flat ride list with grouped session accordion
+  - Sessions expand/collapse; newest session open by default
+  - Session header shows: ID, date, ride count, total km, total liters, L/100 (weighted)
+  - Individual ride rows show: ride number, time, km, liters, L/100
+  - Color coding per row: green <7, yellow <10, orange <14, red >=14 L/100
+- fuel_tracker.calc_ride_consumption: add limit param (default 200) — scales to 1000 rides
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.86] — 2026-06-07
 ### Changed
 - BL-FUEL-11 (cache): add ride_*_consumption.json cache generated at ride close
