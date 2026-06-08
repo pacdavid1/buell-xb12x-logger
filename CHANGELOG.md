@@ -21,6 +21,21 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.101] — 2026-06-08
+
+### Added
+- `fuel_tracker.py`: calibration at reserve activation — when reserve light is triggered
+  after a full-tank fill-up, the system now compares actual consumed (16.7 - 3.1 = 13.6L,
+  both hard facts from service manual) against logger-calculated consumption and adjusts
+  `injector_cc_per_ms` with 30% learning rate; ratio clamped to [0.6, 1.67] to prevent
+  runaway correction; calibration fields logged to response for audit
+- `server.py`: pass `sessions_dir` to `toggle_reserve()` to enable calibration
+
+### AI
+- Claude Sonnet 4.6
+
+---
+
 ## [v2.7.100] — 2026-06-08
 
 ### Fixed

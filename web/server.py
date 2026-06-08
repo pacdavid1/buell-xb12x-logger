@@ -337,7 +337,8 @@ class DashboardHandler(BaseHTTPRequestHandler):
             active = bool(body.get('active', True))
         except Exception:
             active = True
-        self._json(toggle_reserve(active))
+        sessions_dir = str(self.server_instance.buell_dir / "sessions")
+        self._json(toggle_reserve(active, sessions_dir))
 
     def _handle_fuel_refuel(self, path=None):
         from web.fuel_tracker import add_refuel

@@ -32,15 +32,43 @@ def _save(state: dict) -> None:
     import os; os.replace(tmp, FUEL_FILE)
 
 
-def toggle_reserve(active: bool) -> dict:
+def toggle_reserve(active: bool, sessions_dir: str = '') -> dict:
     state = _load()
-    state['reserve_active'] = active
+    result: dict = {}
+
     if active:
-        state['reserve_ts'] = datetime.now(timezone.utc).isoformat()  # reset km pivot
+        # --- Calibration opportunity: full-tank → reserve is the cleanest measurement ---
+        # Both endpoints are hard facts: 16.7L (full) and 3.1L (reserve light) = 13.6L actual.
+        refuels = state.get('refuels', [])
+        last_full = next((r for r in reversed(refuels) if r.get('full_tank')), None)
+        cc = state['injector_cc_per_ms']
+        if last_full and sessions_dir:
+            try:
+                logger_consumed, _ = _calc_since(last_full['ts'], sessions_dir, cc)
+                if logger_consumed > 1.0:  # need at least 1L to calibrate meaningfully
+                    actual_consumed = TANK_TOTAL_L - RESERVE_L  # 13.6L
+                    ratio = actual_consumed / logger_consumed
+                    ratio = max(0.6, min(1.67, ratio))  # clamp: never adjust more than 40%
+                    new_cc = round(cc * (ratio * 0.3 + 0.7), 6)
+                    state['injector_cc_per_ms'] = new_cc
+                    result['calibration_ratio']     = round(ratio, 4)
+                    result['calibration_actual_L']  = actual_consumed
+                    result['calibration_logger_L']  = round(logger_consumed, 3)
+                    result['calibration_old_cc']    = cc
+                    result['calibration_new_cc']    = new_cc
+            except Exception:
+                pass
+        state['reserve_active'] = True
+        state['reserve_ts'] = datetime.now(timezone.utc).isoformat()
     else:
+        state['reserve_active'] = False
         state['reserve_ts'] = None
+
     _save(state)
-    return state
+    result.update({'reserve_active': state['reserve_active'],
+                   'reserve_ts': state.get('reserve_ts'),
+                   'injector_cc_per_ms': state['injector_cc_per_ms']})
+    return result
 
 
 def add_refuel(liters: float, octane: int, sessions_dir: str, full_tank: bool = False) -> dict:
