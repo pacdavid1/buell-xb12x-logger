@@ -21,6 +21,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.81] — 2026-06-07
+### Added
+- web/fuel_tracker.py: level_L, level_pct, km_since_fill, consumed_since_fill computed from last refuel timestamp
+- web/templates/fuel.html: fuel gauge bar (green/yellow/orange/red with reserve marker at 18.6%), km counter, better date formatting
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.80] — 2026-06-07
 ### Changed
 - CLAUDE.md: reinforced English-only rule — explicit no-exceptions policy, covers all code/comments/UI/logs, Spanish code encountered must be translated on touch
