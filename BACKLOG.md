@@ -874,6 +874,48 @@ total_km = SUM(km_per_sample) from reserve trigger
 - All math is approximation until validated against real fill-up data
 - The iterative calibration (8.4) will refine the 0.00533 cc/ms constant
 
+
+## FASE 8 — Fuel Tracker: pending features (step by step)
+
+### BL-FUEL-10 — Reset / Tanque lleno button [NEXT]
+**Priority:** HIGH
+When user fills up to full (or wants to reset the estimate):
+- Add toggle in fill-up form: "Tanque lleno"
+- If checked: level resets to 16.7L regardless of calculation
+- Still log entered liters + the discrepancy (calculated_remaining vs actual_fill)
+- Example: calc says 5L remaining, user puts 14L → discrepancy = 14+5-16.7 = 2.3L unaccounted
+  Could be: undocumented short ride, disconnections, calculation error
+- discrepancy is stored in the refuel entry for future calibration analysis
+
+### BL-FUEL-11 — Consumption per ride (L/100km, km/L)
+**Priority:** MEDIUM
+Calculate fuel consumption for each ride:
+- Read pw1+pw2 from each ride CSV, apply injector constant
+- Read VS_KPH, integrate to get km per ride
+- Output: L consumed, km, L/100km, km/L
+- Show in the fill-up history and optionally in Sessions tab
+- Can compare across sessions to see effect of tuning on fuel economy
+
+### BL-FUEL-12 — Discrepancy log and calibration analysis
+**Priority:** MEDIUM
+Every fill-up where calc_remaining + actual_liters != 16.7L (within margin):
+- Flag the discrepancy and reason (undocumented ride, disconnections, sensor drift)
+- Track cumulative calibration error over multiple cycles
+- Show confidence score for the injector constant (0.00533 cc/ms)
+- After N fill-ups, suggest refined constant
+
+### BL-FUEL-13 — Odometer integration (km total from EEPROM)
+**Priority:** LOW
+- freebuff found odometer in BUEYD/BUEWD/BUEZD.xml at offset -36
+- Read actual odometer from eeprom.bin to cross-validate km counter
+- Show total odometer alongside trip km
+
+### BL-FUEL-14 — Short ride detection / undocumented km
+**Priority:** LOW
+- If discrepancy > 1.5L, prompt: "Did you ride without the logger?"
+- User can input km ridden without logger — added to trip counter
+- Improves calibration accuracy
+
 ## Mantenimiento / Limpieza de código
 ### BL-BUG-01 — Low priority bugs from freebuff audit (2026-06-07)
 **Priority:** LOW

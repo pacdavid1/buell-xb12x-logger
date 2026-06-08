@@ -344,11 +344,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
             body = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
             liters = float(body.get('liters', 0))
             octane = int(body.get('octane', 91))
+            full_tank = bool(body.get('full_tank', False))
         except Exception:
             self._json({'error': 'invalid body'}, 400); return
         if liters <= 0:
             self._json({'error': 'liters must be > 0'}, 400); return
-        self._json(add_refuel(liters, octane, str(self._sessions_dir)))
+        self._json(add_refuel(liters, octane, str(self._sessions_dir), full_tank))
 
 
     def _handle_sessions_launch(self, path=None):

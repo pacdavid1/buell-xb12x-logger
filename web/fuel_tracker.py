@@ -39,27 +39,48 @@ def toggle_reserve(active: bool) -> dict:
     return state
 
 
-def add_refuel(liters: float, octane: int, sessions_dir: str) -> dict:
+def add_refuel(liters: float, octane: int, sessions_dir: str, full_tank: bool = False) -> dict:
     state = _load()
     cc = state['injector_cc_per_ms']
     reserve_ts = state.get('reserve_ts')
     consumed_est, km_est = (None, None)
     if reserve_ts:
         consumed_est, km_est = _calc_since(reserve_ts, sessions_dir, cc)
+
+    # Discrepancy: how far off is our calculation?
+    # If full_tank: the tank should be 16.7L after filling, so remaining was (16.7 - liters)
+    # Compare that to what we calculated was remaining
+    discrepancy_l = None
+    calc_remaining = None
+    if consumed_est is not None and state.get('refuels'):
+        last = state['refuels'][-1]
+        calc_remaining = round(max(0.0, last['liters'] - consumed_est), 2)
+        if full_tank:
+            expected_remaining = round(TANK_TOTAL_L - liters, 2)
+            discrepancy_l = round(calc_remaining - expected_remaining, 2)
+
     entry = {
         'ts': datetime.now(timezone.utc).isoformat(),
         'liters': liters, 'octane': octane,
+        'full_tank': full_tank,
         'reserve_ts': reserve_ts,
         'estimated_liters': round(consumed_est, 3) if consumed_est is not None else None,
         'km_since_reserve': round(km_est, 1) if km_est is not None else None,
+        'calc_remaining_L': calc_remaining,
+        'discrepancy_L': discrepancy_l,
     }
-    if consumed_est and consumed_est > 0.5 and liters > 0.5:
+
+    # Calibration: only when not full_tank (full_tank resets rather than calibrates)
+    if not full_tank and consumed_est and consumed_est > 0.5 and liters > 0.5:
         ratio = liters / consumed_est
         state['injector_cc_per_ms'] = round(cc * ratio * 0.3 + cc * 0.7, 6)
         entry['calibration_ratio'] = round(ratio, 4)
+
+    # If full_tank: override calculated level to 16.7L on next status call
+    entry['level_override_L'] = TANK_TOTAL_L if full_tank else None
+
     state['refuels'].append(entry)
-    state['reserve_active'] = False   # indicator off — user filled up
-    # keep reserve_ts so km counter continues until next reserve activation
+    state['reserve_active'] = False
     _save(state)
     return entry
 
@@ -79,11 +100,13 @@ def get_status(sessions_dir: str) -> dict:
     if refuels:
         last = refuels[-1]
         consumed_fill, km_fill = _calc_since(last['ts'], sessions_dir, cc)
-        level_l = max(0.0, last['liters'] - consumed_fill)
+        base_l = last.get('level_override_L') or last['liters']
+        level_l = max(0.0, base_l - consumed_fill)
         result['level_L']   = round(level_l, 2)
         result['level_pct'] = round(level_l / TANK_TOTAL_L * 100, 1)
         result['km_since_fill'] = round(km_fill, 1)
         result['consumed_since_fill'] = round(consumed_fill, 2)
+        result['last_full_tank'] = last.get('full_tank', False)
 
     # --- Trip km counter (pivots at reserve activation, survives fill-up) ---
     if state.get('reserve_ts'):

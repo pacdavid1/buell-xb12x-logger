@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.83] — 2026-06-07
+### Added
+- web/fuel_tracker.py: full_tank flag in add_refuel() — when set, level resets to 16.7L; discrepancy_L logged (calc_remaining vs actual fill gap); level_override_L stored in refuel entry
+- web/server.py: pass full_tank from request body to add_refuel()
+- web/templates/fuel.html: FULL TANK RESET toggle in fill-up form; discrepancy shown in history; all UI text in English
+- BACKLOG.md: BL-FUEL-10 through BL-FUEL-14 (consumption per ride, discrepancy analysis, odometer, undocumented km)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.82] — 2026-06-07
 ### Changed
 - web/fuel_tracker.py: km pivot is reserve activation — trip_km counts from reserve_ts, survives fill-up, resets only on next reserve activation; add_refuel clears reserve_active but keeps reserve_ts
