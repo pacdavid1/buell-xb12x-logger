@@ -1927,7 +1927,7 @@ function buildCharts(rows){
   // ── Default configs per chart (6 charts) ─────────────────
   const CHART_DEFAULTS = [
     { id:'chartRPM',  title:'CHART 1', keys:['RPM','VS_KPH','CLT'] },
-    { id:'chartFuel', title:'CHART 2', keys:['EGO_Corr','AFV','WUE'] },
+    { id:'chartFuel', title:'CHART 2', keys:['EGO_Corr','AFV','WUE','Accel_Corr'] },
     { id:'chartTPS',  title:'CHART 3', keys:['TPS_pct'] },
     { id:'chartSPK',  title:'CHART 4', keys:['spark1','spark2','pw1','pw2'] },
     { id:'chartBatt', title:'CHART 5', keys:['Batt_V'] },
@@ -1935,7 +1935,7 @@ function buildCharts(rows){
   ];
 
   // Load saved config from localStorage
-  const LS_KEY = 'buell_chart_cfg_v1';
+  const LS_KEY = 'buell_chart_cfg_v2';
   let chartCfgs;
   try {
     const saved = localStorage.getItem(LS_KEY);

@@ -21,6 +21,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.103] — 2026-06-08
+
+### Added
+- `app.js` + `index.html`: added `Accel_Corr` (AE%) to CORRECCIONES COMBUSTIBLE chart
+  default series — chart title updated to include `AE`; bumped `LS_KEY` to `v2` so
+  browser resets to new defaults on next load
+
+### AI
+- Claude Sonnet 4.6
+
+---
+
 ## [v2.7.102] — 2026-06-08
 
 ### Added
