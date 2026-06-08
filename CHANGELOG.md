@@ -21,6 +21,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.91] — 2026-06-07
+### Changed
+- Remove label rows from session stat cards — suffix already carries the unit
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.90] — 2026-06-07
 ### Changed
 - Consumption session header: 4 stat cards (KM / LITERS / KM/L / L/100)
