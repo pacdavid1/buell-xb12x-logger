@@ -781,6 +781,80 @@ D. Log every get_version() call with timestamp to buell.log
 - main.py: _ecu_loop(), hard reconnect block (~line 465), MAX_CONSEC_ERRORS=30
 - ecu/connection.py: _get_version_impl() (5 attempts x 2.3s), get_rt_data()
 
+### Freebuff research findings (2026-06-07)
+| ECUID | Gaps >5s | Total lost | Severity |
+|-------|----------|-----------|----------|
+| 47BF04 | 111+ | ~2438s (40min) | CRITICAL |
+| 91B225 | 25 | 857s | HIGH |
+| 653DC0 | 10 | 2723s | MODERATE |
+| 27F1A2 | 1 | 46s | EXCELLENT |
+
+Worst ride: 47BF04 ride_007 (29 gaps, 841s = 14 min lost).
+Gaps do NOT correlate with RPM load. Possible causes: USB adapter overheating after ~15min,
+alternator electrical noise, vibration loosening connector.
+Rides ending "power_loss_recovered" = disconnection longer than ECU_RETRY threshold.
+
+
+## FASE 8 — Fuel Economy & Reserve Tracking
+
+**Priority:** MEDIUM (next major feature after FASE 6)
+**Pivot point:** when fuel reserve light activates
+
+### Overview
+Track real fuel consumption using injector pulse data, validated against actual fill-ups.
+Iterative: each fill-up cycle improves the PW→liters calibration.
+
+### Sub-features (in order)
+
+#### 8.1 — Find fuel reserve signal in ECU data
+- Search ecu_defs XML (all *.xml) for: reserve, FuelWarning, FuelLevel, fuel lamp, DIn bits
+- Check DIn bitmask in protocol.py — does any bit correspond to fuel reserve light?
+- Check DOut / CDiag / HDiag fields in live data
+- Alternative: Pi GPIO pin connected to fuel reserve wire (reed switch at tank float)
+- Freebuff task: audit all XML defs + DIn/DOut bit mappings for reserve indicator
+- If not in ECU data: add external GPIO sensor support to main.py
+
+#### 8.2 — Reserve activation event
+When fuel reserve activates (signal goes high):
+- Log timestamp + odometer (km) + session/ride
+- Start km counter from that point (using VS_KPH integrated over time)
+- Start injector counter: accumulate pw1 + pw2 ms per sample
+- Store in session_metadata.json: {reserve_triggered_at: t, reserve_km_start: km}
+
+#### 8.3 — Fill-up event (user input from dashboard)
+New button/modal in Dashboard or Config tab:
+- Input: liters added (float, e.g. 12.5)
+- Input: octane rating selector (87 / 91 / 93 / 95)
+- Auto-fill: session, ride_num, timestamp, odometer at fill-up
+- Store in: sessions/fill_ups.json (global log) + session_metadata
+- Format: {ts, liters, octane, session, ride_num, km_at_fill, reserve_km_since_trigger}
+
+#### 8.4 — Consumption validation
+After next reserve trigger (cycle complete):
+- Compare: injector_pw_accumulated (ms) vs liters consumed (from fill-up log)
+- Derive: liters_per_pw_ms calibration constant
+- Display: km/L, L/100km, range estimate to next reserve
+- Validate: does the PW-derived consumption match the pump reading? Confidence score.
+- This becomes iterative — each cycle refines the constant
+
+#### 8.5 — Maintenance tab
+New dashboard tab "Mant" (maintenance):
+- Oil change tracker: km counter + hours counter since last oil change
+  User inputs date + km when oil was changed
+- Chain lube: km counter
+- Tire check: km counter  
+- Spark plugs: km counter
+- All counters reset on user input, persist in maintenance_log.json
+- Alert when any counter exceeds threshold (configurable)
+
+### Technical notes
+- PW to liters: injected_volume = (pw1_ms + pw2_ms) * injector_cc_per_ms * density
+  DDFI2 injector: ~195cc/min static flow rate (reference, needs validation)
+  cc_per_ms = 195/60000 = 0.00325 cc/ms per injector
+  Both cylinders: (pw1 + pw2) * 0.00325 cc = volume per sample
+- km counter: integrate VS_KPH * sample_interval / 3600 km per sample
+- All math is approximation until validated against real fill-up data
+
 ## Mantenimiento / Limpieza de código
 ### BL-BUG-01 — Low priority bugs from freebuff audit (2026-06-07)
 **Priority:** LOW

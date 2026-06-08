@@ -21,6 +21,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.72] — 2026-06-07
+### Added
+- BACKLOG.md: FASE 8 — Fuel Economy & Reserve Tracking (5 sub-features: reserve signal, km/injector counters, fill-up modal, consumption validation, maintenance tab)
+- BACKLOG.md: BUG-DISC-01 updated with freebuff research findings (47BF04=111 gaps/40min lost, 27F1A2=almost clean, USB adapter heat hypothesis)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.71] — 2026-06-07
 ### Added
 - BACKLOG.md: BUG-DISC-01 — ECU disconnection investigation (11.2s gaps during rides)
