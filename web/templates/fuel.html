@@ -57,24 +57,26 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 
 .cons-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
 .sg-group{margin-bottom:3px}
-.sg-hdr{display:flex;align-items:center;gap:6px;padding:7px 8px;cursor:pointer;background:var(--bg);border:1px solid var(--border);border-radius:3px;transition:border-color .15s;user-select:none}
+.sg-hdr{cursor:pointer;background:var(--bg);border:1px solid var(--border);border-radius:3px;transition:border-color .15s;user-select:none;padding:6px 8px}
 .sg-hdr:hover{border-color:var(--accent)}
 .sg-hdr.open{border-color:var(--blue);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.sg-hdr-top{display:flex;align-items:center;gap:6px;margin-bottom:5px}
 .sg-arrow{font-size:8px;color:var(--dim);transition:transform .2s;flex-shrink:0}
 .sg-hdr.open .sg-arrow{transform:rotate(90deg)}
-.sg-id{font-size:11px;font-weight:700;color:var(--text);flex-shrink:0;width:60px}
-.sg-date{font-size:9px;color:var(--dim);flex:1}
-.sg-km{color:var(--text);font-size:11px;width:56px;text-align:right;flex-shrink:0}
-.sg-l{color:var(--blue);font-size:11px;width:44px;text-align:right;flex-shrink:0}
-.sg-l100{font-weight:700;font-size:11px;width:52px;text-align:right;flex-shrink:0}
+.sg-id{font-size:11px;font-weight:700;color:var(--text);flex-shrink:0}
+.sg-meta{font-size:9px;color:var(--dim);flex:1}
+.sg-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+.sg-stat{background:#111;border:1px solid var(--border);border-radius:2px;padding:3px 5px;text-align:center}
+.sg-stat-lbl{font-size:7px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase}
+.sg-stat-val{font-size:13px;font-weight:700;line-height:1.2}
 .sg-rides{display:none;border:1px solid var(--blue);border-top:none;border-radius:0 0 3px 3px;padding:0 0 2px}
 .sg-rides.open{display:block}
-.cons-hdr{display:flex;gap:4px;font-size:8px;color:var(--dim);letter-spacing:.06em;padding:3px 8px;border-bottom:1px solid var(--border)}
-.cons-row{display:flex;align-items:baseline;gap:4px;padding:4px 8px;border-bottom:1px solid var(--border);font-size:11px}
+.cons-hdr{display:flex;font-size:8px;color:var(--dim);letter-spacing:.06em;padding:3px 8px;border-bottom:1px solid var(--border)}
+.cons-row{display:flex;align-items:baseline;padding:4px 8px;border-bottom:1px solid var(--border);font-size:11px}
 .cons-row:last-child{border-bottom:none}
-.cons-date{color:var(--dim);font-size:9px;flex:1}
-.cons-km{color:var(--text);width:56px;text-align:right;flex-shrink:0}
-.cons-l{color:var(--blue);width:44px;text-align:right;flex-shrink:0}
+.cons-date{color:var(--dim);font-size:9px;flex:1;min-width:0}
+.cons-km{color:var(--text);width:54px;text-align:right;flex-shrink:0}
+.cons-l{color:var(--blue);width:46px;text-align:right;flex-shrink:0}
 .cons-l100{font-weight:700;width:52px;text-align:right;flex-shrink:0}
 </style>
 </head>
@@ -302,7 +304,6 @@ function renderConsumption(rides){
   const el = document.getElementById('consList');
   if(!rides||!rides.length){ el.innerHTML='<div class="empty">No ride data yet</div>'; return; }
 
-  // Summary stats: weighted total, rides >=5km only
   const valid = rides.filter(r => r.l_per_100 && r.km >= 5);
   if(valid.length){
     const totL  = valid.reduce((s,r)=>s+r.liters,0);
@@ -314,7 +315,6 @@ function renderConsumption(rides){
 
   function l100col(v){ return v<7?'var(--green)':v<10?'var(--yellow)':v<14?'var(--orange)':'var(--red)'; }
 
-  // Group by session preserving newest-first order from server
   const sessMap = new Map();
   for(const r of rides){
     if(!sessMap.has(r.session))
@@ -337,26 +337,33 @@ function renderConsumption(rides){
       const rl   = r.l_per_100 ? r.l_per_100.toFixed(1) : '--';
       const rc   = r.l_per_100 ? l100col(r.l_per_100) : 'var(--dim)';
       return '<div class="cons-row">'
-        +'<span class="cons-date">ride '+rnum+' · '+rds+'</span>'
-        +'<span class="cons-km">'+r.km.toFixed(1)+' km</span>'
-        +'<span class="cons-l">'+r.liters.toFixed(2)+' L</span>'
+        +'<span class="cons-date">'+rnum+' · '+rds+'</span>'
+        +'<span class="cons-km">'+r.km.toFixed(1)+'</span>'
+        +'<span class="cons-l">'+r.liters.toFixed(2)+'</span>'
         +'<span class="cons-l100" style="color:'+rc+'">'+rl+'</span>'
         +'</div>';
     }).join('');
     const first = i===0;
     return '<div class="sg-group">'
       +'<div class="sg-hdr'+(first?' open':'')+'" onclick="toggleSessGroup(this)">'
+      +'<div class="sg-hdr-top">'
       +'<span class="sg-arrow">▶</span>'
       +'<span class="sg-id">'+sg.session+'</span>'
-      +'<span class="sg-date">'+ds+' · '+sg.rides.length+' ride'+(sg.rides.length>1?'s':'')+'</span>'
-      +'<span class="sg-km">'+sg.km.toFixed(1)+' km</span>'
-      +'<span class="sg-l">'+sg.liters.toFixed(2)+' L</span>'
-      +'<span class="sg-l100" style="color:'+col+'">'+l100s+'</span>'
+      +'<span class="sg-meta">'+ds+' · '+sg.rides.length+' ride'+(sg.rides.length>1?'s':'')+'</span>'
+      +'</div>'
+      +'<div class="sg-stats">'
+      +'<div class="sg-stat"><div class="sg-stat-lbl">KM</div>'
+      +'<div class="sg-stat-val">'+sg.km.toFixed(1)+'</div></div>'
+      +'<div class="sg-stat"><div class="sg-stat-lbl">LITERS</div>'
+      +'<div class="sg-stat-val" style="color:var(--blue)">'+sg.liters.toFixed(2)+'</div></div>'
+      +'<div class="sg-stat"><div class="sg-stat-lbl">L/100</div>'
+      +'<div class="sg-stat-val" style="color:'+col+'">'+l100s+'</div></div>'
+      +'</div>'
       +'</div>'
       +'<div class="sg-rides'+(first?' open':'')+'">'
       +'<div class="cons-hdr"><span style="flex:1">RIDE · TIME</span>'
-      +'<span style="width:56px;text-align:right">KM</span>'
-      +'<span style="width:44px;text-align:right">LITERS</span>'
+      +'<span style="width:54px;text-align:right">KM</span>'
+      +'<span style="width:46px;text-align:right">L</span>'
       +'<span style="width:52px;text-align:right">L/100</span></div>'
       +rideRows
       +'</div>'

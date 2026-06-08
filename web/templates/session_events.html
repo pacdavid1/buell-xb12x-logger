@@ -80,6 +80,8 @@ table.mt td:first-child{text-align:left}
 table.mt tr:hover td{background:rgba(255,255,255,.02)}
 .empty{flex:1;display:flex;align-items:center;justify-content:center;font-family:var(--mn);font-size:11px;color:var(--dm);flex-direction:column;gap:8px}
 .empty span{font-size:28px}
+.fuel-bar-track{height:4px;background:#111;width:100%}
+.fuel-bar-fill{height:100%;width:0%;transition:width .8s ease,background .5s}
 </style>
 </head>
 <body>
@@ -97,6 +99,7 @@ table.mt tr:hover td{background:rgba(255,255,255,.02)}
   </div>
 </div>
 </div>
+<div class="fuel-bar-track"><div id="fuelFill" class="fuel-bar-fill"></div></div>
 <div class="controls">
   <div class="ctrl-group">
     <label>Session</label>
@@ -590,5 +593,14 @@ function drawChart(c){
 window.addEventListener('resize',function(){if(CUR) drawChart(CUR);});
 </script>
 <script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>
+<script>
+(function(){fetch('/fuel/status').then(function(r){return r.json()}).then(function(d){
+  var el=document.getElementById('fuelFill');if(!el)return;
+  var pct=d.level_pct||0;
+  el.style.width=Math.min(pct,100)+'%';
+  el.style.background=pct>40?'#2ecc71':pct>18?'#f1c40f':'#e74c3c';
+  el.title=(d.level_L!=null?d.level_L.toFixed(1):'?');
+}).catch(function(){})})();
+</script>
 </body>
 </html>

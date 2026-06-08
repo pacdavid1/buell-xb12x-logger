@@ -61,6 +61,8 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
 .bar-neg{background:rgba(80,150,255,.7);left:50%}
 .n-badge{font-size:7px;color:var(--dm);font-family:var(--mn)}
 .no-data{padding:24px;text-align:center;color:var(--dm);font-family:var(--mn);font-size:10px}
+.fuel-bar-track{height:4px;background:#111;width:100%}
+.fuel-bar-fill{height:100%;width:0%;transition:width .8s ease,background .5s}
 </style></head><body>
 <div class="hd">
   <h1>BUELL LOGGER</h1>
@@ -76,6 +78,7 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
   </div>
 </div>
 </div>
+<div class="fuel-bar-track"><div id="fuelFill" class="fuel-bar-fill"></div></div>
 <div class="w">
   <div class="sel">
     <div class="sel-row">
@@ -842,4 +845,13 @@ function drawLaunchChart(canvas, series) {
 </div>
 
 <script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>
+<script>
+(function(){fetch('/fuel/status').then(function(r){return r.json()}).then(function(d){
+  var el=document.getElementById('fuelFill');if(!el)return;
+  var pct=d.level_pct||0;
+  el.style.width=Math.min(pct,100)+'%';
+  el.style.background=pct>40?'#2ecc71':pct>18?'#f1c40f':'#e74c3c';
+  el.title=(d.level_L!=null?d.level_L.toFixed(1):'?');
+}).catch(function(){})})();
+</script>
 </body></html>

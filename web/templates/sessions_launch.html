@@ -82,6 +82,8 @@ canvas#chart{position:absolute;top:0;left:0;width:100%;height:100%;display:block
 .cond-box-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px}
 .cond-row{display:flex;justify-content:space-between;font-family:var(--mn);font-size:9px;padding:1px 0;gap:8px}
 .cond-row .k{color:var(--dm)}.cond-row .v{color:#fff;font-weight:700}
+.fuel-bar-track{height:4px;background:#111;width:100%}
+.fuel-bar-fill{height:100%;width:0%;transition:width .8s ease,background .5s}
 </style>
 </head>
 <body>
@@ -100,6 +102,7 @@ canvas#chart{position:absolute;top:0;left:0;width:100%;height:100%;display:block
   </div>
 </div>
 </div>
+<div class="fuel-bar-track"><div id="fuelFill" class="fuel-bar-fill"></div></div>
 
 <div class="controls">
   <div class="ctrl-group">
@@ -541,5 +544,14 @@ window.addEventListener('resize', function() {
 });
 </script>
 <script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>
+<script>
+(function(){fetch('/fuel/status').then(function(r){return r.json()}).then(function(d){
+  var el=document.getElementById('fuelFill');if(!el)return;
+  var pct=d.level_pct||0;
+  el.style.width=Math.min(pct,100)+'%';
+  el.style.background=pct>40?'#2ecc71':pct>18?'#f1c40f':'#e74c3c';
+  el.title=(d.level_L!=null?d.level_L.toFixed(1):'?');
+}).catch(function(){})})();
+</script>
 </body>
 </html>

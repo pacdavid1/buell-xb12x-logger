@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.88] — 2026-06-07
+### Changed
+- BL-FUEL-15: fuel level bar (4px) added to all 6 page headers (index, session_events,
+  sessions_launch, sessions_vs, tuner, errorlog_viz) — single fetch on load, green/yellow/red
+- BL-FUEL-11 (accordion layout): redesign session header as 2-row layout
+  - Row 1: session ID + date + ride count
+  - Row 2: 3 stat cards (KM / LITERS / L/100) with label+value — scales to any km/liter values
+  - Ride rows: drop inline units (km, L) — column header carries the label
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.87] — 2026-06-07
 ### Changed
 - BL-FUEL-11 (session accordion): replace flat ride list with grouped session accordion

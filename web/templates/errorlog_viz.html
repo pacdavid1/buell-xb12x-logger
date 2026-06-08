@@ -65,6 +65,8 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',monospace;fon
 .dist-bar{height:100%;border-radius:1px}
 .dist-pct{font-size:11px;color:#555;min-width:28px;text-align:right}
 .loading{text-align:center;padding:20px;color:#555;font-size:13px}
+.fuel-bar-track{height:4px;background:#111;width:100%}
+.fuel-bar-fill{height:100%;width:0%;transition:width .8s ease,background .5s}
 </style>
 </head>
 <body>
@@ -83,6 +85,7 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',monospace;fon
   </div>
 </div>
   </div>
+<div class="fuel-bar-track"><div id="fuelFill" class="fuel-bar-fill"></div></div>
   <div class="body" id="app">
 
     <div class="panel">
@@ -643,5 +646,14 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',monospace;fon
 })();
 </script>
 <script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>
+<script>
+(function(){fetch('/fuel/status').then(function(r){return r.json()}).then(function(d){
+  var el=document.getElementById('fuelFill');if(!el)return;
+  var pct=d.level_pct||0;
+  el.style.width=Math.min(pct,100)+'%';
+  el.style.background=pct>40?'#2ecc71':pct>18?'#f1c40f':'#e74c3c';
+  el.title=(d.level_L!=null?d.level_L.toFixed(1):'?');
+}).catch(function(){})})();
+</script>
 </body>
 </html>
