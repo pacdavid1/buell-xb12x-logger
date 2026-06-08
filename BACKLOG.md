@@ -974,18 +974,19 @@ Implementation plan:
 
 ### BL-FUEL-18 — Reserve color state on ~KM widget
 **Priority:** MEDIUM
-**Depends on:** FASE 8.1 (reserve signal) OR empirical liters threshold from fill-up calibration
+**Depends on:** `level_L` being tracked (requires at least one fill-up registered)
 
-When fuel enters reserve territory, the ~KM widget (grid widget B) and widget A ~KM mode
-should enter a distinct visual state — not just red, but a specific "reserve" indicator:
-- Color: amber/orange (distinct from the normal <30km red)
+Reserve threshold confirmed from Buell XB12X service manual:
+- **Reserve activates at 3.1L remaining** (already set as `RESERVE_L = 3.1` in fuel_tracker.py)
+- Tank total: 16.7L (XB12X Ulysses — larger than other XB12 models which use 14.5L)
+
+When `level_L <= 3.1`, the ~KM widget (grid widget B) and widget A ~KM mode
+should enter a distinct "reserve" visual state — distinct from the normal <30km red:
+- Color: amber/orange (`#e67e22`) — signals reserve, not just low km
 - Optional: slow blink at 1Hz (CSS animation, no JS timer)
-- Trigger options (in order of preference):
-  1. ECU reserve signal bit found via FASE 8.1 (DIn bitmask or XML def)
-  2. `level_L <= reserve_threshold_L` where threshold is confirmed from fill-up history
-     (e.g. user fills up X liters after reserve activates → reserve = 16.7 - prev_level)
-- Reserve threshold must NOT be hardcoded — store in fuel_config.json alongside tank_L
-- The color palette change should propagate to the fuel bar in all page headers too
+- The fuel bar in all page headers should also enter reserve color state
+- Secondary trigger option: ECU reserve signal bit if found via FASE 8.1 (DIn bitmask)
+  — would allow reserve detection without needing a prior fill-up
 
 ### BL-FUEL-19 — L/100km historical trend
 **Priority:** LOW
