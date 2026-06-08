@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<!-- DEV NOTE: All code, comments, and variable names must be in English. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Buell Fuel Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0d0d;--panel:#1a1a1a;--border:#2a2a2a;--accent:#e8420a;--green:#2ecc71;--blue:#3d9eff;--dim:#666;--text:#e0e0e0;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
+.hdr{background:var(--panel);border-bottom:2px solid var(--accent);padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.hdr-title{font-size:13px;font-weight:900;letter-spacing:.06em}
+.back{color:var(--dim);text-decoration:none;font-size:11px;border:1px solid var(--border);padding:3px 10px}
+.content{padding:12px;max-width:520px;margin:0 auto}
+.section{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:10px}
+.section-title{font-size:9px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
+.btn-reserve{width:100%;padding:18px;font-family:var(--mono);font-size:16px;font-weight:900;border:2px solid var(--border);border-radius:4px;background:var(--bg);color:var(--dim);cursor:pointer;transition:all .2s}
+.btn-reserve.active{background:rgba(232,66,10,.15);border-color:var(--accent);color:var(--accent)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.stat{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:8px;text-align:center}
+.stat-val{font-size:28px;font-weight:900;line-height:1;color:var(--green)}
+.stat-lbl{font-size:8px;color:var(--dim);margin-top:4px;letter-spacing:.1em;text-transform:uppercase}
+.form-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.form-label{font-size:9px;color:var(--dim);width:70px;flex-shrink:0}
+input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:14px;padding:8px;border-radius:2px}
+.btn{width:100%;padding:12px;font-family:var(--mono);font-size:12px;font-weight:700;border:1px solid;border-radius:3px;cursor:pointer;background:none;text-transform:uppercase}
+.btn-green{color:var(--green);border-color:var(--green)}
+.btn-green:disabled{color:var(--dim);border-color:var(--border);cursor:not-allowed}
+.refuel-item{border-bottom:1px solid var(--border);padding:8px 0}
+.refuel-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+.refuel-liters{font-size:20px;font-weight:900;color:var(--blue)}
+.refuel-date{font-size:9px;color:var(--dim)}
+.refuel-detail{font-size:9px;color:var(--dim)}
+.refuel-detail span{color:var(--text)}
+.empty{font-size:10px;color:var(--dim);text-align:center;padding:16px}
+.status-msg{font-size:9px;color:var(--dim);text-align:center;min-height:14px;margin-top:6px}
+.reserve-since{font-size:10px;color:var(--accent);margin-top:6px;text-align:center;min-height:14px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-title">FUEL TRACKER <span style="font-weight:400;color:#7df;font-size:10px">v--LOGGER_VERSION--</span></div>
+  <a href="/" class="back">Dashboard</a>
+</div>
+<div class="content">
+  <div class="section">
+    <div class="section-title">Reserve / Low Fuel</div>
+    <button class="btn-reserve" id="btnReserve" onclick="toggleReserve()">ACTIVAR RESERVA</button>
+    <div class="reserve-since" id="reserveSince"></div>
+    <div class="stats" id="statsBlock" style="display:none">
+      <div class="stat"><div class="stat-val" id="statKm">--</div><div class="stat-lbl">km desde reserva</div></div>
+      <div class="stat"><div class="stat-val" id="statLiters">--</div><div class="stat-lbl">litros estimados</div></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Registrar carga de gasolina</div>
+    <div class="form-row"><div class="form-label">Litros</div><input type="number" id="inpLiters" min="0.5" max="20" step="0.1" placeholder="12.5"></div>
+    <div class="form-row"><div class="form-label">Octanos</div>
+      <select id="inpOctane">
+        <option value="87">87</option><option value="89">89</option>
+        <option value="91" selected>91</option><option value="93">93</option><option value="95">95</option>
+      </select>
+    </div>
+    <button class="btn btn-green" id="btnRefuel" onclick="submitRefuel()">GUARDAR CARGA</button>
+    <div class="status-msg" id="refuelMsg"></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Historial de cargas</div>
+    <div id="historyList"><div class="empty">Cargando...</div></div>
+  </div>
+</div>
+<script>
+let _ra=false;
+async function loadStatus(){
+  try{const r=await fetch('/fuel/status');const d=await r.json();_ra=d.reserve_active;updateUI(d);renderHistory(d.refuels||[]);}
+  catch(e){console.warn(e);}
+}
+function updateUI(d){
+  const btn=document.getElementById('btnReserve');
+  const since=document.getElementById('reserveSince');
+  const stats=document.getElementById('statsBlock');
+  if(d.reserve_active){
+    btn.textContent='DESACTIVAR RESERVA';btn.classList.add('active');
+    since.textContent=d.reserve_ts?'Activa desde: '+new Date(d.reserve_ts).toLocaleString():'';
+    if(d.current_km!=null){stats.style.display='grid';document.getElementById('statKm').textContent=d.current_km.toFixed(1);document.getElementById('statLiters').textContent=d.current_liters_used!=null?d.current_liters_used.toFixed(2):'--';}
+  }else{btn.textContent='ACTIVAR RESERVA';btn.classList.remove('active');since.textContent='';stats.style.display='none';}
+}
+async function toggleReserve(){
+  const r=await fetch('/fuel/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:!_ra})});
+  const d=await r.json();_ra=d.reserve_active;updateUI(d);
+}
+async function submitRefuel(){
+  const liters=parseFloat(document.getElementById('inpLiters').value);
+  const octane=parseInt(document.getElementById('inpOctane').value);
+  const msg=document.getElementById('refuelMsg');const btn=document.getElementById('btnRefuel');
+  if(!liters||liters<=0){msg.textContent='Ingresa los litros';return;}
+  btn.disabled=true;msg.textContent='Calculando...';
+  try{
+    const r=await fetch('/fuel/refuel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({liters,octane})});
+    const d=await r.json();
+    if(d.error){msg.textContent='Error: '+d.error;return;}
+    document.getElementById('inpLiters').value='';
+    const est=d.estimated_liters!=null?' (est: '+d.estimated_liters.toFixed(2)+'L)':'';
+    const km=d.km_since_reserve!=null?', '+d.km_since_reserve.toFixed(1)+' km':'';
+    msg.textContent='Guardado: '+liters+'L'+km+est;
+    setTimeout(()=>{msg.textContent='';},4000);loadStatus();
+  }catch(e){msg.textContent='Error: '+e;}
+  finally{btn.disabled=false;}
+}
+function renderHistory(refuels){
+  const el=document.getElementById('historyList');
+  if(!refuels.length){el.innerHTML='<div class="empty">Sin cargas registradas</div>';return;}
+  el.innerHTML=[...refuels].reverse().map(r=>{
+    const dt=new Date(r.ts).toLocaleString();
+    const parts=[];
+    if(r.estimated_liters!=null)parts.push('est <span>'+r.estimated_liters.toFixed(2)+'L</span>');
+    if(r.km_since_reserve!=null)parts.push('km <span>'+r.km_since_reserve.toFixed(1)+'</span>');
+    if(r.calibration_ratio!=null)parts.push('cal x<span>'+r.calibration_ratio.toFixed(3)+'</span>');
+    return '<div class="refuel-item"><div class="refuel-top"><span class="refuel-liters">'+r.liters.toFixed(1)+' L</span><span class="refuel-date">'+dt+' oct '+r.octane+'</span></div>'+(parts.length?'<div class="refuel-detail">'+parts.join(' &middot; ')+'</div>':'')+' </div>';
+  }).join('');
+}
+loadStatus();setInterval(loadStatus,10000);
+</script>
+</body>
+</html>

@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.78] — 2026-06-07
+### Added
+- web/fuel_tracker.py: fuel tracking module (reserve toggle, refuel logging, PW-based consumption estimate, iterative calibration)
+- web/server.py: /fuel, /fuel/status, /fuel/reserve, /fuel/refuel endpoints
+- web/templates/fuel.html: fuel tracker page (reserve button, fill-up form, history list)
+- SPECS: XB12X tank 16.7L, reserve at 3.1L, injector 0.00533 cc/ms
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.77] — 2026-06-07
 ### Fixed
 - ecu/session.py: json.load(session_metadata.json) now has try/except — corrupted metadata no longer crashes open_session()
