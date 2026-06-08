@@ -150,11 +150,123 @@ def _calc_since(from_ts: str, sessions_dir: str, cc_per_ms: float):
                         continue
                     pw1 = float(row.get('pw1') or 0)
                     pw2 = float(row.get('pw2') or 0)
-                    total_cc += (pw1 + pw2) * cc_per_ms
+                    rpm = float(row.get('RPM') or 0)
                     if prev_unix is not None:
-                        kph = float(row.get('VS_KPH') or 0)
-                        total_km += kph * (row_unix - prev_unix) / 3600
+                        dt_s = row_unix - prev_unix
+                        kph  = float(row.get('VS_KPH') or 0)
+                        total_km += kph * dt_s / 3600
+                        inj = max(0.0, (rpm / 120.0) * dt_s)
+                        total_cc += (pw1 + pw2) * cc_per_ms * inj
                     prev_unix = row_unix
         except Exception:
             continue
     return total_cc / 1000, total_km
+
+def _calc_ride_from_csv(csv_path: str, cc_per_ms: float) -> dict | None:
+    """Parse a single ride CSV and return consumption metrics, or None if insufficient data."""
+    import os
+    name = Path(csv_path).stem
+    if name.endswith(('_p2', '_p3', '_p4', '_p5')):
+        return None
+    session = Path(csv_path).parent.name
+    total_cc   = 0.0
+    total_km   = 0.0
+    rpm_max    = 0.0
+    first_ts   = None
+    last_ts    = None
+    sample_cnt = 0
+    prev_unix  = None
+    try:
+        with open(csv_path) as f:
+            if f.readline().startswith('#'):
+                pass
+            else:
+                f.seek(0)
+            for row in csv.DictReader(f):
+                ts = row.get('timestamp_iso', '')
+                try:
+                    row_unix = datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp()
+                except Exception:
+                    continue
+                if first_ts is None:
+                    first_ts = ts
+                last_ts = ts
+                pw1 = float(row.get('pw1') or 0)
+                pw2 = float(row.get('pw2') or 0)
+                rpm = float(row.get('RPM') or 0)
+                if rpm > rpm_max:
+                    rpm_max = rpm
+                if prev_unix is not None:
+                    dt_s = row_unix - prev_unix
+                    kph  = float(row.get('VS_KPH') or 0)
+                    total_km += kph * dt_s / 3600
+                    inj = max(0.0, (rpm / 120.0) * dt_s)
+                    total_cc += (pw1 + pw2) * cc_per_ms * inj
+                prev_unix = row_unix
+                sample_cnt += 1
+    except Exception:
+        return None
+    if sample_cnt < 10 or total_km < 0.1:
+        return None
+    liters = total_cc / 1000
+    duration_s = None
+    if first_ts and last_ts:
+        try:
+            t0 = datetime.fromisoformat(first_ts.replace('Z', '+00:00')).timestamp()
+            t1 = datetime.fromisoformat(last_ts.replace('Z', '+00:00')).timestamp()
+            duration_s = round(t1 - t0, 1)
+        except Exception:
+            pass
+    return {
+        'session':           session,
+        'ride':              name,
+        'date':              first_ts,
+        'km':                round(total_km, 1),
+        'liters':            round(liters, 3),
+        'km_per_l':          round(total_km / liters, 2) if liters > 0 else None,
+        'l_per_100':         round(liters / total_km * 100, 2) if total_km > 0 else None,
+        'rpm_max':           round(rpm_max),
+        'duration_s':        duration_s,
+        'samples':           sample_cnt,
+        'injector_cc_per_ms': cc_per_ms,
+    }
+
+
+def save_ride_consumption_cache(csv_path: str) -> dict | None:
+    """Compute and persist <ride>_consumption.json. Called at ride close."""
+    import os
+    cc = _load()['injector_cc_per_ms']
+    data = _calc_ride_from_csv(csv_path, cc)
+    if data is None:
+        return None
+    cache_path = Path(csv_path).with_name(Path(csv_path).stem + '_consumption.json')
+    tmp = str(cache_path) + '.tmp'
+    with open(tmp, 'w') as f:
+        json.dump(data, f, indent=2)
+    os.replace(tmp, str(cache_path))
+    return data
+
+
+def calc_ride_consumption(sessions_dir: str) -> list:
+    """Return per-ride consumption, reading from cache when available."""
+    cc = _load()['injector_cc_per_ms']
+    results = []
+    for csv_path in sorted(glob.glob(f'{sessions_dir}/*/ride_*.csv')):
+        name = Path(csv_path).stem
+        if name.endswith(('_p2', '_p3', '_p4', '_p5')):
+            continue
+        cache_path = Path(csv_path).with_name(name + '_consumption.json')
+        if cache_path.exists():
+            try:
+                with open(cache_path) as f:
+                    data = json.load(f)
+                if data.get('samples', 0) >= 10 and data.get('km', 0) >= 0.1:
+                    results.append(data)
+                    continue
+            except Exception:
+                pass
+        data = _calc_ride_from_csv(csv_path, cc)
+        if data is not None:
+            results.append(data)
+    results.sort(key=lambda r: r['date'], reverse=True)
+    return results

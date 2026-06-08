@@ -917,6 +917,27 @@ Every fill-up where calc_remaining + actual_liters != 16.7L (within margin):
 - Improves calibration accuracy
 
 ## Mantenimiento / Limpieza de código
+
+### BL-FUEL-15 — Fuel level indicator bar in page headers
+- Show a compact left-to-right fill bar in ALL page headers (index, sessions, tuner, etc.)
+- Reads from /fuel/status (level_pct) via a lightweight fetch on page load
+- No polling — one fetch on load, optional manual refresh
+- Visually: thin bar (4-6px), green→yellow→red by level
+- Freebuff task: design the header integration without breaking existing nav layout
+
+### BL-FUEL-16 — Maintenance indicator in dashboard
+- Show upcoming service intervals on the dashboard (oil, filter, etc.)
+- Linked to total odometer (BL-FUEL-13 must land first)
+- Configurable intervals via a JSON config file (no hardcoded values)
+- Display: small badge in header or dashboard card showing km until next service
+
+### BL-FUEL-17 — Odometer EEPROM research
+- Investigate if total km/miles are stored in the DDFI2 EEPROM
+- Check ecu/eeprom.py decode maps and reference eeprom_decoded.json
+- If found: surface value in /live and /fuel/status endpoints
+- If not found: fall back to accumulating km from ride CSVs (sum of VS_KPH-based km)
+- Freebuff task: grep eeprom.py + existing eeprom_decoded.json samples for odometer fields
+
 ### BL-BUG-01 — Low priority bugs from freebuff audit (2026-06-07)
 **Priority:** LOW
 

@@ -21,6 +21,20 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.86] — 2026-06-07
+### Changed
+- BL-FUEL-11 (cache): add ride_*_consumption.json cache generated at ride close
+  - New fuel_tracker._calc_ride_from_csv() extracts CSV parsing; adds duration_s field
+  - New fuel_tracker.save_ride_consumption_cache() persists cache atomically
+  - calc_ride_consumption() reads from cache first — no CSV scan on fuel page load
+  - session.close_current_ride() calls save_ride_consumption_cache() after summary write
+  - Backfilled 64 existing rides on deploy
+- BL-FUEL-11 (stats): fix weighted average — totals/km ratio instead of mean of ratios
+  - Exclude rides <5km from summary stats to avoid warm-up ride skew
+- BACKLOG: add BL-FUEL-15 (header fuel bar), BL-FUEL-16 (maintenance indicator), BL-FUEL-17 (EEPROM odometer research)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.84] — 2026-06-07
 ### Fixed
 - web/server.py: _handle_fuel_status, _handle_fuel_refuel, _handle_fuel_consumption — replaced undefined self._sessions_dir with self.server_instance.buell_dir / 'sessions' (bug since v2.7.78)

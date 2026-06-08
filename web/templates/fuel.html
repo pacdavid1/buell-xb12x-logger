@@ -292,17 +292,21 @@ async function loadConsumption(){
 function renderConsumption(rides){
   const el = document.getElementById('consList');
   if(!rides||!rides.length){ el.innerHTML='<div class="empty">No ride data yet</div>'; return; }
-  const valid = rides.filter(r => r.l_per_100 && r.km > 1);
+  // Use km>5 threshold so short warm-up rides don't skew the average.
+  // Weighted average: total_liters/total_km (not mean of per-ride ratios).
+  const valid = rides.filter(r => r.l_per_100 && r.km >= 5);
   if(valid.length){
-    const avgL100 = valid.reduce((s,r)=>s+r.l_per_100,0)/valid.length;
-    const avgKmL  = valid.reduce((s,r)=>s+r.km_per_l,0)/valid.length;
-    const totKm   = valid.reduce((s,r)=>s+r.km,0);
+    const totL  = valid.reduce((s,r)=>s+r.liters,0);
+    const totKm = valid.reduce((s,r)=>s+r.km,0);
+    const avgL100 = totL / totKm * 100;
+    const avgKmL  = totKm / totL;
     document.getElementById('cAvgL100').textContent = avgL100.toFixed(1);
     document.getElementById('cAvgKmL').textContent  = avgKmL.toFixed(1);
     document.getElementById('cTotalKm').textContent = totKm.toFixed(0);
   }
   function l100col(v){ return v<7?'var(--green)':v<10?'var(--yellow)':v<14?'var(--orange)':'var(--red)'; }
-  el.innerHTML = rides.slice(0,30).map(r => {
+  const sorted=[...rides].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  el.innerHTML = sorted.slice(0,30).map(r => {
     const d = new Date(r.date);
     const ds = d.toLocaleDateString('en',{day:'2-digit',month:'short'})
               +' '+d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});

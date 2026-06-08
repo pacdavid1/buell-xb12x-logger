@@ -234,6 +234,13 @@ class SessionManager:
                 self._update_tuning_report(summary)
             except Exception as e:
                 self.logger.warning(f"Error guardando summary: {e}")
+            # Persist consumption cache so /fuel/consumption avoids CSV re-scan
+            try:
+                csv_p = self.current_session_dir / f"ride_{self.current_checksum}_{self.current_ride_num:03d}.csv"
+                from web.fuel_tracker import save_ride_consumption_cache
+                save_ride_consumption_cache(str(csv_p))
+            except Exception as e:
+                self.logger.warning(f"Consumption cache error: {e}")
         self._save_metadata()
         self._generate_consolidated()
 
