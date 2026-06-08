@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.74] — 2026-06-07
+### Fixed
+- CHANGELOG.md: fixed ordering v2.7.47/48/49 (was 47,49,48 — now 49,48,47 descending)
+- CHANGELOG.md: renamed duplicate v2.7.47 (label shortening) to v2.7.47.1
+### Added
+- freebuff/TASKS.md: task 053 — bike mapping research (which session = which bike, injector specs, odometer)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.73] — 2026-06-07
 ### Fixed
 - main.py: hard reconnect trigger lowered 10s -> 3s (gaps now ~7s worst case vs ~21s before)
@@ -221,16 +230,6 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
-## [v2.7.47] — 2026-06-07
-### Changed
-- web/f7.py: _F7_THRESH lowered 0.85 → 0.75 to reduce orphan rate (estimated 30-40% reduction)
-- web/f7.py: _f7_ba_consistent RPM threshold 250 → 400, TPS threshold 3.0 → 5.0 (doubles compatible pairs)
-- web/f7.py: _F7_EVENTS_V bumped 5 → 6 to invalidate stale f7events/f7clusters caches
-### Fixed
-- web/server.py: added logging to 2 silent except Exception blocks (eeprom serial parse + session list loop)
-### AI
-- freebuff (analysis agent)
-
 ## [v2.7.49] — 2026-06-07
 ### Changed
 - web/templates/index.html: #hdrRowBike cells now have 3-letter labels (EGO/MAT/BAT/GER/RID/SER)
@@ -247,6 +246,16 @@ PROMPT_END -->
 - Claude Sonnet 4.6, Anthropic
 
 ## [v2.7.47] — 2026-06-07
+### Changed
+- web/f7.py: _F7_THRESH lowered 0.85 → 0.75 to reduce orphan rate (estimated 30-40% reduction)
+- web/f7.py: _f7_ba_consistent RPM threshold 250 → 400, TPS threshold 3.0 → 5.0 (doubles compatible pairs)
+- web/f7.py: _F7_EVENTS_V bumped 5 → 6 to invalidate stale f7events/f7clusters caches
+### Fixed
+- web/server.py: added logging to 2 silent except Exception blocks (eeprom serial parse + session list loop)
+### AI
+- freebuff (analysis agent)
+
+## [v2.7.47.1] — 2026-06-07
 ### Changed
 - web/templates/index.html: all dashboard labels shortened to 3 letters
   TTL%→TTL, BUF%→BUF, MEM%→MEM, CPU%→CPU, BARO hPa→BAR,
