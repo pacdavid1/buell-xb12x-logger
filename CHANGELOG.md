@@ -21,6 +21,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.80] — 2026-06-07
+### Changed
+- CLAUDE.md: reinforced English-only rule — explicit no-exceptions policy, covers all code/comments/UI/logs, Spanish code encountered must be translated on touch
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.79] — 2026-06-07
 ### Added
 - web/templates/index.html: Combustible link added to hamburger menu (opens /fuel)

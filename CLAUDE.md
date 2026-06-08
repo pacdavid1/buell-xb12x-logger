@@ -180,7 +180,26 @@ with open(path, 'w') as f: f.write(content)
 
 ## Coding standards (mandatory)
 
-- **English only** — all code, comments, variable names, docstrings, frontend labels
+## ENGLISH ONLY — NON-NEGOTIABLE (read this first)
+
+**ALL code is in English. No exceptions. Ever.**
+
+This means:
+- Variable names, function names, class names → English
+- Comments → English
+- Docstrings → English
+- Log messages → English
+- Frontend labels, button text, UI strings → English
+- Error messages → English
+- HTML attributes, CSS class names → English
+- New files → English from line 1
+- Existing Spanish code you touch → rewrite it in English as part of the change
+- Do NOT leave Spanish in any line you modify
+
+If you find Spanish code in a file you are editing: translate it.
+If you write new code: write it in English.
+There is no gray area. English. Always. Every time.
+
 - Every file you touch that lacks a DEV NOTE: add one at the top
   - Python: `# DEV NOTE: All code, comments, and variable names must be in English.`
   - HTML: `<!-- DEV NOTE: All code, comments... must be in English. -->`
