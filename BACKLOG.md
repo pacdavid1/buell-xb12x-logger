@@ -971,6 +971,33 @@ Implementation plan:
 - If not found: fall back to accumulating km from ride CSVs (sum of VS_KPH-based km)
 - Freebuff task: grep eeprom.py + existing eeprom_decoded.json samples for odometer fields
 
+
+### BL-FUEL-18 — Reserve color state on ~KM widget
+**Priority:** MEDIUM
+**Depends on:** FASE 8.1 (reserve signal) OR empirical liters threshold from fill-up calibration
+
+When fuel enters reserve territory, the ~KM widget (grid widget B) and widget A ~KM mode
+should enter a distinct visual state — not just red, but a specific "reserve" indicator:
+- Color: amber/orange (distinct from the normal <30km red)
+- Optional: slow blink at 1Hz (CSS animation, no JS timer)
+- Trigger options (in order of preference):
+  1. ECU reserve signal bit found via FASE 8.1 (DIn bitmask or XML def)
+  2. `level_L <= reserve_threshold_L` where threshold is confirmed from fill-up history
+     (e.g. user fills up X liters after reserve activates → reserve = 16.7 - prev_level)
+- Reserve threshold must NOT be hardcoded — store in fuel_config.json alongside tank_L
+- The color palette change should propagate to the fuel bar in all page headers too
+
+### BL-FUEL-19 — L/100km historical trend
+**Priority:** LOW
+
+Track how avg_l100 evolves over time to correlate tuning changes with fuel efficiency:
+- Each fill-up cycle produces a natural data point: km ridden + liters consumed = L/100km
+- Store per-cycle efficiency in fill-up log alongside existing fields
+- Show a small sparkline or last-N table on the fuel page:
+  - Date, km that cycle, L/100km, delta vs previous (▲/▼)
+- Useful for: confirming a tune improved efficiency, spotting a rich/lean drift
+- No external deps — data already exists in fill-up history + ride consumption cache
+
 ### BL-BUG-01 — Low priority bugs from freebuff audit (2026-06-07)
 **Priority:** LOW
 
