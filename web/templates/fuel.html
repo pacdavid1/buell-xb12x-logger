@@ -16,24 +16,27 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .content{padding:12px;max-width:520px;margin:0 auto}
 .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:10px}
 .section-title{font-size:9px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
+/* Trip km — big number */
+.trip-row{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.trip-km{font-size:52px;font-weight:900;line-height:1;color:var(--green)}
+.trip-km.reserve-on{color:var(--accent)}
+.trip-unit{font-size:14px;color:var(--dim)}
+.trip-label{font-size:9px;color:var(--dim);letter-spacing:.12em;text-transform:uppercase;margin-left:auto}
 /* Fuel gauge */
-.gauge-wrap{position:relative;margin-bottom:12px}
-.gauge-track{height:28px;background:#111;border:1px solid var(--border);border-radius:4px;overflow:hidden;position:relative}
+.gauge-track{height:24px;background:#111;border:1px solid var(--border);border-radius:4px;overflow:visible;position:relative;margin-bottom:4px}
 .gauge-fill{height:100%;width:0%;transition:width .8s ease,background .8s;border-radius:3px}
-.gauge-reserve-line{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);opacity:.7}
-.gauge-reserve-label{position:absolute;top:-16px;font-size:8px;color:var(--accent);transform:translateX(-50%)}
-.gauge-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;mix-blend-mode:difference}
-.gauge-stats{display:flex;justify-content:space-between;margin-top:4px}
-.gauge-stat{font-size:9px;color:var(--dim)}
-.gauge-stat span{color:var(--text);font-weight:700}
+.gauge-reserve-line{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--accent);opacity:.8;border-radius:1px}
+.gauge-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;pointer-events:none}
+.gauge-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--dim);margin-bottom:8px}
+.gauge-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.g-stat{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:6px;text-align:center}
+.g-stat-val{font-size:16px;font-weight:900;color:var(--text)}
+.g-stat-lbl{font-size:8px;color:var(--dim);margin-top:2px}
 /* Reserve button */
 .btn-reserve{width:100%;padding:14px;font-family:var(--mono);font-size:15px;font-weight:900;border:2px solid var(--border);border-radius:4px;background:var(--bg);color:var(--dim);cursor:pointer;transition:all .2s}
-.btn-reserve.active{background:rgba(232,66,10,.15);border-color:var(--accent);color:var(--accent)}
-.reserve-since{font-size:10px;color:var(--accent);margin-top:6px;text-align:center;min-height:14px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-.stat{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:8px;text-align:center}
-.stat-val{font-size:26px;font-weight:900;line-height:1;color:var(--green)}
-.stat-lbl{font-size:8px;color:var(--dim);margin-top:4px;letter-spacing:.1em;text-transform:uppercase}
+.btn-reserve.active{background:rgba(232,66,10,.15);border-color:var(--accent);color:var(--accent);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,66,10,0)}50%{box-shadow:0 0 0 6px rgba(232,66,10,.2)}}
+.reserve-since{font-size:9px;color:var(--dim);margin-top:5px;text-align:center;min-height:13px}
 /* Form */
 .form-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
 .form-label{font-size:9px;color:var(--dim);width:70px;flex-shrink:0}
@@ -44,9 +47,9 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 /* History */
 .refuel-item{border-bottom:1px solid var(--border);padding:8px 0}
 .refuel-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
-.refuel-liters{font-size:22px;font-weight:900;color:var(--blue)}
+.refuel-liters{font-size:20px;font-weight:900;color:var(--blue)}
 .refuel-date{font-size:9px;color:var(--dim)}
-.refuel-sub{font-size:9px;color:var(--dim);display:flex;gap:12px;margin-top:2px}
+.refuel-sub{font-size:9px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
 .refuel-sub span{color:var(--text)}
 .empty{font-size:10px;color:var(--dim);text-align:center;padding:16px}
 .status-msg{font-size:9px;color:var(--dim);text-align:center;min-height:14px;margin-top:6px}
@@ -59,35 +62,40 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 </div>
 <div class="content">
 
+  <!-- Trip km counter -->
+  <div class="section">
+    <div class="section-title">Trip since last reserve</div>
+    <div class="trip-row">
+      <div class="trip-km" id="tripKm">--</div>
+      <div class="trip-unit">km</div>
+      <div class="trip-label" id="tripStatus">--</div>
+    </div>
+  </div>
+
   <!-- Fuel gauge -->
   <div class="section">
     <div class="section-title">Estimated fuel level</div>
-    <div class="gauge-wrap">
-      <div style="position:relative">
-        <div class="gauge-reserve-label" id="gResLbl" style="left:18.6%">RSV</div>
-      </div>
+    <div style="position:relative;margin-top:14px">
+      <div style="position:absolute;top:-12px;font-size:8px;color:var(--accent);left:18.6%;transform:translateX(-50%)">RSV</div>
       <div class="gauge-track">
         <div class="gauge-fill" id="gaugeFill"></div>
         <div class="gauge-reserve-line" style="left:18.6%"></div>
         <div class="gauge-text" id="gaugeText">--</div>
       </div>
     </div>
+    <div class="gauge-labels"><span>0 L</span><span>16.7 L</span></div>
     <div class="gauge-stats">
-      <div class="gauge-stat">nivel: <span id="gLevelL">--</span> L</div>
-      <div class="gauge-stat">km este llenado: <span id="gKmFill">--</span></div>
-      <div class="gauge-stat">consumido: <span id="gConsumed">--</span> L</div>
+      <div class="g-stat"><div class="g-stat-val" id="gLevelL">--</div><div class="g-stat-lbl">litros est.</div></div>
+      <div class="g-stat"><div class="g-stat-val" id="gLevelPct">--</div><div class="g-stat-lbl">% tanque</div></div>
+      <div class="g-stat"><div class="g-stat-val" id="gConsumed">--</div><div class="g-stat-lbl">consumido L</div></div>
     </div>
   </div>
 
   <!-- Reserve toggle -->
   <div class="section">
-    <div class="section-title">Reserve / Low fuel</div>
+    <div class="section-title">Low fuel indicator</div>
     <button class="btn-reserve" id="btnReserve" onclick="toggleReserve()">ACTIVAR RESERVA</button>
     <div class="reserve-since" id="reserveSince"></div>
-    <div class="stats" id="statsBlock" style="display:none">
-      <div class="stat"><div class="stat-val" id="statKm">--</div><div class="stat-lbl">km desde reserva</div></div>
-      <div class="stat"><div class="stat-val" id="statLiters">--</div><div class="stat-lbl">litros usados</div></div>
-    </div>
   </div>
 
   <!-- Fill-up form -->
@@ -112,7 +120,7 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 
 </div>
 <script>
-const TANK_L = 16.7, RSV_L = 3.1;
+const TANK_L = 16.7;
 let _ra = false;
 
 async function loadStatus(){
@@ -120,53 +128,57 @@ async function loadStatus(){
     const r = await fetch('/fuel/status');
     const d = await r.json();
     _ra = d.reserve_active;
+    updateTrip(d);
     updateGauge(d);
-    updateReserve(d);
+    updateReserveBtn(d);
     renderHistory(d.refuels || []);
   }catch(e){ console.warn(e); }
 }
 
-function updateGauge(d){
-  const fill  = document.getElementById('gaugeFill');
-  const text  = document.getElementById('gaugeText');
-  const lvlEl = document.getElementById('gLevelL');
-  const kmEl  = document.getElementById('gKmFill');
-  const conEl = document.getElementById('gConsumed');
+function updateTrip(d){
+  const el = document.getElementById('tripKm');
+  const st = document.getElementById('tripStatus');
+  if(d.trip_km != null){
+    el.textContent = d.trip_km.toFixed(1);
+    el.className = 'trip-km' + (d.reserve_active ? ' reserve-on' : '');
+    st.textContent = d.reserve_active ? 'EN RESERVA' : 'post-reserva';
+    st.style.color = d.reserve_active ? 'var(--accent)' : 'var(--dim)';
+  } else {
+    el.textContent = '--';
+    st.textContent = 'activar reserva para iniciar';
+  }
+}
 
+function updateGauge(d){
+  const fill = document.getElementById('gaugeFill');
+  const text = document.getElementById('gaugeText');
   if(d.level_L != null){
     const pct = Math.min(100, Math.max(0, d.level_pct));
     fill.style.width = pct + '%';
     const col = pct > 35 ? '#2ecc71' : pct > 18.6 ? '#f1c40f' : pct > 9 ? '#e67e22' : '#e74c3c';
     fill.style.background = col;
-    text.textContent = d.level_L.toFixed(1) + ' L  (' + pct.toFixed(0) + '%)';
-    text.style.color = pct < 30 ? '#fff' : '#000';
-    lvlEl.textContent = d.level_L.toFixed(1);
+    text.textContent = d.level_L.toFixed(1) + ' L';
+    text.style.color = pct < 35 ? '#fff' : '#000';
+    document.getElementById('gLevelL').textContent  = d.level_L.toFixed(2);
+    document.getElementById('gLevelPct').textContent = pct.toFixed(0) + '%';
+    document.getElementById('gConsumed').textContent = d.consumed_since_fill != null ? d.consumed_since_fill.toFixed(2) : '--';
   } else {
-    fill.style.width = '0%';
-    text.textContent = 'Sin datos';
+    fill.style.width = '0%'; text.textContent = 'Registra un llenado';
+    ['gLevelL','gLevelPct','gConsumed'].forEach(id => document.getElementById(id).textContent = '--');
   }
-  kmEl.textContent  = d.km_since_fill  != null ? d.km_since_fill.toFixed(1) + ' km' : '--';
-  conEl.textContent = d.consumed_since_fill != null ? d.consumed_since_fill.toFixed(2) : '--';
 }
 
-function updateReserve(d){
+function updateReserveBtn(d){
   const btn   = document.getElementById('btnReserve');
   const since = document.getElementById('reserveSince');
-  const stats = document.getElementById('statsBlock');
   if(d.reserve_active){
     btn.textContent = 'DESACTIVAR RESERVA';
     btn.classList.add('active');
     since.textContent = d.reserve_ts ? 'Activa desde: ' + fmtDate(d.reserve_ts) : '';
-    if(d.current_km != null){
-      stats.style.display = 'grid';
-      document.getElementById('statKm').textContent     = d.current_km.toFixed(1);
-      document.getElementById('statLiters').textContent = d.current_liters_used != null ? d.current_liters_used.toFixed(2) : '--';
-    }
   } else {
     btn.textContent = 'ACTIVAR RESERVA';
     btn.classList.remove('active');
-    since.textContent = '';
-    stats.style.display = 'none';
+    since.textContent = d.reserve_ts ? 'Ultimo: ' + fmtDate(d.reserve_ts) : '';
   }
 }
 
@@ -174,7 +186,7 @@ async function toggleReserve(){
   const r = await fetch('/fuel/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:!_ra})});
   const d = await r.json();
   _ra = d.reserve_active;
-  updateReserve(d);
+  updateReserveBtn(d);
   loadStatus();
 }
 
@@ -190,10 +202,10 @@ async function submitRefuel(){
     const d = await r.json();
     if(d.error){ msg.textContent = 'Error: ' + d.error; return; }
     document.getElementById('inpLiters').value = '';
-    const est = d.estimated_liters != null ? ' (est: ' + d.estimated_liters.toFixed(2) + 'L)' : '';
-    const km  = d.km_since_reserve != null ? ', ' + d.km_since_reserve.toFixed(1) + ' km' : '';
+    const est = d.estimated_liters != null ? ' est: ' + d.estimated_liters.toFixed(2) + 'L' : '';
+    const km  = d.km_since_reserve  != null ? '  ' + d.km_since_reserve.toFixed(1) + ' km reserva' : '';
     msg.textContent = 'Guardado: ' + liters + 'L' + km + est;
-    setTimeout(() => { msg.textContent = ''; }, 4000);
+    setTimeout(() => { msg.textContent = ''; }, 5000);
     loadStatus();
   }catch(e){ msg.textContent = 'Error: ' + e; }
   finally { btn.disabled = false; }
@@ -204,16 +216,15 @@ function renderHistory(refuels){
   if(!refuels.length){ el.innerHTML = '<div class="empty">Sin cargas registradas</div>'; return; }
   el.innerHTML = [...refuels].reverse().map(r => {
     const parts = [];
-    if(r.km_since_reserve   != null) parts.push('km RSV <span>' + r.km_since_reserve.toFixed(1)   + '</span>');
-    if(r.estimated_liters   != null) parts.push('est <span>'    + r.estimated_liters.toFixed(2)    + ' L</span>');
-    if(r.calibration_ratio  != null) parts.push('cal x<span>'   + r.calibration_ratio.toFixed(3)   + '</span>');
+    if(r.km_since_reserve  != null) parts.push('trip RSV <span>' + r.km_since_reserve.toFixed(1) + ' km</span>');
+    if(r.estimated_liters  != null) parts.push('est <span>'      + r.estimated_liters.toFixed(2)  + ' L</span>');
+    if(r.calibration_ratio != null) parts.push('cal x<span>'     + r.calibration_ratio.toFixed(3) + '</span>');
     return '<div class="refuel-item">'
       + '<div class="refuel-top">'
       + '<span class="refuel-liters">' + r.liters.toFixed(1) + ' L</span>'
-      + '<span class="refuel-date">' + fmtDate(r.ts) + '</span>'
+      + '<span class="refuel-date">' + fmtDate(r.ts) + ' &middot; oct ' + r.octane + '</span>'
       + '</div>'
-      + '<div class="refuel-sub"><span style="color:var(--dim)">oct</span> <span>' + r.octane + '</span>'
-      + (parts.length ? ' &nbsp; ' + parts.join(' &middot; ') : '') + '</div>'
+      + (parts.length ? '<div class="refuel-sub">' + parts.join(' &nbsp; ') + '</div>' : '')
       + '</div>';
   }).join('');
 }

@@ -21,6 +21,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.82] — 2026-06-07
+### Changed
+- web/fuel_tracker.py: km pivot is reserve activation — trip_km counts from reserve_ts, survives fill-up, resets only on next reserve activation; add_refuel clears reserve_active but keeps reserve_ts
+- web/templates/fuel.html: trip km is now top-level big counter; reserve button pulses when active; gauge shows estimated level from last fill-up; fill-up clears indicator but km keeps counting
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.81] — 2026-06-07
 ### Added
 - web/fuel_tracker.py: level_L, level_pct, km_since_fill, consumed_since_fill computed from last refuel timestamp

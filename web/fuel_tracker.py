@@ -31,7 +31,10 @@ def _save(state: dict) -> None:
 def toggle_reserve(active: bool) -> dict:
     state = _load()
     state['reserve_active'] = active
-    state['reserve_ts'] = datetime.now(timezone.utc).isoformat() if active else None
+    if active:
+        state['reserve_ts'] = datetime.now(timezone.utc).isoformat()  # reset km pivot
+    else:
+        state['reserve_ts'] = None
     _save(state)
     return state
 
@@ -55,8 +58,8 @@ def add_refuel(liters: float, octane: int, sessions_dir: str) -> dict:
         state['injector_cc_per_ms'] = round(cc * ratio * 0.3 + cc * 0.7, 6)
         entry['calibration_ratio'] = round(ratio, 4)
     state['refuels'].append(entry)
-    state['reserve_active'] = False
-    state['reserve_ts'] = None
+    state['reserve_active'] = False   # indicator off — user filled up
+    # keep reserve_ts so km counter continues until next reserve activation
     _save(state)
     return entry
 
@@ -82,16 +85,17 @@ def get_status(sessions_dir: str) -> dict:
         result['km_since_fill'] = round(km_fill, 1)
         result['consumed_since_fill'] = round(consumed_fill, 2)
 
-    # --- Reserve counter ---
-    if state['reserve_active'] and state.get('reserve_ts'):
+    # --- Trip km counter (pivots at reserve activation, survives fill-up) ---
+    if state.get('reserve_ts'):
         consumed_res, km_res = _calc_since(state['reserve_ts'], sessions_dir, cc)
-        result['current_liters_used'] = round(consumed_res, 3)
-        result['current_km'] = round(km_res, 1)
-        # If no fill-up yet, estimate level from reserve baseline
-        if 'level_L' not in result:
-            level_l = max(0.0, RESERVE_L - consumed_res)
-            result['level_L']   = round(level_l, 2)
-            result['level_pct'] = round(level_l / TANK_TOTAL_L * 100, 1)
+        result['trip_km'] = round(km_res, 1)
+        if state['reserve_active']:
+            result['current_liters_used'] = round(consumed_res, 3)
+            # If no fill-up yet, estimate level from reserve baseline
+            if 'level_L' not in result:
+                level_l = max(0.0, RESERVE_L - consumed_res)
+                result['level_L']   = round(level_l, 2)
+                result['level_pct'] = round(level_l / TANK_TOTAL_L * 100, 1)
 
     return result
 
