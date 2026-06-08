@@ -898,11 +898,36 @@ Calculate fuel consumption for each ride:
 
 ### BL-FUEL-12 — Discrepancy log and calibration analysis
 **Priority:** MEDIUM
-Every fill-up where calc_remaining + actual_liters != 16.7L (within margin):
-- Flag the discrepancy and reason (undocumented ride, disconnections, sensor drift)
-- Track cumulative calibration error over multiple cycles
-- Show confidence score for the injector constant (0.00533 cc/ms)
-- After N fill-ups, suggest refined constant
+
+#### Auto-calibration loop (implemented v2.7.101)
+
+The calibration converges `injector_cc_per_ms` toward the real injector flow using two
+hard-fact anchor points per cycle — no user input required beyond normal operation:
+
+```
+Full tank fill-up  →  level = 16.7L  (hard fact: user marked full)
+       ↓  logger accumulates (pw1 + pw2) × cc_per_ms × RPM/120 × dt
+Reserve light on   →  level = 3.1L   (hard fact: XB12X service manual)
+       → actual_consumed = 16.7 - 3.1 = 13.6L  (exact)
+       → logger_consumed = Σ PW-based estimate
+       → ratio = 13.6 / logger_consumed
+       → new_cc = old_cc × (ratio × 0.3 + 0.7)   ← 30% learning rate
+       → ratio clamped [0.6, 1.67]: max ±40% per cycle
+       ↓  still on reserve, logger keeps accumulating
+Partial or full fill-up
+       → if full_tank: level resets to 16.7L, cycle repeats
+       → if partial:   second calibration point (liters added vs calculated consumed)
+```
+
+PW accumulation detail: `(pw1 + pw2)` sums both injectors per firing event,
+treating them as one equivalent injector. Both have identical flow rates despite
+different spray patterns (front P0026.1AA, rear P0027.1AA, 12.25 ohm each).
+
+#### Still pending (UI / audit trail)
+- Show calibration history in fuel page: date, ratio, old→new cc_per_ms, delta%
+- Flag discrepancy when ratio > 1.15 or < 0.85 (possible undocumented ride or disconnection)
+- Confidence score: after N full cycles, show stability of cc_per_ms over last 5 cycles
+- Suggest "calibration stable" badge when std_dev of last 5 ratios < 0.03
 
 ### BL-FUEL-13 — Odometer integration (km total from EEPROM)
 **Priority:** LOW
