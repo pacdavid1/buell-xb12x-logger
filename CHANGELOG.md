@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.90] — 2026-06-07
+### Changed
+- Consumption session header: 4 stat cards (KM / LITERS / KM/L / L/100)
+  - 4-column grid replaces 3-column
+  - Suffix inline next to value: '1234.5 km', '98.7 L', '12.6 km/L', '7.9 L/100'
+  - KM/L card added (calculated as total_km/total_liters per session)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.89] — 2026-06-07
 ### Changed
 - fuel.html design fixes:
