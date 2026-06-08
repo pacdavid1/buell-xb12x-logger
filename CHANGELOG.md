@@ -21,6 +21,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.92] — 2026-06-07
+### Changed
+- fuel.html: +3px to all font-size values <=14px (CSS + inline)
+- index.html: fix nav menu Combustible -> Fuel
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.91] — 2026-06-07
 ### Changed
 - Remove label rows from session stat cards — suffix already carries the unit

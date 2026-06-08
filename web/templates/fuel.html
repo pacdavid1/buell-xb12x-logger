@@ -11,56 +11,56 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
 .hdr{background:var(--panel);border-bottom:2px solid var(--accent);padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
-.hdr-title{font-size:13px;font-weight:900;letter-spacing:.06em}
+.hdr-title{font-size:16px;font-weight:900;letter-spacing:.06em}
 .nav-menu{position:relative;flex-shrink:0}
 .nav-menu-btn{font-size:18px;color:var(--dim);cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:2px;background:none;font-family:var(--mono);letter-spacing:0}
 .nav-menu-btn:hover{color:var(--blue);border-color:var(--blue)}
 .nav-menu-drop{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:4px;min-width:160px;z-index:999}
 .nav-menu-drop.open{display:block}
-.nav-menu-drop a{display:block;font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:none;padding:10px 14px;border-radius:2px}
+.nav-menu-drop a{display:block;font-family:var(--mono);font-size:15px;color:var(--dim);text-decoration:none;padding:10px 14px;border-radius:2px}
 .nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
 .nav-menu-drop a.active{color:var(--accent);background:rgba(255,255,255,.06)}
 .content{padding:12px;max-width:520px;margin:0 auto}
 .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:10px}
-.section-title{font-size:9px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
+.section-title{font-size:15px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
 .trip-row{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
 .trip-km{font-size:52px;font-weight:900;line-height:1;color:var(--green)}
 .trip-km.reserve-on{color:var(--accent)}
-.trip-unit{font-size:14px;color:var(--dim)}
-.trip-status{font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-left:auto}
+.trip-unit{font-size:17px;color:var(--dim)}
+.trip-status{font-size:15px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-left:auto}
 .gauge-track{height:24px;background:#111;border:1px solid var(--border);border-radius:4px;overflow:visible;position:relative;margin-bottom:4px}
 .gauge-fill{height:100%;width:0%;transition:width .8s ease,background .8s;border-radius:3px}
 .gauge-reserve-line{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--accent);opacity:.8;border-radius:1px}
-.gauge-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;pointer-events:none}
-.gauge-labels{display:flex;justify-content:space-between;font-size:8px;color:var(--dim);margin-bottom:8px}
+.gauge-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;pointer-events:none}
+.gauge-labels{display:flex;justify-content:space-between;font-size:14px;color:var(--dim);margin-bottom:8px}
 .gauge-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
 .g-stat{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:6px;text-align:center}
 .g-stat-val{font-size:16px;font-weight:900;color:var(--text)}
-.g-stat-lbl{font-size:8px;color:var(--dim);margin-top:2px}
+.g-stat-lbl{font-size:14px;color:var(--dim);margin-top:2px}
 .btn-reserve{width:100%;padding:14px;font-family:var(--mono);font-size:15px;font-weight:900;border:2px solid var(--border);border-radius:4px;background:var(--bg);color:var(--dim);cursor:pointer;transition:all .2s}
 .btn-reserve.active{background:rgba(232,66,10,.15);border-color:var(--accent);color:var(--accent);animation:pulse 2s ease-in-out infinite}
 @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,66,10,0)}50%{box-shadow:0 0 0 6px rgba(232,66,10,.2)}}
-.reserve-since{font-size:9px;color:var(--dim);margin-top:5px;text-align:center;min-height:13px}
+.reserve-since{font-size:15px;color:var(--dim);margin-top:5px;text-align:center;min-height:13px}
 .form-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
-.form-label{font-size:9px;color:var(--dim);width:70px;flex-shrink:0}
-input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:14px;padding:8px;border-radius:2px}
+.form-label{font-size:15px;color:var(--dim);width:70px;flex-shrink:0}
+input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:17px;padding:8px;border-radius:2px}
 .full-tank-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px;border:1px solid var(--border);border-radius:3px;cursor:pointer}
 .full-tank-row.on{border-color:var(--green);background:rgba(46,204,113,.08)}
 .full-tank-chk{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
-.full-tank-lbl{font-size:11px;font-weight:700;flex:1}
-.full-tank-hint{font-size:9px;color:var(--dim)}
-.btn{width:100%;padding:12px;font-family:var(--mono);font-size:12px;font-weight:700;border:1px solid;border-radius:3px;cursor:pointer;background:none;text-transform:uppercase}
+.full-tank-lbl{font-size:17px;font-weight:700;flex:1}
+.full-tank-hint{font-size:15px;color:var(--dim)}
+.btn{width:100%;padding:12px;font-family:var(--mono);font-size:15px;font-weight:700;border:1px solid;border-radius:3px;cursor:pointer;background:none;text-transform:uppercase}
 .btn-green{color:var(--green);border-color:var(--green)}
 .btn-green:disabled{color:var(--dim);border-color:var(--border);cursor:not-allowed}
 .refuel-item{border-bottom:1px solid var(--border);padding:8px 0}
 .refuel-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
 .refuel-liters{font-size:20px;font-weight:900;color:var(--blue)}
-.refuel-date{font-size:9px;color:var(--dim)}
-.refuel-sub{font-size:9px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.refuel-date{font-size:15px;color:var(--dim)}
+.refuel-sub{font-size:15px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
 .refuel-sub span{color:var(--text)}
 .disc-warn{color:var(--yellow)}
-.empty{font-size:10px;color:var(--dim);text-align:center;padding:16px}
-.status-msg{font-size:9px;color:var(--dim);text-align:center;min-height:14px;margin-top:6px}
+.empty{font-size:16px;color:var(--dim);text-align:center;padding:16px}
+.status-msg{font-size:15px;color:var(--dim);text-align:center;min-height:14px;margin-top:6px}
 
 .cons-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
 .sg-group{margin-bottom:3px}
@@ -68,20 +68,20 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 .sg-hdr:hover{border-color:var(--accent)}
 .sg-hdr.open{border-color:var(--blue);border-bottom-left-radius:0;border-bottom-right-radius:0}
 .sg-hdr-top{display:flex;align-items:center;gap:6px;margin-bottom:5px}
-.sg-arrow{font-size:8px;color:var(--dim);transition:transform .2s;flex-shrink:0}
+.sg-arrow{font-size:14px;color:var(--dim);transition:transform .2s;flex-shrink:0}
 .sg-hdr.open .sg-arrow{transform:rotate(90deg)}
-.sg-id{font-size:11px;font-weight:700;color:var(--text);flex-shrink:0}
-.sg-meta{font-size:9px;color:var(--dim);flex:1}
+.sg-id{font-size:17px;font-weight:700;color:var(--text);flex-shrink:0}
+.sg-meta{font-size:15px;color:var(--dim);flex:1}
 .sg-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
 .sg-stat{background:#111;border:1px solid var(--border);border-radius:2px;padding:3px 4px;text-align:center}
-.sg-stat-val{font-size:11px;font-weight:700;line-height:1.3;white-space:nowrap}
-.sg-stat-sfx{font-size:8px;font-weight:400;color:var(--dim);margin-left:1px}
+.sg-stat-val{font-size:17px;font-weight:700;line-height:1.3;white-space:nowrap}
+.sg-stat-sfx{font-size:14px;font-weight:400;color:var(--dim);margin-left:1px}
 .sg-rides{display:none;border:1px solid var(--blue);border-top:none;border-radius:0 0 3px 3px;padding:0 0 2px}
 .sg-rides.open{display:block}
-.cons-hdr{display:flex;font-size:8px;color:var(--dim);letter-spacing:.06em;padding:3px 8px;border-bottom:1px solid var(--border)}
-.cons-row{display:flex;align-items:baseline;padding:4px 8px;border-bottom:1px solid var(--border);font-size:11px}
+.cons-hdr{display:flex;font-size:14px;color:var(--dim);letter-spacing:.06em;padding:3px 8px;border-bottom:1px solid var(--border)}
+.cons-row{display:flex;align-items:baseline;padding:4px 8px;border-bottom:1px solid var(--border);font-size:17px}
 .cons-row:last-child{border-bottom:none}
-.cons-date{color:var(--dim);font-size:9px;flex:1;min-width:0}
+.cons-date{color:var(--dim);font-size:15px;flex:1;min-width:0}
 .cons-km{color:var(--text);width:54px;text-align:right;flex-shrink:0}
 .cons-l{color:var(--blue);width:46px;text-align:right;flex-shrink:0}
 .cons-l100{font-weight:700;width:52px;text-align:right;flex-shrink:0}
@@ -89,7 +89,7 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 </head>
 <body>
 <div class="hdr">
-  <div class="hdr-title">FUEL TRACKER <span style="font-weight:400;color:#7df;font-size:10px">v--LOGGER_VERSION--</span></div>
+  <div class="hdr-title">FUEL TRACKER <span style="font-weight:400;color:#7df;font-size:13px">v--LOGGER_VERSION--</span></div>
   <div class="nav-menu" id="navMenu">
     <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">&#9776;</button>
     <div class="nav-menu-drop" id="navDrop">
@@ -117,7 +117,7 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
   <div class="section">
     <div class="section-title">Estimated fuel level</div>
     <div style="position:relative;margin-top:14px">
-      <div style="position:absolute;top:-12px;font-size:8px;color:var(--accent);left:18.6%;transform:translateX(-50%)">RSV</div>
+      <div style="position:absolute;top:-12px;font-size:11px;color:var(--accent);left:18.6%;transform:translateX(-50%)">RSV</div>
       <div class="gauge-track">
         <div class="gauge-fill" id="gaugeFill"></div>
         <div class="gauge-reserve-line" style="left:18.6%"></div>
@@ -169,7 +169,7 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 
   <div class="section">
     <div class="section-title">Consumption by session</div>
-    <div style="font-size:8px;color:var(--dim);margin-bottom:8px;margin-top:-6px">rides ≥5 km · weighted avg</div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:8px;margin-top:-6px">rides ≥5 km · weighted avg</div>
     <div class="cons-summary">
       <div class="g-stat"><div class="g-stat-val" id="cAvgL100">--</div><div class="g-stat-lbl">avg L/100</div></div>
       <div class="g-stat"><div class="g-stat-val" id="cAvgKmL">--</div><div class="g-stat-lbl">avg km/L</div></div>
@@ -294,7 +294,7 @@ function renderHistory(refuels){
     if(r.estimated_liters  != null) parts.push('est <span>'  + r.estimated_liters.toFixed(2)  + ' L</span>');
     if(r.calibration_ratio != null) parts.push('cal x<span>' + r.calibration_ratio.toFixed(3) + '</span>');
     if(r.discrepancy_L     != null) parts.push('<span class="disc-warn">disc ' + (r.discrepancy_L > 0 ? '+' : '') + r.discrepancy_L.toFixed(2) + ' L</span>');
-    const tag = r.full_tank ? ' <span style="color:var(--green);font-size:8px">FULL</span>' : '';
+    const tag = r.full_tank ? ' <span style="color:var(--green);font-size:11px">FULL</span>' : '';
     return '<div class="refuel-item">'
       + '<div class="refuel-top">'
       + '<span class="refuel-liters">' + r.liters.toFixed(1) + ' L' + tag + '</span>'
