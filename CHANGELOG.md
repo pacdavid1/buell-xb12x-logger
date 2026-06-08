@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.89] — 2026-06-07
+### Changed
+- fuel.html design fixes:
+  - Replace back-link with hamburger nav menu (consistent with all other pages)
+  - Section title: 'Consumption per ride' → 'Consumption by session'
+  - Add subtitle 'rides ≥5km · weighted avg' under section title
+- BACKLOG BL-FUEL-16: expand with full XB12X maintenance schedule from service manual
+  (15 items, intervals, part numbers, notes on short-trip/brake/seal intervals)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.88] — 2026-06-07
 ### Changed
 - BL-FUEL-15: fuel level bar (4px) added to all 6 page headers (index, session_events,

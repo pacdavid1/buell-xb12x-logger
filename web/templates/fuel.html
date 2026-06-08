@@ -12,7 +12,14 @@
 body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
 .hdr{background:var(--panel);border-bottom:2px solid var(--accent);padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
 .hdr-title{font-size:13px;font-weight:900;letter-spacing:.06em}
-.back{color:var(--dim);text-decoration:none;font-size:11px;border:1px solid var(--border);padding:3px 10px}
+.nav-menu{position:relative;flex-shrink:0}
+.nav-menu-btn{font-size:18px;color:var(--dim);cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:2px;background:none;font-family:var(--mono);letter-spacing:0}
+.nav-menu-btn:hover{color:var(--blue);border-color:var(--blue)}
+.nav-menu-drop{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:4px;min-width:160px;z-index:999}
+.nav-menu-drop.open{display:block}
+.nav-menu-drop a{display:block;font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:none;padding:10px 14px;border-radius:2px}
+.nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-menu-drop a.active{color:var(--accent);background:rgba(255,255,255,.06)}
 .content{padding:12px;max-width:520px;margin:0 auto}
 .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:10px}
 .section-title{font-size:9px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
@@ -83,7 +90,18 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 <body>
 <div class="hdr">
   <div class="hdr-title">FUEL TRACKER <span style="font-weight:400;color:#7df;font-size:10px">v--LOGGER_VERSION--</span></div>
-  <a href="/" class="back">Dashboard</a>
+  <div class="nav-menu" id="navMenu">
+    <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">&#9776;</button>
+    <div class="nav-menu-drop" id="navDrop">
+      <a href="/">Dashboard</a>
+      <a href="/session_events">Session Events</a>
+      <a href="/sessions_vs">Sessions VS</a>
+      <a href="/sessions_launch">Launch</a>
+      <a href="/tuner">Tuner</a>
+      <a href="/errorlog/viz">Errors</a>
+      <a href="/fuel" class="active">Fuel</a>
+    </div>
+  </div>
 </div>
 <div class="content">
 
@@ -150,7 +168,8 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
   </div>
 
   <div class="section">
-    <div class="section-title">Consumption per ride</div>
+    <div class="section-title">Consumption by session</div>
+    <div style="font-size:8px;color:var(--dim);margin-bottom:8px;margin-top:-6px">rides ≥5 km · weighted avg</div>
     <div class="cons-summary">
       <div class="g-stat"><div class="g-stat-val" id="cAvgL100">--</div><div class="g-stat-lbl">avg L/100</div></div>
       <div class="g-stat"><div class="g-stat-val" id="cAvgKmL">--</div><div class="g-stat-lbl">avg km/L</div></div>

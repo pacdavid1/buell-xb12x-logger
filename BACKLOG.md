@@ -926,10 +926,43 @@ Every fill-up where calc_remaining + actual_liters != 16.7L (within margin):
 - Freebuff task: design the header integration without breaking existing nav layout
 
 ### BL-FUEL-16 — Maintenance indicator in dashboard
-- Show upcoming service intervals on the dashboard (oil, filter, etc.)
-- Linked to total odometer (BL-FUEL-13 must land first)
-- Configurable intervals via a JSON config file (no hardcoded values)
-- Display: small badge in header or dashboard card showing km until next service
+
+**Depends on:** BL-FUEL-17 (odometer) must land first.
+
+Service schedule for XB12X (from official Buell service manual):
+
+| Item | Interval (km) | Part # |
+|------|--------------|--------|
+| Engine Oil & Filter | 1,600 / 8,000 / 16,000 / 24,000 / 32,000 / 40,000 | Filter: 63806-00Y |
+| Transmission Fluid | 1,600 / 16,000 / 32,000 | 99851-05 |
+| Air Filter — inspect | 1,600 + every 8,000 | P0213.02A8 |
+| Air Filter — replace | 32,000 | P0213.02A8 |
+| Spark Plugs | every 16,000 | 27671-01K (type 10R12X) |
+| Brake Fluid DOT4 — check | every 8,000 | 99953-99A |
+| Brake Fluid DOT4 — replace | every 2 years | 99953-99A |
+| Front Fork Oil | every 32,000 | 99884-80 (Type E) |
+| Primary Chain — check/adjust | 1,600 + every 8,000 | Gasket: 34819-03A |
+| Clutch — check/adjust | 1,600 + every 8,000 | Gasket: 25377-03A |
+| Rear Drive Belt — inspect | 1,600 + every 8,000 | G0500.1AKD |
+| Control Cables — check/lube | 1,600 + every 8,000 | HD-94968-85TV |
+| Brake Pads/Discs — inspect | 1,600 + every 8,000 | Front: H0300.02A8 |
+| Steering Head Bearings | every 8,000 | — |
+| Oil Cooler Fins — clean | every 8,000 | — |
+| Tire Pressure | every 8,000 / before ride | — |
+| Critical Fasteners | 1,600 / 16,000 | — |
+| TPS Zeroing | 1,600 / every 16,000 | — |
+
+Notes:
+- Short-trip/cold (<24km at <16°C): reduce oil change to 2,400km
+- Brake lines: replace every 4 years
+- Master cylinder/caliper seals: replace every 2 years
+
+Implementation plan:
+- Store schedule in /home/pi/buell/maintenance_schedule.json (not hardcoded)
+- Track last-serviced km per item in /home/pi/buell/maintenance_log.json
+- Show km-until-next on dashboard: small colored badge (green/yellow/red)
+- UI: dedicated card in index.html, sorted by most urgent first
+- Endpoint: GET /maintenance/status — returns list of items sorted by km_remaining
 
 ### BL-FUEL-17 — Odometer EEPROM research
 - Investigate if total km/miles are stored in the DDFI2 EEPROM
