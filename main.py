@@ -449,7 +449,7 @@ class BuellLogger:
                 self.web.ecu_connected = False
                 self.web.ecu_lost_s = lost_total
 
-                lost_interval = int(lost_total) // 10
+                lost_interval = int(lost_total) // 3
                 if lost_interval != last_lost_interval:
                     last_lost_interval = lost_interval
                     self.logger.info(f"ECU sin respuesta {lost_total:.0f}s")
@@ -462,7 +462,7 @@ class BuellLogger:
                     consecutive_errors = 0
                     ecu_lost_since = None
 
-                if ecu_lost_since is not None and lost_total >= 10.0 and (time.monotonic() - getattr(self, '_last_reconnect_t', 0.0)) >= 10.0:
+                if ecu_lost_since is not None and lost_total >= 3.0 and (time.monotonic() - getattr(self, '_last_reconnect_t', 0.0)) >= 5.0:
                     self.logger.info(f"Hard reconnect — {lost_total:.0f}s sin ECU")
                     if ride_active: self.error_log.reconnect_attempt(elapsed_s=elapsed_s, trigger="auto_30s", attempt_n=consecutive_errors // 30, success=False, time_s=lost_total)
                     

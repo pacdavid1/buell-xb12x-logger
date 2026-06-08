@@ -21,6 +21,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.73] — 2026-06-07
+### Fixed
+- main.py: hard reconnect trigger lowered 10s -> 3s (gaps now ~7s worst case vs ~21s before)
+- main.py: lost_interval logging interval 10 -> 3 to match new threshold
+- ecu/connection.py: get_version() attempts 5 -> 2 (max 4.6s vs 11.5s blocking)
+### Research
+- BUG-DISC-01 confirmed hardware-specific: 27F1A2 (same Pi/cable) = 3.6% loss, 47BF04 = 60.5%
+  Root cause is ECU K-line connector (corrosion/vibration), not software
+  Pattern A (auto-reconnect 11s gaps) = 69% of 47BF04 gaps -> now reduced to ~5s
+  Pattern B (severe >30s) = hardware failure, needs physical inspection
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.72] — 2026-06-07
 ### Added
 - BACKLOG.md: FASE 8 — Fuel Economy & Reserve Tracking (5 sub-features: reserve signal, km/injector counters, fill-up modal, consumption validation, maintenance tab)

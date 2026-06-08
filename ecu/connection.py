@@ -164,7 +164,7 @@ class DDFI2Connection:
 
     def _get_version_impl(self) -> str | None:
         """Internal — called under self._lock."""
-        for attempt in range(5):
+        for attempt in range(2):
             try:
                 self.ser.reset_input_buffer()
                 self.ser.reset_output_buffer()
