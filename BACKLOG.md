@@ -847,13 +847,32 @@ New dashboard tab "Mant" (maintenance):
 - All counters reset on user input, persist in maintenance_log.json
 - Alert when any counter exceeds threshold (configurable)
 
-### Technical notes
-- PW to liters: injected_volume = (pw1_ms + pw2_ms) * injector_cc_per_ms * density
-  DDFI2 injector: ~195cc/min static flow rate (reference, needs validation)
-  cc_per_ms = 195/60000 = 0.00325 cc/ms per injector
-  Both cylinders: (pw1 + pw2) * 0.00325 cc = volume per sample
-- km counter: integrate VS_KPH * sample_interval / 3600 km per sample
+### Technical notes — XB12X confirmed specs (from service manual + parts catalog)
+
+#### Injectors
+- Front: P0026.1AA / Rear: P0027.1AA (NOT interchangeable — different spray patterns)
+- Resistance: 12.25 ohms per injector
+- Flow rate: ~320cc/min (forum reference — manual only specifies 49-51 PSI rail pressure)
+- cc_per_ms = 320 / 60000 = 0.00533 cc/ms per injector
+- Both cylinders per sample: (pw1_ms + pw2_ms) * 0.00533 cc
+
+#### Tank — XB12X Ulysses
+- Total capacity: 16.7 liters (4.40 gal) — includes reserve
+- Usable before reserve light: 16.7 - 3.1 = 13.6 liters
+- Reserve light activates at: 3.1 liters remaining (0.83 gal)
+- NOTE: XB12S/Scg/R have smaller 14.5L tank — XB12X is the larger one
+
+#### Fuel calculation formula
+injected_cc_per_sample = (pw1_ms + pw2_ms) * 0.00533
+total_liters = SUM(injected_cc_per_sample) / 1000
+(sum from reserve trigger to next fill-up, then compare vs actual liters pumped)
+
+#### km counter formula
+km_per_sample = VS_KPH * sample_interval_s / 3600
+total_km = SUM(km_per_sample) from reserve trigger
+
 - All math is approximation until validated against real fill-up data
+- The iterative calibration (8.4) will refine the 0.00533 cc/ms constant
 
 ## Mantenimiento / Limpieza de código
 ### BL-BUG-01 — Low priority bugs from freebuff audit (2026-06-07)

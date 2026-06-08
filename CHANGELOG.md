@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.75] — 2026-06-07
+### Added
+- BACKLOG.md: FASE 8 technical specs confirmed from XB12X service manual
+  Injectors: P0026.1AA (front) / P0027.1AA (rear), 12.25 ohm, ~320cc/min, 49-51 PSI
+  Tank: 16.7L total, reserve light at 3.1L remaining (13.6L usable)
+  Fuel formula: (pw1+pw2) * 0.00533 cc/ms per sample
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.74] — 2026-06-07
 ### Fixed
 - CHANGELOG.md: fixed ordering v2.7.47/48/49 (was 47,49,48 — now 49,48,47 descending)
