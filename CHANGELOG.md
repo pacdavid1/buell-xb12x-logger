@@ -21,6 +21,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.76] — 2026-06-07
+### Changed
+- CLAUDE.md: added critical evaluation protocol for freebuff proposals — Claude must verify claims, assess risk, and ask user if anything seems wrong before executing
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.75] — 2026-06-07
 ### Added
 - BACKLOG.md: FASE 8 technical specs confirmed from XB12X service manual
