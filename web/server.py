@@ -1115,8 +1115,12 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if not report_path.exists():
             self._json({"error": "no tuning report for this session"})
             return
-        report = json.loads(report_path.read_text())
-        if fmt == "csv":
+        try:
+            report = json.loads(report_path.read_text())
+        except Exception as e:
+            self._json({'error': f'tuning report corrupted: {e}'}, 500)
+            return
+        if fmt == csv:
             buf = io.StringIO()
             w = csv.writer(buf)
             w.writerow(["rpm", "load", "seconds", "count", "ego_sum", "clt_sum",

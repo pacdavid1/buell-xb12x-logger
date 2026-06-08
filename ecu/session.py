@@ -55,9 +55,13 @@ class SessionManager:
         sdir = self.sessions_dir / cs
         meta_file = sdir / "session_metadata.json"
         if sdir.exists() and meta_file.exists():
-            with open(meta_file) as f:
-                meta = json.load(f)
-            self.logger.info(f"Sesión existente: {cs} ({meta.get('total_rides',0)} rides)")
+            try:
+                with open(meta_file) as f:
+                    meta = json.load(f)
+                self.logger.info(f"Sesión existente: {cs} ({meta.get('total_rides',0)} rides)")
+            except Exception as e:
+                self.logger.warning(f"session_metadata.json corrupted, reinitializing: {e}")
+                meta = None
         else:
             sdir.mkdir(parents=True, exist_ok=True)
             meta = {

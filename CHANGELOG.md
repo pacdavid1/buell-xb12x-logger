@@ -21,6 +21,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.77] — 2026-06-07
+### Fixed
+- ecu/session.py: json.load(session_metadata.json) now has try/except — corrupted metadata no longer crashes open_session()
+- web/server.py: json.loads(tuning_report) now has try/except — corrupted report returns 500 instead of crashing handler
+### Notes
+- freebuff bug_audit_report: Items 1,6 were false positives (already fixed in v2.7.63/65, guards already existed)
+- Items 2,4,5 low priority / by design / partially fixed already
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.76] — 2026-06-07
 ### Changed
 - CLAUDE.md: added critical evaluation protocol for freebuff proposals — Claude must verify claims, assess risk, and ask user if anything seems wrong before executing
