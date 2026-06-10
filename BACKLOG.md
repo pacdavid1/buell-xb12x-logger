@@ -2,6 +2,40 @@
 
 ## UX — Mejoras urgentes (2026-06-07)
 
+### BL-UX-07 — Dashboard Graf: gráficas configurables con multi-señal overlay
+**Priority:** MEDIUM
+**Pages:** Dashboard (index.html — subtab Graf)
+
+Estado actual: las gráficas del Graf están hardcodeadas. Cada señal tiene su propio
+panel fijo. Las señales de estado (fl_wot, fl_accel, fl_decel) están en paneles
+separados al final en lugar de solaparse con TPS donde tienen sentido.
+
+Problema específico:
+- Los paneles del final (flags de estado) no coinciden temporalmente con los paneles
+  de arriba (TPS, RPM etc.) porque son layouts independientes
+- No se puede ver TPS + wot/accel/decel en la misma escala temporal
+- No se puede ver RPM + CLT, ni PW + temperatura juntos para buscar correlaciones
+- Las señales de Unk63 (nuevo) no tienen panel
+
+Propuesta:
+- Convertir cada panel del Graf en un "slot" configurable: el usuario elige qué
+  señal(es) mostrar en ese slot (selector dropdown por panel)
+- Soporte para overlay: cada slot puede mostrar 2-3 señales con ejes Y independientes
+  (izquierdo para la señal principal, derecho opcional para secundaria a distinta escala)
+- Agrupaciones sugeridas como preset por defecto:
+    - Panel 1: RPM (siempre)
+    - Panel 2: TPS_pct + fl_wot + fl_accel + fl_decel (solapados)
+    - Panel 3: PW1 + PW2
+    - Panel 4: CLT + MAT
+    - Panel 5: VS_KPH + Gear
+    - Panel 6: Flags / Unk63_b0..b7 (seleccionable)
+- Config persiste en localStorage para no reconfigurar en cada visita
+- Mobile-friendly: en pantalla chica colapsar a 2-3 paneles con scroll
+
+Alternativa mínima (si el overlay completo es muy complejo):
+- Solo agregar botones "toggle" para solapar fl_wot/fl_accel/fl_decel al panel de TPS
+  como marcadores de color (tipo evento) sin eje Y propio
+
 ### BL-UX-01 — Burn de propuesta completa (no celda por celda)
 **Priority:** HIGH
 **Pages:** Tuner (PROPOSAL tab)
@@ -61,30 +95,6 @@ Cambio: label a la izquierda del contenedor, rotado 90° (texto vertical), núme
 todo el ancho restante → números visiblemente más grandes desde la moto.
 Afecta el layout CSS de los contenedores de cada variable en index.html.
 
-### BL-DDFI2-01 — Investigar y exponer parámetro de compensación barométrica de la DDFI2
-**Priority:** CLOSED — freebuff research 2026-06-07: DDFI2 NO tiene KBaro/baro_comp nativo.
-Stock DDFI-2 compensates via closed-loop AFV + narrow-band O2 (not a lookup table).
-In OL mode (our setup), there is NO barometric compensation at all.
-Use BMP280 (already reading) to display baro as ride stat only (BL-UX-03).
-**Files:** ecu/eeprom.py, ecu/BUEIB.xml, web/server.py
-
-La DDFI2 tiene un parámetro interno en EEPROM que ajusta la inyección por cambios
-barométricos (altitud). EcmSpy puede leerlo y escribirlo. La Pi debería poder hacer lo mismo.
-
-### Qué investigar (freebuff task pendiente)
-1. Identificar el parámetro en BUEIB.xml — buscar: baro, altitude, KBaro, baro_comp, KAlt
-   `grep -i 'baro\|altitude\|kalt\|kbaro' /home/pi/buell/ecu/BUEIB.xml | head -20`
-2. Leer el valor actual del parámetro desde el EEPROM de una sesión
-3. Entender el rango válido y la unidad (hPa? factor? offset?)
-4. Diseñar el endpoint GET/POST /eeprom/baro_comp para leer y escribir el valor
-5. Agregar al VE tab o Tuner: mostrar el valor actual y permitir ajustarlo
-
-### Contexto importante
-- La moto es Alpha-N: TPS+RPM determinan la inyección base
-- Este parámetro es una corrección SOBRE esa base, no el cálculo principal
-- No confundir con la normalización post-ride (PW × 1013/baro) que implementamos
-  en f7.py/launch.py — esa es nuestra normalización de análisis, independiente del ECU
-- El parámetro del ECU actúa en tiempo real durante la ride
 
 ---
 
@@ -204,7 +214,6 @@ barométricos (altitud). EcmSpy puede leerlo y escribirlo. La Pi debería poder 
 - [ ] Validación: no exceder rangos válidos del ECU (0-250 fuel, 0-45 spark)
 
 
-
 ## CLEANUP — proposal.py cosmetic fixes (freebuff task 013)
 - [ ] Move `_clamp` helper outside the VS row loop in generate_fuel_proposal()
       (currently defined inside loop — cosmetic, Python dogma, no perf impact)
@@ -213,76 +222,6 @@ barométricos (altitud). EcmSpy puede leerlo y escribirlo. La Pi debería poder 
 - [ ] Add side-by-side fuel_front / fuel_rear display in dashboard
       when proposal is viewed
 
-## CLEANUP — Dead Code
-
-
-
-
-## BUG — pw1/pw2 in load_csv() should be raw + add pw1_norm/pw2_norm
-(Source: freebuff tasks 007, 008, 012)
-
-**Priority: HIGH — current code modifies pw1/pw2 in-place, breaking detect_launches()**
-
-### Problem
-Current load_csv() in web/launch.py normalizes pw1/pw2 in-place:
-  pw1 = sf(r['pw1']) * _baro_factor   <- raw value lost
-detect_launches() reads pw1 expecting raw physical PW (milliseconds).
-If thresholds are absolute (e.g. peak_pw > 15ms), baro normalization shifts them ~2-3%.
-
-### Fix (freebuff task 012 — VERIFY CODE BEFORE APPLYING, snippets may not match actual code)
-In load_csv() baro block:
-  1. Change guard: _baro_valid = 900 < _baro < 1100  (not just > 0)
-  2. Keep pw1/pw2 raw: 'pw1': sf(r['pw1']),  'pw2': sf(r.get('pw2', 0))
-  3. Add normalized: 'pw1_norm': sf(r['pw1']) * _baro_factor,
-                     'pw2_norm': sf(r.get('pw2', 0)) * _baro_factor
-  4. Add: 'baro_valid': _baro_valid
-
-Also update Sessions VS cell accumulation (web/launch.py build_index()):
-  Change c['pw1'] += r['pw1']  ->  c['pw1'] += r['pw1_norm']
-  Change c['pw2'] += r['pw2']  ->  c['pw2'] += r['pw2_norm']
-  (and same for pw_eff computation)
-
-Also bump CACHE_VERSION from 6 to 7 in web/vs_engine.py.
-
-- [ ] Apply pw1_norm fix to load_csv() in web/launch.py
-- [ ] Update build_index() to use pw1_norm/pw2_norm for cell accumulation
-- [ ] Bump CACHE_VERSION to 7
-- [ ] Verify detect_launches() peak_pw thresholds — are they absolute or relative?
-- [ ] Verify CACHE_VERSION is included in vs_engine cache key (freebuff task 007)
-  If not, old normalized caches will be served silently. Check _compare_sessions_cached.
-- [ ] Add baro normalization to f7.py load_csv_rows() — HIGH priority (freebuff task 007)
-  Same REF_BARO logic, same range gate (900-1100 hPa). May reduce 97% orphan rate.
-  f7.py has its own CSV loader that does NOT share code with launch.py.
-
-## BUG — Barometric normalization missing in Sessions VS
-
-**Priority: CRITICAL — contaminates all cross-session PW comparisons**
-
-### Problem
-dpw_eff = mean_pw_B - mean_pw_A is computed WITHOUT baro correction.
-A Δbaro of 10 hPa between sessions creates ~1% false PW signal.
-Combined baro+temp can produce 5-7% false signal — our real deltas are 5-15%.
-This can mask or INVERT real map quality signals.
-
-### Fix
-In `web/launch.py` -> `_compare_sessions` -> `load_csv()`:
-```python
-# After loading each row, normalize PW to reference baro
-REF_BARO = 1013.25  # standard atmosphere hPa
-if row['baro'] > 0:
-    baro_factor = REF_BARO / row['baro']
-    row['pw1'] = row['pw1'] * baro_factor
-    row['pw2'] = row['pw2'] * baro_factor
-```
-- [ ] Apply normalization in load_csv() at row level
-- [ ] Add `baro_norm_ref` field to comparison result so UI can show it
-- [ ] Invalidate sessions_vs cache (bump CACHE_VERSION to 6)
-- [ ] Handle rows where baro=0: skip normalization, flag cell as 'no baro'
-- [ ] Add environmental similarity score per comparison (Δbaro, Δtemp, Δalt)
-
-### Confirmed by
-Freebuff task 002 analysis: 0.1% false signal per 1 hPa. Validated against
-DDFI2 speed-density behavior. This is the #1 confounder for dpw_eff.
 
 ## FASE 6 — PROP_* session output (freebuff task 015)
 
@@ -364,7 +303,6 @@ Sessions VS (dpw, ddvss)       →  comparación por celda      →  ¿cuál map
 - Si se mueven 2+ mapas → datos no atribuibles → no merge
 - Knock sensor: NO por ahora (ruido mecánico alto en Buell air-cooled, falsos positivos)
 - Spark sin knock: tunear por dACC (si avanzás spark y aceleración sube sin subir vibración, no hay knock)
-
 
 
 ## UX — Grid Simplification (Cobertura)
@@ -630,7 +568,6 @@ that a language model can interpret and suggest changes for.
 - Safe write zone documented ✅ (docs/10_DDFI2_PROTOCOL.md section 11)
 
 
-
 ## FASE 7 — Detección y clustering de eventos de aceleración (Bucket A/B)
 
 ### Concepto
@@ -661,7 +598,6 @@ Cross session (mapas diferentes):
 - [ ] Per match: add context_a/context_b with baro/temp_amb/humidity/clt averages
 - [ ] env_warning list: flag Δbaro>5hPa, Δtemp>10°C, Δhumidity>20%
 - [ ] These are warnings only — never filters
-
 
 
 ### 7.5 — Live "READY FOR EVENT" notification
@@ -877,24 +813,6 @@ total_km = SUM(km_per_sample) from reserve trigger
 
 ## FASE 8 — Fuel Tracker: pending features (step by step)
 
-### BL-FUEL-10 — Reset / Tanque lleno button ~~[NEXT]~~ **[DONE v2.7.83]**
-**Priority:** HIGH
-When user fills up to full (or wants to reset the estimate):
-- Add toggle in fill-up form: "Tanque lleno"
-- If checked: level resets to 16.7L regardless of calculation
-- Still log entered liters + the discrepancy (calculated_remaining vs actual_fill)
-- Example: calc says 5L remaining, user puts 14L → discrepancy = 14+5-16.7 = 2.3L unaccounted
-  Could be: undocumented short ride, disconnections, calculation error
-- discrepancy is stored in the refuel entry for future calibration analysis
-
-### BL-FUEL-11 — Consumption per ride (L/100km, km/L) **[DONE v2.7.84]**
-**Priority:** MEDIUM
-Calculate fuel consumption for each ride:
-- Read pw1+pw2 from each ride CSV, apply injector constant
-- Read VS_KPH, integrate to get km per ride
-- Output: L consumed, km, L/100km, km/L
-- Show in the fill-up history and optionally in Sessions tab
-- Can compare across sessions to see effect of tuning on fuel economy
 
 ### BL-FUEL-12 — Discrepancy log and calibration analysis
 **Priority:** MEDIUM
@@ -943,12 +861,6 @@ different spray patterns (front P0026.1AA, rear P0027.1AA, 12.25 ohm each).
 
 ## Mantenimiento / Limpieza de código
 
-### BL-FUEL-15 — Fuel level indicator bar in page headers **[DONE v2.7.85]**
-- Show a compact left-to-right fill bar in ALL page headers (index, sessions, tuner, etc.)
-- Reads from /fuel/status (level_pct) via a lightweight fetch on page load
-- No polling — one fetch on load, optional manual refresh
-- Visually: thin bar (4-6px), green→yellow→red by level
-- Freebuff task: design the header integration without breaking existing nav layout
 
 ### BL-FUEL-16 — Maintenance indicator in dashboard
 
@@ -1038,7 +950,6 @@ Track how avg_l100 evolves over time to correlate tuning changes with fuel effic
 - web/static/app.js: showTab() uses setTimeout(loadFn, 0) for defer — potential race if user switches tabs faster than 0ms render cycle.
 
 
-
 ### BL-DOCS-01 — README.md full rewrite (freebuff audit 2026-06-07)
 **Priority:** LOW
 **Source:** freebuff readme_gap_analysis.md
@@ -1049,7 +960,6 @@ full session data structure (10+ file types), hardware details.
 Key gaps: WiFi/Hotspot management, error log viz, gear detection, GPS, system health,
 battery shutdown, baro normalization, VE heatmap editing, MSQ export, F7 pipeline.
 Use readme_annotated.md (freebuff output) as draft template when implementing.
-
 
 
 ### Código muerto Python (confirmado — 0 referencias en todo el codebase)
@@ -1289,37 +1199,7 @@ No necesita learning cycle manual.
 - [ ] Step 4: Dashboard card showing best historical map for current conditions
 
 
-
 ---
-
-# Backlog: Validacion freebuff - TASK 036 (pw1_norm fix v2.7.25)
-
-## Prioridad: VALIDADA - Todo correcto
-
-Commit: 2b87e4f - fix: pw1/pw2 raw preserved in rows, pw1_norm for cross-session
-
-### Check de validacion
-
-| # | Que se valido | Resultado |
-|---|---------------|-----------|
-| 1 | pw1 RAW en rows.append() | PASA - sf(r["pw1"]) sin factor |
-| 2 | pw1_norm con baro factor | PASA - sf(r["pw1"]) * _baro_factor (line 351) |
-| 3 | detect_launches() usa pw1 raw | PASA - peak_pw calculado con r["pw1"] raw |
-| 4 | CACHE_VERSION bump a 7 | PASA - vs_engine.py line 106 (v2.7.25) |
-| 5 | pw1_norm en cross-session | PASA - lines 437,446: c["pw1"] += r["pw1_norm"] |
-| 6 | Import check sin errores | PASA - python OK |
-| 7 | pw2_norm tambien existe (front + rear) | PASA - linea 446 usa ambos |
-| 8 | Commit 2b87e4f existe | PASA |
-
-### Veredicto
-El fix de pw1_norm esta correctamente implementado:
-- pw1 preserva el valor RAW (no contaminado por baro)
-- pw1_norm se usa para acumulacion cross-session (normalizado)
-- detect_launches() usa pw1 raw (no afectado por el fix)
-- CACHE_VERSION bump a 7 invalida cache viejos
-- No hay regresiones en imports
-
-- [x] Claude: confirmar que la validacion es correcta y cerrar este item.
 
 
 ---
@@ -1383,41 +1263,6 @@ Mitigacion:
 
 ---
 
-# Backlog: Investigacion freebuff - TASK 033 (Bug #13 daemon thread watchdog)
-
-## Prioridad: HECHA (Research) - Watchdog existe pero con gaps
-
-### Estado actual en main.py
-El watchdog YA existe (lineas 658-675) pero tiene limitaciones:
-
-| Aspecto | Estado actual |
-|---------|--------------|
-| _check_threads() | EXISTE - llamado cada ~1s desde el main loop |
-| Deteccion de threads muertos | is_alive() check - detecta si el thread termino |
-| Restart con cooldown | 30s - evita restart loops |
-| Heartbeat timestamp por thread | NO existe - no detecta threads colgados |
-| Health metric (ej: last_read) | NO existe - no sabe si el thread progresa |
-| Restart de ecu-rt | SI - crea nuevo Thread y lo arranca |
-| Restart de sysmon | SI - misma logica |
-
-### Gaps identificados
-
-1. Thread colgado vs thread muerto - is_alive() no detecta I/O blocking
-2. Sin health check - no metricas de progreso
-3. Sin heartbeat en ecu_loop
-
-### Propuesta de implementacion
-- self._ecu_heartbeat = time.monotonic() en cada iteracion del loop
-- self._sysmon_heartbeat idem
-- _check_threads: si heartbeat stale > 10s, restart
-- Antes de restart ecu: cerrar serial primero
-
-### Archivos a modificar
-main.py: +11 lineas total (init + 2 heartbeats + stale check)
-
-### Estado: RESEARCH HECHA
-- [ ] Claude: revisar analisis e implementar heartbeat + stale detection
----
 
 ## FASE 5.1 — Click-to-edit VE heatmap (freebuff task 029)
 
@@ -1636,14 +1481,6 @@ Note: zone-aware boundaries depend on FASE 6.1 zone fusion being implemented fir
 - [ ] _compute_baro_stats() in launch.py + skip flag
 - [ ] Dashboard baro columns (avg_baro, baro_valid_pct)
 
-### BL-LOGGER-01 — Grabar humidity_pct y gps_alt_m en el CSV
-**Status: DONE** — already in CSV_COLUMNS (protocol.py) and injected in main.py before write_sample. Old rides (Apr 2026) have 98 cols but new rides have 108.
-**Priority:** MEDIUM
-**File:** main.py o el logger de CSV
-
-humidity_pct del sensor AHT20 no está siendo grabada en el CSV.
-gps_alt_m del GPS sí está en el CSV pero gps_valid=True casi nunca coincide con eventos F7.
-Verificar que ambas columnas se graben correctamente y con la frecuencia adecuada.
 
 ### BL-LOGGER-01 — Grabar humidity_pct y gps_alt_m en el CSV
 **Priority:** MEDIUM
@@ -1653,11 +1490,6 @@ humidity_pct del sensor AHT20 no está siendo grabada en el CSV.
 gps_alt_m del GPS sí está en el CSV pero gps_valid=True casi nunca coincide con eventos F7.
 Verificar que ambas columnas se graben correctamente y con la frecuencia adecuada.
 
-## Fixes aplicados por freebuff (2026-06-07)
-- [x] connection.py (root) eliminado - duplicado de ecu/connection.py (freebuff)
-- [x] protocol.py (root) eliminado - duplicado de ecu/protocol.py (freebuff)
-- [x] tools/test_ecu.py.save eliminado - backup leftover (freebuff)
-- [x] tools/health_journal.py: atomic write fix (tmp+os.replace) (freebuff)
 
 ### BL-BUG-02 — VSS auto-calibration via GPS comparison
 **Priority:** MEDIUM
@@ -1675,40 +1507,6 @@ Goal:
 
 **Freebuff task:** Investigate if this mechanism already exists (grep VSS_CPKM25,
 gps_kph comparison in protocol.py / main.py). If not, design the calibration loop.
-
----
-
-## REFACTOR — DashboardHandler: reducir betweenness centrality
-
-**Source:** Graphify architecture analysis 2026-06-09
-**Priority:** HIGH — es el cuello de botella arquitectónico más claro del codebase
-**File:** web/server.py
-
-### Hallazgo
-DashboardHandler tiene betweenness centrality 0.166 — el más alto del grafo de código puro.
-Conecta 12 comunidades distintas. Es el dispatcher que todo lo toca.
-Con 66 edges en el grafo, es el nodo más conectado después de quitar el ruido de docs.
-
-### Refactor state actual
-| Módulo | Estado |
-|--------|--------|
-| web/f7.py | Extraído v2.6.98 |
-| web/launch.py | Extraído |
-| web/vs_engine.py | Extraído |
-| web/fuel_tracker.py | Extraído — buen ejemplo (cohesión 0.32) |
-| web/proposal.py | Extraído |
-| web/server.py handlers | Pendiente — siguen en DashboardHandler |
-
-### Próximos candidatos a extraer de server.py
-Identificar handlers HTTP por dominio y moverlos a módulos propios:
-- `web/handlers/eeprom.py` — `_handle_eeprom_burn`, `_handle_eeprom_msq`, `_handle_eeprom_propose`
-- `web/handlers/sessions.py` — `_handle_sessions_vs`, `_handle_sessions_launch`, `_handle_sessions_events`
-- `web/handlers/fuel.py` — handlers de fuel/reserve
-Cada módulo recibe el estado compartido (buell_dir, session_mgr, etc.) vía parámetros.
-DashboardHandler queda como router puro que delega.
-
-### Criterio de éxito
-DashboardHandler baja de 66 edges a menos de 20 en el grafo graphify.
 
 ---
 
