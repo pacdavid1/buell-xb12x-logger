@@ -44,18 +44,26 @@ Alternativa mínima (si el overlay completo es muy complejo):
 Auditar el menú de navegación de todas las páginas y verificar que todos los tabs
 estén presentes y visibles. Confirmar con el usuario cuáles faltan específicamente.
 
-### BL-UX-03 — Baro como estadística del ride, no como factor de normalización PW
-**Priority:** HIGH
-**Pages:** Dashboard, Session Events, Sessions VS
+### BL-UX-03 — Baro stats en Sessions VS y Session Events
+**Priority:** MEDIUM
+**Pages:** Session Events, Sessions VS
 
-El usuario cuestiona la normalización PW × (1013/baro):
-- El baro SÍ afecta la densidad del aire y por lo tanto el PW correcto — la normalización
-  es matemáticamente válida para comparar sesiones a distinta altitud.
-- PERO: el baro debe ser VISIBLE como gráfica de estadísticas del ride, no un ajuste silencioso.
-- Agregar en Session Events y Sessions VS: stats de baro promedio, altitud, temperatura ambiente
-  y humedad para cada sesión comparada.
-- El usuario debe poder ver: "sesión A a 870 hPa / 2200m, sesión B a 1010 hPa / 200m"
-  y entender por qué los PW normalizados difieren de los raw.
+**Estado actual (2026-06-10):**
+- `baro_hPa`, `baro_temp_c`, `humidity_pct`, `gps_alt_m` ya están en el CSV (cols 110-112, 105)
+- Dashboard live muestra BAR / AMB / HUM% en tiempo real desde el sensor BMP280/AHT20
+- `pw1_norm` = `pw1 * (1013/baro_hPa)` implementado en v2.7.25
+
+**Pendiente:** las páginas de comparación de sesiones no muestran stats ambientales.
+Al comparar sesión A vs sesión B no se puede ver si hubo diferencia de altitud/presión.
+
+**Implementación:**
+- Sessions VS: agregar fila de stats por sesión: avg baro_hPa, avg baro_temp_c, avg humidity_pct, avg gps_alt_m
+- Session Events: agregar mini-tabla ambiental por evento/cluster
+- El usuario debe poder ver: "sesión A: 870 hPa / 2200m vs sesión B: 1010 hPa / 200m"
+  para entender por qué los PW normalizados difieren
+
+- [ ] web/sessions_vs.html: stats row por sesión con avg baro_hPa, temp_amb, humidity, gps_alt
+- [ ] web/session_events.html: stats ambientales por cluster
 
 ### BL-UX-04 — Session Events: curva de muestra única se ve como línea delgada
 **Priority:** MEDIUM
@@ -1245,18 +1253,27 @@ Mitigacion:
 ---
 
 
-## FASE 5.1 — Click-to-edit VE heatmap **[DONE]**
+## FASE 5.2 — PROPOSAL tab: quemar mapa completo desde propuesta automática
 
-**Status: DONE** — STAGE, click handler, BURN/RESET buttons implemented in tuner.html.
-Per-cell edit → yellow overlay → POST /eeprom/burn works.
+**Priority:** HIGH — depende de que FASE 6 genere un mapa completo (smoothed_pct)
+**Prerequisite:** FASE 5.1 click-to-edit VE ✅ ya implementado (tuner.html STAGE + burnStaged)
 
-### Next step: auto proposal → full EEPROM burn
-Once FASE 6 produces a complete automatic proposal (smoothed VE map), the PROPOSAL tab
-should burn the full map in one operation — not cell by cell. This uses the existing
-`write_full_eeprom` path, same as the VE tab's BURN flow but sourced from `smoothed_pct`.
-- PROPOSAL tab: BURN PROPOSAL button → POST /eeprom/burn_full with full 18×13 map
-- No cell-by-cell limit for proposal burn — it's a full replacement
-- Keep the per-cell click-to-edit VE for manual fine-tuning after proposal
+Una vez que FASE 6 produce el mapa propuesto completo, el tab PROPOSAL debe quemarlo
+en una sola operación — no celda por celda.
+
+### Diseño
+- Botón BURN PROPOSAL en tuner.html tab PROPOSAL
+- POST /eeprom/burn_full con mapa 18×13 completo (smoothed_pct de proposal.py)
+- Backend: validar rango ±20% por celda vs. mapa base, auto-backup antes de quemar
+- Usar ruta `write_full_eeprom` ya existente en server.py
+
+### Files
+- tuner.html: botón BURN PROPOSAL + confirmación modal (~+20 lines)
+- server.py: endpoint /eeprom/burn_full o extender /eeprom/burn para aceptar full map
+
+## Prioridad: ALTA
+- [ ] server.py: endpoint /eeprom/burn_full (full 18×13 map, ±20% gate per cell, auto-backup)
+- [ ] tuner.html: BURN PROPOSAL button en tab PROPOSAL con modal de confirmación
 ---
 
 ## FASE 6 — Readiness matrix (freebuff task 030, 2026-06-06)
