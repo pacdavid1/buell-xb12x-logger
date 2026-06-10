@@ -24,19 +24,10 @@ from ecu.eeprom_params import decode_params as _decode_eeprom_params
 import datetime
 
 
-def _get_version():
-    try:
-        cl = open("/home/pi/buell/CHANGELOG.md").read()
-        # Skip HTML comment block before searching for version
-        end_comment = cl.find('-->')
-        if end_comment != -1:
-            cl = cl[end_comment:]
-        m = re.search(r"## \[([^\]]+)\]", cl)
-        return m.group(1) if m else "unknown"
-    except Exception:
-        return "unknown"
+from web.utils import _get_version
+from web.handlers.fuel import FuelHandlerMixin
 
-class DashboardHandler(BaseHTTPRequestHandler):
+class DashboardHandler(FuelHandlerMixin, BaseHTTPRequestHandler):
 
     server_instance = None
 
@@ -321,42 +312,6 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
         except Exception as e:
             self._json({'error': str(e)}, 500)
-
-    def _handle_fuel(self, path=None):
-        f = Path(__file__).parent / 'templates' / 'fuel.html'
-        self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
-
-    def _handle_fuel_status(self, path=None):
-        from web.fuel_tracker import get_status
-        self._json(get_status(str(self.server_instance.buell_dir / "sessions")))
-
-    def _handle_fuel_reserve(self, path=None):
-        from web.fuel_tracker import toggle_reserve
-        try:
-            body = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
-            active = bool(body.get('active', True))
-        except Exception:
-            active = True
-        sessions_dir = str(self.server_instance.buell_dir / "sessions")
-        self._json(toggle_reserve(active, sessions_dir))
-
-    def _handle_fuel_refuel(self, path=None):
-        from web.fuel_tracker import add_refuel
-        try:
-            body = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
-            liters = float(body.get('liters', 0))
-            octane = int(body.get('octane', 91))
-            full_tank = bool(body.get('full_tank', False))
-        except Exception:
-            self._json({'error': 'invalid body'}, 400); return
-        if liters <= 0:
-            self._json({'error': 'liters must be > 0'}, 400); return
-        self._json(add_refuel(liters, octane, str(self.server_instance.buell_dir / "sessions"), full_tank))
-
-
-    def _handle_fuel_consumption(self, path=None):
-        from web.fuel_tracker import calc_ride_consumption
-        self._json(calc_ride_consumption(str(self.server_instance.buell_dir / "sessions")))
 
     def _handle_sessions_launch(self, path=None):
         """Serve the Launch Analysis page."""

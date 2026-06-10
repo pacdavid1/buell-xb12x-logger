@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.106] — 2026-06-09
+### Changed
+- Extracted fuel handlers from DashboardHandler into web/handlers/fuel.py (FuelHandlerMixin)
+- Extracted _get_version() to web/utils.py shared module
+- Created web/handlers/__init__.py package
+- DashboardHandler edges reduced: -5 fuel methods removed from server.py
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.105] — 2026-06-09
 ### docs
 - BACKLOG.md: added REFACTOR — DashboardHandler (betweenness 0.166, extract handlers to web/handlers/)
