@@ -1,7 +1,9 @@
 # DEV NOTE: All code, comments, and variable names must be in English.
+import json
 import logging
 import subprocess
 import time
+from pathlib import Path
 
 
 class SystemHandlerMixin:
@@ -31,17 +33,23 @@ class SystemHandlerMixin:
         self._json({'ok': ok, 'output': output})
 
     def _handle_post_close_ride(self, path, payload):
-        session = getattr(self.server_instance, 'session', None)
-        if session and session.current_csv_fh:
-            checksum = session.current_checksum
-            ride_num = session.current_ride_num
-            session.close_current_ride(reason='dashboard_request')
-            with self.server_instance._rides_cache_lock:
-                self.server_instance._rides_cache = None
-                self.server_instance._rides_cache_time = 0
-            self._json({'ok': True, 'msg': 'Ride closed', 'session': checksum, 'ride_num': ride_num})
-        else:
+        if not getattr(self.server_instance, 'ride_active', False):
             self._json({'ok': False, 'msg': 'No active ride'})
+            return
+        checksum = getattr(self.server_instance.session, 'current_checksum', None)
+        ride_num = getattr(self.server_instance.session, 'current_ride_num', 0)
+        ipc_dir  = getattr(self.server_instance, '_ipc_dir', Path('/tmp/buell'))
+        try:
+            (ipc_dir / 'control.json').write_text(
+                json.dumps({'cmd': 'close_ride', 'reason': 'dashboard_request'}))
+        except Exception as e:
+            self._json({'error': 'IPC write failed: ' + str(e)})
+            return
+        with self.server_instance._rides_cache_lock:
+            self.server_instance._rides_cache = None
+            self.server_instance._rides_cache_time = 0
+        self._json({'ok': True, 'msg': 'Ride close requested',
+                    'session': checksum, 'ride_num': ride_num})
 
     def _handle_post_restart_logger(self, path, payload):
         subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])

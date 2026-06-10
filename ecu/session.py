@@ -775,6 +775,12 @@ class CellTracker:
                     )
         self._last_tps = tps
 
+    def set_snapshot(self, snap: dict, active):
+        """Replace internal cell state from IPC reader (subprocess architecture)."""
+        with self._lock:
+            self.cells  = snap
+            self.active = active
+
     def snapshot(self):
         """Retorna copia thread-safe del estado con campos de calidad."""
         with self._lock:

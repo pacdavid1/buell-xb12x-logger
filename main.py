@@ -1,31 +1,32 @@
 #!/usr/bin/env python3
+# DEV NOTE: All code, comments, and variable names must be in English.
 """
-Buell Logger - Main Entry Point (Modular v1.1)
-Refactorizado: Limpieza de duplicidades y separación de responsabilidades.
+Buell Logger — main process.
+
+Owns: GPS reader, sysmon (BMP280/AHT20/CW2015), web server, network manager.
+Spawns: ecu/logger_process.py as a subprocess that owns ECU serial + CSV writing.
+IPC: /tmp/buell/*.json (tmpfs, atomic rename writes).
 """
 
 import argparse
 import json
 import logging
-import time
-import random
+import os
 import signal
 import sys
 import subprocess
 import threading
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
 from network.manager import NetworkManager
 from web.server import WebServer
-from ecu.connection import DDFI2Connection
 from ecu.eeprom import decode_eeprom_maps
 from ecu.eeprom_params import decode_params
-from ecu.protocol import (update_vss_calibration, load_vss_calibration,
-                          save_vss_calibration, vss_changed_significantly)
 from ecu.version_resolver import resolve_ecu
-from ecu.session import SessionManager, CellTracker, RideErrorLog
+from ecu.session import SessionManager, CellTracker
 from gps.reader import GPSReader
 try:
     import smbus2 as _smbus2
@@ -34,7 +35,6 @@ try:
 except ImportError:
     _BMP280_OK = False
 
-# AHT20 (humedad + temperatura)
 try:
     from sensors.aht20 import AHT20 as _AHT20
     _AHT20_OK = True
@@ -43,34 +43,17 @@ except ImportError:
 
 from tools.health_journal import check as _health_check
 
-# CW2015 (bateria UPS-Lite)
 try:
     from sensors.cw2015 import CW2015 as _CW2015
     _CW2015_OK = True
 except ImportError:
     _CW2015_OK = False
 
-# ── Constantes de configuración (Adiós a los "números mágicos") ───────────
-TARGET_HZ = 8.0
-INTERVAL = 1.0 / TARGET_HZ
-RPM_START = 300
-RPM_STOP = 100
-STOP_CONFIRM_S = 5.0
-MAX_CONSEC_ERRORS = 30
-SERIAL_TX_BYTES = 9
-SERIAL_RX_BYTES = 107
-MAX_FIFO_PCT = 50  # 192 bytes es el 50% de 384
-MAX_SERIAL_BPS = 960.0
-
-# ── Timing / Sleep Delays ───────────────────────────────────────
-GPS_RESTART_DELAY    = 2.0   # Pause after GPS restart attempt
-SESSION_OPEN_DELAY   = 0.5   # Pause after opening ECU session
-ECU_RETRY_INTERVAL   = 5.0   # Delay between ECU reconnection retries
-ECU_READ_ERROR_DELAY = 0.2   # Brief pause after serial read error
-HARD_RECONNECT_DELAY = 0.5   # Wait before hard reconnecting to ECU
-ECU_STABILIZE_DELAY  = 3.0   # Let ECU stabilize after connect
-MAIN_LOOP_HEARTBEAT  = 1.0   # Main loop idle heartbeat
-
+# ── Constants ──────────────────────────────────────────────────────────────────
+GPS_RESTART_DELAY   = 2.0
+MAIN_LOOP_HEARTBEAT = 1.0
+IPC_DIR             = Path('/tmp/buell')
+IPC_POLL_S          = 0.25   # how often IPC reader polls live.json
 
 
 def _get_version():
@@ -83,137 +66,242 @@ def _get_version():
     except Exception:
         return "unknown"
 
+
 LOGGER_VERSION = _get_version()
 
 
+def _ipc_write(path: Path, data: dict):
+    """Atomic IPC write via temp file rename (safe on tmpfs)."""
+    tmp = path.with_suffix('.tmp')
+    try:
+        tmp.write_text(json.dumps(data))
+        tmp.rename(path)
+    except Exception:
+        pass
+
+
 class BuellLogger:
-    """Orquestador principal."""
-    
-    def __init__(self, port="/dev/ttyUSB0", sessions_dir="/home/pi/buell/sessions", 
+    """Main orchestrator — web server + sensors; ECU logging in subprocess."""
+
+    def __init__(self, port="/dev/ttyUSB0", sessions_dir="/home/pi/buell/sessions",
                  buell_dir="/home/pi/buell", no_poweroff=False):
-        self.port = port
+        self.port         = port
         self.sessions_dir = Path(sessions_dir)
-        self.buell_dir = Path(buell_dir)
-        self.no_poweroff = no_poweroff
-        self.logger = logging.getLogger("BuellLogger")
-        
+        self.buell_dir    = Path(buell_dir)
+        self.no_poweroff  = no_poweroff
+        self.logger       = logging.getLogger("BuellLogger")
+
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
         self.buell_dir.mkdir(parents=True, exist_ok=True)
-        
-        self._running = False
-        self._shutting_down = False
-        self.pending_burn    = None  # (proposed_bytes, result_queue)
+
+        self._running         = False
+        self._shutting_down   = False
         self._poweroff_requested = False
-        self._ecu_thread = None
-        self._sysmon_thread = None
-        
-        # Componentes modulares
+        self._logger_proc     = None
+        self._ipc_dir         = IPC_DIR
+        self._ipc_reader_thread  = None
+        self._sysmon_thread      = None
+        self._ipc_reader_heartbeat  = time.monotonic()
+        self._sysmon_heartbeat      = time.monotonic()
+        self._bat_voltages    = []
+        self._bat_socs        = []
+        self._boot_soc        = None
+
         self.network = NetworkManager()
-        self.web = WebServer(host='0.0.0.0', port=8080, buell_dir=self.buell_dir)
-        self.ecu = DDFI2Connection(self.port)
+        self.web     = WebServer(host='0.0.0.0', port=8080, buell_dir=self.buell_dir)
+        # SessionManager in main process is a sync target only (IPC reader writes attrs).
         self.session = SessionManager(self.sessions_dir)
         self.tracker = CellTracker()
-        self.gps = GPSReader()
+        self.gps     = GPSReader()
         self._bmp280 = None
-        self._aht20 = None
-        self._bat_voltages = []       # rolling buffer for voltage trend
-        self._bat_socs = []          # rolling buffer for SOC smoothing
-        self._boot_soc = None        # SOC at first stable boot reading (tiered shutdown)
-        self._ecu_heartbeat = time.monotonic()    # updated each ECU loop iteration
-        self._sysmon_heartbeat = time.monotonic() # updated each sysmon loop iteration
+        self._aht20  = None
         self._cw2015 = None
-        self._smbus = None
+        self._smbus  = None
+
         if _BMP280_OK or _AHT20_OK or _CW2015_OK:
             try:
                 self._smbus = _smbus2.SMBus(2)
                 if _BMP280_OK:
                     self._bmp280 = _BMP280(i2c_dev=self._smbus, i2c_addr=0x77)
-                    self.logger.info("BMP280 inicializado OK (0x77)")
+                    self.logger.info("BMP280 initialized OK (0x77)")
             except Exception as e:
-                self.logger.warning(f"BMP280 no disponible: {e}")
-        self._cw2015 = None
+                self.logger.warning(f"BMP280 unavailable: {e}")
+
         if _AHT20_OK and self._smbus:
             try:
                 _aht = _AHT20(i2c_dev=self._smbus)
                 if _aht.begin():
                     self._aht20 = _aht
-                    self.logger.info("AHT20 inicializado OK (0x38)")
+                    self.logger.info("AHT20 initialized OK (0x38)")
                 else:
-                    self.logger.warning("AHT20 no respondio a begin()")
+                    self.logger.warning("AHT20 did not respond to begin()")
             except Exception as e:
-                self.logger.warning(f"AHT20 no disponible: {e}")
-        self._ups_bus = None
+                self.logger.warning(f"AHT20 unavailable: {e}")
+
         if _CW2015_OK:
             try:
                 self._ups_bus = _smbus2.SMBus(1)
                 self._cw2015 = _CW2015(i2c_dev=self._ups_bus)
-                self.logger.info("CW2015 (UPS-Lite) inicializado OK en i2c-1 (0x62)")
+                self.logger.info("CW2015 (UPS-Lite) initialized OK i2c-1 (0x62)")
             except Exception as e:
-                self.logger.warning(f"CW2015 no disponible: {e}")
-        self.error_log = RideErrorLog()
+                self.logger.warning(f"CW2015 unavailable: {e}")
 
-        # Inyección de dependencias para el servidor web
-        self.web.network = self.network
+        self.web.network      = self.network
         self.web.cell_tracker = self.tracker
-        self.web.gps = self.gps
-        self.web.session = self.session
-        
-        # Carga segura de objetivos
+        self.web.gps          = self.gps
+        self.web.session      = self.session
+
         obj_path = self.buell_dir / 'objectives.json'
         self.objectives_cfg = {}
         if obj_path.exists():
-            with open(obj_path, 'r') as f:
+            with open(obj_path) as f:
                 self.objectives_cfg = json.load(f)
-        
+
         signal.signal(signal.SIGTERM, self._handle_signal)
         signal.signal(signal.SIGINT, self._handle_signal)
-    
+
     def _handle_signal(self, signum, frame):
-        self.logger.info(f"Señal {signum} recibida - deteniendo...")
+        self.logger.info(f"Signal {signum} received — stopping...")
         self._running = False
 
-    # ── Métodos auxiliares extraídos (DRY - Don't Repeat Yourself) ─────
-
-    def _load_eeprom_blob(self, ecu_version):
-        """Intenta leer la EEPROM del ECU, con fallback a disco o versión."""
-        self.logger.info("Reading EEPROM to detect bike identity...")
-        blob = self.ecu.read_full_eeprom()
-        
-        if blob is not None:
-            return blob
-            
-        # Fallback 1: cached blob on disk
-        _bins = sorted(self.sessions_dir.glob("*/eeprom.bin"), key=lambda p: p.stat().st_mtime)
-        if _bins:
-            with open(_bins[-1], 'rb') as f:
-                blob = f.read()
-            self.logger.warning("EEPROM fetch failed — using cached blob from disk")
-            return blob
-            
-        # Fallback 2: version string as checksum seed
-        self.logger.warning("EEPROM fetch failed — using version string as checksum")
-        return ecu_version.encode().ljust(64, b'\x00')
-
-    def _update_web_ecu_state(self, blob, ecu_version):
-        """Actualiza el estado de la web con los datos de la EEPROM y ECU."""
-        self.web.eeprom_maps = decode_eeprom_maps(blob)
+    def _update_web_ecu_state(self, blob: bytes, ecu_version: str):
+        """Reload EEPROM maps into web server state."""
+        self.web.eeprom_maps   = decode_eeprom_maps(blob)
         self.web.eeprom_params = decode_params(blob, ecu_version)
-        self.web.bike_serial = int.from_bytes(blob[12:14], 'little')
-        self.web.ecu_identity = resolve_ecu(ecu_version) or {}
+        self.web.bike_serial   = int.from_bytes(blob[12:14], 'little')
+        self.web.ecu_identity  = resolve_ecu(ecu_version) or {}
 
-    # ── Hilos de ejecución ────────────────────────────────────────────
+    # ── IPC helpers ───────────────────────────────────────────────────────────
+
+    def _start_logger_subprocess(self):
+        """Spawn ECU logger subprocess, killing any stale instance first."""
+        self._ipc_dir.mkdir(parents=True, exist_ok=True)
+        pid_file = self._ipc_dir / 'logger.pid'
+        if pid_file.exists():
+            try:
+                old_pid = int(pid_file.read_text().strip())
+                os.kill(old_pid, signal.SIGTERM)
+                time.sleep(0.5)
+            except Exception:
+                pass
+            try:
+                pid_file.unlink(missing_ok=True)
+            except Exception:
+                pass
+        cmd = [
+            sys.executable,
+            str(Path(__file__).parent / 'ecu' / 'logger_process.py'),
+            '--port',         self.port,
+            '--sessions-dir', str(self.sessions_dir),
+            '--buell-dir',    str(self.buell_dir),
+            '--ipc-dir',      str(self._ipc_dir),
+        ]
+        self._logger_proc = subprocess.Popen(cmd)
+        self.logger.info(f"ECU logger subprocess started (PID={self._logger_proc.pid})")
+
+    def _stop_logger_subprocess(self, timeout: float = 10.0):
+        """SIGTERM the logger subprocess and wait."""
+        if self._logger_proc is None or self._logger_proc.poll() is not None:
+            return
+        self.logger.info("Sending SIGTERM to ECU logger subprocess...")
+        self._logger_proc.terminate()
+        try:
+            self._logger_proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            self.logger.warning("ECU logger did not stop in time — killing")
+            self._logger_proc.kill()
+
+    def _ipc_reader_loop(self):
+        """Thread: reads IPC files from ECU subprocess, updates web state."""
+        live_path  = self._ipc_dir / 'live.json'
+        cells_path = self._ipc_dir / 'cells.json'
+        init_path  = self._ipc_dir / 'ecu_init.json'
+        _last_checksum   = None
+        _last_cells_mtime = 0.0
+
+        while self._running:
+            t0 = time.monotonic()
+
+            # ecu_init.json: EEPROM reload when ECU connects or post-burn
+            try:
+                if init_path.exists():
+                    init = json.loads(init_path.read_text())
+                    cs = init.get('session_checksum')
+                    if cs and cs != _last_checksum:
+                        _last_checksum = cs
+                        eeprom_path = self.sessions_dir / cs / 'eeprom.bin'
+                        if eeprom_path.exists():
+                            blob = eeprom_path.read_bytes()
+                            ver  = init.get('version', 'unknown')
+                            self._update_web_ecu_state(blob, ver)
+                            self.logger.info(f"IPC: EEPROM reloaded for session {cs}")
+                    if cs:
+                        self.session.current_checksum   = cs
+                        sd = init.get('session_dir')
+                        self.session.current_session_dir = Path(sd) if sd else None
+                        self.session.current_ride_num   = init.get('ride_num', 0)
+            except Exception as e:
+                self.logger.debug(f"IPC ecu_init: {e}")
+
+            # live.json: RT state
+            try:
+                if live_path.exists():
+                    live = json.loads(live_path.read_text())
+                    with self.web._data_lock:
+                        self.web.ecu_live      = live
+                        self.web.ecu_connected = live.get('ecu_connected', False)
+                    self.web.ecu_lost_s  = live.get('ecu_lost_s', 0.0)
+                    self.web.ride_active = live.get('ride_active', False)
+                    self.web.elapsed_s   = live.get('elapsed_s', 0.0)
+                    # Sync serial stats from subprocess (bps/pct/buf)
+                    serial_update = {k: live[k] for k in
+                                     ('bps', 'pct', 'tx', 'rx', 'buf_in', 'buf_pct')
+                                     if k in live}
+                    if serial_update:
+                        with self.web._data_lock:
+                            existing = self.web.serial_stats or {}
+                            existing.update(serial_update)
+                            self.web.serial_stats = existing
+                    # Sync session attributes (most current source)
+                    if live.get('session_checksum'):
+                        self.session.current_checksum = live['session_checksum']
+                    if live.get('session_dir'):
+                        self.session.current_session_dir = Path(live['session_dir'])
+                    if live.get('ride_num') is not None:
+                        self.session.current_ride_num = live['ride_num']
+            except Exception as e:
+                self.logger.debug(f"IPC live: {e}")
+
+            # cells.json: CellTracker state (mtime-gated)
+            try:
+                if cells_path.exists():
+                    mtime = cells_path.stat().st_mtime
+                    if mtime > _last_cells_mtime:
+                        _last_cells_mtime = mtime
+                        cells_data = json.loads(cells_path.read_text())
+                        self.tracker.set_snapshot(
+                            cells_data.get('cells', {}),
+                            cells_data.get('active_cell'))
+            except Exception as e:
+                self.logger.debug(f"IPC cells: {e}")
+
+            self._ipc_reader_heartbeat = time.monotonic()
+            time.sleep(max(0, IPC_POLL_S - (time.monotonic() - t0)))
+
+    # ── Sysmon thread ──────────────────────────────────────────────────────────
 
     def _sysmon_loop(self):
-        """System monitor thread — Único lugar donde se leen stats del SO."""
+        """System monitor thread — reads sensors, writes sysmon.json + gps.json for subprocess."""
         _cpu_prev = None
         while self._running:
             stats = {'cpu_pct': 0.0, 'cpu_temp': 0.0, 'mem_pct': 0.0}
-            
+
             try:
                 with open('/sys/class/thermal/thermal_zone0/temp') as f:
                     stats['cpu_temp'] = round(int(f.read().strip()) / 1000.0, 1)
-            except Exception as e: self.logger.debug(f"sysmon: {e}")
-            
+            except Exception as e:
+                self.logger.debug(f"sysmon: {e}")
+
             try:
                 with open('/proc/stat') as f:
                     _cpu = list(map(int, f.readline().split()[1:]))
@@ -223,8 +311,9 @@ class BuellLogger:
                     _dt = _total - _cpu_prev[1]
                     stats['cpu_pct'] = round((1.0 - _di / _dt) * 100, 1) if _dt else 0.0
                 _cpu_prev = (_idle, _total)
-            except Exception as e: self.logger.debug(f"sysmon: {e}")
-            
+            except Exception as e:
+                self.logger.debug(f"sysmon: {e}")
+
             try:
                 with open('/proc/meminfo') as f:
                     _mem = {k.strip(): int(v.split()[0]) for line in f for k, v in [line.split(':')]}
@@ -232,30 +321,21 @@ class BuellLogger:
                 stats['mem_pct'] = round((_mt - _mf) / _mt * 100, 1)
                 if stats['mem_pct'] > 90:
                     self.logger.error(f"MEM {stats['mem_pct']}% — restarting to avoid OOM crash")
-                    import os, sys
-                    try:
-                        if self.session and self.session.current_csv_fh:
-                            self.session.close_current_ride("OOM-restart",
-                                tracker_snapshot=self.tracker.snapshot(),
-                                objectives_cfg=self.objectives_cfg)
-                    except Exception:
-                        pass
-                    try:
-                        self.ecu.disconnect()
-                    except Exception:
-                        pass
+                    # SIGTERM subprocess so it can close the ride cleanly before we execv
+                    self._stop_logger_subprocess(timeout=5.0)
                     os.execv(sys.executable, [sys.executable] + sys.argv)
-            except Exception as e: self.logger.debug(f"sysmon: {e}")
+            except Exception as e:
+                self.logger.debug(f"sysmon: {e}")
 
             if self._bmp280:
                 try:
                     _p = round(self._bmp280.get_pressure(),    2)
                     _t = round(self._bmp280.get_temperature(), 2)
-                    stats['baro_hPa']   = _p if 650 <= _p <= 1100 else None
-                    stats['baro_temp_c']= _t if -10 <= _t <= 60  else None
+                    stats['baro_hPa']    = _p if 650 <= _p <= 1100 else None
+                    stats['baro_temp_c'] = _t if -10 <= _t <= 60  else None
                 except Exception:
-                    stats['baro_hPa']   = None
-                    stats['baro_temp_c']= None
+                    stats['baro_hPa']    = None
+                    stats['baro_temp_c'] = None
 
             if self._aht20:
                 try:
@@ -263,395 +343,168 @@ class BuellLogger:
                     stats['humidity_pct'] = _hum
                 except Exception:
                     stats['humidity_pct'] = None
+
             if self._cw2015:
                 try:
                     _bat = self._cw2015.read_all()
                     stats['bat_voltage'] = _bat.get('bat_voltage')
-                    stats['bat_soc'] = _bat.get('bat_soc')
+                    stats['bat_soc']     = _bat.get('bat_soc')
                 except Exception:
                     stats['bat_voltage'] = None
-                    stats['bat_soc'] = None
-            # Voltage buffer for trend arrow
+                    stats['bat_soc']     = None
+
             _v_now = stats.get('bat_voltage')
             if _v_now is not None:
                 self._bat_voltages.append(_v_now)
                 if len(self._bat_voltages) > 15:
                     self._bat_voltages.pop(0)
+
             _soc_raw = stats.get('bat_soc')
             if _soc_raw is not None:
                 self._bat_socs.append(_soc_raw)
                 if len(self._bat_socs) > 5:
                     self._bat_socs.pop(0)
                 stats['bat_soc'] = sum(self._bat_socs) / len(self._bat_socs)
-            # Capture boot SOC once we have 3+ stable readings
+
             if self._boot_soc is None and len(self._bat_socs) >= 3:
                 self._boot_soc = stats['bat_soc']
-                self.logger.info(f"Boot SOC captured: {self._boot_soc:.1f}%%")
-            # Charging detection with hysteresis
-            # rising > 0.005V -> charging, falling < -0.005V -> not charging
-            # stable -> keep previous (hysteresis); fallback: voltage > 3.85V
+                self.logger.info(f"Boot SOC captured: {self._boot_soc:.1f}%")
+
             if len(self._bat_voltages) >= 3:
                 _early = sum(self._bat_voltages[:2]) / 2
-                _late = sum(self._bat_voltages[-2:]) / 2
-                _diff = _late - _early
+                _late  = sum(self._bat_voltages[-2:]) / 2
+                _diff  = _late - _early
                 if _diff > 0.005:
                     stats['bat_charging'] = True
-                    stats['bat_trend'] = 'up'
+                    stats['bat_trend']    = 'up'
                 elif _diff < -0.005:
                     stats['bat_charging'] = False
-                    stats['bat_trend'] = 'down'
+                    stats['bat_trend']    = 'down'
                 else:
                     _prev = stats.get('bat_charging', _v_now is not None and _v_now > 3.85)
-                    stats['bat_trend'] = 'stable'
+                    stats['bat_trend']    = 'stable'
                     stats['bat_charging'] = _prev
             else:
-                stats['bat_trend'] = 'stable'
+                stats['bat_trend']    = 'stable'
                 stats['bat_charging'] = _v_now is not None and _v_now > 3.85
-            
-            # Health journal: log system issues
-            _health_check(stats, self._ecu_alive if hasattr(self, '_ecu_alive') else True)
 
-            # Low battery watchdog — tiered shutdown based on boot SOC
+            _health_check(stats, True)
+
             _soc = stats.get('bat_soc')
             _v   = stats.get('bat_voltage')
             _is_charging = stats.get('bat_charging', False)
             if not _is_charging and self._boot_soc is not None:
                 _threshold, _v_threshold = self._get_shutdown_threshold()
-                _v_crit = _threshold <= 0  # boot SOC < 10%
+                _v_crit  = _threshold <= 0
                 _soc_low = _soc is not None and _soc < (_threshold if _threshold > 0 else 10.0)
                 _v_low   = _v is not None and _v < _v_threshold
                 if _v_crit or _soc_low or _v_low:
                     self.logger.warning(
-                        f"BATERIA: {_v:.2f}V / {_soc:.0f}%% "
-                        f"(boot={self._boot_soc:.0f}%%, soc_thr={_threshold:.0f}%%, v_thr={_v_threshold:.2f}V) - apagando..."
-                    )
+                        f"BATTERY: {_v:.2f}V / {_soc:.0f}% "
+                        f"(boot={self._boot_soc:.0f}%, soc_thr={_threshold:.0f}%, "
+                        f"v_thr={_v_threshold:.2f}V) — shutting down")
                     self._poweroff_requested = True
                     self._running = False
                     return
-            # Merge — no reemplazar!
+
+            # Merge cpu/baro/battery into web serial_stats (bps/pct come from IPC reader)
             with self.web._data_lock:
                 existing = self.web.serial_stats if self.web.serial_stats else {}
                 existing.update(stats)
                 self.web.serial_stats = existing
 
+            # Write sysmon.json for subprocess (injected into CSV rows)
+            _ipc_write(self._ipc_dir / 'sysmon.json', stats)
+
+            # Write gps.json for subprocess
+            try:
+                _ipc_write(self._ipc_dir / 'gps.json', self.gps.get_fix().as_dict())
+            except Exception as e:
+                self.logger.debug(f"gps.json: {e}")
+
             # GPS watchdog
             if not self.gps.is_alive():
                 now_gps = time.monotonic()
-                if getattr(self, "_last_gps_restart", 0) and now_gps - self._last_gps_restart < 30:
-                    self.logger.warning(f"GPS thread dead, skipping restart (cooldown)")
+                if getattr(self, '_last_gps_restart', 0) and now_gps - self._last_gps_restart < 30:
+                    self.logger.warning("GPS thread dead, skipping restart (cooldown)")
                 else:
-                    self.logger.warning("GPS thread muerto — reiniciando...")
+                    self.logger.warning("GPS thread dead — restarting...")
                     self._last_gps_restart = now_gps
                     try:
                         self.gps.stop()
                         self.gps = GPSReader()
                         self.gps.start()
-                        self.web.gps = self.gps # Mantener referencia actualizada
+                        self.web.gps = self.gps
                     except Exception as e:
                         self.logger.warning(f"GPS restart failed: {e}")
-                    
+
             self._sysmon_heartbeat = time.monotonic()
             time.sleep(GPS_RESTART_DELAY)
 
-    def _ecu_loop(self):
-        """Thread de lectura RT — Limpio, solo se centra en el protocolo serie."""
-        ride_active = False
-        ecu_version = None
-        rpm_zero_since = None
-        consecutive_errors = 0
-        ecu_lost_since = None
-        last_lost_interval = -1
-        _serial_bytes = 0
-        _serial_window = time.monotonic()
-
-        self.session.recover_orphan_rides()
-        self.logger.info("ECU loop iniciado")
-
-        while self._running:
-            t0 = time.monotonic()
-
-            # ── Conectar si el puerto no está abierto ──────────────────
-            if self.ecu.ser is None or not self.ecu.ser.is_open:
-                try:
-                    self.ecu.connect()
-                    ecu_version = self.ecu.get_version()
-                    if ecu_version:
-                        self.logger.info(f"ECU reconnected: {ecu_version}")
-                        
-                        blob = self._load_eeprom_blob(ecu_version)
-                        self.session.open_session(ecu_version, blob)
-                        time.sleep(SESSION_OPEN_DELAY)
-                        
-                        self.session.save_eeprom(blob)
-                        self._update_web_ecu_state(blob, ecu_version)
-                        self.logger.info(f"Session opened from reconnect: {self.session.current_checksum}")
-                        consecutive_errors = 0
-                        ecu_lost_since = None
-                    else:
-                        self.logger.warning("ECU no respondió — reintento en 5s")
-                        if self.session.current_checksum is None:
-                            _bins = sorted(self.sessions_dir.glob("*/eeprom.bin"), key=lambda p: p.stat().st_mtime)
-                            if _bins:
-                                with open(_bins[-1], 'rb') as f: blob = f.read()
-                                self.session.open_session('cached', blob)
-                                self._update_web_ecu_state(blob, 'cached')
-                                self.logger.warning(f"Session opened from cached EEPROM")
-                        time.sleep(ECU_RETRY_INTERVAL + random.uniform(0, 1.5))
-                        continue
-                except Exception as e:
-                    self.logger.debug(f"ECU no disponible: {e} — reintento en 5s")
-                    if ecu_lost_since is None: ecu_lost_since = time.monotonic()
-                    no_ecu_s = time.monotonic() - ecu_lost_since
-                    if no_ecu_s >= 10.0 and int(no_ecu_s) % 10 == 0:
-                        self.logger.info(f"USB power cycle — {no_ecu_s:.0f}s sin ECU")
-                        self.ecu.usb_power_cycle()
-                    time.sleep(ECU_RETRY_INTERVAL + random.uniform(0, 1.5))
-                    continue
-
-            # ── Pending burn (only when engine off) ──────────────────
-            if not ride_active and self.pending_burn is not None:
-                proposed, result_q = self.pending_burn
-                self.pending_burn = None
-                try:
-                    burn_result = self.ecu.write_full_eeprom(proposed)
-                except Exception as _be:
-                    burn_result = {'written': 0, 'verified': False,
-                                   'diffs_found': 0, 'errors': [str(_be)]}
-                result_q.put(burn_result)  # respond to HTTP immediately
-                if burn_result.get('verified'):
-                    try:
-                        ver = ecu_version or 'post-burn'
-                        self.session.open_session(ver, proposed)
-                        self.session.save_eeprom(proposed)
-                        self._update_web_ecu_state(proposed, ver)
-                        self.logger.info('Post-burn EEPROM reload OK — session: ' + str(self.session.current_checksum))
-                    except Exception as _re:
-                        self.logger.warning('Post-burn EEPROM reload failed: ' + str(_re))
-
-            # ── Leer frame RT ──────────────────────────────────────────
-            elapsed_s = time.monotonic() - self.session.ride_start_time if (ride_active and self.session.ride_start_time) else 0.0
-
-            try:
-                data = self.ecu.get_rt_data()
-            except Exception as e:
-                self.logger.warning(f"SerialException: {e}")
-                if ride_active: self.error_log.serial_exception(elapsed_s=elapsed_s, exc_msg=e, consecutive_before=consecutive_errors)
-                data = None
-                consecutive_errors += 1
-                if ecu_lost_since is None: ecu_lost_since = time.monotonic()
-                time.sleep(ECU_READ_ERROR_DELAY)
-
-            if data is None:
-                consecutive_errors += 1
-                if ecu_lost_since is None: ecu_lost_since = time.monotonic()
-                lost_total = time.monotonic() - ecu_lost_since
-                
-                self.web.ecu_connected = False
-                self.web.ecu_lost_s = lost_total
-
-                lost_interval = int(lost_total) // 3
-                if lost_interval != last_lost_interval:
-                    last_lost_interval = lost_interval
-                    self.logger.info(f"ECU sin respuesta {lost_total:.0f}s")
-                    if ride_active: self.error_log.ecu_timeout(elapsed_s=elapsed_s, lost_s=lost_total, last_valid_t=elapsed_s - lost_total)
-
-                if not ride_active and consecutive_errors >= MAX_CONSEC_ERRORS:
-                    self.logger.info("ECU no responde — cerrando puerto")
-                    self.ecu.disconnect()
-                    time.sleep(ECU_RETRY_INTERVAL + random.uniform(0, 1.5))
-                    consecutive_errors = 0
-                    ecu_lost_since = None
-
-                if ecu_lost_since is not None and lost_total >= 3.0 and (time.monotonic() - getattr(self, '_last_reconnect_t', 0.0)) >= 5.0:
-                    self.logger.info(f"Hard reconnect — {lost_total:.0f}s sin ECU")
-                    if ride_active: self.error_log.reconnect_attempt(elapsed_s=elapsed_s, trigger="auto_30s", attempt_n=consecutive_errors // 30, success=False, time_s=lost_total)
-                    
-                    try:
-                        self.ecu.disconnect()
-                        time.sleep(HARD_RECONNECT_DELAY)
-                        self.ecu.connect()
-                        if self.ecu.get_version():
-                            self.logger.info("ECU responde tras hard reconnect")
-                            consecutive_errors = 0
-                            ecu_lost_since = None
-                            last_lost_interval = -1
-                            self._last_reconnect_t = 0.0
-                            if ride_active: self.error_log.reconnect_attempt(elapsed_s=elapsed_s, trigger="auto_30s", attempt_n=consecutive_errors // 30, success=True, time_s=lost_total)
-                    except Exception as e:
-                        self.logger.warning(f"Hard reconnect falló: {e}")
-                        self._last_reconnect_t = time.monotonic()
-
-                time.sleep(max(0, INTERVAL - (time.monotonic() - t0)))
-                continue
-
-            # ── Frame válido ───────────────────────────────────────────
-            consecutive_errors = 0
-            ecu_lost_since = None
-            last_lost_interval = -1
-
-            with self.web._data_lock:
-                self.web.ecu_live = data
-                self.web.ecu_connected = True
-            self.web.ecu_lost_s = 0.0
-            self.web.ride_active = ride_active
-            self.web.elapsed_s = elapsed_s
-            if ride_active: self.error_log.update_last_sample(data)
-            
-            rpm = data.get("RPM", 0) or 0
-
-            if not ride_active and rpm >= RPM_START:
-                if self.session.current_checksum is None:
-                    self.logger.warning("RPM detected but no active session — skipping ride start")
-                else:
-                    try:
-                        self.session.start_ride()
-                        ride_active = True
-                        rpm_zero_since = None
-                        self.error_log.start(ride_num=self.session.current_ride_num, session_checksum=self.session.current_checksum, session_dir=str(self.session.current_session_dir))
-                        self.logger.info(f"Ride {self.session.current_ride_num:03d} iniciado")
-                    except RuntimeError as e:
-                        self.logger.warning(f"start_ride falló: {e}")
-
-            if ride_active:
-                data['buf_in'] = self.ecu.ser.in_waiting if self.ecu.ser and self.ecu.ser.is_open else 0
-                if data['buf_in'] > (384 * (MAX_FIFO_PCT / 100)) and self.ecu.ser and self.ecu.ser.is_open:
-                    now = time.monotonic()
-                    if not hasattr(self, '_last_fifo_flush') or now - self._last_fifo_flush > 5:
-                        self.ecu.ser.reset_input_buffer()
-                        self._last_fifo_flush = now
-                        self.logger.warning(f"AUTO-FLUSH FIFO buf_in={data['buf_in']}b >{MAX_FIFO_PCT}% — flushed")
-                
-                # Inyectar stats del sistema (que ya calculó el hilo _sysmon_loop)
-                ss = self.web.serial_stats or {}
-                data['ttl_pct'] = ss.get('pct', 0)
-                data['cpu_pct'] = ss.get('cpu_pct', 0)
-                data['cpu_temp'] = ss.get('cpu_temp', 0)
-                data['mem_pct']     = ss.get('mem_pct', 0)
-                data['baro_hPa']    = ss.get('baro_hPa')
-                data['baro_temp_c'] = ss.get('baro_temp_c')
-                data['humidity_pct'] = ss.get('humidity_pct')
-                data['bat_voltage'] = ss.get('bat_voltage')
-                data['bat_soc'] = ss.get('bat_soc')
-                
-                data.update(self.gps.get_fix().as_dict())
-
-                # VSS auto-calibration against GPS
-                gps_spd = data.get('gps_speed_kmh') or 0
-                vss_spd = data.get('VS_KPH') or 0
-                if data.get('gps_valid') and gps_spd > 10 and vss_spd > 10:
-                    update_vss_calibration(
-                        gps_kph  = gps_spd,
-                        vss_kph  = vss_spd,
-                        fl_decel = data.get('fl_decel', 0),
-                        fl_wot   = data.get('fl_wot',   0),
-                    )
-                    if vss_changed_significantly():
-                        save_vss_calibration('/home/pi/buell/vss_cal.json')
-
-                self.session.write_sample(data, time.time())
-                
-            self.tracker.update(data)
-
-            if ride_active and rpm < RPM_STOP:
-                if rpm_zero_since is None: rpm_zero_since = time.monotonic()
-                elif time.monotonic() - rpm_zero_since >= STOP_CONFIRM_S:
-                    self.session.close_current_ride(f"RPM=0 por {STOP_CONFIRM_S:.0f}s", tracker_snapshot=self.tracker.snapshot(), objectives_cfg=self.objectives_cfg)
-                    self.error_log.flush()
-                    self.tracker.reset()
-                    ride_active = False
-                    rpm_zero_since = None
-            elif rpm >= RPM_STOP: rpm_zero_since = None
-
-            # ── Conteo de bytes seriales (Simplificado) ───────────────
-            _serial_bytes += SERIAL_TX_BYTES + SERIAL_RX_BYTES
-            _now = time.monotonic()
-            if _now - _serial_window >= 1.0:
-                bps = _serial_bytes
-                pct = round(min(bps / MAX_SERIAL_BPS * 100, 100.0), 1)
-                in_w = self.ecu.ser.in_waiting if self.ecu.ser and self.ecu.ser.is_open else 0
-                buf_pct = round(in_w / 384.0 * 100, 1)
-                
-                # Aquí solo actualizamos BPS y Buffer, el resto viene de sysmon
-                with self.web._data_lock:
-                    current_stats = self.web.serial_stats or {}
-                    current_stats.update({'bps': bps, 'pct': pct, 'tx': SERIAL_TX_BYTES*8, 'rx': SERIAL_RX_BYTES*8, 'buf_in': in_w, 'buf_pct': buf_pct})
-                    self.web.serial_stats = current_stats
-                
-                _serial_bytes = 0
-                _serial_window = _now
-
-            time.sleep(max(0, INTERVAL - (time.monotonic() - t0)))
-            self._ecu_heartbeat = time.monotonic()
-
-        # ── Cierre al detener el servicio ──────────────────────────────
-        if ride_active:
-            self.session.close_current_ride("servicio detenido", tracker_snapshot=self.tracker.snapshot(), objectives_cfg=self.objectives_cfg)
-            self.error_log.flush()
-        self.logger.info("ECU loop detenido")
-
-
+    # ── Misc ──────────────────────────────────────────────────────────────────
 
     def _get_shutdown_threshold(self):
         """Return (soc_threshold, voltage_threshold) based on boot SOC tier."""
         boot = self._boot_soc if self._boot_soc is not None else 100.0
-        if boot >= 30:   return 30.0, 3.50  # normal: ~10% SOC floor
-        elif boot >= 20: return 20.0, 3.40  # grace-1: ~5% SOC floor
-        elif boot >= 10: return 10.0, 3.30  # grace-2: near HW cutoff
-        else:            return -1.0, 3.20  # boot<10%: shutdown immediately
+        if boot >= 30:   return 30.0, 3.50
+        elif boot >= 20: return 20.0, 3.40
+        elif boot >= 10: return 10.0, 3.30
+        else:            return -1.0, 3.20
+
+    # ── Run ───────────────────────────────────────────────────────────────────
 
     def run(self):
-        """Loop principal."""
         self._running = True
         self.logger.info(f"Buell Logger {LOGGER_VERSION}")
         self.logger.info(f"Sessions: {self.sessions_dir} | Buell dir: {self.buell_dir}")
-        
-        # 1. Conectar ECU
-        self.logger.info("Conectando a ECU...")
-        try:
-            self.ecu.connect()
-            ver = self.ecu.get_version()
-            if ver:
-                self.logger.info(f"ECU connected: {ver}")
-                time.sleep(ECU_STABILIZE_DELAY)  # Wait for ECU to stabilize
-                
-                blob = self._load_eeprom_blob(ver)
-                if blob:
-                    self.session.open_session(ver, blob)
-                    self.session.save_eeprom(blob)
-                    self.logger.info("EEPROM saved to session")
-                    
-                    self._update_web_ecu_state(blob, ver)
-                    self.logger.info(f"EEPROM ready — {len(self.web.eeprom_params)} params | Serial={self.web.bike_serial} | ECU={self.web.ecu_identity.get('name','?')} ({self.web.ecu_identity.get('ddfi','?')})")
-                else:
-                    self.logger.warning("EEPROM could not be read — session not opened")
-            else:
-                self.logger.warning("ECU did not respond — continuing without ECU")
-        except Exception as e:
-            import traceback
-            self.logger.warning(f"ECU no disponible: {e}\n{traceback.format_exc()}")
 
-        # 2. Load VSS calibration from disk (auto-updated against GPS)
-        load_vss_calibration('/home/pi/buell/vss_cal.json')
+        # 1. Load EEPROM from disk for initial web state (subprocess refreshes after ECU connect)
+        bins = sorted(self.sessions_dir.glob('*/eeprom.bin'), key=lambda p: p.stat().st_mtime)
+        if bins:
+            try:
+                blob = bins[-1].read_bytes()
+                ver = 'unknown'
+                meta = bins[-1].parent / 'session_metadata.json'
+                if meta.exists():
+                    try:
+                        with open(meta) as f:
+                            ver = json.load(f).get('version_string', 'unknown') or 'unknown'
+                    except Exception:
+                        pass
+                self._update_web_ecu_state(blob, ver)
+                self.session.current_checksum    = bins[-1].parent.name
+                self.session.current_session_dir = bins[-1].parent
+                self.logger.info(f"Initial EEPROM loaded from disk: {self.session.current_checksum}")
+            except Exception as e:
+                self.logger.warning(f"Initial EEPROM load failed: {e}")
 
-        # 3. Iniciar hilos de fondo
+        # 2. Start GPS reader
         self.gps.start()
-        self._ecu_thread = threading.Thread(target=self._ecu_loop, daemon=True, name="ecu-rt")
-        self._ecu_thread.start()
+
+        # 3. Start sysmon thread
         self._sysmon_thread = threading.Thread(target=self._sysmon_loop, daemon=True, name="sysmon")
         self._sysmon_thread.start()
 
-        # 3. Configurar red
-        self.logger.info("Iniciando NetworkManager...")
+        # 4. Spawn ECU logger subprocess
+        self._ipc_dir.mkdir(parents=True, exist_ok=True)
+        self._start_logger_subprocess()
+
+        # 5. Start IPC reader thread
+        self._ipc_reader_thread = threading.Thread(
+            target=self._ipc_reader_loop, daemon=True, name="ipc-reader")
+        self._ipc_reader_thread.start()
+
+        # 6. Configure network
+        self.logger.info("Starting NetworkManager...")
         self.network.setup()
-        
-        # 4. Iniciar servidor web
-        self.logger.info("Iniciando servidor web...")
+
+        # 7. Start web server
+        self.logger.info("Starting web server...")
         self.web._main_app = self
         self.web.start()
-        
-        # 5. Loop principal
-        self.logger.info(f"Sistema listo. Accede al dashboard en: http://{self.network.get_ip()}:8080")
-        
+
+        # 8. Main loop
+        self.logger.info(f"System ready. Dashboard: http://{self.network.get_ip()}:8080")
         last_status = 0
         while self._running:
             try:
@@ -659,95 +512,101 @@ class BuellLogger:
                 time.sleep(MAIN_LOOP_HEARTBEAT)
                 now = time.time()
                 if now - last_status > 30:
-                    self.logger.info(f"Status: modo={self.network.current_mode()} ip={self.network.get_ip()}")
+                    self.logger.info(
+                        f"Status: mode={self.network.current_mode()} ip={self.network.get_ip()}")
                     last_status = now
-                
                 if self.web.pending_shutdown:
-                    self.logger.info("Shutdown solicitado desde web")
+                    self.logger.info("Shutdown requested from web")
                     self._poweroff_requested = True
                     self._running = False
             except Exception as e:
-                self.logger.error(f"Heartbeat loop error: {e}")
+                self.logger.error(f"Main loop error: {e}")
                 time.sleep(1)
-        
-        if self._ecu_thread and self._ecu_thread.is_alive():
-            self._ecu_thread.join(timeout=5.0)
+
         self.shutdown()
-    
+
     def _check_threads(self):
-        """Watchdog: restart dead or hung background threads with cooldown."""
+        """Watchdog: restart dead or hung background threads and subprocess."""
         now = time.monotonic()
-        heartbeats = {"ecu-rt": self._ecu_heartbeat, "sysmon": self._sysmon_heartbeat}
-        stale_limits = {"ecu-rt": 10.0, "sysmon": 15.0}
-        for name, thread in [("ecu-rt", self._ecu_thread), ("sysmon", self._sysmon_thread)]:
-            last_hb = heartbeats.get(name, now)
-            stale = now - last_hb > stale_limits[name]
-            if stale and thread.is_alive():
-                self.logger.warning(f"Thread {name} HUNG (no heartbeat {now-last_hb:.1f}s) — will restart")
-            dead = not thread.is_alive()
+        heartbeats    = {"ipc-reader": self._ipc_reader_heartbeat, "sysmon": self._sysmon_heartbeat}
+        stale_limits  = {"ipc-reader": 10.0,                       "sysmon": 15.0}
+        thread_map    = {"ipc-reader": "_ipc_reader_thread",       "sysmon": "_sysmon_thread"}
+        thread_targets= {"ipc-reader": (self._ipc_reader_loop, "ipc-reader"),
+                         "sysmon":     (self._sysmon_loop,     "sysmon")}
+
+        for name in ("ipc-reader", "sysmon"):
+            thread = getattr(self, thread_map[name])
+            if thread is None:
+                continue
+            last_hb = heartbeats[name]
+            stale   = now - last_hb > stale_limits[name]
+            dead    = not thread.is_alive()
             if not dead and not stale:
                 continue
-            last = getattr(self, f"_last_{name}_restart", 0)
-            if now - last < 30:
-                self.logger.warning(f"Thread {name} dead/hung, skipping restart (cooldown {now-last:.0f}s < 30s)")
+            last_restart = getattr(self, f"_last_{name.replace('-','_')}_restart", 0)
+            if now - last_restart < 30:
+                self.logger.warning(
+                    f"Thread {name} dead/hung, cooldown {now-last_restart:.0f}s < 30s")
                 continue
-            self.logger.critical("Thread %s is %s - restarting", name, "hung" if stale else "dead")
-            setattr(self, f"_last_{name}_restart", now)
-            if name == "ecu-rt":
-                try:
-                    if self.ecu.ser and self.ecu.ser.is_open:
-                        self.ecu.ser.close()
-                except Exception:
-                    pass
-                self._ecu_thread = threading.Thread(target=self._ecu_loop, daemon=True, name="ecu-rt")
-                self._ecu_thread.start()
-            elif name == "sysmon":
-                self._sysmon_thread = threading.Thread(target=self._sysmon_loop, daemon=True, name="sysmon")
-                self._sysmon_thread.start()
+            self.logger.critical(f"Thread {name} is {'hung' if stale else 'dead'} — restarting")
+            setattr(self, f"_last_{name.replace('-','_')}_restart", now)
+            target, tname = thread_targets[name]
+            new_thread = threading.Thread(target=target, daemon=True, name=tname)
+            new_thread.start()
+            setattr(self, thread_map[name], new_thread)
+
+        # ECU logger subprocess watchdog
+        if self._logger_proc is not None and self._logger_proc.poll() is not None:
+            exit_code = self._logger_proc.returncode
+            last = getattr(self, '_last_logger_proc_restart', 0)
+            if now - last >= 30:
+                self.logger.critical(
+                    f"ECU logger subprocess exited (code={exit_code}) — restarting")
+                setattr(self, '_last_logger_proc_restart', now)
+                self._start_logger_subprocess()
+            else:
+                self.logger.warning(
+                    f"ECU logger exited (code={exit_code}), cooldown {now-last:.0f}s")
 
     def shutdown(self):
-        """Limpieza al salir."""
-        self.logger.info("Deteniendo servicios...")
-        try:
-            if self.session and self.session.current_csv_fh:
-                self.logger.info("Cerrando ride activo por shutdown...")
-                self.session.close_current_ride("shutdown", tracker_snapshot=self.tracker.snapshot(), objectives_cfg=self.objectives_cfg)
-        except Exception as e:
-            self.logger.warning(f"Error cerrando ride en shutdown: {e}")
-            
+        self.logger.info("Stopping services...")
+
+        # Stop ECU logger subprocess first — it closes the ride and disconnects ECU
+        self._stop_logger_subprocess(timeout=10.0)
+
         self.web.stop()
         self.network.stop_monitor()
-        
+
         if self._poweroff_requested and not self.no_poweroff:
-            self.logger.info("Apagando sistema...")
+            self.logger.info("Powering off system...")
             subprocess.run(["sudo", "/usr/sbin/poweroff"], check=False)
         else:
-            self.logger.info("Logger detenido (sin apagar)")
+            self.logger.info("Logger stopped (no poweroff)")
 
 
 def main():
     parser = argparse.ArgumentParser(description=f"Buell Logger {LOGGER_VERSION}")
-    parser.add_argument("--port", default="/dev/ttyUSB0", help="Puerto serial ECU")
-    parser.add_argument("--sessions-dir", default="/home/pi/buell/sessions", help="Directorio de sesiones")
-    parser.add_argument("--buell-dir", default="/home/pi/buell", help="Directorio de configuración")
-    parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
-    parser.add_argument("--no-poweroff", action="store_true", help="No apagar al salir")
-    
+    parser.add_argument("--port",         default="/dev/ttyUSB0",          help="ECU serial port")
+    parser.add_argument("--sessions-dir", default="/home/pi/buell/sessions", help="Sessions directory")
+    parser.add_argument("--buell-dir",    default="/home/pi/buell",          help="Config directory")
+    parser.add_argument("--log-level",    default="INFO",
+                        choices=["DEBUG", "INFO", "WARNING", "ERROR"])
+    parser.add_argument("--no-poweroff",  action="store_true")
+
     args = parser.parse_args()
-    
+
     logging.basicConfig(
         level=getattr(logging, args.log_level),
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S"
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
-    
-    logger = BuellLogger(
+
+    BuellLogger(
         port=args.port,
         sessions_dir=args.sessions_dir,
         buell_dir=args.buell_dir,
-        no_poweroff=args.no_poweroff
-    )
-    logger.run()
+        no_poweroff=args.no_poweroff,
+    ).run()
 
 
 if __name__ == "__main__":

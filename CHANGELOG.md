@@ -21,6 +21,23 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.112] — 2026-06-10
+
+### Changed
+- `main.py`: ECU serial + CSV logging moved to independent subprocess (`ecu/logger_process.py`). Main process now owns sensors, web server, GPS; subprocess owns ECU protocol and ride recording. A crash in web/dash calculations no longer stops CSV logging.
+- `ecu/logger_process.py`: new — standalone ECU logger subprocess. Reads sysmon/GPS from IPC files, writes live.json (every 4 frames), cells.json (every 30 frames), ecu_init.json (on ECU connect/post-burn). Handles burn_req.json and control.json commands. Clean SIGTERM shutdown with ride close.
+- `ecu/session.py`: `CellTracker.set_snapshot(snap, active)` — replace internal cell state from IPC reader (subprocess architecture). No behavioral change for callers of `snapshot()`.
+- `web/handlers/eeprom.py`: `_handle_eeprom_burn` and `_handle_eeprom_revert` now use file IPC (`burn_req.json` / `burn_res.json` with req_id) instead of `threading.Queue`. Eliminates cross-process dependency.
+- `web/handlers/system.py`: `_handle_post_close_ride` now writes `control.json` IPC command instead of calling `session.close_current_ride()` directly.
+- IPC directory `/tmp/buell` (tmpfs). All writes are atomic (write to `.tmp` then rename).
+- BUG-DISC-01 architectural fix: process isolation means a GPS/dash crash can no longer interrupt CSV recording.
+
+### Removed
+- `main.py`: `_ecu_loop` method, `DDFI2Connection` import, `pending_burn` queue — all moved to subprocess.
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.111] — 2026-06-10
 
 ### Changed

@@ -130,7 +130,7 @@ class EepromHandlerMixin:
 
     def _handle_eeprom_revert(self, path=None, payload=None):
         """Revert ECU EEPROM to a previous session's eeprom.bin."""
-        import queue as _queue
+        import base64
         body = payload or {}
         target_id = body.get('session', '').strip()
         if not target_id or not re.match(r'^[A-Fa-f0-9]{6}$', target_id):
@@ -153,16 +153,37 @@ class EepromHandlerMixin:
                 backup_path.write_bytes((backup_dir / 'eeprom.bin').read_bytes())
             except Exception as e:
                 logging.debug(f"ignored: {e}")
-        result_q = _queue.Queue()
-        main_app = getattr(self.server_instance, '_main_app', None)
-        if main_app is None:
-            self._json({'error': 'main app not available'})
+        ipc_dir = getattr(self.server_instance, '_ipc_dir', None)
+        if ipc_dir is None:
+            self._json({'error': 'IPC directory not available'})
             return
-        main_app.pending_burn = (proposed, result_q)
+        req_id = int(time.time() * 1000) & 0xFFFFFFFF
+        req = {'eeprom_b64': base64.b64encode(proposed).decode(), 'req_id': req_id}
         try:
-            result = result_q.get(timeout=90)
-        except _queue.Empty:
-            main_app.pending_burn = None
+            (ipc_dir / 'burn_req.json').write_text(json.dumps(req))
+        except Exception as e:
+            self._json({'error': 'IPC write failed: ' + str(e)})
+            return
+        # Poll burn_res.json for matching req_id (90s timeout for revert)
+        deadline = time.time() + 90
+        result = None
+        while time.time() < deadline:
+            res_path = ipc_dir / 'burn_res.json'
+            if res_path.exists():
+                try:
+                    res = json.loads(res_path.read_text())
+                    if res.get('req_id') == req_id:
+                        result = res
+                        res_path.unlink(missing_ok=True)
+                        break
+                except Exception:
+                    pass
+            time.sleep(0.5)
+        if result is None:
+            try:
+                (ipc_dir / 'burn_req.json').unlink(missing_ok=True)
+            except Exception:
+                pass
             self._json({'error': 'revert timeout (90s) — ECU may be busy'})
             return
         result['reverted_to'] = target_id
@@ -173,7 +194,7 @@ class EepromHandlerMixin:
         POST body: { maps: { fuel_front?, fuel_rear?, spark_front?, spark_rear? } }
         Only allowed when no ride is active. Saves backup before burn.
         """
-        import queue as _queue
+        import base64
         from ecu.eeprom import encode_eeprom_maps
         if getattr(self.server_instance, 'ride_active', False):
             self._json({'error': 'cannot burn while ride is active'})
@@ -206,9 +227,9 @@ class EepromHandlerMixin:
                     return
                 current_maps = _decode_eeprom_maps(current_bin)
                 for ch in changes:
-                    mk = ch.get('map')
-                    ri = int(ch.get('ri', 0))
-                    ci = int(ch.get('ci', 0))
+                    mk  = ch.get('map')
+                    ri  = int(ch.get('ri', 0))
+                    ci  = int(ch.get('ci', 0))
                     val = float(ch.get('val', 0))
                     if mk not in current_maps or not isinstance(current_maps[mk], list):
                         continue
@@ -216,7 +237,8 @@ class EepromHandlerMixin:
                         continue
                     orig = current_maps[mk][ri][ci]
                     if orig > 0 and abs(val - orig) > orig * 0.15:
-                        self._json({'error': 'cell [' + str(ri) + ',' + str(ci) + '] exceeds +-15%: ' + str(round(orig, 1)) + ' to ' + str(round(val, 1))})
+                        self._json({'error': 'cell [' + str(ri) + ',' + str(ci) + '] exceeds +-15%: '
+                                    + str(round(orig, 1)) + ' to ' + str(round(val, 1))})
                         return
                     if mk not in maps:
                         maps[mk] = [row[:] for row in current_maps[mk]]
@@ -228,16 +250,37 @@ class EepromHandlerMixin:
         ts = time.strftime('%Y%m%d_%H%M%S')
         backup_path = eeprom_path.parent / ('eeprom_backup_' + ts + '.bin')
         backup_path.write_bytes(current_bin)
-        result_q = _queue.Queue()
-        main_app = getattr(self.server_instance, '_main_app', None)
-        if main_app is None:
-            self._json({'error': 'main app not available'})
+        ipc_dir = getattr(self.server_instance, '_ipc_dir', None)
+        if ipc_dir is None:
+            self._json({'error': 'IPC directory not available'})
             return
-        main_app.pending_burn = (proposed, result_q)
+        req_id = int(time.time() * 1000) & 0xFFFFFFFF
+        req = {'eeprom_b64': base64.b64encode(proposed).decode(), 'req_id': req_id}
         try:
-            result = result_q.get(timeout=30)
-        except _queue.Empty:
-            main_app.pending_burn = None
+            (ipc_dir / 'burn_req.json').write_text(json.dumps(req))
+        except Exception as e:
+            self._json({'error': 'IPC write failed: ' + str(e)})
+            return
+        # Poll burn_res.json for matching req_id (30s timeout)
+        deadline = time.time() + 30
+        result = None
+        while time.time() < deadline:
+            res_path = ipc_dir / 'burn_res.json'
+            if res_path.exists():
+                try:
+                    res = json.loads(res_path.read_text())
+                    if res.get('req_id') == req_id:
+                        result = res
+                        res_path.unlink(missing_ok=True)
+                        break
+                except Exception:
+                    pass
+            time.sleep(0.5)
+        if result is None:
+            try:
+                (ipc_dir / 'burn_req.json').unlink(missing_ok=True)
+            except Exception:
+                pass
             self._json({'error': 'burn timeout (30s)'})
             return
         result['backup'] = backup_path.name
