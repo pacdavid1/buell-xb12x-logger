@@ -36,18 +36,6 @@ Alternativa mínima (si el overlay completo es muy complejo):
 - Solo agregar botones "toggle" para solapar fl_wot/fl_accel/fl_decel al panel de TPS
   como marcadores de color (tipo evento) sin eje Y propio
 
-### BL-UX-01 — Burn de propuesta completa (no celda por celda)
-**Priority:** HIGH
-**Pages:** Tuner (PROPOSAL tab)
-
-El flujo correcto es: ver propuesta → editar si hace falta → quemar el mapa completo.
-NO se quema celda por celda ni con límite de 20 celdas.
-El PROPOSAL tab debe generar el mapa propuesto completo y quemarlo igual que el VE subtab:
-generate MSQ → burn full EEPROM (usando la lógica existente de write_full_eeprom).
-- Eliminar límite de 20 celdas del endpoint /eeprom/burn
-- Eliminar límite de 20 celdas del JS en tuner.html (commitStage/burnStaged)
-- PROPOSAL tab: botón BURN PROPOSAL quema el mapa suavizado completo (smoothed_pct),
-  no las celdas staged manualmente
 
 ### BL-UX-02 — Tabs faltantes en navegación
 **Priority:** HIGH
@@ -681,54 +669,47 @@ aparece en VE para revisar y quemar. Sin WB — el tuning es relativo entre sesi
 - [ ] Sin piggy: open loop, propuesta relativa entre sesiones (FASE 6.1-6.4)
 
 
-## BUG-DISC-01 — ECU disconnection gaps during rides (~11s periodic blackouts)
+## BUG-DISC-01 — Logging gaps: code crash takes down both logger and dash
 
-**Priority:** HIGH
-**Sessions affected:** 47BF04 (all rides), likely all sessions
-**Symptoms:** CSV shows gaps of exactly 11.2-11.4s at random times during rides, with engine still running (RPM > 0 after gap). Some rides also have longer gaps (20-165s).
+**Priority:** MEDIUM (reclassified — not ECU hardware disconnection)
+**Reclassified:** 2026-06-10
 
-### Data pattern (47BF04 ride_001 sample)
-- GAP 80s->92s=11.2s RPM=1083
-- GAP 135s->147s=11.2s RPM=2591
-- GAP 284s->296s=11.7s RPM=3491
-All gaps: 11.2-11.4s. No dirty bytes. Engine running throughout.
+### Revised understanding
+The 11s gaps were originally attributed to ECU hardware disconnection (`_get_version()` blocking
+5 × 2.3s). New evidence: in the last session, ride 6 had minimal gaps. Rides 7 and 8 had
+many gaps because the GPS was physically moved. Ride 9 was back to normal after GPS restored.
+→ GPS movement caused code errors (GPS reader exception?) that propagated and crashed the process.
+→ Both CSV logging and web/live calculations run in the same process (main.py). One crash = everything stops.
 
-### Hypothesis
-The ~11.2s gap =  blocking: 5 attempts x (2.0s timeout + 0.3s sleep) = 11.5s.
-This is called by the hard reconnect path in  when .
-But if get_version() ALSO blocks during the accumulation phase, or is triggered by
-a different path, the total observed gap could be shorter than 10+11.5s.
+### Root cause (hypothesis)
+`main.py` runs ECU CSV logger + GPS reader + web server (live JSON calcs) in the same process.
+A crash in any calculation thread (GPS, live dash, F7, etc.) halts CSV logging too.
+The 40min gap in 47BF04 was likely a code error + restart, not USB overheating.
 
-### What to investigate (freebuff task)
-1. SSH and read the buell log during a ride:  while riding
-2. Find any Hard reconnect or get_version log lines and correlate timestamps
-3. Check if  is called from any path outside the hard reconnect block
-4. Check if  triggers a disconnect during a ride
-   (currently guarded by  at line ~458 of main.py — verify this is correct)
-5. Measure actual duration of  failing: 5 x 2.3s = 11.5s matches the gaps
+### Proposed architectural fix: process isolation
+Split main.py into two independent processes:
+- **Process A — CSV Logger** (critical, must-not-die): ECU serial reader → write RT rows to CSV.
+  No calculations, no web, no GPS complex logic. If it crashes: restart in 2s via systemd/supervisor.
+- **Process B — Dash + calcs** (non-critical): GPS, live JSON, web server, F7/VS live updates.
+  Can crash and restart without losing any CSV data.
 
-### Proposed fix options
-A. Skip  during active rides — use  directly as the liveness check
-B. Reduce get_version to 1-2 attempts (not 5) during a ride
-C. Add a fast ping: send PDU_VERSION, read 1 byte with 0.5s timeout — if SOH received, ECU is alive
-D. Log every get_version() call with timestamp to buell.log
+Communication between A and B: shared filesystem (CSV files) — no IPC needed. Already the design.
+
+This matches how the code evolved: CSV consumers already use `glob('ride_*.csv')` not consolidated.csv.
+The logger IS logically separate — just needs physical separation.
 
 ### Related files
-- main.py: _ecu_loop(), hard reconnect block (~line 465), MAX_CONSEC_ERRORS=30
-- ecu/connection.py: _get_version_impl() (5 attempts x 2.3s), get_rt_data()
+- main.py: BuellLogger.run(), ECU thread, GPS thread, web thread (~line 600+)
+- ecu/connection.py: serial reader
+- main.py: NetworkManager, GPS reader
 
-### Freebuff research findings (2026-06-07)
-| ECUID | Gaps >5s | Total lost | Severity |
-|-------|----------|-----------|----------|
-| 47BF04 | 111+ | ~2438s (40min) | CRITICAL |
-| 91B225 | 25 | 857s | HIGH |
-| 653DC0 | 10 | 2723s | MODERATE |
-| 27F1A2 | 1 | 46s | EXCELLENT |
-
-Worst ride: 47BF04 ride_007 (29 gaps, 841s = 14 min lost).
-Gaps do NOT correlate with RPM load. Possible causes: USB adapter overheating after ~15min,
-alternator electrical noise, vibration loosening connector.
-Rides ending "power_loss_recovered" = disconnection longer than ECU_RETRY threshold.
+### Sessions data (for reference)
+| ECUID | Gaps >5s | Total lost | Probable cause |
+|-------|----------|-----------|----------------|
+| 47BF04 | 111+ | ~2438s (40min) | Code crash / restart |
+| 91B225 | 25 | 857s | Code errors |
+| 653DC0 | 10 | 2723s | Code errors |
+| 27F1A2 | 1 | 46s | Minimal — stable code |
 
 
 ## FASE 8 — Fuel Economy & Reserve Tracking
@@ -1264,26 +1245,18 @@ Mitigacion:
 ---
 
 
-## FASE 5.1 — Click-to-edit VE heatmap (freebuff task 029)
+## FASE 5.1 — Click-to-edit VE heatmap **[DONE]**
 
-### Infrastructure already in place
-- /eeprom/burn endpoint EXISTS (server.py line 725): safety gate, auto-backup, encode/decode
-- tuner.html has canvases for Base/Delta/Mod — no click handler yet
+**Status: DONE** — STAGE, click handler, BURN/RESET buttons implemented in tuner.html.
+Per-cell edit → yellow overlay → POST /eeprom/burn works.
 
-### Architecture
-- STAGE.dirty = { fuel_front: { "3,5": new_value } } — JS dict tracking edits
-- Click cell → overlay input → store in STAGE.dirty → redraw yellow overlay
-- BURN button: POST /eeprom/burn { changes: { fuel_front: {"3,5": 45.2} } }
-- Backend: per-cell ±15% gate + max 20 cells per burn
-
-### Files to modify
-- tuner.html: STAGE object + click handler + overlay input + BURN/RESET buttons (~+80 lines)
-- server.py: changes validation in _handle_eeprom_burn (~+15 lines)
-
-## Prioridad: ALTA
-- [ ] tuner.html: add STAGE.dirty tracking + canvas click handler + cell input overlay
-- [ ] tuner.html: BURN button (POST /eeprom/burn with changes dict) + RESET button
-- [ ] server.py: validate changes in _handle_eeprom_burn (±15% per cell, max 20 cells)
+### Next step: auto proposal → full EEPROM burn
+Once FASE 6 produces a complete automatic proposal (smoothed VE map), the PROPOSAL tab
+should burn the full map in one operation — not cell by cell. This uses the existing
+`write_full_eeprom` path, same as the VE tab's BURN flow but sourced from `smoothed_pct`.
+- PROPOSAL tab: BURN PROPOSAL button → POST /eeprom/burn_full with full 18×13 map
+- No cell-by-cell limit for proposal burn — it's a full replacement
+- Keep the per-cell click-to-edit VE for manual fine-tuning after proposal
 ---
 
 ## FASE 6 — Readiness matrix (freebuff task 030, 2026-06-06)
