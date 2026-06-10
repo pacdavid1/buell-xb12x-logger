@@ -77,3 +77,22 @@ Protocolo correctivo:
 
 Resultado: 70% de mis hallazgos eran falsos positivos. Perdimos tiempo.
 No volver a repetir.
+
+## Dev tools available on the Windows host
+
+### Graphify — codebase knowledge graph (installed 2026-06-09)
+Graphify runs on Windows (not the Pi) to avoid RAM pressure on Pi Zero 2W.
+It maps the project into a queryable knowledge graph after each git pull.
+
+**Workflow:**
+  Pi commits → git push → Windows: git pull → graphify update . → graph.html
+
+**Key commands (run on Windows):**
+  graphify update .              # rebuild after pull (no API key needed)
+  graphify query "question"      # query the graph without rebuilding
+  graphify explain "NodeName"    # explain a node and its neighbors
+
+**Key god nodes:**
+  DashboardHandler (server.py) — SessionManager (ecu/session.py) — BuellLogger (main.py)
+
+**Output files:** graphify-out/graph.html (interactive), graphify-out/GRAPH_REPORT.md

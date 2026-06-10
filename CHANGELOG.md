@@ -21,6 +21,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.104] — 2026-06-09
+### docs
+- CLAUDE.md: added Dev tools section — Graphify knowledge graph workflow (runs on Windows, not Pi)
+- FREEBUFF.md: added Dev tools section — same context for freebuff agent
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.103] — 2026-06-08
 
 ### Added

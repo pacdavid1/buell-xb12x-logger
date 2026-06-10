@@ -236,6 +236,26 @@ curl -s 'http://localhost:8080/session_events/data?session=248AE2' | python3 -c 
   'import sys,json; d=json.load(sys.stdin); print("clusters:", d.get("n_clusters"), "events:", d.get("n_events"))'
 ```
 
+
+## Dev tools
+
+### Graphify — codebase knowledge graph
+
+Graphify is installed on the Windows host (not the Pi) to avoid RAM pressure on the Pi Zero 2W.
+It maps the project into a queryable knowledge graph.
+
+**Workflow: Pi pushes to GitHub → Windows pulls → graphify update → view graph**
+
+
+
+Outputs: graphify-out/graph.html (interactive), graphify-out/GRAPH_REPORT.md
+
+Query the graph: graphify query "what functions read the EEPROM?"
+
+Key god nodes: DashboardHandler (server.py), SessionManager (ecu/session.py), BuellLogger (main.py)
+
+No API key needed for code-only updates.
+
 ## Priority backlog items
 
 1. **Baro normalization** — fix dpw_eff in `_compare_sessions`: pw_norm = pw * (1013.25/baro)
