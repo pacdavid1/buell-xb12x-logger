@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.108] — 2026-06-09
+### Changed
+- Extracted 10 EEPROM handlers from DashboardHandler into web/handlers/eeprom.py (EepromHandlerMixin)
+- Handlers moved: _handle_suggested_msq, _handle_eeprom_download, _handle_eeprom_msq,
+  _handle_eeprom_sessions_list, _handle_eeprom_revert, _handle_eeprom_burn,
+  _handle_msq_download, _handle_eeprom_propose, _handle_maps, _handle_eeprom
+- Translated Spanish strings to English in extracted handlers
+- server.py: -375 lines
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.107] — 2026-06-09
 ### Changed
 - Extracted 8 session handlers from DashboardHandler into web/handlers/sessions.py (SessionsHandlerMixin)
