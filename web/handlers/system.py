@@ -1,0 +1,52 @@
+# DEV NOTE: All code, comments, and variable names must be in English.
+import logging
+import subprocess
+import time
+
+
+class SystemHandlerMixin:
+    def _handle_post_shutdown(self, path, payload):
+        self.server_instance.pending_shutdown = True
+        self._json({'ok': True, 'msg': 'Shutting down...'})
+
+    def _handle_post_keepalive(self, path, payload):
+        now = time.time()
+        if now - self.server_instance.last_keepalive >= 10:
+            self.server_instance.last_keepalive = now
+        self._json({'ok': True})
+
+    def _handle_post_git_pull(self, path, payload):
+        result = subprocess.run(
+            ['git', 'pull'],
+            capture_output=True, text=True,
+            cwd='/home/pi/buell'
+        )
+        output = result.stdout.strip() + result.stderr.strip()
+        ok = result.returncode == 0
+        if ok:
+            if 'Already up to date' not in output and 'up-to-date' not in output:
+                subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
+            else:
+                output = 'Already up to date'
+        self._json({'ok': ok, 'output': output})
+
+    def _handle_post_close_ride(self, path, payload):
+        session = getattr(self.server_instance, 'session', None)
+        if session and session.current_csv_fh:
+            checksum = session.current_checksum
+            ride_num = session.current_ride_num
+            session.close_current_ride(reason='dashboard_request')
+            with self.server_instance._rides_cache_lock:
+                self.server_instance._rides_cache = None
+                self.server_instance._rides_cache_time = 0
+            self._json({'ok': True, 'msg': 'Ride closed', 'session': checksum, 'ride_num': ride_num})
+        else:
+            self._json({'ok': False, 'msg': 'No active ride'})
+
+    def _handle_post_restart_logger(self, path, payload):
+        subprocess.Popen(['sudo', 'systemctl', 'restart', 'buell-logger'])
+        self._json({'ok': True, 'msg': 'Restarting logger...'})
+
+    def _handle_post_reboot_pi(self, path, payload):
+        subprocess.Popen(['sudo', '/usr/sbin/reboot'])
+        self._json({'ok': True, 'msg': 'Rebooting Pi...'})

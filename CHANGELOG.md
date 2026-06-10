@@ -21,6 +21,21 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.109] — 2026-06-09
+### Changed
+- Extracted remaining handlers from DashboardHandler into 5 new mixins:
+  web/handlers/wifi.py (WifiHandlerMixin) — 8 handlers: wifi GET/POST + network
+  web/handlers/gps.py (GpsHandlerMixin) — 2 handlers: gps_fix, gps_track
+  web/handlers/tuner.py (TunerHandlerMixin) — 4 handlers: tuner, tuner_sessions, tuner_maps, tuner_merge
+  web/handlers/system.py (SystemHandlerMixin) — 6 handlers: shutdown, keepalive, git_pull, close_ride, restart_logger, reboot_pi
+  web/handlers/rides.py (RidesHandlerMixin) — 13 handlers: index, live, rides, coverage, csv, ride, errorlog, ride_note, tuning_report, post_ride_note, ride_launch_event
+- Fixed silent NameError bug in wifi GET handlers (net was unbound)
+- Translated Spanish strings to English in all extracted handlers
+- DashboardHandler now owns only: server_instance, _json, _html, do_GET, do_POST, _load_html, _get_live, _handle_static
+- server.py: -498 lines
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.108] — 2026-06-09
 ### Changed
 - Extracted 10 EEPROM handlers from DashboardHandler into web/handlers/eeprom.py (EepromHandlerMixin)
