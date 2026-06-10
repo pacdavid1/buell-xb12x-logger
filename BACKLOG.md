@@ -677,49 +677,6 @@ aparece en VE para revisar y quemar. Sin WB — el tuning es relativo entre sesi
 - [ ] Sin piggy: open loop, propuesta relativa entre sesiones (FASE 6.1-6.4)
 
 
-## BUG-DISC-01 — Logging gaps: code crash takes down both logger and dash
-
-**Priority:** MEDIUM (reclassified — not ECU hardware disconnection)
-**Reclassified:** 2026-06-10
-
-### Revised understanding
-The 11s gaps were originally attributed to ECU hardware disconnection (`_get_version()` blocking
-5 × 2.3s). New evidence: in the last session, ride 6 had minimal gaps. Rides 7 and 8 had
-many gaps because the GPS was physically moved. Ride 9 was back to normal after GPS restored.
-→ GPS movement caused code errors (GPS reader exception?) that propagated and crashed the process.
-→ Both CSV logging and web/live calculations run in the same process (main.py). One crash = everything stops.
-
-### Root cause (hypothesis)
-`main.py` runs ECU CSV logger + GPS reader + web server (live JSON calcs) in the same process.
-A crash in any calculation thread (GPS, live dash, F7, etc.) halts CSV logging too.
-The 40min gap in 47BF04 was likely a code error + restart, not USB overheating.
-
-### Proposed architectural fix: process isolation
-Split main.py into two independent processes:
-- **Process A — CSV Logger** (critical, must-not-die): ECU serial reader → write RT rows to CSV.
-  No calculations, no web, no GPS complex logic. If it crashes: restart in 2s via systemd/supervisor.
-- **Process B — Dash + calcs** (non-critical): GPS, live JSON, web server, F7/VS live updates.
-  Can crash and restart without losing any CSV data.
-
-Communication between A and B: shared filesystem (CSV files) — no IPC needed. Already the design.
-
-This matches how the code evolved: CSV consumers already use `glob('ride_*.csv')` not consolidated.csv.
-The logger IS logically separate — just needs physical separation.
-
-### Related files
-- main.py: BuellLogger.run(), ECU thread, GPS thread, web thread (~line 600+)
-- ecu/connection.py: serial reader
-- main.py: NetworkManager, GPS reader
-
-### Sessions data (for reference)
-| ECUID | Gaps >5s | Total lost | Probable cause |
-|-------|----------|-----------|----------------|
-| 47BF04 | 111+ | ~2438s (40min) | Code crash / restart |
-| 91B225 | 25 | 857s | Code errors |
-| 653DC0 | 10 | 2723s | Code errors |
-| 27F1A2 | 1 | 46s | Minimal — stable code |
-
-
 ## FASE 8 — Fuel Economy & Reserve Tracking
 
 **Priority:** MEDIUM (next major feature after FASE 6)
