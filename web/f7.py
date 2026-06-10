@@ -12,7 +12,7 @@ from pathlib import Path
 
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
-_F7_THRESH  = 0.75  # default DTW threshold
+_F7_THRESH  = 0.85  # default DTW threshold
 _F7_EVENTS_V = 6     # bump when event struct fields change
 
 

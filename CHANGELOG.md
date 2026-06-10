@@ -21,6 +21,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.110] — 2026-06-09
+
+### Changed
+- `web/f7.py`: default DTW threshold `_F7_THRESH` 0.75 → 0.85, consistent with UI default
+- `web/vs_engine.py`: `_compare_sessions_cached` now deletes stale versions of the same session pair after writing a new cache file
+- `ecu/session.py`: removed `_generate_consolidated` method and all 3 call sites — `consolidated.csv` was never read by any code path (all consumers iterate `ride_*.csv` directly)
+
+### Removed
+- Deleted 14 stale `sessions_vs_v{4,5,6}` cache files (~8.5 MB)
+- Deleted 2 `session_f7clusters_0_75.json` files (~450 KB)
+- Deleted 12 `consolidated.csv` + 1 `consolidated.tmp` (~172 MB)
+- **Total freed: 181 MB**
+
 ## [v2.7.109] — 2026-06-09
 ### Changed
 - Extracted remaining handlers from DashboardHandler into 5 new mixins:

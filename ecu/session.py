@@ -87,7 +87,6 @@ class SessionManager:
         self.current_checksum = new_cs
         self.current_session_dir, self.session_metadata = self._load_or_create(new_cs, version_str)
         self.logger.info(f"Session active: {new_cs} | firmware={version_str}")
-        self._generate_consolidated()
         eeprom_file = self.current_session_dir / "eeprom.bin"
         return not eeprom_file.exists()
 
@@ -242,7 +241,6 @@ class SessionManager:
             except Exception as e:
                 self.logger.warning(f"Consumption cache error: {e}")
         self._save_metadata()
-        self._generate_consolidated()
 
     def _update_tuning_report(self, summary):
         """Actualiza tuning_report incremental con el summary del ride recién cerrado.
@@ -532,32 +530,6 @@ class SessionManager:
             json.dump(self.session_metadata, f, indent=2)
         tmp.replace(meta_file)
 
-    def _generate_consolidated(self):
-        if not self.current_session_dir:
-            return
-        ride_files = sorted(self.current_session_dir.glob("ride_*.csv"))
-        if not ride_files:
-            return
-        consolidated = self.current_session_dir / "consolidated.csv"
-        tmp          = self.current_session_dir / "consolidated.tmp"
-        try:
-            with open(tmp, "w", newline="") as out_fh:
-                writer = None
-                for rf in ride_files:
-                    with open(rf, newline="") as in_fh:
-                        filtered = (l for l in in_fh if not l.startswith('#'))
-                        reader   = csv.DictReader(filtered)
-                        if writer is None:
-                            writer = csv.DictWriter(
-                                out_fh, fieldnames=reader.fieldnames, extrasaction="ignore"
-                            )
-                            writer.writeheader()
-                        for row in reader:
-                            writer.writerow(row)
-            tmp.replace(consolidated)
-            self.logger.debug("consolidated.csv regenerado")
-        except Exception as e:
-            self.logger.warning(f"Error consolidated: {e}")
 
     def recover_orphan_rides(self):
         """Busca rides con CSV pero sin summary.json y los reconstruye."""
@@ -665,7 +637,6 @@ class SessionManager:
             meta["total_runtime_seconds"]=meta.get("total_runtime_seconds",0)+last_elapsed
             if ride_num>meta.get("total_rides",0): meta["total_rides"]=ride_num
             with open(meta_file,"w") as f: json.dump(meta,f,indent=2)
-        self._generate_consolidated()
 
 def cell_key(rpm, load):
     ri = bisect.bisect_right(RPM_BINS, rpm) - 1

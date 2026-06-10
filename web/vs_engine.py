@@ -201,6 +201,11 @@ def _compare_sessions_cached(buell_dir, sa, sb):
     with _cache_lock:
         with open(cache_file, 'w') as f:
             json.dump(result, f)
+        # Remove stale versions of the same session pair
+        pair_suffix = f"{sa}-{_fmtk(ma.get('total_samples',0))}_{sb}-{_fmtk(mb.get('total_samples',0))}.json"
+        for stale in cache_dir.glob(f"sessions_vs_v*_{pair_suffix}"):
+            if stale != cache_file:
+                stale.unlink(missing_ok=True)
     return result
 
 
