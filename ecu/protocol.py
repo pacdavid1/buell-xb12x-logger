@@ -376,6 +376,11 @@ def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any]:
     result['di_neutral']     = (din >> 5) & 1
     result['di_crank']       = (din >> 7) & 1
 
+    # ── Unk63 bits (Flags7 candidate) ───────────────────────
+    u63 = int(result.get('Unk63', 0) or 0)
+    for _b in range(8):
+        result[f'Unk63_b{_b}'] = (u63 >> _b) & 1
+
     # ── TPS calibrado ────────────────────────────────────────
     tps10   = result.get('TPS_10Bit') or 0
     tps_v   = round(tps10 * 0.004887585, 3)
@@ -417,9 +422,10 @@ CSV_COLUMNS: list[str] = [
     "EGO_Corr", "WUE", "AFV", "IAT_Corr", "Accel_Corr", "Decel_Corr",
     "WOT_Corr", "Idle_Corr", "OL_Corr", "O2_ADC",
     "Flags0", "Flags1", "Flags2", "Flags3", "Flags4", "Flags5", "Flags6", "Unk63",
+    "Unk63_b0", "Unk63_b1", "Unk63_b2", "Unk63_b3", "Unk63_b4", "Unk63_b5", "Unk63_b6", "Unk63_b7",
     "CDiag0", "CDiag1", "CDiag2", "CDiag3", "CDiag4",
     "HDiag0", "HDiag1", "HDiag2", "HDiag3", "HDiag4",
-    "Unk80", "Unk81", "Unk82", "Rides", "DIn", "DOut", "ETS_ADC", "IAT_ADC", "BAS_ADC", "SysConfig",
+    "Rides", "DIn", "DOut", "ETS_ADC", "IAT_ADC", "BAS_ADC", "SysConfig",
     "TPS_V", "TPS_pct",
     "VSS_Count", "VS_KPH", "Fan_Duty_Pct", "VSS_RPM_Ratio", "Gear",
     "dirty_byte_hex", "dirty_byte_name", "forensic_event",

@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.111] — 2026-06-10
+
+### Changed
+- `ecu/protocol.py`: expand `Unk63` into 8 individual bit columns `Unk63_b0`–`Unk63_b7` in `decode_rt_packet` and `CSV_COLUMNS`
+- `ecu/protocol.py`: remove `Unk80`, `Unk81`, `Unk82` from `CSV_COLUMNS` — always constant (255/255/62), dead bytes in the RT packet
+
+### Notes
+- Detective analysis (389K samples, 132 activation events): Unk63 activates exclusively at WOT + high RPM (avg 5273 RPM, avg TPS 57%, avg 133 km/h). Strongest binary correlator: `di_crank` (61% vs 0.1%). Hypothesis: DDFI2 hard-acceleration / high-RPM injection event flag. All 8 bits nearly always 1 (0xFF) when active; lower bits (b0/b1) are least stable, possibly per-cylinder.
+
 ## [v2.7.110] — 2026-06-09
 
 ### Changed
