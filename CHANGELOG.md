@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.107] — 2026-06-09
+### Changed
+- Extracted 8 session handlers from DashboardHandler into web/handlers/sessions.py (SessionsHandlerMixin)
+- Handlers moved: _handle_session_events, _handle_session_events_data, _handle_session_events_download,
+  _handle_sessions_launch, _handle_sessions_launch_data, _handle_sessions_vs,
+  _handle_sessions_vs_compare, _handle_sessions_vs_download
+- Translated Spanish error strings to English in extracted handlers
+- server.py: -143 lines, DashboardHandler continues toward <20 edges target
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.106] — 2026-06-09
 ### Changed
 - Extracted fuel handlers from DashboardHandler into web/handlers/fuel.py (FuelHandlerMixin)

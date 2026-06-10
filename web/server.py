@@ -26,8 +26,9 @@ import datetime
 
 from web.utils import _get_version
 from web.handlers.fuel import FuelHandlerMixin
+from web.handlers.sessions import SessionsHandlerMixin
 
-class DashboardHandler(FuelHandlerMixin, BaseHTTPRequestHandler):
+class DashboardHandler(FuelHandlerMixin, SessionsHandlerMixin, BaseHTTPRequestHandler):
 
     server_instance = None
 
@@ -190,27 +191,6 @@ class DashboardHandler(FuelHandlerMixin, BaseHTTPRequestHandler):
             self.wfile.write(b"Not Found")
             return
 
-    def _handle_sessions_vs_download(self, path=None):
-        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-        sa = params.get("a", [""])[0]
-        sb = params.get("b", [""])[0]
-        if not sa or not sb:
-            self._json({"error": "Faltan sesiones"}, 400); return
-        try:
-            data = _compare_sessions_cached(self.server_instance.buell_dir, sa, sb)
-            body = json.dumps(data, indent=2).encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Disposition", f"attachment; filename=sessions_vs_{sa}_{sb}.json")
-            self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-        except Exception as e:
-            self._json({"error": str(e)}, 500)
-        return
-
     def _handle_tuner_sessions(self, path=None):
         sessions = []
         for d in self.server_instance.buell_dir.glob('sessions/*/session_metadata.json'):
@@ -256,114 +236,6 @@ class DashboardHandler(FuelHandlerMixin, BaseHTTPRequestHandler):
             self._json({'error': str(e)}, 500)
         return
 
-
-    def _handle_session_events(self, path=None):
-        """Serve the Session Events (FASE7) page."""
-        try:
-            buell_dir = self.server_instance.buell_dir
-            tmpl = (buell_dir / 'web' / 'templates' / 'session_events.html').read_text()
-            self._html(tmpl)
-        except Exception as e:
-            self._html(f'<pre>Error: {e}</pre>', 500)
-
-    def _handle_session_events_data(self, path=None):
-        """Return cluster JSON for a session. ?session=<checksum>&threshold=0.85"""
-        from urllib.parse import urlparse, parse_qs
-        buell_dir = self.server_instance.buell_dir
-        qs        = parse_qs(urlparse(self.path).query)
-        sid       = (qs.get('session', [''])[0]).strip().upper()
-        threshold = float((qs.get('threshold', ['0.85'])[0]))
-        if not sid:
-            self._json({'error': 'missing session param'}, 400)
-            return
-        sdir = buell_dir / 'sessions' / sid
-        if not sdir.is_dir():
-            self._json({'error': f'session {sid} not found'}, 404)
-            return
-        try:
-            data = _f7_load_session_clusters(buell_dir, sid, threshold)
-            self._json(data)
-        except Exception as e:
-            import traceback
-            self._json({'error': str(e), 'trace': traceback.format_exc()}, 500)
-
-    def _handle_session_events_download(self, path=None):
-        """Return cluster JSON as downloadable file."""
-        from urllib.parse import urlparse, parse_qs
-        buell_dir = self.server_instance.buell_dir
-        qs        = parse_qs(urlparse(self.path).query)
-        sid       = (qs.get('session', [''])[0]).strip().upper()
-        threshold = float((qs.get('threshold', ['0.85'])[0]))
-        if not sid:
-            self._json({'error': 'missing session param'}, 400); return
-        sdir = buell_dir / 'sessions' / sid
-        if not sdir.is_dir():
-            self._json({'error': f'session {sid} not found'}, 404); return
-        try:
-            data  = _f7_load_session_clusters(buell_dir, sid, threshold)
-            body  = json.dumps(data, indent=2).encode('utf-8')
-            fname = f'session_events_{sid}_{threshold}.json'
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.send_header('Content-Disposition', f'attachment; filename={fname}')
-            self.send_header('Content-Length', str(len(body)))
-            self.send_header('Cache-Control', 'no-store')
-            self.end_headers()
-            self.wfile.write(body)
-        except Exception as e:
-            self._json({'error': str(e)}, 500)
-
-    def _handle_sessions_launch(self, path=None):
-        """Serve the Launch Analysis page."""
-        try:
-            f = Path(__file__).parent / 'templates' / 'sessions_launch.html'
-            self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
-        except Exception as e:
-            self._json({'error': str(e)}, 500)
-        return
-
-    def _handle_sessions_launch_data(self, path=None):
-        """Return cluster comparison data for Launch Analysis."""
-        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-        a = params.get('a', [''])[0]
-        b = params.get('b', [''])[0]
-        if not a or not b:
-            self._json({'error': 'Faltan sesiones'}, 400); return
-        try:
-            data = _compare_sessions_cached(self.server_instance.buell_dir, a, b)
-            result = {}
-            if 'clusters_a' in data:
-                result['clusters_a'] = data['clusters_a']
-            if 'clusters_b' in data:
-                result['clusters_b'] = data['clusters_b']
-            if 'cluster_matches' in data:
-                result['cluster_matches'] = data['cluster_matches']
-            if 'error' in data:
-                result['error'] = data['error']
-            self._json(result)
-        except Exception as e:
-            self._json({'error': str(e)}, 500)
-        return
-
-    def _handle_sessions_vs(self, path=None):
-        try:
-            f = Path(__file__).parent / 'templates' / 'sessions_vs.html'
-            self._html(f.read_text(encoding='utf-8').replace('--LOGGER_VERSION--', _get_version()))
-        except Exception as e:
-            self._json({'error': str(e)}, 500)
-        return
-
-    def _handle_sessions_vs_compare(self, path=None):
-        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-        sa = params.get('a', [''])[0]
-        sb = params.get('b', [''])[0]
-        if not sa or not sb:
-            self._json({'error': 'Faltan sesiones'}, 400); return
-        try:
-            self._json(_compare_sessions_cached(self.server_instance.buell_dir, sa, sb))
-        except Exception as e:
-            self._json({'error': str(e)}, 500)
-        return
 
     def _handle_tuner(self, path=None):
         try:
