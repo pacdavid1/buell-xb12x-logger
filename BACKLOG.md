@@ -1675,3 +1675,58 @@ Goal:
 
 **Freebuff task:** Investigate if this mechanism already exists (grep VSS_CPKM25,
 gps_kph comparison in protocol.py / main.py). If not, design the calibration loop.
+
+---
+
+## REFACTOR — DashboardHandler: reducir betweenness centrality
+
+**Source:** Graphify architecture analysis 2026-06-09
+**Priority:** HIGH — es el cuello de botella arquitectónico más claro del codebase
+**File:** web/server.py
+
+### Hallazgo
+DashboardHandler tiene betweenness centrality 0.166 — el más alto del grafo de código puro.
+Conecta 12 comunidades distintas. Es el dispatcher que todo lo toca.
+Con 66 edges en el grafo, es el nodo más conectado después de quitar el ruido de docs.
+
+### Refactor state actual
+| Módulo | Estado |
+|--------|--------|
+| web/f7.py | Extraído v2.6.98 |
+| web/launch.py | Extraído |
+| web/vs_engine.py | Extraído |
+| web/fuel_tracker.py | Extraído — buen ejemplo (cohesión 0.32) |
+| web/proposal.py | Extraído |
+| web/server.py handlers | Pendiente — siguen en DashboardHandler |
+
+### Próximos candidatos a extraer de server.py
+Identificar handlers HTTP por dominio y moverlos a módulos propios:
+- `web/handlers/eeprom.py` — `_handle_eeprom_burn`, `_handle_eeprom_msq`, `_handle_eeprom_propose`
+- `web/handlers/sessions.py` — `_handle_sessions_vs`, `_handle_sessions_launch`, `_handle_sessions_events`
+- `web/handlers/fuel.py` — handlers de fuel/reserve
+Cada módulo recibe el estado compartido (buell_dir, session_mgr, etc.) vía parámetros.
+DashboardHandler queda como router puro que delega.
+
+### Criterio de éxito
+DashboardHandler baja de 66 edges a menos de 20 en el grafo graphify.
+
+---
+
+## REFACTOR — ecu/: separar decodificación EEPROM de protocolo RT
+
+**Source:** Graphify architecture analysis 2026-06-09
+**Priority:** MEDIUM
+**File:** ecu/eeprom.py, ecu/eeprom_params.py, ecu/connection.py
+
+### Hallazgo
+Community 1 en el grafo de código tiene 42 nodos con cohesión 0.09 (muy baja).
+Mezcla dos responsabilidades distintas en el mismo grupo:
+- Decodificación de mapas EEPROM: decode_eeprom_maps, encode_eeprom_maps, _validate_eeprom
+- Decodificación de trama RT en vivo: decode_rt_packet, GearFilter, VSSCalibrator
+
+### Split propuesto
+- `ecu/eeprom.py` — solo mapas EEPROM estáticos (ya existe, mantener enfocado)
+- `ecu/rt_decode.py` — decode_rt_packet, GearFilter, VSSCalibrator (decodificación de trama RT)
+
+### Criterio de éxito
+Community 1 se parte en dos comunidades con cohesión > 0.20 cada una.

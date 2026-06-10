@@ -21,6 +21,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.105] — 2026-06-09
+### docs
+- BACKLOG.md: added REFACTOR — DashboardHandler (betweenness 0.166, extract handlers to web/handlers/)
+- BACKLOG.md: added REFACTOR — ecu/ split EEPROM decode from RT decode (Community 1 cohesion 0.09)
+- Source: Graphify code-only graph analysis
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.104] — 2026-06-09
 ### docs
 - CLAUDE.md: added Dev tools section — Graphify knowledge graph workflow (runs on Windows, not Pi)
