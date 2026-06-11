@@ -106,7 +106,6 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <button class="tab" data-m="fuel_rear">FUEL REAR</button>
 <button class="tab" data-m="spark_front">SPARK FRONT</button>
 <button class="tab" data-m="spark_rear">SPARK REAR</button>
-<button class="tab" data-m="proposal">PROPOSAL</button>
 </div>
 <div class="ps"><div style="display:flex;gap:4px;padding:2px 4px;flex-shrink:0;align-items:center"><button id="burnBtn" onclick="burnStaged()" disabled style="font-family:var(--mn);font-size:8px;font-weight:700;padding:2px 10px;background:#c0392b;color:#fff;border:none;border-radius:2px;cursor:pointer;letter-spacing:.06em;opacity:.4">BURN</button><button id="resetBtn" onclick="resetStaged()" disabled style="font-family:var(--mn);font-size:8px;padding:2px 8px;background:var(--p);color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer;opacity:.4">RESET</button><span id="stageSt" style="font-family:var(--mn);font-size:8px;color:var(--dm)"></span></div><div class="pi" id="pw"></div></div>
 <div class="c3bar" style="display:flex;gap:8px;align-items:center;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0">
@@ -136,28 +135,6 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <div class="g3c"><div class="g3t">BASE 3D</div><canvas id="c3b"></canvas><div class="leg" id="lb"></div></div>
 <div class="g3c"><div class="g3t">DELTA 3D</div><canvas id="c3d"></canvas><div class="leg" id="ld"></div></div>
 <div class="g3c"><div class="g3t">MOD 3D</div><canvas id="c3m"></canvas><div class="leg" id="lm"></div></div>
-</div>
-<!-- PROPOSAL pane (FASE 6) - visible only when PROPOSAL tab selected -->
-<div id="proposalPane" style="display:none;flex:1;overflow:auto;padding:6px">
-  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
-    <button id="propGo" class="mc-go" style="display:inline-block" onclick="generateProposal()">GENERATE PROPOSAL</button>
-    <select id="propView" onchange="renderProposal()" style="background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:9px;padding:3px 6px">
-      <option value="smoothed">Smoothed</option>
-      <option value="raw">Raw</option>
-      <option value="confidence">Confidence</option>
-      <option value="source">Source</option>
-    </select>
-    <select id="propCyl" onchange="renderProposal()" style="background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:9px;padding:3px 6px">
-      <option value="front">Front</option>
-      <option value="rear">Rear</option>
-    </select>
-    <span id="propSt" style="font-family:var(--mn);font-size:8px;color:var(--dm)"></span>
-  </div>
-  <div id="propErr" style="display:none;font-family:var(--mn);font-size:9px;color:#e74c3c;margin-bottom:6px"></div>
-  <canvas id="proposal-canvas" width="560" height="520" style="background:var(--p);border:1px solid var(--bd);max-width:100%"></canvas>
-  <div style="font-family:var(--mn);font-size:8px;color:var(--dm);margin-top:4px">
-    Blue = lean (B used less fuel) &middot; Red = rich &middot; White dot = interpolated cell (no direct signal) &middot; clamp &plusmn;15%
-  </div>
 </div>
 </div>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -586,95 +563,10 @@ function swapSessions(){
 }
 document.getElementById('sB').onchange=function(){load('base')};
 document.getElementById('sM').onchange=function(){load('mod')};
-// -- PROPOSAL tab (FASE 6) -------------------------------------------------
-var _propData=null;
-var PROP_SRC_COLORS={none:'#222',vs_sweet:'#2ecc71',vs_spicy_wot:'#e67e22',f7:'#3498db',f7_vs_fusion:'#9b59b6'};
-var PROP_SRC_LABELS={none:'',vs_sweet:'VS',vs_spicy_wot:'WOT',f7:'F7',f7_vs_fusion:'FU'};
-
-function setProposalVisible(on){
-  document.getElementById('proposalPane').style.display=on?'block':'none';
-  var panes=[document.querySelector('.ps'),document.querySelector('.c3bar'),document.querySelector('.g3')];
-  for(var i=0;i<panes.length;i++)if(panes[i])panes[i].style.display=on?'none':'';
-  if(on&&_propData)renderProposal();
-}
-
-function deltaColor(pct,maxAbs){
-  maxAbs=maxAbs||15;
-  var t=Math.max(-1,Math.min(1,pct/maxAbs));
-  return t<0
-    ? 'rgb('+Math.round(255*(1+t))+','+Math.round(255*(1+t))+',255)'
-    : 'rgb(255,'+Math.round(255*(1-t))+','+Math.round(255*(1-t))+')';
-}
-
-function renderProposal(){
-  if(!_propData)return;
-  var view=document.getElementById('propView').value;
-  var cyl=document.getElementById('propCyl').value;
-  var key='delta_fuel_'+cyl;
-  var d=_propData,grid,mask=d.smoothed.signal_mask;
-  if(view==='smoothed')        grid=d.smoothed[key].map(function(r){return r.map(function(v){return v*100})});
-  else if(view==='raw')        grid=d.raw[key].map(function(r){return r.map(function(v){return v*100})});
-  else if(view==='confidence') grid=d.raw.confidence;
-  else                         grid=d.raw.source;
-  renderDeltaHeatmap('proposal-canvas',grid,mask,d.axes,view);
-}
-
-function renderDeltaHeatmap(canvasId,grid,mask,axes,mode){
-  var cv=document.getElementById(canvasId),ctx=cv.getContext('2d');
-  var L=36,B=26,T=6,R=6,W=cv.width,H=cv.height;
-  var nR=grid.length,nC=grid[0].length;
-  var cw=(W-L-R)/nC,ch=(H-T-B)/nR;
-  ctx.clearRect(0,0,W,H);
-  ctx.font='9px monospace';ctx.textAlign='center';ctx.textBaseline='middle';
-  for(var ri=0;ri<nR;ri++){
-    var y=T+(nR-1-ri)*ch;
-    for(var ci=0;ci<nC;ci++){
-      var x=L+ci*cw,v=grid[ri][ci],fill,label;
-      if(mode==='confidence'){fill='rgb(0,'+Math.round(60+v*160)+',0)';label=v>0?Math.round(v*100)+'%':''}
-      else if(mode==='source'){fill=PROP_SRC_COLORS[v]||'#222';label=PROP_SRC_LABELS[v]||''}
-      else{fill=deltaColor(v);label=Math.abs(v)>=0.05?v.toFixed(1):''}
-      ctx.fillStyle=fill;ctx.fillRect(x,y,cw-1,ch-1);
-      if(label){ctx.fillStyle=(mode==='confidence'||mode==='source')?'#fff':'#000';ctx.fillText(label,x+cw/2,y+ch/2)}
-      if(mode==='smoothed'&&mask&&!mask[ri][ci]){
-        ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(x+4,y+4,1.5,0,2*Math.PI);ctx.fill();
-      }
-    }
-  }
-  ctx.fillStyle='#888';
-  for(var ci2=0;ci2<nC;ci2++)ctx.fillText(Math.round(axes.fuel_rpm[ci2]/100),L+ci2*cw+cw/2,H-B/2);
-  ctx.textAlign='right';
-  for(var ri2=0;ri2<nR;ri2++)ctx.fillText(axes.fuel_load[ri2],L-4,T+(nR-1-ri2)*ch+ch/2);
-  ctx.textAlign='center';
-}
-
-async function generateProposal(){
-  var sa=document.getElementById('sB').value,sb=document.getElementById('sM').value;
-  var err=document.getElementById('propErr'),st=document.getElementById('propSt'),btn=document.getElementById('propGo');
-  err.style.display='none';
-  if(!sa||!sb){err.textContent='Select Base and Modificada sessions first';err.style.display='block';return}
-  var key='prop_'+sa+'_'+sb;
-  var cached=sessionStorage.getItem(key);
-  if(cached){_propData=JSON.parse(cached);st.textContent='cached: '+sa+' vs '+sb;renderProposal();return}
-  btn.disabled=true;st.textContent='Generating... (first run on a new pair can take minutes)';
-  try{
-    var r=await fetch('/eeprom/propose?a='+encodeURIComponent(sa)+'&b='+encodeURIComponent(sb));
-    var d=await r.json();
-    if(d.error)throw Error(d.error);
-    _propData=d;
-    try{sessionStorage.setItem(key,JSON.stringify(d))}catch(e){}
-    st.textContent=d.summary.cells_with_signal+'/'+d.summary.cells_total+' cells with signal · F7: '+(d.summary.f7_available?'yes':'no');
-    renderProposal();
-  }catch(e2){err.textContent='Proposal failed: '+e2.message;err.style.display='block';st.textContent=''}
-  finally{btn.disabled=false}
-}
-
 document.getElementById('tabs').onclick=function(e){
   var b=e.target.closest('.tab');if(!b)return;
   var all=document.querySelectorAll('.tab');for(var i=0;i<all.length;i++)all[i].classList.remove('on');
-  b.classList.add('on');
-  if(b.dataset.m==='proposal'){setProposalVisible(true);return}
-  setProposalVisible(false);
-  cur=b.dataset.m;
+  b.classList.add('on');cur=b.dataset.m;
   render();
 };
 function setView(t,r,v){document.getElementById("inTps").value=t;document.getElementById("inRpm").value=r;document.getElementById("inVal").value=v;applyAngles()}

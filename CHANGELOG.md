@@ -21,6 +21,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.116] — 2026-06-11
+### Removed
+- Reverted v2.7.115 (commit 0539360) by user decision: PROPOSAL tab, restored
+  proposal.py/smoothing.py and the /eeprom/propose endpoint are out again.
+  The engine remains recoverable from git history if FASE 6 picks it back up.
+  PROPOSAL tab task (020) restored to BACKLOG.md.
+### Added
+- BACKLOG BL-BUG-03: VS compare OOM on uncached large session pairs
+  (found while testing — affects sessions_vs page too, kept despite revert).
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.115] — 2026-06-11
 ### Added
 - PROPOSAL tab in Tuner page (freebuff task 020): RdBu delta heatmap on canvas
