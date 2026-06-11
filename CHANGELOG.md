@@ -21,6 +21,26 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.115] — 2026-06-11
+### Added
+- PROPOSAL tab in Tuner page (freebuff task 020): RdBu delta heatmap on canvas
+  with Smoothed/Raw/Confidence/Source views, Front/Rear cylinder selector,
+  white-dot overlay for interpolated cells, async generate with sessionStorage
+  cache keyed by session pair.
+### Fixed
+- Restored web/proposal.py (378 lines, FASE 6 F7+VS zone-fusion engine) and
+  web/smoothing.py (163 lines, IDW + Laplacian) — both were deleted
+  undocumented by commit 6270cec (v2.7.64, titled "cleanup stale .bak files",
+  changelog only mentions .bak removals). Re-enabled GET /eeprom/propose in
+  web/handlers/eeprom.py replacing the 410 deprecated stub. Validated against
+  current code: f7.py, vs_engine.py and ecu/eeprom.py signatures unchanged.
+  Endpoint tested with 91B225 vs 248AE2: 14/156 cells with signal.
+### Known issue
+- First-time proposal on a large uncached session pair can OOM the Pi Zero
+  (watchdog restarts the logger) — logged as BL-BUG-03.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.114] — 2026-06-11
 ### Fixed
 - BL-UX-02 nav audit: hamburger menu on the 5 secondary pages
