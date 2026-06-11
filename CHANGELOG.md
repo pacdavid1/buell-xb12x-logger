@@ -21,6 +21,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.113] — 2026-06-11
+### Fixed
+- Sesiones tab "Ver" button did nothing: viewSelectedRides() read the
+  undeclared global _freezeInterval, throwing a silent ReferenceError inside
+  the async function before showTab('ride') ran. The tab never switched and
+  live polling was left dead (cleared one line earlier). Root cause: commit
+  953ee94 moved the freeze-check interval into exitHistory() and dropped the
+  top-level declaration. Fix: declare _liveInterval, _freezeInterval and
+  _cobertInterval as proper globals in app.js.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.112] — 2026-06-10
 
 ### Changed

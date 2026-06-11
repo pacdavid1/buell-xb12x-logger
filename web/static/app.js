@@ -53,6 +53,11 @@ function showTab(id) {
 // ── GRID (Cobertura VE) ──────────────────────────────────────────
 let _cobertMode = 'seconds';
 let _cobertData = null;
+// Polling interval handles — must be declared: reading an undeclared
+// global throws ReferenceError (broke viewSelectedRides tab switch).
+let _liveInterval = null;
+let _freezeInterval = null;
+let _cobertInterval = null;
 
 // ── Configurable widgets ─────────────────────────────────────────────────
 // Widget A: tap the RPM big-card to cycle.
