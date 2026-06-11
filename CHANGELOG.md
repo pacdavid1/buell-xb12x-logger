@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.114] — 2026-06-11
+### Fixed
+- BL-UX-02 nav audit: hamburger menu on the 5 secondary pages
+  (session_events, sessions_vs, sessions_launch, tuner, errorlog_viz) was
+  missing the Fuel link — added after Errors. Dashboard and Fuel pages
+  already had the complete menu. Cross-page navigation matrix now complete.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.113] — 2026-06-11
 ### Fixed
 - Sesiones tab "Ver" button did nothing: viewSelectedRides() read the

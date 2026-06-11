@@ -37,13 +37,6 @@ Alternativa mínima (si el overlay completo es muy complejo):
   como marcadores de color (tipo evento) sin eje Y propio
 
 
-### BL-UX-02 — Tabs faltantes en navegación
-**Priority:** HIGH
-**Pages:** TBD (user reportó tabs que no aparecen)
-
-Auditar el menú de navegación de todas las páginas y verificar que todos los tabs
-estén presentes y visibles. Confirmar con el usuario cuáles faltan específicamente.
-
 ### BL-UX-03 — Baro stats en Sessions VS y Session Events
 **Priority:** MEDIUM
 **Pages:** Session Events, Sessions VS
