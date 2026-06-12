@@ -1305,7 +1305,16 @@ let _noteCtx={session:'',ride_num:0};
 
 // ── GPS MAP ─────────────────────────────────────────────────────────
 let _mapInstance = null;
-let _mapPolyline = null;
+let _trackLayer = null;
+
+// Distance in km between two consecutive GPS points (equirectangular
+// approximation — 1 deg of lon shrinks by cos(lat))
+function gpsKm(a, b){
+  const latRad = (a.lat + b.lat) * 0.5 * Math.PI / 180;
+  const dx = (b.lon - a.lon) * 111.32 * Math.cos(latRad);
+  const dy = (b.lat - a.lat) * 110.54;
+  return Math.hypot(dx, dy);
+}
 
 async function loadMapPane() {
   // Populate selector with available rides
@@ -1347,8 +1356,9 @@ async function loadMapTrack() {
       if(info) info.textContent = 'Sin datos GPS en este ride';
       return;
     }
-    // Remove previous track
-    if (_mapPolyline) { _mapInstance.removeLayer(_mapPolyline); _mapPolyline = null; }
+    // Remove previous track (segments + markers live in one layer group)
+    if (_trackLayer) { _trackLayer.clearLayers(); }
+    else { _trackLayer = L.layerGroup().addTo(_mapInstance); }
     const latlngs = d.points.map(p => [p.lat, p.lon]);
     // Color by speed
     function getSpeedColor(spd) {
@@ -1361,14 +1371,14 @@ async function loadMapTrack() {
     for (let i = 0; i < latlngs.length - 1; i++) {
       L.polyline([latlngs[i], latlngs[i+1]], {
         color: getGradientColor(d.points[i].spd), weight: 4, opacity: 0.85
-      }).addTo(_mapInstance);
+      }).addTo(_trackLayer);
     }
     // Start and end marker
-    L.circleMarker(latlngs[0], {radius:7, color:'#00ff88', fillColor:'#00ff88', fillOpacity:1}).addTo(_mapInstance).bindPopup('Inicio');
-    L.circleMarker(latlngs[latlngs.length-1], {radius:7, color:'#ff4444', fillColor:'#ff4444', fillOpacity:1}).addTo(_mapInstance).bindPopup('Fin');
+    L.circleMarker(latlngs[0], {radius:7, color:'#00ff88', fillColor:'#00ff88', fillOpacity:1}).addTo(_trackLayer).bindPopup('Inicio');
+    L.circleMarker(latlngs[latlngs.length-1], {radius:7, color:'#ff4444', fillColor:'#ff4444', fillOpacity:1}).addTo(_trackLayer).bindPopup('Fin');
     _mapInstance.fitBounds(latlngs);
     const maxSpd2 = Math.max(...d.points.map(p=>p.spd)).toFixed(1);
-    const dist = d.points.reduce((acc,p,i)=> i===0 ? 0 : acc + Math.hypot(p.lat-d.points[i-1].lat, p.lon-d.points[i-1].lon)*111.32, 0).toFixed(2);
+    const dist = d.points.reduce((acc,p,i)=> i===0 ? 0 : acc + gpsKm(d.points[i-1], p), 0).toFixed(2);
     if(info) info.textContent = `${d.count} puntos · Vel max ${maxSpd2} km/h · ~${dist} km`;
     // ── Perfil de altitud ──────────────────────────────────────────
     const altCanvas = $id('altitudeChart');
@@ -1383,10 +1393,7 @@ async function loadMapTrack() {
       const spdColors = [];
       for (let i = 0; i < d.points.length; i++) {
         if (i > 0) {
-          distAcc += Math.hypot(
-            d.points[i].lat - d.points[i-1].lat,
-            d.points[i].lon - d.points[i-1].lon
-          ) * 111.32;
+          distAcc += gpsKm(d.points[i-1], d.points[i]);
         }
         if (d.points[i].alt !== null && d.points[i].alt !== undefined) {
           altLabels.push(distAcc.toFixed(2));

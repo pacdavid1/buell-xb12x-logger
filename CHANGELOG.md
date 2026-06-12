@@ -21,6 +21,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.120] — 2026-06-11
+### Fixed
+- BL-MAP-01: GPS track segments and start/end markers were added straight to
+  the Leaflet map and never removed (_mapPolyline was cleared but never
+  assigned), so every ride change stacked the previous tracks. All track
+  layers now live in one L.layerGroup (_trackLayer) cleared on each load.
+  Verified: layer count resets per ride (858 -> 317 -> 858 on reload).
+- BL-MAP-02: track distance ignored cos(lat) on the longitude delta,
+  overestimating ~8% at lat 32. New gpsKm() helper (equirectangular with
+  cos(lat)) used in the info line and the altitude profile distance axis.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.119] — 2026-06-11
 ### Added
 - BL-GRAF-01 Graf chart presets: PRESET selector in the Graf pane with 5
