@@ -48,16 +48,37 @@
       "severity": "WARN",
       "value": "29%",
       "desc": "SOC low"
+    },
+    {
+      "ts": 1781244201.8913221,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "30%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1781245608.345815,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "20%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1781245909.4942636,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "22%",
+      "desc": "SOC low"
     }
   ],
   "counts": {
     "batCRIT": 1,
     "bat_socCRIT": 2,
-    "bat_socWARN": 4
+    "bat_socWARN": 7
   },
   "last_seen": {
     "batCRIT": 1780416097.0212002,
     "bat_socCRIT": 1780784477.154487,
-    "bat_socWARN": 1780786078.5443444
+    "bat_socWARN": 1781245909.4942636
   }
 }

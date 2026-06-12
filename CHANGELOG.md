@@ -21,6 +21,20 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.124] — 2026-06-11
+### Added
+- BACKLOG_MAPA_3D.md, BACKLOG_3D_VIZ.md and BACKLOG_VDYNO.md committed to
+  version control — they only existed on the Pi SD card until now. VDYNO
+  backlog carries the project north star and the hard design rules
+  (no autonomous EEPROM writes, new tune checksum per proposal, noise
+  floor before verdicts).
+### Notes
+- Pi rebooted on its own ~23:26 local; main.py autostarts on boot. Reflog
+  has invalid entries from the abrupt reboot (HEAD and objects verified
+  fine; GitHub holds full history). Cleanup pending user decision.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.123] — 2026-06-11
 ### Added
 - BL-VD-04 Burn ledger (VDYNO phase V0): web/burn_ledger.py records every
