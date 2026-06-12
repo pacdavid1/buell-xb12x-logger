@@ -21,6 +21,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.117] — 2026-06-11
+### Changed
+- Tuner 3D zoom control: text input replaced with a range slider (0.1–3.0,
+  step 0.05) plus live numeric readout; canvas constrained with
+  max-width/max-height to stop overflow of the g3 row.
+### Fixed
+- Restored fixArrow() — it was removed together with fixArrowZoom() while
+  applying the zoom slider patch, but inTps/inRpm/inVal still reference it
+  via onkeydown, so arrow keys on the angle inputs threw ReferenceError.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.116] — 2026-06-11
 ### Removed
 - Reverted v2.7.115 (commit 0539360) by user decision: PROPOSAL tab, restored
