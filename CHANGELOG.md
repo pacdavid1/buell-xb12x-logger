@@ -21,6 +21,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.127] — 2026-06-11
+### Fixed
+- Power-off button: any exception in the pre-poweroff cleanup steps
+  (_stop_logger_subprocess / web.stop / network.stop_monitor) aborted
+  shutdown() before reaching the poweroff call; the process exited
+  non-zero and systemd (Restart=on-failure) resurrected the logger, so
+  the Pi never powered off. Every cleanup step is now fenced with its own
+  try/except + error log, the poweroff is always attempted (sudo -n) and
+  its return code is logged.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.126] — 2026-06-11
 ### Fixed
 - 3D GPS track was mirrored vs the real map: the north axis entered the

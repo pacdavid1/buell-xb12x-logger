@@ -571,15 +571,28 @@ class BuellLogger:
     def shutdown(self):
         self.logger.info("Stopping services...")
 
-        # Stop ECU logger subprocess first — it closes the ride and disconnects ECU
-        self._stop_logger_subprocess(timeout=10.0)
-
-        self.web.stop()
-        self.network.stop_monitor()
+        # Each step is fenced: a failure here must never prevent the
+        # poweroff below (the UI already told the user we are shutting down).
+        # Stop ECU logger subprocess first — it closes the ride and
+        # disconnects the ECU.
+        steps = (
+            ("logger-subprocess", lambda: self._stop_logger_subprocess(timeout=10.0)),
+            ("web-server", self.web.stop),
+            ("network-monitor", self.network.stop_monitor),
+        )
+        for step_name, step in steps:
+            try:
+                step()
+            except Exception as e:
+                self.logger.error(f"Shutdown step {step_name} failed: {e}")
 
         if self._poweroff_requested and not self.no_poweroff:
             self.logger.info("Powering off system...")
-            subprocess.run(["sudo", "/usr/sbin/poweroff"], check=False)
+            result = subprocess.run(["sudo", "-n", "/usr/sbin/poweroff"],
+                                    capture_output=True, text=True, check=False)
+            if result.returncode != 0:
+                self.logger.error(
+                    f"poweroff failed rc={result.returncode}: {result.stderr.strip()}")
         else:
             self.logger.info("Logger stopped (no poweroff)")
 
