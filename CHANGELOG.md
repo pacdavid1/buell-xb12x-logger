@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.122] — 2026-06-11
+### Added
+- docs/11_VDYNO_PLAN.md: step-by-step, model-agnostic implementation plan
+  for the VDYNO program (virtual dyno, burn ledger, burn verdict, evidence
+  instructor, proposal-to-VE). Phases V0-V4 with file lists, JSON schemas,
+  physics constants and per-step validation commands. Hard rules
+  documented: no autonomous EEPROM writes ever, new tune checksum per
+  proposal, verdicts must beat the measured noise floor.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.121] — 2026-06-11
 ### Added
 - TRANSIENTS/ACCEL preset: VSS_RPM_Ratio added next to VS_KPH+Gear so the
