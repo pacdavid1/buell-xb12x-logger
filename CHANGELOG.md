@@ -21,6 +21,25 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.123] — 2026-06-11
+### Added
+- BL-VD-04 Burn ledger (VDYNO phase V0): web/burn_ledger.py records every
+  EEPROM burn to burns.json (atomic append) — parent/child tune checksums
+  (same md5[327:] identity as session IDs, so child == next session ID),
+  exact cell diff, maps touched, verified flag, backup name. Hooked into
+  _handle_eeprom_burn after the ECU result; a ledger failure never blocks
+  the burn response. The ledger only records — it never writes the ECU.
+- GET /burns endpoint (newest first) + "Burn History" section in the VE
+  tab (lineage table), refreshed on loadMaps and after each burn.
+### Changed
+- Chart title tooltip translated to English (repo rule: English only).
+### Notes
+- Unit-checked locally (tune_checksum, diff_maps, record_burn round-trip).
+  On-Pi endpoint/UI validation pending — Pi was offline during this commit;
+  validation steps are in docs/11_VDYNO_PLAN.md phase V0.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.122] — 2026-06-11
 ### Added
 - docs/11_VDYNO_PLAN.md: step-by-step, model-agnostic implementation plan

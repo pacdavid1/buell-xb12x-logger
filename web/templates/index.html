@@ -580,6 +580,20 @@ table.veg td:active{filter:brightness(1.6)}
     Eje X = RPM · Eje Y = TPS (Load)
   </div>
 
+  <!-- Burn ledger (VDYNO V0) — lineage of every EEPROM burn -->
+  <div id="burnLedgerSection" style="margin-top:18px;padding-top:12px;border-top:1px solid var(--border)">
+    <div class="cfg-title" style="margin-bottom:6px">
+      Burn History
+      <button class="btn" style="font-size:9px;padding:3px 8px;float:right" onclick="loadBurnLedger()">&#8635;</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:6px">
+      parent &#8594; child map lineage &middot; child checksum = next session ID
+    </div>
+    <div id="burnLedgerList" style="font-family:var(--mono);font-size:9px;color:var(--text)">
+      <div style="color:var(--dim);padding:8px 0">No burns recorded yet</div>
+    </div>
+  </div>
+
   
   <div id="ecu-params-panel" style="
        margin-top:24px;

@@ -98,6 +98,7 @@ class DashboardHandler(
             '/eeprom/sessions-list': self._handle_eeprom_sessions_list,
             "/eeprom/propose":  self._handle_eeprom_propose,
             '/eeprom/msq':      self._handle_eeprom_msq,
+            '/burns':           self._handle_burns_list,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,

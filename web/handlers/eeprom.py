@@ -284,7 +284,29 @@ class EepromHandlerMixin:
             self._json({'error': 'burn timeout (30s)'})
             return
         result['backup'] = backup_path.name
+        # Burn ledger (VDYNO V0): record lineage parent -> child with the
+        # exact cell diff. Must never block the burn response.
+        try:
+            from web.burn_ledger import build_entry, record_burn
+            entry = build_entry(
+                current_bin, proposed,
+                _decode_eeprom_maps(current_bin), _decode_eeprom_maps(proposed),
+                source_session=str(cs) if cs else eeprom_path.parent.name,
+                verified=bool(result.get('verified')),
+                backup_name=backup_path.name)
+            record_burn(buell_dir, entry)
+            result['ledger'] = {'parent': entry['parent'],
+                                'child': entry['child'],
+                                'n_cells': entry['n_cells']}
+        except Exception as e:
+            result['ledger_error'] = str(e)
         self._json(result)
+
+    def _handle_burns_list(self, path=None):
+        """GET /burns — burn ledger entries, newest first."""
+        from web.burn_ledger import load_burns
+        burns = load_burns(self.server_instance.buell_dir)
+        self._json({'ok': True, 'count': len(burns), 'burns': burns[::-1]})
 
     def _handle_msq_download(self, path=None):
         """Serve suggested MSQ for a given session (or active session if none specified)."""

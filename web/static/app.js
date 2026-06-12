@@ -817,7 +817,44 @@ let _activeMap = 'fuel_front';
 let _editMode  = false;
 let _staged    = {};  // { mapKey: { 'ri_ci': { orig, val } } }
 
+// ── BURN LEDGER (VDYNO V0) ──────────────────────────────────────────
+async function loadBurnLedger(){
+  const list = $id('burnLedgerList');
+  if(!list) return;
+  try{
+    const r = await fetch('/burns?t=' + Date.now());
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if(!d.burns || d.burns.length === 0){
+      list.innerHTML = '<div style="color:var(--dim);padding:8px 0">No burns recorded yet</div>';
+      return;
+    }
+    let html = '<table style="border-collapse:collapse;width:100%;font-size:9px">'
+      + '<tr style="color:var(--dim);text-align:left">'
+      + '<th style="padding:3px 6px">Date</th><th style="padding:3px 6px">Parent</th>'
+      + '<th style="padding:3px 6px">Child</th><th style="padding:3px 6px">Cells</th>'
+      + '<th style="padding:3px 6px">Maps</th><th style="padding:3px 6px">Status</th></tr>';
+    for(const b of d.burns){
+      const date = (b.ts_utc || '').replace('T', ' ').slice(0, 16);
+      const ok = b.verified;
+      html += '<tr style="border-top:1px solid var(--border)">'
+        + '<td style="padding:3px 6px;color:var(--dim)">' + date + '</td>'
+        + '<td style="padding:3px 6px">' + (b.parent || '?') + '</td>'
+        + '<td style="padding:3px 6px;color:#7df">' + (b.child || '?') + '</td>'
+        + '<td style="padding:3px 6px">' + (b.n_cells != null ? b.n_cells : '?') + '</td>'
+        + '<td style="padding:3px 6px;color:var(--dim)">' + (b.maps_touched || []).join(', ') + '</td>'
+        + '<td style="padding:3px 6px;color:' + (ok ? '#2ecc71' : '#e74c3c') + '">'
+        + (ok ? 'VERIFIED' : 'FAILED') + '</td></tr>';
+    }
+    html += '</table>';
+    list.innerHTML = html;
+  }catch(e){
+    list.innerHTML = '<div style="color:var(--dim);padding:8px 0">Ledger unavailable: ' + e + '</div>';
+  }
+}
+
 async function loadMaps(sessionId){
+  loadBurnLedger();
   const status = $id('veMapStatus');
   if(status) status.textContent = 'Leyendo EEPROM...';
   try{
@@ -956,6 +993,7 @@ function burnStaged(){
         if(veStatus) veStatus.textContent = 'Actualizando mapa...';
         setTimeout(function(){ loadMaps(_mapsSession); }, 1500);
       }
+      loadBurnLedger();
     }
   }).catch(function(e){
     alert('Network error: ' + e.message);
@@ -2311,7 +2349,7 @@ function buildCharts(rows){
     btn.onclick = (e) => { e.stopPropagation(); openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs); };
     if(titleEl){
       titleEl.style.cursor = 'pointer';
-      titleEl.title = 'Click: elegir señales';
+      titleEl.title = 'Click: choose signals';
       titleEl.onclick = (e) => {
         if(e.target.closest('.chart-cfg-btn')) return;
         openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs);
