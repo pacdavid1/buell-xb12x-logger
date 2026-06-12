@@ -13,7 +13,7 @@
 
 ## FASE 1 — Núcleo (lo mínimo para que exista)
 
-### BL-M3D-01 — Vista 3D del track GPS bajo el perfil de altitud
+### BL-M3D-01 — Vista 3D del track GPS bajo el perfil de altitud ✅ HECHO v2.7.125
 **Priority:** HIGH (es el feature estrella)
 **Pages:** Dashboard (index.html — subtab Mapa), app.js
 
@@ -36,7 +36,7 @@ Nueva sección en el subtab Mapa, debajo del altitudeChart:
 - Si el ride no tiene alt (puntos sin fix 3D): mostrar el track plano con
   aviso "sin datos de altitud"
 
-### BL-M3D-02 — Auto-rotación "modo videojuego"
+### BL-M3D-02 — Auto-rotación "modo videojuego" ✅ HECHO v2.7.125
 **Priority:** HIGH (es lo que le da el alma)
 **Pages:** app.js
 
@@ -49,7 +49,7 @@ Nueva sección en el subtab Mapa, debajo del altitudeChart:
   en el teléfono y evita trabajo inútil
 - Solo animar cuando el subtab Mapa está activo
 
-### BL-M3D-03 — Interacción manual (drag / touch / zoom)
+### BL-M3D-03 — Interacción manual (drag / touch / zoom) ✅ HECHO v2.7.125
 **Priority:** HIGH
 **Pages:** app.js
 

@@ -21,6 +21,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.125] — 2026-06-11
+### Added
+- BL-M3D-01/02/03 rotating 3D GPS track view in the Mapa subtab, below the
+  altitude profile: canvas-only engine (no libraries), GPS converted to
+  local meters (cos(lat) equirectangular), speed-colored track line, floor
+  shadow, start/end markers, auto vertical exaggeration (~15% of span).
+  Auto-rotates 360 deg every 30 s; pointer drag rotates freely (any angle),
+  wheel zooms; rotation pauses on interaction, resumes after 4 s idle.
+  Renders only while the Mapa pane is active and the tab visible (rAF).
+  Bounding-sphere framing keeps the track stable while rotating.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.124] — 2026-06-11
 ### Added
 - BACKLOG_MAPA_3D.md, BACKLOG_3D_VIZ.md and BACKLOG_VDYNO.md committed to

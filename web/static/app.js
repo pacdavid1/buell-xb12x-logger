@@ -1354,6 +1354,141 @@ function gpsKm(a, b){
   return Math.hypot(dx, dy);
 }
 
+// ── GPS TRACK 3D (BL-M3D-01/02/03) ──────────────────────────────────
+// Rotating 3D view of the GPS track: x/z = local meters, y = altitude
+// (auto vertical exaggeration). Auto-rotates 360 deg every 30 s; pauses on
+// pointer interaction and resumes after 4 s idle.
+const TRACK3D_TURN_S = 30;
+const TRACK3D_IDLE_RESUME_MS = 4000;
+const TRACK3D_MAX_POINTS = 900;
+
+let _t3 = null;
+
+function initTrack3D(points){
+  const canvas = $id('track3d');
+  if(!canvas || !points || points.length < 2) return;
+  const lat0 = points.reduce((s,p) => s + p.lat, 0) / points.length;
+  const lon0 = points.reduce((s,p) => s + p.lon, 0) / points.length;
+  const cosLat = Math.cos(lat0 * Math.PI / 180);
+  const alts = points.map(p => p.alt).filter(v => v !== null && v !== undefined);
+  const hasAlt = alts.length > points.length * 0.5;
+  const altMin = hasAlt ? Math.min(...alts) : 0;
+  const stride = Math.max(1, Math.ceil(points.length / TRACK3D_MAX_POINTS));
+  const pts = [], spd = [];
+  for(let i = 0; i < points.length; i += stride){
+    const p = points[i];
+    pts.push([(p.lon - lon0) * 111320 * cosLat,
+              hasAlt && p.alt != null ? p.alt - altMin : 0,
+              (p.lat - lat0) * 110540]);
+    spd.push(p.spd || 0);
+  }
+  // Auto vertical exaggeration: altitude range ~15% of horizontal span
+  let spanX = 0, spanZ = 0, maxY = 0;
+  for(const q of pts){
+    spanX = Math.max(spanX, Math.abs(q[0]));
+    spanZ = Math.max(spanZ, Math.abs(q[2]));
+    maxY = Math.max(maxY, q[1]);
+  }
+  const span = Math.max(spanX, spanZ) * 2 || 1;
+  const vexag = (hasAlt && maxY > 0) ? Math.max(1, (span * 0.15) / maxY) : 1;
+  // Center vertically so the bounding sphere stays stable while rotating
+  const yMid = (maxY * vexag) / 2;
+  let radius = 1;
+  for(const q of pts){
+    q[1] = q[1] * vexag - yMid;
+    radius = Math.max(radius, Math.hypot(q[0], q[1], q[2]));
+  }
+  const prev = _t3;
+  _t3 = { pts, spd, hasAlt, radius, floorY: -yMid,
+          ang: prev ? prev.ang : 0.6,
+          tilt: prev ? prev.tilt : 0.5,
+          zoom: prev ? prev.zoom : 1,
+          drag: false, lx: 0, ly: 0, lastTouch: 0, lastTs: 0 };
+  if(!canvas._t3bound){ bindTrack3D(canvas); canvas._t3bound = true; }
+  if(!window._t3raf) window._t3raf = requestAnimationFrame(track3DLoop);
+}
+
+function bindTrack3D(canvas){
+  canvas.addEventListener('pointerdown', e => {
+    if(!_t3) return;
+    _t3.drag = true; _t3.lx = e.clientX; _t3.ly = e.clientY;
+    _t3.lastTouch = performance.now();
+    try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+    e.preventDefault();
+  });
+  canvas.addEventListener('pointermove', e => {
+    if(!_t3 || !_t3.drag) return;
+    _t3.ang += (e.clientX - _t3.lx) * 0.008;
+    _t3.tilt = Math.min(1.45, Math.max(0.05, _t3.tilt + (e.clientY - _t3.ly) * 0.008));
+    _t3.lx = e.clientX; _t3.ly = e.clientY;
+    _t3.lastTouch = performance.now();
+  });
+  const endDrag = () => { if(_t3){ _t3.drag = false; _t3.lastTouch = performance.now(); } };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('wheel', e => {
+    if(!_t3) return;
+    e.preventDefault();
+    _t3.zoom = Math.min(3, Math.max(0.4, _t3.zoom * (e.deltaY < 0 ? 1.08 : 0.93)));
+    _t3.lastTouch = performance.now();
+  }, {passive: false});
+}
+
+function track3DLoop(ts){
+  window._t3raf = requestAnimationFrame(track3DLoop);
+  if(!_t3 || document.hidden) return;
+  const canvas = $id('track3d');
+  const pane = $id('pane-map');
+  if(!canvas || !pane || !pane.classList.contains('active')) return;
+  const dt = _t3.lastTs ? Math.min(0.1, (ts - _t3.lastTs) / 1000) : 0;
+  _t3.lastTs = ts;
+  if(!_t3.drag && ts - _t3.lastTouch > TRACK3D_IDLE_RESUME_MS){
+    _t3.ang += (2 * Math.PI / TRACK3D_TURN_S) * dt;
+  }
+  drawTrack3D(canvas);
+}
+
+function drawTrack3D(canvas){
+  const rect = canvas.getBoundingClientRect();
+  if(rect.width < 10 || rect.height < 10) return;
+  if(canvas.width !== Math.round(rect.width)) canvas.width = Math.round(rect.width);
+  if(canvas.height !== Math.round(rect.height)) canvas.height = Math.round(rect.height);
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0a0a0b'; ctx.fillRect(0, 0, W, H);
+  const cy = Math.cos(_t3.ang), sy = Math.sin(_t3.ang);
+  const cp = Math.cos(_t3.tilt), sp = Math.sin(_t3.tilt);
+  // Stable framing: scale from the bounding sphere, not per-frame bbox
+  const s = ((Math.min(W, H) / 2 - 20) / _t3.radius) * _t3.zoom;
+  const P = q => {
+    const x1 = q[0] * cy + q[2] * sy, z1 = -q[0] * sy + q[2] * cy;
+    return [W / 2 + x1 * s, H / 2 - (q[1] * cp - z1 * sp) * s];
+  };
+  // Floor shadow (track projected on the base plane)
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  for(let i = 0; i < _t3.pts.length; i++){
+    const q = _t3.pts[i], v = P([q[0], _t3.floorY, q[2]]);
+    if(i === 0) ctx.moveTo(v[0], v[1]); else ctx.lineTo(v[0], v[1]);
+  }
+  ctx.stroke();
+  // Track line colored by speed
+  ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+  for(let i = 0; i < _t3.pts.length - 1; i++){
+    const va = P(_t3.pts[i]), vb = P(_t3.pts[i + 1]);
+    ctx.strokeStyle = getGradientColor(_t3.spd[i]);
+    ctx.beginPath(); ctx.moveTo(va[0], va[1]); ctx.lineTo(vb[0], vb[1]); ctx.stroke();
+  }
+  // Start / end markers (same colors as the 2D map)
+  const v0 = P(_t3.pts[0]), v1 = P(_t3.pts[_t3.pts.length - 1]);
+  ctx.fillStyle = '#00ff88'; ctx.beginPath(); ctx.arc(v0[0], v0[1], 5, 0, 7); ctx.fill();
+  ctx.fillStyle = '#ff4444'; ctx.beginPath(); ctx.arc(v1[0], v1[1], 5, 0, 7); ctx.fill();
+  if(!_t3.hasAlt){
+    ctx.fillStyle = '#555'; ctx.font = '9px monospace';
+    ctx.fillText('no altitude data - flat view', 8, 14);
+  }
+}
+
 async function loadMapPane() {
   // Populate selector with available rides
   const sel = $id('mapRideSelect');
@@ -1415,6 +1550,7 @@ async function loadMapTrack() {
     L.circleMarker(latlngs[0], {radius:7, color:'#00ff88', fillColor:'#00ff88', fillOpacity:1}).addTo(_trackLayer).bindPopup('Inicio');
     L.circleMarker(latlngs[latlngs.length-1], {radius:7, color:'#ff4444', fillColor:'#ff4444', fillOpacity:1}).addTo(_trackLayer).bindPopup('Fin');
     _mapInstance.fitBounds(latlngs);
+    initTrack3D(d.points);
     const maxSpd2 = Math.max(...d.points.map(p=>p.spd)).toFixed(1);
     const dist = d.points.reduce((acc,p,i)=> i===0 ? 0 : acc + gpsKm(d.points[i-1], p), 0).toFixed(2);
     if(info) info.textContent = `${d.count} puntos · Vel max ${maxSpd2} km/h · ~${dist} km`;

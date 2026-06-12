@@ -756,6 +756,12 @@ table.veg td:active{filter:brightness(1.6)}
   <div style="background:var(--bg);height:calc(30dvh);padding:4px">
     <canvas id="altitudeChart"></canvas>
   </div>
+  <div style="background:var(--panel);border-top:1px solid var(--border);padding:4px 8px 2px;font-family:var(--mono);font-size:9px;color:var(--dim)">
+    3D track &middot; color = speed &middot; drag to rotate &middot; wheel = zoom &middot; auto-rotates when idle
+  </div>
+  <div style="background:var(--bg);height:calc(38dvh);padding:4px">
+    <canvas id="track3d" style="width:100%;height:100%;display:block;touch-action:none;cursor:grab"></canvas>
+  </div>
 </div>
 
 <script src="/static/app.js?v=--LOGGER_VERSION--"></script>
