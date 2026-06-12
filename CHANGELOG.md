@@ -21,6 +21,20 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.118] — 2026-06-11
+### Added
+- BL-3DV-01 Lambert shading on tuner 3D surfaces (BASE/MOD): per-face normal
+  vs fixed light direction, double-sided (abs of dot) so faces never flip
+  dark while rotating. New shadeRGBA() helper darkens face fill 0.55-1.0.
+- Real camera zoom for the 3D row: CAM.zoom scales the whole projection
+  (sX/sY/sZ) in drawSurf and drawDelta. New amber ZOOM slider (0.3-2.5) +
+  mouse wheel on any 3D canvas.
+### Changed
+- Former "ZOOM" slider renamed to ALT — it only scales value height (sZ),
+  i.e. vertical exaggeration, not camera distance.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.117] — 2026-06-11
 ### Changed
 - Tuner 3D zoom control: text input replaced with a range slider (0.1–3.0,

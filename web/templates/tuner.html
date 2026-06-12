@@ -123,9 +123,12 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <input type="text" inputmode="numeric" id="inRpm" value="10" onkeydown="fixArrow(event,360)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
 <span style="font-family:var(--mn);font-size:7px;color:#3399ff">ROL</span>
 <input type="text" inputmode="numeric" id="inVal" value="0" onkeydown="fixArrow(event,360)" style="width:42px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:2px 4px;border-radius:2px;text-align:center" oninput="applyAngles()">
-<span class="vb" onclick="setView(150,20,0)">S1</span><span class="vb" onclick="setView(245,15,0)">S2</span><span class="vb" onclick="setView(245,0,0)">S3</span><span class="vb" onclick="setView(275,20,0)">S4</span><span style="font-family:var(--mn);font-size:7px;color:var(--bl)">ZOOM</span>
+<span class="vb" onclick="setView(150,20,0)">S1</span><span class="vb" onclick="setView(245,15,0)">S2</span><span class="vb" onclick="setView(245,0,0)">S3</span><span class="vb" onclick="setView(275,20,0)">S4</span><span style="font-family:var(--mn);font-size:7px;color:var(--bl)" title="Value height scale">ALT</span>
 <input type="range" id="inZoom" min="0.1" max="3.0" step="0.05" value="1.0" oninput="applyAngles()" style="width:60px;accent-color:var(--bl);vertical-align:middle;height:14px">
 <span id="zoomVal" style="font-family:var(--mn);font-size:8px;color:var(--bl);min-width:20px;text-align:center">1.0</span>
+<span style="font-family:var(--mn);font-size:7px;color:var(--a2)" title="Camera zoom (mouse wheel on canvas)">ZOOM</span>
+<input type="range" id="inCam" min="0.3" max="2.5" step="0.05" value="1.0" oninput="applyAngles()" style="width:60px;accent-color:var(--a2);vertical-align:middle;height:14px">
+<span id="camVal" style="font-family:var(--mn);font-size:8px;color:var(--a2);min-width:24px;text-align:center">1.00</span>
 
 <span style="font-family:var(--mn);font-size:7px;color:var(--dm);margin-left:4px">INV</span>
 <span class="vb" id="invX" onclick="toggleInv('X')">X</span>
@@ -160,6 +163,7 @@ function dlMsq(selId) {
 }
 var AX={fuel_front:['fuel_rpm','fuel_load'],fuel_rear:['fuel_rpm','fuel_load'],spark_front:['spark_rpm','spark_load'],spark_rear:['spark_rpm','spark_load']};
 var SC={fuel_front:0.50,fuel_rear:0.50,spark_front:0.30,spark_rear:0.30,delta:0.08};
+var CAM={zoom:1};
 var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},delta:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},mod:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0}};
 var INV={X:false,Y:false,Z:false};
 function toggleInv(ax){INV[ax]=!INV[ax];var el=document.getElementById('inv'+ax);el.style.color=INV[ax]?'var(--ac)':'';el.style.borderColor=INV[ax]?'var(--ac)':'';drawAll();}
@@ -257,6 +261,7 @@ function init3D(){
     function rs(){var r=el.getBoundingClientRect();el.width=r.width||300;el.height=r.height||250;drawAll()}
     el.addEventListener('mousedown',function(e){C3[key].drag=true;C3[key].lx=e.clientX;C3[key].ly=e.clientY});
     el.addEventListener('touchstart',function(e){C3[key].drag=true;C3[key].lx=e.touches[0].clientX;C3[key].ly=e.touches[0].clientY},{passive:true});
+    el.addEventListener('wheel',function(e){e.preventDefault();var z=CAM.zoom+(e.deltaY<0?0.05:-0.05);CAM.zoom=Math.min(2.5,Math.max(0.3,Math.round(z*100)/100));var ci=document.getElementById('inCam');if(ci)ci.value=CAM.zoom;var cv=document.getElementById('camVal');if(cv)cv.textContent=CAM.zoom.toFixed(2);drawAll()},{passive:false});
     rs();
   });
   window.addEventListener('resize',function(){
@@ -286,6 +291,11 @@ function drawAll(){
   drawSurf('c3m',mD,rpm,lod,'heat','lm');
 }
 
+function shadeRGBA(col,f){
+  var m=col.match(/rgba?\(([\d.]+),([\d.]+),([\d.]+)(?:,([\d.]+))?\)/);
+  if(!m)return col;
+  return 'rgba('+Math.round(m[1]*f)+','+Math.round(m[2]*f)+','+Math.round(m[3]*f)+','+(m[4]!==undefined?m[4]:1)+')';
+}
 function drawSurf(cid,data,rpm,lod,mode,legId){
   var el=document.getElementById(cid);if(!el||!data||!data.length)return;
   var ctx=el.getContext('2d'),key=cid==='c3b'?'base':cid==='c3d'?'delta':'mod';
@@ -295,7 +305,7 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
   var zN=1e9,zX=-1e9;
   for(var i=0;i<R;i++)for(var j=0;j<Cl;j++){if(data[i][j]<zN)zN=data[i][j];if(data[i][j]>zX)zX=data[i][j]}
   if(zX===zN)zX=zN+1;
-  var pad=40,sX=Math.min((W-pad)/(Cl-1),30),sY=Math.min((H-pad)/(R-1),24);var zRange=zX-zN;if(zRange<1)zRange=1;var sf=SC[cur]||0.4;if(mode==="delta"){sf=SC["delta"]||0.08}var zoom=parseFloat(document.getElementById("inZoom").value)||0.7;var sZ=(H*sf*zoom)/zRange;
+  var pad=40,sX=Math.min((W-pad)/(Cl-1),30)*CAM.zoom,sY=Math.min((H-pad)/(R-1),24)*CAM.zoom;var zRange=zX-zN;if(zRange<1)zRange=1;var sf=SC[cur]||0.4;if(mode==="delta"){sf=SC["delta"]||0.08}var zoom=parseFloat(document.getElementById("inZoom").value)||0.7;var sZ=(H*sf*zoom*CAM.zoom)/zRange;
   var cy=Math.cos(c.ang),sy=Math.sin(c.ang);
   var cp=Math.cos(c.tilt),sp=Math.sin(c.tilt);
   var cr=Math.cos(c.roll),sr=Math.sin(c.roll);
@@ -338,7 +348,13 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
     var av=(data[i][j]+data[i][j+1]+data[i+1][j+1]+data[i+1][j])/4;
     var dp0=pr(j,i,zN),dp1=pr(j+1,i,zN),dp2=pr(j+1,i+1,zN),dp3=pr(j,i+1,zN);
     var dz=(dp0[2]+dp1[2]+dp2[2]+dp3[2])/4;
-    faces.push({p:[p0,p1,p2,p3],z:dz,v:av});
+    // Lambert: normal from two face edges, dot with fixed light dir (normalized)
+    var ux=p1[0]-p0[0],uy=p1[1]-p0[1],uz=p1[2]-p0[2];
+    var vx=p3[0]-p0[0],vy=p3[1]-p0[1],vz=p3[2]-p0[2];
+    var nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
+    var nl=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
+    var lam=Math.abs((nx*-0.35+ny*-0.55+nz*0.76)/nl);
+    faces.push({p:[p0,p1,p2,p3],z:dz,v:av,sh:0.55+0.45*lam});
   }
   faces.sort(function(a,b){return a.z-b.z});
   for(var f=0;f<faces.length;f++){
@@ -347,7 +363,7 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
     for(var k=1;k<4;k++)ctx.lineTo(fc.p[k][0],fc.p[k][1]);
     ctx.closePath();
     var nm=(fc.v-zN)/(zX-zN);
-    ctx.fillStyle=mode==='delta'?dcol(fc.v):heat(nm);
+    ctx.fillStyle=shadeRGBA(mode==='delta'?dcol(fc.v):heat(nm),fc.sh);
     ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;ctx.stroke();
   }
     var o3=pr(0,0,zN),x3=pr(Cl-1,0,zN),y3=pr(0,0,zX),z3=pr(0,R-1,zN);
@@ -392,11 +408,11 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
     if(mD[i][j]<mN)mN=mD[i][j];if(mD[i][j]>mXX)mXX=mD[i][j];
   }
   if(bX===bN)bX=bN+1;if(mXX===mN)mXX=mN+1;
-  var pad=40,sX=Math.min((W-pad)/(Cl-1),30),sY=Math.min((H-pad)/(R-1),24);
+  var pad=40,sX=Math.min((W-pad)/(Cl-1),30)*CAM.zoom,sY=Math.min((H-pad)/(R-1),24)*CAM.zoom;
   
   var zoom=parseFloat(document.getElementById('inZoom').value)||1;
   var zRange=mXX-mN;if(zRange<1)zRange=1;
-  var sZ=(H*(SC[cur]||0.4)*zoom)/zRange;
+  var sZ=(H*(SC[cur]||0.4)*zoom*CAM.zoom)/zRange;
   var cy=Math.cos(c.ang),sy=Math.sin(c.ang);
   var cp=Math.cos(c.tilt),sp=Math.sin(c.tilt);
   var cr=Math.cos(c.roll),sr=Math.sin(c.roll);
@@ -592,6 +608,7 @@ function applyAngles(){
   var valR=-val*Math.PI/180;
   for(var k in C3){C3[k].ang=tpsR;C3[k].tilt=rpmR;C3[k].roll=valR}
   var zv=document.getElementById('zoomVal');if(zv){var zi=document.getElementById('inZoom');zv.textContent=parseFloat(zi.value).toFixed(1);}
+  var ci=document.getElementById('inCam');if(ci){CAM.zoom=parseFloat(ci.value)||1;var cv=document.getElementById('camVal');if(cv)cv.textContent=CAM.zoom.toFixed(2);}
   drawAll();
 }
 
