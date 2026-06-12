@@ -1805,7 +1805,7 @@ const CHART_PRESETS = {
     ['Accel_Corr','WUE'],
     ['TPS_pct'],
     ['pw1','pw2'],
-    ['VS_KPH','Gear'],
+    ['VS_KPH','Gear','VSS_RPM_Ratio'],
     ['fl_accel','fl_wot','fl_decel'],
   ],
   'THERMAL / WARMUP': [
@@ -2290,20 +2290,33 @@ function buildCharts(rows){
   _charts.flags = renderFlagsChart('chartFlags', chartCfgs[5].keys);
 
   // ── Signal selector UI ────────────────────────────────────
-  // Inject ⚙ button into each chart-wrap if not already present
+  // Create the gear button once, but rebind handlers on EVERY build so the
+  // closures always carry the current rows/chartCfgs (stale-closure fix).
+  // The title row spans the whole horizontal scroll width, pushing the gear
+  // off-screen — clicking the title opens the same selector.
   CHART_DEFAULTS.forEach((def, ci) => {
     const canvas = document.getElementById(def.id);
     if(!canvas) return;
     const wrap = canvas.closest('.chart-wrap');
-    if(!wrap || wrap.querySelector('.chart-title .chart-cfg-btn')) return;
-
-    const btn = document.createElement('button');
-    btn.className = 'chart-cfg-btn btn';
-    btn.textContent = '⚙';
-    btn.onclick = (e) => { e.stopPropagation(); openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs); };
+    if(!wrap) return;
     const titleEl = wrap.querySelector('.chart-title');
-    if(titleEl) titleEl.appendChild(btn);
-    else wrap.appendChild(btn);
+    let btn = wrap.querySelector('.chart-title .chart-cfg-btn, .chart-cfg-btn');
+    if(!btn){
+      btn = document.createElement('button');
+      btn.className = 'chart-cfg-btn btn';
+      btn.textContent = '⚙';
+      if(titleEl) titleEl.appendChild(btn);
+      else wrap.appendChild(btn);
+    }
+    btn.onclick = (e) => { e.stopPropagation(); openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs); };
+    if(titleEl){
+      titleEl.style.cursor = 'pointer';
+      titleEl.title = 'Click: elegir señales';
+      titleEl.onclick = (e) => {
+        if(e.target.closest('.chart-cfg-btn')) return;
+        openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs);
+      };
+    }
   });
 
   // Sync chart titles with the configured signals (static HTML titles lie

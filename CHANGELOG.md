@@ -21,6 +21,21 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.121] — 2026-06-11
+### Added
+- TRANSIENTS/ACCEL preset: VSS_RPM_Ratio added next to VS_KPH+Gear so the
+  speed/RPM bands make the actual gear readable per ride.
+- Chart titles are now clickable and open the signal selector (the gear
+  button sits at the right end of the ~6000px scroll-wide title row, i.e.
+  off-screen — title click is the reachable trigger).
+### Fixed
+- Stale closure in the chart gear button: onclick was bound only on the
+  first buildCharts pass, so after a ride/preset change the selector kept
+  editing the first-load chartCfgs. Handlers now rebind with fresh
+  closures on every build.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.120] — 2026-06-11
 ### Fixed
 - BL-MAP-01: GPS track segments and start/end markers were added straight to
