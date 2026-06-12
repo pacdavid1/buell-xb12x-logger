@@ -1779,8 +1779,80 @@ function parseCSVtoRows(text){
 }
 
 
+// ── CHART PRESETS (tuning-oriented signal groups) ──────────────────
+// Slots 1-5 are analog charts, slot 6 feeds the flags chart.
+// OL note: this bike runs Open Loop (no wideband) — EGO_Corr/AFV are constant
+// 100, so the mixture preset uses physical PW instead of CL corrections.
+const LS_PRESET_KEY = 'buell_chart_preset';
+const CHART_PRESETS = {
+  'MIXTURE / PW (OL)': [
+    ['RPM'],
+    ['pw1','pw2'],
+    ['TPS_pct'],
+    ['veCurr1_RAW','veCurr2_RAW'],
+    ['VS_KPH','Gear'],
+    ['fl_engine_run','fl_wot','fl_accel','fl_decel'],
+  ],
+  'TRANSIENTS / ACCEL': [
+    ['RPM'],
+    ['Accel_Corr','WUE'],
+    ['TPS_pct'],
+    ['pw1','pw2'],
+    ['VS_KPH','Gear'],
+    ['fl_accel','fl_wot','fl_decel'],
+  ],
+  'THERMAL / WARMUP': [
+    ['RPM'],
+    ['CLT','MAT'],
+    ['WUE'],
+    ['pw1'],
+    ['Fan_Duty_Pct'],
+    ['fl_engine_run','fl_hot','do_fan'],
+  ],
+  'SPARK': [
+    ['RPM'],
+    ['spark1','spark2'],
+    ['TPS_pct'],
+    ['pw1','pw2'],
+    ['VS_KPH','Gear'],
+    ['fl_wot','fl_decel','fl_fuel_cut'],
+  ],
+  'ELECTRICAL / HEALTH': [
+    ['RPM'],
+    ['Batt_V'],
+    ['cpu_pct','cpu_temp','mem_pct'],
+    ['TPS_V','O2_ADC'],
+    ['buf_in','ttl_pct'],
+    ['fl_engine_run','fl_ignition','do_fuel_pump','do_fan'],
+  ],
+};
+let _lastChartRows = null;
+
+function applyChartPreset(name){
+  try{ localStorage.setItem(LS_PRESET_KEY, name); }catch(e){ console.warn('applyChartPreset:', e); }
+  if(_lastChartRows) buildCharts(_lastChartRows);
+}
+
+function populateChartPresets(){
+  const sel = $id('graphPreset');
+  if(!sel || sel.options.length > 1) return;
+  Object.keys(CHART_PRESETS).forEach(n => {
+    const o = document.createElement('option');
+    o.value = n; o.textContent = n;
+    sel.appendChild(o);
+  });
+  const d = document.createElement('option');
+  d.value = 'DEFAULT'; d.textContent = 'DEFAULT';
+  sel.appendChild(d);
+  let saved = null;
+  try{ saved = localStorage.getItem(LS_PRESET_KEY); }catch(e){}
+  sel.value = saved && (CHART_PRESETS[saved] || saved === 'DEFAULT') ? saved : 'CUSTOM';
+}
+
 // ── BUILD CHARTS ────────────────────────────────────────────────────
 function buildCharts(rows){
+  _lastChartRows = rows;
+  populateChartPresets();
   window._lastBuildRows = rows;
   destroyCharts();
   if(!rows || rows.length < 2) return;
@@ -1953,7 +2025,24 @@ function buildCharts(rows){
     if(!chartCfgs[i]) chartCfgs[i] = {id:def.id, keys:[...def.keys]};
   });
 
-  function saveChartCfgs(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(chartCfgs)); }catch(e){ console.warn("saveChartCfgs:", e); } }
+  // Active preset overrides in memory only — LS_KEY keeps the CUSTOM config
+  let _activePreset = null;
+  try{ _activePreset = localStorage.getItem(LS_PRESET_KEY); }catch(e){}
+  if(_activePreset && CHART_PRESETS[_activePreset]){
+    CHART_PRESETS[_activePreset].forEach((keys,i) => {
+      chartCfgs[i] = {id:CHART_DEFAULTS[i].id, keys:[...keys]};
+    });
+  } else if(_activePreset === 'DEFAULT'){
+    chartCfgs = CHART_DEFAULTS.map(d => ({id:d.id, keys:[...d.keys]}));
+  }
+
+  function saveChartCfgs(){
+    try{
+      localStorage.setItem(LS_PRESET_KEY, 'CUSTOM');
+      const ps = $id('graphPreset'); if(ps) ps.value = 'CUSTOM';
+      localStorage.setItem(LS_KEY, JSON.stringify(chartCfgs));
+    }catch(e){ console.warn("saveChartCfgs:", e); }
+  }
 
   // Crosshair plugin (synced vertical line)
   const crosshairPlugin = {
@@ -2208,6 +2297,23 @@ function buildCharts(rows){
     const titleEl = wrap.querySelector('.chart-title');
     if(titleEl) titleEl.appendChild(btn);
     else wrap.appendChild(btn);
+  });
+
+  // Sync chart titles with the configured signals (static HTML titles lie
+  // once a preset or the gear editor changes the keys)
+  CHART_DEFAULTS.forEach((def, ci) => {
+    const canvas = document.getElementById(def.id);
+    if(!canvas) return;
+    const titleEl = canvas.closest('.chart-wrap')?.querySelector('.chart-title');
+    if(!titleEl) return;
+    let span = titleEl.querySelector('.chart-title-text');
+    if(!span){
+      span = document.createElement('span');
+      span.className = 'chart-title-text';
+      Array.from(titleEl.childNodes).forEach(n => { if(n.nodeType === 3) titleEl.removeChild(n); });
+      titleEl.insertBefore(span, titleEl.firstChild);
+    }
+    span.textContent = chartCfgs[ci].keys.map(k => (SIG_MAP[k]?.label || k)).join(' · ');
   });
 
   $id('graphLegend').style.display='flex';

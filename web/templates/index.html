@@ -462,6 +462,16 @@ table.veg td:active{filter:brightness(1.6)}
   <div id="graphStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
        margin-bottom:6px;min-height:14px"></div>
 
+  <!-- Chart preset selector -->
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+    <span style="font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.08em">PRESET</span>
+    <select id="graphPreset" onchange="applyChartPreset(this.value)"
+            style="background:var(--bg);border:1px solid var(--border);color:#7df;
+                   font-family:var(--mono);font-size:9px;padding:3px 6px">
+      <option value="CUSTOM">CUSTOM</option>
+    </select>
+  </div>
+
   <!-- Markers legend -->
   <div id="graphLegend" style="display:none;font-family:var(--mono);font-size:8px;
        color:var(--dim);margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap">

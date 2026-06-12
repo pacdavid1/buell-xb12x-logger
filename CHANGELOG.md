@@ -21,6 +21,22 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.119] — 2026-06-11
+### Added
+- BL-GRAF-01 Graf chart presets: PRESET selector in the Graf pane with 5
+  tuning-oriented signal groups (MIXTURE/PW (OL), TRANSIENTS/ACCEL,
+  THERMAL/WARMUP, SPARK, ELECTRICAL/HEALTH) plus DEFAULT and CUSTOM.
+  Presets override chart configs in memory only; manual edits via the gear
+  button always switch to CUSTOM and persist to buell_chart_cfg_v2.
+  Active preset persists in localStorage buell_chart_preset.
+  OL compliance: mixture preset uses physical PW + VE raw, not EGO/AFV.
+### Fixed
+- Chart panel titles were hardcoded in index.html and lied once a preset or
+  the gear editor changed the signals — titles now render from the
+  configured signal labels on every buildCharts pass.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.118] — 2026-06-11
 ### Added
 - BL-3DV-01 Lambert shading on tuner 3D surfaces (BASE/MOD): per-face normal
