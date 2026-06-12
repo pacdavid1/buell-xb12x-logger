@@ -1379,7 +1379,7 @@ function initTrack3D(points){
     const p = points[i];
     pts.push([(p.lon - lon0) * 111320 * cosLat,
               hasAlt && p.alt != null ? p.alt - altMin : 0,
-              (p.lat - lat0) * 110540]);
+              (lat0 - p.lat) * 110540]);
     spd.push(p.spd || 0);
   }
   // Auto vertical exaggeration: altitude range ~15% of horizontal span

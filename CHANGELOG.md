@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.126] — 2026-06-11
+### Fixed
+- 3D GPS track was mirrored vs the real map: the north axis entered the
+  projection with inverted sign. Z is now (lat0 - lat) so a top-down 3D
+  view matches Leaflet orientation (north up, east right). Validated by
+  screenshot comparison against the 2D map (start/end markers and shape).
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.125] — 2026-06-11
 ### Added
 - BL-M3D-01/02/03 rotating 3D GPS track view in the Mapa subtab, below the
