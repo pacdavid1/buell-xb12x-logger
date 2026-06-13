@@ -24,6 +24,25 @@ PROMPT_END -->
 
 
 
+
+## [v2.7.131] — 2026-06-13
+### Fixed
+- install.sh was not reproducible and would build a broken Pi on replication:
+  - apt installed python3-serial + python3-flask, but Flask is never imported
+    (server uses stdlib http.server) and the real runtime deps (numpy, smbus2,
+    bmp280) were missing — a freshly provisioned Pi crashed on import.
+  - Malformed POLKIT here-document (escaped-quote delimiters) swallowed the rest
+    of the installer as text, so the systemd service, sudoers and enable/restart
+    steps never executed on a clean install.
+  - Missing udev rule for the stable /dev/ttyECU symlink — a fresh Pi could not
+    find the ECU port.
+### Added
+- requirements.txt with runtime Python deps pinned to the versions validated on
+  the production Pi: pyserial==3.5, smbus2==0.4.3, numpy==2.4.4, bmp280==1.0.0.
+  install.sh now pip-installs them and deploys 99-ecu-serial.rules.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.130] — 2026-06-13
 ### Fixed
 - app.js: the `fetchFuelStatus` 30s poller was never tracked or cleared, so it

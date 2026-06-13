@@ -1,0 +1,9 @@
+# DEV NOTE: All code, comments, and variable names must be in English.
+# Buell DDFI2 Logger — runtime Python dependencies.
+# Pinned to the versions validated on the production Pi (2026-06-13).
+# Install with:
+#   sudo python3 -m pip install --break-system-packages -r requirements.txt
+pyserial==3.5
+smbus2==0.4.3
+numpy==2.4.4
+bmp280==1.0.0
