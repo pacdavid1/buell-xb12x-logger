@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buell XB12X Logger — Presentation</title>
+<title>Buell XB12X Logger — Interactive Guide</title>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -14,82 +14,141 @@
   --mn: 'Share Tech Mono', monospace;
   --bc: 'Barlow Condensed', sans-serif;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg); color: var(--tx); font-family: var(--mn); overflow-x: hidden; }
-.slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: 100vh; scrollbar-width: none; }
-.slides::-webkit-scrollbar { display: none; }
-.slide { min-width: 100vw; height: 100vh; scroll-snap-align: start; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; position: relative; }
-.slide::before { content: ''; position: absolute; inset: 0; opacity: 0.03; background: radial-gradient(ellipse at center, var(--ac), transparent 70%); pointer-events: none; }
-.nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 100; }
-.nav button { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--dm); background: transparent; cursor: pointer; transition: all .3s; }
-.nav button.active { background: var(--ac); border-color: var(--ac); box-shadow: 0 0 8px var(--ac); }
-h1 { font-family: var(--mn); font-size: clamp(28px, 5vw, 52px); font-weight: 900; letter-spacing: 4px; text-align: center; }
-h2 { font-family: var(--mn); font-size: clamp(16px, 2.5vw, 28px); font-weight: 700; letter-spacing: 3px; color: var(--a2); margin-bottom: 16px; }
-p { font-family: var(--bc); font-size: clamp(14px, 1.8vw, 20px); line-height: 1.6; color: var(--tx); max-width: 700px; text-align: center; }
-.tagline { font-family: var(--mn); font-size: clamp(10px, 1.2vw, 14px); color: var(--dm); letter-spacing: 2px; margin-top: 12px; }
-.stripe { width: 60px; height: 3px; background: var(--ac); margin: 16px auto; border-radius: 2px; }
-.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; max-width: 900px; width: 100%; margin-top: 20px; }
-.card { background: var(--p); border: 1px solid var(--bd); border-radius: 4px; padding: 16px; text-align: center; transition: all .3s; cursor: default; }
-.card:hover { border-color: var(--ac); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(232,66,10,.15); }
-.card .icon { font-size: 28px; margin-bottom: 8px; }
-.card .title { font-family: var(--mn); font-size: 10px; font-weight: 700; color: var(--tx); letter-spacing: 1px; }
-.card .desc { font-family: var(--bc); font-size: 13px; color: var(--dm); margin-top: 4px; }
-.pipeline { display: flex; gap: 6px; max-width: 1000px; width: 100%; margin-top: 20px; }
-.pstep { flex: 1; background: var(--p); border: 1px solid var(--bd); border-radius: 4px; padding: 12px 8px; text-align: center; transition: all .3s; }
-.pstep:hover { transform: scale(1.05); }
-.pstep .step-num { font-size: 22px; font-weight: 900; }
-.pstep .step-label { font-family: var(--mn); font-size: 9px; letter-spacing: 1px; margin-top: 4px; }
-.pstep .step-desc { font-family: var(--bc); font-size: 11px; color: var(--dm); margin-top: 6px; }
-.pipeline-arrow { display: flex; align-items: center; color: var(--dm); font-size: 18px; }
-.step-1 { border-color: var(--ac); } .step-1 .step-num { color: var(--ac); }
-.step-2 { border-color: var(--a2); } .step-2 .step-num { color: var(--a2); }
-.step-3 { border-color: var(--bl); } .step-3 .step-num { color: var(--bl); }
-.step-4 { border-color: var(--gn); } .step-4 .step-num { color: var(--gn); }
-.step-5 { border-color: var(--rd); } .step-5 .step-num { color: var(--rd); }
-.metrics { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
-.metric { text-align: center; }
-.metric .num { font-family: var(--mn); font-size: clamp(24px, 4vw, 48px); font-weight: 900; }
-.metric .num.ac { color: var(--ac); } .metric .num.bl { color: var(--bl); } .metric .num.gn { color: var(--gn); } .metric .num.pu { color: var(--pu); }
-.metric .lbl { font-family: var(--mn); font-size: 9px; color: var(--dm); letter-spacing: 2px; }
-.hero-sub { font-family: var(--bc); font-size: clamp(16px, 2.5vw, 28px); font-weight: 700; color: var(--tx); margin-top: 8px; }
-.hero-badge { display: inline-block; background: var(--ac); color: #fff; padding: 3px 10px; border-radius: 2px; font-size: 10px; letter-spacing: 2px; margin-top: 20px; font-weight: 700; }
-.page-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; max-width: 900px; width: 100%; margin-top: 16px; }
-.page-item { background: var(--p); border: 1px solid var(--bd); border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; transition: all .3s; }
-.page-item:hover { border-color: var(--bl); }
-.page-item .page-icon { font-size: 20px; }
-.page-item .page-name { font-family: var(--mn); font-size: 10px; font-weight: 700; color: var(--tx); }
-.page-item .page-route { font-family: var(--mn); font-size: 8px; color: var(--dm); }
-.page-item .page-desc { font-family: var(--bc); font-size: 13px; color: var(--tx); flex: 1; text-align: right; }
-@media (max-width: 700px) {
-  .pipeline { flex-direction: column; }
-  .pipeline-arrow { transform: rotate(90deg); }
-  .slide { padding: 20px; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:var(--mn);overflow-x:hidden}
+.slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100vh;scrollbar-width:none}
+.slides::-webkit-scrollbar{display:none}
+.slide{min-width:100vw;height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px 40px;position:relative}
+.slide::before{content:'';position:absolute;inset:0;opacity:0.03;background:radial-gradient(ellipse at center,var(--ac),transparent 70%);pointer-events:none}
+.nav{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:100}
+.nav button{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--dm);background:transparent;cursor:pointer;transition:all .3s}
+.nav button.active{background:var(--ac);border-color:var(--ac);box-shadow:0 0 10px var(--ac)}
+h1{font-family:var(--mn);font-size:clamp(32px,5vw,56px);font-weight:900;letter-spacing:4px;text-align:center}
+h2{font-family:var(--mn);font-size:clamp(20px,3vw,34px);font-weight:700;letter-spacing:3px;color:var(--a2);margin-bottom:20px}
+h3{font-family:var(--mn);font-size:14px;font-weight:700;letter-spacing:2px;color:var(--dm);margin-bottom:10px}
+p{font-family:var(--bc);font-size:clamp(16px,2vw,22px);line-height:1.5;color:var(--tx);max-width:800px;text-align:center}
+.tagline{font-family:var(--mn);font-size:clamp(11px,1.4vw,16px);color:var(--dm);letter-spacing:2px;margin-top:14px}
+.stripe{width:80px;height:3px;background:var(--ac);margin:18px auto;border-radius:2px}
+
+/* Cards & Grid */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;max-width:1000px;width:100%;margin-top:24px}
+.card{background:var(--p);border:1px solid var(--bd);border-radius:6px;padding:20px;text-align:center;transition:all .3s;cursor:default}
+.card:hover{border-color:var(--ac);transform:translateY(-3px);box-shadow:0 6px 24px rgba(232,66,10,.15)}
+.card .icon{font-size:32px;margin-bottom:10px}
+.card .title{font-family:var(--mn);font-size:13px;font-weight:700;color:var(--tx);letter-spacing:1px}
+.card .desc{font-family:var(--bc);font-size:16px;color:var(--dm);margin-top:6px}
+
+/* Pipeline */
+.pipeline{display:flex;gap:8px;max-width:1100px;width:100%;margin-top:24px}
+.pstep{flex:1;background:var(--p);border:1px solid var(--bd);border-radius:6px;padding:16px 12px;text-align:center;transition:all .3s}
+.pstep:hover{transform:scale(1.05)}
+.pstep .step-num{font-size:28px;font-weight:900}
+.pstep .step-label{font-family:var(--mn);font-size:12px;letter-spacing:1.5px;margin-top:6px}
+.pstep .step-desc{font-family:var(--bc);font-size:15px;color:var(--dm);margin-top:8px}
+.pipeline-arrow{display:flex;align-items:center;color:var(--dm);font-size:24px}
+.step-1{border-color:var(--ac)}.step-1 .step-num{color:var(--ac)}
+.step-2{border-color:var(--a2)}.step-2 .step-num{color:var(--a2)}
+.step-3{border-color:var(--bl)}.step-3 .step-num{color:var(--bl)}
+.step-4{border-color:var(--gn)}.step-4 .step-num{color:var(--gn)}
+.step-5{border-color:var(--rd)}.step-5 .step-num{color:var(--rd)}
+
+/* Metrics */
+.metrics{display:flex;gap:32px;margin-top:24px;flex-wrap:wrap;justify-content:center}
+.metric{text-align:center}
+.metric .num{font-family:var(--mn);font-size:clamp(32px,5vw,60px);font-weight:900}
+.metric .num.ac{color:var(--ac)}.metric .num.bl{color:var(--bl)}.metric .num.gn{color:var(--gn)}.metric .num.pu{color:var(--pu)}
+.metric .lbl{font-family:var(--mn);font-size:12px;color:var(--dm);letter-spacing:2px;margin-top:4px}
+
+/* Hero */
+.hero-sub{font-family:var(--bc);font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--tx);margin-top:10px}
+.hero-badge{display:inline-block;background:var(--ac);color:#fff;padding:6px 16px;border-radius:3px;font-size:13px;letter-spacing:2px;margin-top:24px;font-weight:700}
+
+/* Tags */
+.tags{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+.tag{background:var(--p);border:1px solid var(--bd);padding:6px 14px;border-radius:4px;font-size:12px;color:var(--tx);letter-spacing:1px}
+.tag.ac{border-color:var(--ac);color:var(--ac)}
+.tag.bl{border-color:var(--bl);color:var(--bl)}
+.tag.gn{border-color:var(--gn);color:var(--gn)}
+
+/* UI Mockup Container */
+.mockup{background:var(--p);border:1px solid var(--bd);border-radius:8px;padding:16px;width:100%;max-width:1100px;position:relative;margin-top:12px}
+.mockup-screen{background:#0a0a0b;border-radius:4px;border:1px solid #1a1a20;overflow:hidden;position:relative;font-family:'Share Tech Mono',monospace}
+.mockup-hdr{background:var(--p);border-bottom:2px solid var(--ac);padding:6px 12px;display:flex;align-items:center;gap:12px}
+.mockup-hdr .logo{color:#fff;font-size:15px;font-weight:900;letter-spacing:1px}
+.mockup-hdr .live-dot{width:8px;height:8px;border-radius:50%;background:var(--gn);animation:blink 1.4s infinite}
+.mockup-hdr .ver{color:var(--bl);font-size:12px}
+.mockup-hdr .bat{color:var(--gn);font-size:12px;margin-left:auto}
+.mockup-hdr .fuel-bar{width:60px;height:6px;background:#1e1e24;border-radius:2px;overflow:hidden}
+.mockup-hdr .fuel-fill{height:100%;width:65%;background:var(--gn);border-radius:2px}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+/* Dashboard grid mockup */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px}
+.dash-widget{background:#111114;border:1px solid #1e1e24;border-radius:4px;padding:8px 10px;min-height:40px}
+.dash-widget .wl{font-size:8px;color:var(--a2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+.dash-widget .wv{font-size:22px;font-weight:700;color:#fff}
+.dash-widget .wu{font-size:9px;color:var(--dm);margin-left:4px}
+.dash-chart{grid-column:1/-1;background:#111114;border:1px solid #1e1e24;border-radius:4px;padding:10px;min-height:80px;position:relative}
+.dash-chart .cl{font-size:8px;color:var(--a2);letter-spacing:1.5px;text-transform:uppercase}
+
+/* Grid micro VE */
+.ve-micro{display:grid;grid-template-columns:repeat(12,14px);gap:1px;margin-top:4px}
+.ve-cell{width:14px;height:12px;border-radius:1px}
+
+/* Callout annotations */
+.cal{position:absolute;display:flex;align-items:center;gap:6px;pointer-events:none}
+.cal-dot{width:18px;height:18px;border-radius:50%;background:var(--ac);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:none;z-index:10}
+.cal-line{width:40px;height:1.5px;background:var(--ac);pointer-events:none}
+.cal-text{font-size:11px;color:#fff;background:rgba(0,0,0,0.85);padding:4px 10px;border-radius:3px;border:1px solid var(--ac);max-width:260px;pointer-events:none;line-height:1.4}
+
+/* Description panel */
+.desc-panel{background:var(--p);border:1px solid var(--bl);border-radius:6px;padding:16px 20px;max-width:1100px;width:100%;margin-top:12px;display:grid;grid-template-columns:auto 1fr;gap:8px 20px}
+.desc-num{color:var(--ac);font-size:13px;font-weight:700;text-align:right}
+.desc-text{color:var(--tx);font-size:14px;font-family:var(--bc);line-height:1.5}
+.desc-text strong{color:#fff;font-family:var(--mn)}
+
+/* Page list */
+.page-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;max-width:1000px;width:100%;margin-top:20px}
+.page-item{background:var(--p);border:1px solid var(--bd);border-radius:6px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:all .3s}
+.page-item:hover{border-color:var(--bl)}
+.page-item .pi-icon{font-size:13px;font-weight:700;color:var(--ac);width:30px;text-align:center}
+.page-item .pi-name{font-family:var(--mn);font-size:13px;font-weight:700;color:var(--tx)}
+.page-item .pi-route{font-family:var(--mn);font-size:10px;color:var(--dm)}
+.page-item .pi-desc{font-family:var(--bc);font-size:15px;color:var(--tx);flex:1;text-align:right}
+
+/* Specs table */
+.specs{display:grid;grid-template-columns:auto 1fr;gap:6px 20px;max-width:700px;margin-top:20px;font-size:clamp(14px,1.8vw,20px);font-family:var(--bc)}
+.specs .label{color:var(--dm);text-align:right}
+.specs .value{color:var(--tx)}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.slide.active-content .fade-in{animation:fadeIn .6s ease-out forwards}
+.fade-in{opacity:0}
+
+@media(max-width:700px){
+  .pipeline{flex-direction:column}
+  .pipeline-arrow{transform:rotate(90deg)}
+  .slide{padding:16px 20px}
+  .mockup{overflow-x:auto}
+  .dash-grid{grid-template-columns:1fr}
+  .desc-panel{grid-template-columns:1fr;gap:4px}
 }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-.slide.active-content .fade-in { animation: fadeIn .6s ease-out forwards; }
-.fade-in { opacity: 0; }
-.tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
-.tag { background: var(--p); border: 1px solid var(--bd); padding: 4px 10px; border-radius: 4px; font-size: 9px; color: var(--tx); letter-spacing: 1px; }
-.tag.ac { border-color: var(--ac); color: var(--ac); }
-.tag.bl { border-color: var(--bl); color: var(--bl); }
-.tag.gn { border-color: var(--gn); color: var(--gn); }
-.tag.pu { border-color: var(--pu); color: var(--pu); }
-.tag.a2 { border-color: var(--a2); color: var(--a2); }
-.specs { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; max-width: 600px; margin-top: 16px; font-size: clamp(12px, 1.5vw, 16px); font-family: var(--bc); }
-.specs .label { color: var(--dm); text-align: right; }
-.specs .value { color: var(--tx); }
 </style>
 </head>
 <body>
+
 <div class="slides" id="slides">
 
+<!-- 0: HERO -->
 <div class="slide" data-slide="0">
-<div class="fade-in">
+<div class="fade-in" style="text-align:center">
 <h1 style="color:#fff;">BUELL LOGGER</h1>
 <div class="hero-sub">XB12X · DDFI2 · Raspberry Pi</div>
 <div class="stripe"></div>
-<p>Real-time datalogger and AI-assisted tuning platform for the Buell XB12X with a Delphi DDFI2 ECU. No dyno needed — tuning is entirely data-driven from real street rides.</p>
-<div class="hero-badge">v2.7.130 · 284 versions</div>
+<p>Real-time datalogger and AI-assisted tuning platform for the Buell XB12X with a Delphi DDFI2 ECU. No dyno needed &mdash; tuning is entirely data-driven from real street rides.</p>
+<div class="hero-badge">v2.7.133 &middot; 284+ versions</div>
 <div class="tags">
 <span class="tag ac">Python 3</span>
 <span class="tag bl">Canvas 2D</span>
@@ -97,213 +156,162 @@ p { font-family: var(--bc); font-size: clamp(14px, 1.8vw, 20px); line-height: 1.
 <span class="tag a2">Open Loop</span>
 <span class="tag pu">AI Agents</span>
 </div>
-<div class="tagline">&larr; Swipe or use dots &rarr;</div>
+<div class="tagline">&larr; Swipe or use arrow keys &rarr;</div>
 </div>
 </div>
 
+<!-- 1: PIPELINE -->
 <div class="slide" data-slide="1">
-<div class="fade-in">
+<div class="fade-in" style="text-align:center">
 <h2>THE TUNING CYCLE</h2>
-<p>LOG &rarr; ACOTAR &rarr; COMPARAR &rarr; PROPONER &rarr; QUEMAR</p>
 <div class="pipeline">
-<div class="pstep step-1"><div class="step-num">01 LOG</div><div class="step-label">ECU CAPTURE</div><div class="step-desc">80+ params @ 8Hz via serial. CSVs per ride.</div></div>
+<div class="pstep step-1"><div class="step-num">01 LOG</div><div class="step-label">ECU CAPTURE</div><div class="step-desc">80+ parameters at 8Hz via serial. Raw CSV per ride.</div></div>
 <div class="pipeline-arrow">&rarr;</div>
-<div class="pstep step-2"><div class="step-num">02 ACOTAR</div><div class="step-label">F7 ANALYSIS</div><div class="step-desc">Event detection + DTW clustering</div></div>
+<div class="pstep step-2"><div class="step-num">02 ACOTAR</div><div class="step-label">F7 ANALYSIS</div><div class="step-desc">Event detection + DTW clustering of stable conditions.</div></div>
 <div class="pipeline-arrow">&rarr;</div>
-<div class="pstep step-3"><div class="step-num">03 COMPARAR</div><div class="step-label">SESSIONS VS</div><div class="step-desc">Delta PW per RPM x TPS cell</div></div>
+<div class="pstep step-3"><div class="step-num">03 COMPARAR</div><div class="step-label">SESSIONS VS</div><div class="step-desc">Cross-session cell comparison: &Delta;PW per RPM &times; TPS.</div></div>
 <div class="pipeline-arrow">&rarr;</div>
-<div class="pstep step-4"><div class="step-num">04 PROPONER</div><div class="step-label">MAP PROPOSAL</div><div class="step-desc">F7 + VS zone fusion</div></div>
+<div class="pstep step-4"><div class="step-num">04 PROPONER</div><div class="step-label">MAP PROPOSAL</div><div class="step-desc">F7 + VS zone fusion with IDW + Laplacian smoothing.</div></div>
 <div class="pipeline-arrow">&rarr;</div>
-<div class="pstep step-5"><div class="step-num">05 FIRE</div><div class="step-label">BURN</div><div class="step-desc">EEPROM write from browser</div></div>
+<div class="pstep step-5"><div class="step-num">05 BURN</div><div class="step-label">EEPROM WRITE</div><div class="step-desc">Burn proposed map from browser. Burn ledger tracks lineage.</div></div>
 </div>
-<div class="tagline" style="margin-top:16px">Each ride improves the map &mdash; the cycle repeats</div>
+<div class="tagline">Each ride improves the map &mdash; the cycle repeats</div>
 </div>
 </div>
 
+<!-- 2: HARDWARE -->
 <div class="slide" data-slide="2">
-<div class="fade-in">
-<h2>HARDWARE</h2>
+<div class="fade-in" style="text-align:center">
+<h2>HARDWARE SETUP</h2>
 <div class="specs">
 <span class="label">Bike</span><span class="value">Buell XB12X &middot; 1203cc V-Twin &middot; 2009</span>
 <span class="label">ECU</span><span class="value">Delphi DDFI2 (BUEIB) &middot; Alpha-N &middot; Open Loop</span>
 <span class="label">Logger</span><span class="value">Raspberry Pi &middot; 192.168.100.80:8080</span>
 <span class="label">Serial</span><span class="value">CH343P USB-Serial &middot; 9600 8N1</span>
-<span class="label">Sensors</span><span class="value">BMP280 &middot; AHT20 &middot; CW2015 &middot; GPS</span>
+<span class="label">Sensors</span><span class="value">BMP280 &middot; AHT20 &middot; CW2015 &middot; UBX GPS</span>
 </div>
-<div class="cards" style="margin-top:24px; max-width:700px">
-<div class="card"><div class="icon">TEMP</div><div class="title">BMP280</div><div class="desc">Barometric pressure + temperature</div></div>
-<div class="card"><div class="icon">HUM</div><div class="title">AHT20</div><div class="desc">Humidity sensor</div></div>
-<div class="card"><div class="icon">BAT</div><div class="title">CW2015</div><div class="desc">Battery fuel gauge</div></div>
-<div class="card"><div class="icon">GPS</div><div class="title">GPS</div><div class="desc">Position &middot; Speed &middot; Altitude</div></div>
+<div class="cards" style="margin-top:24px;max-width:700px">
+<div class="card"><div class="icon">&#9925;</div><div class="title">BMP280</div><div class="desc">Barometric pressure + ambient temperature via I2C.</div></div>
+<div class="card"><div class="icon">&#127235;</div><div class="title">AHT20</div><div class="desc">Humidity sensor for atmospheric density correction.</div></div>
+<div class="card"><div class="icon">&#128267;</div><div class="title">CW2015</div><div class="desc">Battery fuel gauge &mdash; voltage, SOC, remaining time.</div></div>
+<div class="card"><div class="icon">&#128225;</div><div class="title">UBX GPS</div><div class="desc">Position, speed, altitude for track logging + calibration.</div></div>
 </div>
-<p style="margin-top:16px;font-size:13px;color:var(--dm)">ECU runs Alpha-N (TPS + RPM only, no MAP) in permanent Open Loop. O2 disconnected.</p>
+<p style="margin-top:16px;font-size:15px;color:var(--dm)">ECU runs <strong style="color:var(--ac)">Alpha-N</strong> (TPS + RPM only, no MAP sensor) in permanent <strong style="color:var(--a2)">Open Loop</strong>. O2 sensor is disconnected &mdash; EGO_Corr = AFV = 100 at all times.</p>
 </div>
 </div>
 
+<!-- 3: DASHBOARD OVERVIEW - Annotated Mockup -->
 <div class="slide" data-slide="3">
-<div class="fade-in">
-<h2>WEB DASHBOARD</h2>
-<p>6 main pages accessible from any browser on the network</p>
-<div class="page-list">
-<div class="page-item"><span class="page-icon">D</span><div><div class="page-name">DASHBOARD</div><div class="page-route">/</div></div><div class="page-desc">Live ECU, VE heatmap, Fuel, Config</div></div>
-<div class="page-item"><span class="page-icon">E</span><div><div class="page-name">SESSION EVENTS</div><div class="page-route">/session_events</div></div><div class="page-desc">F7 detection + DTW clustering</div></div>
-<div class="page-item"><span class="page-icon">V</span><div><div class="page-name">SESSIONS VS</div><div class="page-route">/sessions_vs</div></div><div class="page-desc">Cross-session cell comparison</div></div>
-<div class="page-item"><span class="page-icon">L</span><div><div class="page-name">LAUNCH</div><div class="page-route">/sessions_launch</div></div><div class="page-desc">Launch detection and analysis</div></div>
-<div class="page-item"><span class="page-icon">T</span><div><div class="page-name">TUNER</div><div class="page-route">/tuner</div></div><div class="page-desc">3D map viewer + editor + proposal</div></div>
-<div class="page-item"><span class="page-icon">F</span><div><div class="page-name">FUEL</div><div class="page-route">/fuel</div></div><div class="page-desc">Fill-up tracking + range estimation</div></div>
+<div class="fade-in" style="text-align:center;width:100%;display:flex;flex-direction:column;align-items:center">
+<h2>DASHBOARD &mdash; LIVE VIEW</h2>
+<p style="font-size:16px;color:var(--dm);margin-bottom:4px">Main screen showing real-time ECU data, VE coverage, and ride controls.</p>
+<div class="mockup" style="max-width:1000px">
+<div class="mockup-screen">
+<div class="mockup-hdr">
+<span class="live-dot"></span>
+<span class="logo">BUELL LOGGER</span>
+<span class="ver">v2.7.133</span>
+<span class="bat">&#9889; 13.82V</span>
+<div class="fuel-bar"><div class="fuel-fill"></div></div>
+<span style="font-size:10px;color:#55555e">65%</span>
+</div>
+<div class="dash-grid">
+<!-- RPM -->
+<div class="dash-widget" style="border-top-color:var(--ac)">
+<div class="wl">ENGINE</div>
+<div><span class="wv" style="color:var(--ac)">2,994</span><span class="wu">RPM</span></div>
+<div style="display:flex;gap:16px;margin-top:4px">
+<div><span style="font-size:14px;font-weight:700;color:#fff">76.7</span><span class="wu">km/h</span></div>
+<div><span style="font-size:14px;font-weight:700;color:#fff">34.0</span><span class="wu">TPS%</span></div>
+<div><span style="font-size:14px;font-weight:700;color:#fff">6.18</span><span class="wu">PW1ms</span></div>
+<div><span style="font-size:14px;font-weight:700;color:#fff">132</span><span class="wu">CLT&deg;C</span></div>
+<div><span style="font-size:14px;font-weight:700;color:#b464ff">5th</span><span class="wu">GEAR</span></div>
+</div>
+</div>
+<!-- VE Coverage -->
+<div class="dash-widget" style="border-top-color:var(--a2)">
+<div class="wl">VE CELLS 12&times;11</div>
+<div class="ve-micro">
+<div class="ve-cell" style="background:#2a1f08"></div>
+<div class="ve-cell" style="background:#3a3000"></div>
+<div class="ve-cell" style="background:#0f2e0f"></div>
+<div class="ve-cell" style="background:#0a420a"></div>
+<div class="ve-cell" style="background:#141417"></div>
+<div class="ve-cell" style="background:#141417"></div>
+<div class="ve-cell" style="background:#141417"></div>
+<div class="ve-cell" style="background:#141417"></div>
+<div class="ve-cell" style="background:#141417"></div>
+<div class="ve-cell" style="background:#141417"></div>
+<div class="ve-cell" style="background:#141417"></div>
+<div class="ve-cell" style="background:#141417"></div>
+<div class="ve-cell" style="background:#3d0800"></div>
+<div class="ve-cell" style="background:#2a1f08"></div>
+<div class="ve-cell" style="background:#3a3000"></div>
+<div class="ve-cell" style="background:#0f2e0f"></div>
+<div class="ve-cell" style="background:#0a420a"></div>
+<div class="ve-cell" style="background:#141417"></div>
+</div>
+<div style="margin-top:4px;font-size:9px;color:#55555e">RPM &rarr; &middot; TPS &darr; &middot; Tap cell for details</div>
+</div>
+<!-- Launch Bar -->
+<div class="dash-widget" style="grid-column:1/-1;padding:6px 10px;height:32px;display:flex;align-items:center">
+<div style="flex:1;height:12px;background:#1e1e24;border-radius:6px;overflow:hidden">
+<div style="height:100%;width:35%;background:linear-gradient(90deg,var(--gn),var(--ac));border-radius:6px;opacity:0.6"></div>
+</div>
+<span style="font-size:10px;color:#2cdd6e;margin-left:10px;letter-spacing:2px">STANDBY</span>
+</div>
+<!-- Charts preview -->
+<div class="dash-chart" style="min-height:120px">
+<div class="cl">CHARTS &mdash; MIXTURE / PW (OPEN LOOP)</div>
+<div style="height:80px;margin-top:6px;position:relative;background:#0a0a0b;border-radius:2px;overflow:hidden">
+<div style="position:absolute;bottom:0;left:0;right:0;height:1px;background:#1e1e24;top:25%"></div>
+<div style="position:absolute;bottom:0;left:0;right:0;height:1px;background:#1e1e24;top:50%"></div>
+<div style="position:absolute;bottom:0;left:0;right:0;height:1px;background:#1e1e24;top:75%"></div>
+<svg width="100%" height="80" style="position:absolute;bottom:0">
+<polyline points="10,65 30,60 60,50 90,35 120,28 150,22 180,18 210,15 240,14 270,13 300,12" fill="none" stroke="#e8420a" stroke-width="2.5"/>
+<polyline points="10,65 30,62 60,52 90,40 120,33 150,27 180,23 210,20 240,18 270,17 300,16" fill="none" stroke="#3d9eff" stroke-width="1.2" stroke-dasharray="4,2"/>
+<polyline points="10,50 30,47 60,40 90,32 120,26 150,22 180,19 210,17 240,16 270,15 300,14" fill="none" stroke="#ffc832" stroke-width="1.5"/>
+</svg>
+</div>
+</div>
+<!-- Bottom: Sessions + Map -->
+<div class="dash-widget" style="min-height:50px;display:flex;gap:10px">
+<div style="flex:1">
+<div class="wl">SESSIONS</div>
+<div style="font-size:11px;color:#c8c8cc;padding:2px 0"><span style="color:#f5a623;font-weight:700">27F1A2</span> &middot; active &middot; Today</div>
+<div style="font-size:11px;color:#55555e">248AE2 &middot; Jun 12</div>
+<div style="font-size:11px;color:#55555e">AC501E &middot; Jun 11</div>
+</div>
+<div style="width:120px;height:50px;background:#0d1518;border-radius:2px;border:1px solid #1e1e24">
+<svg width="120" height="50" viewBox="0 0 120 50">
+<path d="M20,40 Q35,30 50,28 Q65,25 80,22 Q95,20 105,25" fill="none" stroke="#e8420a" stroke-width="1.5" opacity="0.8"/>
+<circle cx="20" cy="40" r="3" fill="#2cdd6e"/>
+<circle cx="105" cy="25" r="3" fill="#ff4444"/>
+</svg>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Annotations -->
+<div class="desc-panel" style="margin-top:10px;max-width:1000px">
+<div class="desc-num">1</div><div class="desc-text"><strong>Header</strong> &mdash; Live indicator (green blink), logger version, battery voltage (color-coded), fuel level bar with range remaining.</div>
+<div class="desc-num">2</div><div class="desc-text"><strong>Engine Widget</strong> &mdash; Configurable display. Tap to cycle: RPM, Speed, Fuel level, Consumption, Range, Tank %. Shows gear, CLT, PW1 real-time.</div>
+<div class="desc-num">3</div><div class="desc-text"><strong>VE Cells Grid</strong> &mdash; 12 RPM bins &times; 11 TPS bins. Color: grey=no data, yellow=partial, green=good, red=active cell. Modes: Seconds, EGO, SWEET, TIPOUT, Confidence, WOT.</div>
+<div class="desc-num">4</div><div class="desc-text"><strong>Launch Detection</strong> &mdash; Bar fills as conditions are met (gear stable, TPS tip-in &gt;8%). Turns green when ready to capture a WOT launch event.</div>
+<div class="desc-num">5</div><div class="desc-text"><strong>Charts</strong> &mdash; Canvas 2D with presets: Mixture/PW, Transients/Accel, Thermal/Warmup, Spark, Electrical/Health. Click title to edit signals per panel.</div>
+<div class="desc-num">6</div><div class="desc-text"><strong>Sessions + GPS</strong> &mdash; Session list grouped by EEPROM checksum. GPS track map with start (green) and end (red) markers. Altitude profile below.</div>
 </div>
 </div>
 </div>
 
+<!-- 4: CHARTS + SIGNAL SELECTOR -->
 <div class="slide" data-slide="4">
-<div class="fade-in">
-<h2>SOFTWARE ARCHITECTURE</h2>
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 800px; width: 100%; margin-top: 16px; font-family: var(--bc); font-size: clamp(12px, 1.3vw, 16px);">
-<div style="background:var(--p);border:1px solid var(--ac);border-radius:4px;padding:16px"><div style="color:var(--ac);font-weight:700;margin-bottom:8px">main.py</div><div style="color:var(--dm)">Sensors &middot; Sysmon &middot; Network &middot; Spawns ECU subprocess</div></div>
-<div style="background:var(--p);border:1px solid var(--a2);border-radius:4px;padding:16px"><div style="color:var(--a2);font-weight:700;margin-bottom:8px">ecu/logger_process.py</div><div style="color:var(--dm)">ECU serial + CSV logging (process-isolated)</div></div>
-<div style="background:var(--p);border:1px solid var(--bl);border-radius:4px;padding:16px"><div style="color:var(--bl);font-weight:700;margin-bottom:8px">web/server.py</div><div style="color:var(--dm)">HTTP &middot; REST &middot; 8 handler mixins &middot; IPC</div></div>
-<div style="background:var(--p);border:1px solid var(--gn);border-radius:4px;padding:16px"><div style="color:var(--gn);font-weight:700;margin-bottom:8px">Analysis Engines</div><div style="color:var(--dm)">f7.py &middot; vs_engine.py &middot; launch.py &middot; gear_detect.py</div></div>
-<div style="background:var(--p);border:1px solid var(--pu);border-radius:4px;padding:16px"><div style="color:var(--pu);font-weight:700;margin-bottom:8px">ECU Modules</div><div style="color:var(--dm)">connection.py &middot; protocol.py &middot; eeprom.py &middot; session.py</div></div>
-<div style="background:var(--p);border:1px solid #50c8c8;border-radius:4px;padding:16px"><div style="color:#50c8c8;font-weight:700;margin-bottom:8px">Frontend</div><div style="color:var(--dm)">app.js (3048 lines) &middot; Canvas 2D &middot; Leaflet maps</div></div>
-</div>
-</div>
-</div>
-
-<div class="slide" data-slide="5">
-<div class="fade-in">
-<h2>KEY FEATURES</h2>
-<div class="metrics">
-<div class="metric"><div class="num ac">80+</div><div class="lbl">ECU PARAMS</div></div>
-<div class="metric"><div class="num bl">8 Hz</div><div class="lbl">SAMPLE RATE</div></div>
-<div class="metric"><div class="num gn">284</div><div class="lbl">VERSIONS</div></div>
-<div class="metric"><div class="num pu">3048</div><div class="lbl">JS LINES</div></div>
-<div class="metric"><div class="num ac">13K</div><div class="lbl">TOTAL LINES</div></div>
-</div>
-<div class="cards" style="margin-top:20px">
-<div class="card"><div class="icon">ISO</div><div class="title">Process Isolation</div><div class="desc">ECU logging in subprocess &mdash; dash crashes cannot stop CSV</div></div>
-<div class="card"><div class="icon">LEDGER</div><div class="title">Burn Ledger</div><div class="desc">VDYNO V0 &mdash; every burn tracked with lineage</div></div>
-<div class="card"><div class="icon">CANVAS</div><div class="title">Canvas 2D Charts</div><div class="desc">No libraries &mdash; custom rendering throughout</div></div>
-<div class="card"><div class="icon">3D</div><div class="title">3D GPS Track</div><div class="desc">Rotating 3D view in Mapa subtab</div></div>
-<div class="card"><div class="icon">AI</div><div class="title">Dual AI</div><div class="desc">Claude Code + freebuff in parallel</div></div>
-<div class="card"><div class="icon">BURN</div><div class="title">Browser Burn</div><div class="desc">Write EEPROM from web dashboard</div></div>
-</div>
-</div>
-</div>
-
-<div class="slide" data-slide="6">
-<div class="fade-in">
-<h2>AI AGENT SYSTEM</h2>
-<p>Two AI agents work in parallel</p>
-<div style="display:flex; gap:16px; max-width:700px; width:100%; margin-top:20px">
-<div style="flex:1; background:var(--p); border:1px solid var(--bl); border-radius:6px; padding:20px; text-align:center">
-<div style="font-size:36px; margin-bottom:8px">CLAUDE</div>
-<div style="color:var(--bl); font-weight:700; font-size:16px">Claude Code</div>
-<div style="font-size:9px; color:var(--dm); margin:4px 0 8px">IMPLEMENTER</div>
-<div style="font-size:13px; color:var(--tx)">Writes and commits all code. Reads instructions from CLAUDE.md.</div>
-</div>
-<div style="flex:1; background:var(--p); border:1px solid var(--gn); border-radius:6px; padding:20px; text-align:center">
-<div style="font-size:36px; margin-bottom:8px">FREEBUFF</div>
-<div style="color:var(--gn); font-weight:700; font-size:16px">freebuff</div>
-<div style="font-size:9px; color:var(--dm); margin:4px 0 8px">ANALYST + VALIDATOR</div>
-<div style="font-size:13px; color:var(--tx)">Researches, designs, audits every commit, validates OL compliance.</div>
-</div>
-</div>
-</div>
-</div>
-
-<div class="slide" data-slide="7">
-<div class="fade-in">
-<h2>VDYNO PROGRAM</h2>
-<div class="stripe"></div>
-<p>Virtual dyno &mdash; phased implementation for data-driven tuning validation</p>
-<div class="cards">
-<div class="card"><div class="icon">V0</div><div class="title">V0 &middot; Burn Ledger</div><div class="desc">Done &mdash; burns.json with full lineage</div></div>
-<div class="card"><div class="icon">V1</div><div class="title">V1 &middot; Virtual Dyno</div><div class="desc">Physics-based power estimation from logged data</div></div>
-<div class="card"><div class="icon">V2</div><div class="title">V2 &middot; Burn Verdict</div><div class="desc">Did the burn help? Verdict from before/after comparison</div></div>
-<div class="card"><div class="icon">V3</div><div class="title">V3 &middot; Evidence Instructor</div><div class="desc">Tell the AI what evidence to gather next ride</div></div>
-<div class="card"><div class="icon">V4</div><div class="title">V4 &middot; Proposal to VE</div><div class="desc">End-to-end: from data to map diff to apply</div></div>
-</div>
-<div class="tagline" style="margin-top:16px">No autonomous EEPROM writes &middot; new checksum per proposal &middot; verdicts beat noise floor</div>
-</div>
-</div>
-
-<div class="slide" data-slide="8">
-<div class="fade-in">
-<h2>DESIGN SYSTEM</h2>
-<p>Dark, monospace-driven, high-contrast interface</p>
-<div style="display:flex; gap:16px; max-width:700px; margin-top:16px">
-<div style="width:40px;height:40px;background:#0a0a0b;border-radius:4px;border:2px solid var(--bd)"></div>
-<div style="width:40px;height:40px;background:#111114;border-radius:4px;border:2px solid var(--bd)"></div>
-<div style="width:40px;height:40px;background:#e8420a;border-radius:4px"></div>
-<div style="width:40px;height:40px;background:#f5a623;border-radius:4px"></div>
-<div style="width:40px;height:40px;background:#3d9eff;border-radius:4px"></div>
-<div style="width:40px;height:40px;background:#2cdd6e;border-radius:4px"></div>
-<div style="width:40px;height:40px;background:#ff4444;border-radius:4px"></div>
-<div style="width:40px;height:40px;background:#b464ff;border-radius:4px"></div>
-</div>
-<div class="tags" style="margin-top:12px">
-<span class="tag">Share Tech Mono</span>
-<span class="tag">Barlow Condensed</span>
-<span class="tag">Canvas 2D</span>
-<span class="tag">7-14px scale</span>
-</div>
-</div>
-</div>
-
-<div class="slide" data-slide="9">
-<div class="fade-in">
-<h1 style="color:#fff;font-size:clamp(20px,3vw,36px)">BUELL XB12X LOGGER</h1>
-<div class="stripe"></div>
-<p style="font-size:14px;color:var(--dm)">Raspberry Pi &middot; Python 3 &middot; Delphi DDFI2 &middot; Alpha-N &middot; Open Loop</p>
-<div class="tagline" style="margin-top:20px">192.168.100.80:8080 &middot; /home/pi/buell</div>
-<div style="margin-top:8px; font-size:10px; color:var(--dm)">MIT License &mdash; free for personal and community use</div>
-</div>
-</div>
-
-</div>
-
-<div class="nav" id="nav"></div>
-
-<script>
-var slides = document.querySelectorAll('.slide');
-var nav = document.getElementById('nav');
-var container = document.getElementById('slides');
-
-slides.forEach(function(_, i) {
-  var btn = document.createElement('button');
-  btn.dataset.index = i;
-  btn.addEventListener('click', function() {
-    container.scrollTo({ left: i * window.innerWidth, behavior: 'smooth' });
-  });
-  nav.appendChild(btn);
-  if (i === 0) btn.classList.add('active');
-});
-
-var observer = new IntersectionObserver(function(entries) {
-  entries.forEach(function(entry) {
-    var idx = parseInt(entry.target.dataset.slide);
-    var dots = nav.querySelectorAll('button');
-    if (entry.isIntersecting) {
-      dots.forEach(function(d) { d.classList.remove('active'); });
-      if (dots[idx]) dots[idx].classList.add('active');
-      entry.target.classList.add('active-content');
-    }
-  });
-}, { threshold: 0.6 });
-
-slides.forEach(function(s) { observer.observe(s); });
-
-document.addEventListener('keydown', function(e) {
-  var activeIdx = Array.from(slides).findIndex(function(s) {
-    var rect = s.getBoundingClientRect();
-    return rect.left < window.innerWidth/2 && rect.right > window.innerWidth/2;
-  });
-  if (e.key === 'ArrowRight' && activeIdx < slides.length - 1) {
-    container.scrollTo({ left: (activeIdx + 1) * window.innerWidth, behavior: 'smooth' });
-  } else if (e.key === 'ArrowLeft' && activeIdx > 0) {
-    container.scrollTo({ left: (activeIdx - 1) * window.innerWidth, behavior: 'smooth' });
-  }
-});
-</script>
-</body>
-</html>
+<div class="fade-in" style="text-align:center;width:100%;display:flex;flex-direction:column;align-items:center">
+<h2>CHARTS &amp; SIGNAL ANALYSIS</h2>
+<p style="font-size:16px;color:var(--dm);margin-bottom:4px">Detailed ride charts with preset signal groups and customizable panel layout.</p>
+<div class="mockup" style="max-width:1000px">
+<div class="mockup-screen">
+<div style="background:#111114;border-bottom:1px solid #1e1e24;padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+<span style="font-size:9px;color:#f5a623;letter-spacing:1.5px">PRESET:</span>
+<span style="font-size:9px;color:#e8420a;border:1px solid #e8420a;padding:3px 8px;border-radius:2p
