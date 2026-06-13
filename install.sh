@@ -29,8 +29,8 @@ fi
 echo -e "${YELLOW}Actualizando lista de paquetes...${NC}"
 sudo apt update
 
-echo -e "${YELLOW}Instalando dependencias (git, python3-serial, network-manager)...${NC}"
-sudo apt install -y git python3-serial python3-flask network-manager avahi-daemon avahi-utils
+echo -e "${YELLOW}Installing system dependencies...${NC}"
+sudo apt install -y git python3 python3-pip network-manager avahi-daemon avahi-utils
 
 # ─────────────────────────────────────────────────────────────
 # Clonar / actualizar repo
@@ -46,6 +46,11 @@ else
 fi
 
 cd /home/pi/buell
+
+# Install Python dependencies pinned in requirements.txt (the real runtime
+# deps: pyserial, smbus2, numpy, bmp280). Flask is NOT used.
+echo -e "${YELLOW}Installing Python dependencies...${NC}"
+sudo python3 -m pip install --break-system-packages -r /home/pi/buell/requirements.txt
 
 # ─────────────────────────────────────────────────────────────
 # Configuración por defecto
@@ -135,6 +140,17 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────
+# udev rule: stable /dev/ttyECU symlink for the ECU USB-serial adapter
+# (FTDI 0403:6001 and CH340 1a86:55d3). The systemd service uses /dev/ttyECU.
+# ─────────────────────────────────────────────────────────────
+echo -e "${YELLOW}Installing udev rule for /dev/ttyECU...${NC}"
+sudo tee /etc/udev/rules.d/99-ecu-serial.rules >/dev/null <<'UDEV'
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="ttyECU", MODE="0666"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d3", SYMLINK+="ttyECU", MODE="0666"
+UDEV
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
+# ─────────────────────────────────────────────────────────────
 # Servicio systemd
 # ─────────────────────────────────────────────────────────────
 echo -e "${YELLOW}Configurando servicio systemd...${NC}"
@@ -157,14 +173,14 @@ EOF
 
 # Regla polkit para que el servicio pueda apagar la Pi sin contraseña
 sudo mkdir -p /etc/polkit-1/rules.d
-sudo tee /etc/polkit-1/rules.d/99-buell-poweroff.rules >/dev/null <<\'POLKIT\'
+sudo tee /etc/polkit-1/rules.d/99-buell-poweroff.rules >/dev/null <<'POLKIT'
 polkit.addRule(function(action, subject) {
     if (action.id == "org.freedesktop.login1.power-off" &&
         subject.user == "pi") {
         return polkit.Result.YES;
     }
 });
-\'POLKIT\'
+POLKIT
 sudo systemctl restart polkit
 
 # Permisos sudoers para systemctl restart sin contraseña
