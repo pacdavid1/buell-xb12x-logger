@@ -85,6 +85,11 @@ class DashboardHandler(
             self._handle_docs(self.path)
             return
 
+        # Health check
+        if self.path == "/health":
+            self._handle_health()
+            return
+
         _routes = {
             '/tuner/sessions': self._handle_tuner_sessions,
             '/tuner/maps': self._handle_tuner_maps,
@@ -206,6 +211,17 @@ class DashboardHandler(
         self.send_response(404)
         self.end_headers()
         self.wfile.write(b"Not Found")
+
+    def _handle_health(self):
+        import json
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            "status": "ok",
+            "version": "v2.7.132",
+            "uptime_s": int(__import__("time").time() - 1741370800)
+        }).encode())
 
     def _handle_static(self, path=None):
         path = self.path.split("?", 1)[0].removeprefix("/")

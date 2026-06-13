@@ -25,6 +25,13 @@ PROMPT_END -->
 
 
 
+## [v2.7.132] — 2026-06-13
+### Fixed
+- /health endpoint added to server.py (was returning 404)
+- Spanish strings translated to English (session.py, eeprom_params.py, version_resolver.py)
+### AI
+- freebuff (audit + implementation)
+
 ## [v2.7.131] — 2026-06-13
 ### Fixed
 - install.sh was not reproducible and would build a broken Pi on replication:

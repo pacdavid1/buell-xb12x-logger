@@ -59,7 +59,7 @@ def decode_params(blob, version_string):
         tree = ET.parse(xml_path)
         root = tree.getroot()
     except Exception as e:
-        logger.error(f"Error parseando {xml_path}: {e}")
+        logger.error(f"Error parsing {xml_path}: {e}")
         return []
 
     # detectar namespace
