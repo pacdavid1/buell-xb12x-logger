@@ -25,6 +25,19 @@ PROMPT_END -->
 
 
 
+## [v2.7.133] — 2026-06-13
+
+### Changed
+- Dashboard: 6 fixed permanent chart groups replace preset-based layout
+  - DYNAMICS (200px): RPM, KPH, TPS%, Gear + WOT/Decel/Accel flags
+  - FUEL (160px): PW1/PW2, WUE, Accel/Decel corrections + fuel flags
+  - IGNITION (120px): Spark1/2, VE Curr1/2 RAW
+  - ENVIRONMENT (140px): CLT, MAT, Batt V + hot flag
+  - VDYNO (140px): HP, Torque N·m, RPM dim + WOT flag
+  - ALL FLAGS (140px): full logic-analyzer with 16 flag lanes
+- Per-signal fixed y-ranges (no more auto-scale compression)
+- Removed preset selector UI (hidden, not deleted)
+
 ## [v2.7.132] — 2026-06-13
 ### Fixed
 - /health endpoint added to server.py (was returning 404)

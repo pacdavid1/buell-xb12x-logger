@@ -2181,47 +2181,111 @@ function buildCharts(rows){
   const SIG_MAP = {};
   ALL_SIGNALS.forEach(s => SIG_MAP[s.key] = s);
 
-  // ── Default configs per chart (6 charts) ─────────────────
-  const CHART_DEFAULTS = [
-    { id:'chartRPM',  title:'CHART 1', keys:['RPM','VS_KPH','CLT'] },
-    { id:'chartFuel', title:'CHART 2', keys:['EGO_Corr','AFV','WUE','Accel_Corr'] },
-    { id:'chartTPS',  title:'CHART 3', keys:['TPS_pct'] },
-    { id:'chartSPK',  title:'CHART 4', keys:['spark1','spark2','pw1','pw2'] },
-    { id:'chartBatt', title:'CHART 5', keys:['Batt_V'] },
-    { id:'chartFlags',title:'CHART 6', keys:['fl_engine_run','fl_wot','fl_accel','fl_decel','fl_closed_loop','fl_rich','fl_learn','fl_hot','fl_kill','fl_fuel_cut','do_cel'] },
+  // ── Fixed chart layout (6 permanent groups, no presets) ─────
+  const FIXED_CHARTS = [
+    {
+      id: 'chartRPM', title: 'DYNAMICS', height: 200,
+      signals: [
+        { key:'RPM',     min:0,    max:9000, color:'#e8420a' },
+        { key:'VS_KPH',  min:0,    max:200,  color:'#4ab4ff' },
+        { key:'TPS_pct', min:0,    max:100,  color:'#38aaff' },
+        { key:'Gear',    min:0,    max:6,    color:'#aaaaaa' },
+      ],
+      flags: ['fl_wot','fl_decel','fl_accel'],
+    },
+    {
+      id: 'chartFuel', title: 'FUEL', height: 160,
+      signals: [
+        { key:'pw1',        min:0,   max:8,   color:'#ff9900' },
+        { key:'pw2',        min:0,   max:8,   color:'#ffcc44', dash:[3,2] },
+        { key:'WUE',        min:80,  max:130, color:'#ffff00' },
+        { key:'Accel_Corr', min:0,   max:100, color:'#88ff88' },
+        { key:'Decel_Corr', min:0,   max:100, color:'#ff8888' },
+      ],
+      flags: ['fl_accel','fl_closed_loop','fl_rich'],
+    },
+    {
+      id: 'chartTPS', title: 'IGNITION', height: 120,
+      signals: [
+        { key:'spark1',      min:0,  max:45,  color:'#aa88ff' },
+        { key:'spark2',      min:0,  max:45,  color:'#cc99ff', dash:[3,2] },
+        { key:'veCurr1_RAW', min:0,  max:255, color:'#88ffff' },
+        { key:'veCurr2_RAW', min:0,  max:255, color:'#aaffff', dash:[3,2] },
+      ],
+      flags: [],
+    },
+    {
+      id: 'chartSPK', title: 'ENVIRONMENT', height: 140,
+      signals: [
+        { key:'CLT',    min:0,  max:250, color:'#ff9900' },
+        { key:'MAT',    min:0,  max:80,  color:'#ffbb55' },
+        { key:'Batt_V', min:10, max:16,  color:'#77ddff' },
+      ],
+      flags: ['fl_hot'],
+    },
+    {
+      id: 'chartBatt', title: 'VDYNO', height: 140,
+      signals: [
+        { key:'hp',        min:0,    max:100,  color:'#ff5500' },
+        { key:'torque_nm', min:0,    max:150,  color:'#ffcc00' },
+        { key:'RPM',       min:0,    max:9000, color:'#e8420a44' },
+      ],
+      flags: ['fl_wot'],
+    },
+    {
+      id: 'chartFlags', title: 'ALL FLAGS', height: 140,
+      signals: [],
+      flags: [
+        'fl_engine_run','fl_wot','fl_accel','fl_decel',
+        'fl_closed_loop','fl_rich','fl_learn','fl_hot',
+        'fl_kill','fl_fuel_cut','fl_o2_active','fl_ignition',
+        'do_coil1','do_inj1','do_fan','do_fuel_pump',
+      ],
+    },
   ];
 
-  // Load saved config from localStorage
-  const LS_KEY = 'buell_chart_cfg_v2';
-  let chartCfgs;
-  try {
-    const saved = localStorage.getItem(LS_KEY);
-    chartCfgs = saved ? JSON.parse(saved) : CHART_DEFAULTS.map(d=>({id:d.id, keys:[...d.keys]}));
-  } catch(e) {
-    chartCfgs = CHART_DEFAULTS.map(d=>({id:d.id, keys:[...d.keys]}));
-  }
-  // Ensure all 6 charts exist in config
-  CHART_DEFAULTS.forEach((def,i) => {
-    if(!chartCfgs[i]) chartCfgs[i] = {id:def.id, keys:[...def.keys]};
-  });
+  // Render a fixed chart with per-signal explicit y-ranges
+  function renderFixedChart(def, _rows, _tFirst, _tLast) {
+    const canvas = document.getElementById(def.id);
+    if (!canvas) return null;
+    const inner = canvas.closest('.chart-inner');
+    if (inner) inner.style.height = def.height + 'px';
+    const ctx = canvas.getContext('2d');
+    const datasets = [];
+    const scales = { x: CHART_BASE.scales.x };
 
-  // Active preset overrides in memory only — LS_KEY keeps the CUSTOM config
-  let _activePreset = null;
-  try{ _activePreset = localStorage.getItem(LS_PRESET_KEY); }catch(e){}
-  if(_activePreset && CHART_PRESETS[_activePreset]){
-    CHART_PRESETS[_activePreset].forEach((keys,i) => {
-      chartCfgs[i] = {id:CHART_DEFAULTS[i].id, keys:[...keys]};
+    def.signals.forEach(sig => {
+      const sigDef = SIG_MAP[sig.key];
+      if (!sigDef) return;
+      const axisId = 'y_' + sig.key;
+      scales[axisId] = { type:'linear', display:false, min:sig.min, max:sig.max };
+      const ds = {
+        _key: sig.key,
+        label: sigDef.label,
+        data: _rows.map(r => ({ x: r.time_elapsed_s, y: r[sig.key] ?? null })),
+        borderColor: sig.color || sigDef.color,
+        borderWidth: 1.5,
+        borderDash: sig.dash || [],
+        pointRadius: 0,
+        tension: 0,
+        fill: false,
+        yAxisID: axisId,
+      };
+      datasets.push(ds);
     });
-  } else if(_activePreset === 'DEFAULT'){
-    chartCfgs = CHART_DEFAULTS.map(d => ({id:d.id, keys:[...d.keys]}));
-  }
 
-  function saveChartCfgs(){
-    try{
-      localStorage.setItem(LS_PRESET_KEY, 'CUSTOM');
-      const ps = $id('graphPreset'); if(ps) ps.value = 'CUSTOM';
-      localStorage.setItem(LS_KEY, JSON.stringify(chartCfgs));
-    }catch(e){ console.warn("saveChartCfgs:", e); }
+    if (def.flags && def.flags.length) {
+      const N = def.flags.length;
+      scales['y_flags_band'] = { type:'linear', display:false, min:-0.5, max:N*2 };
+      _buildFlagDatasets(def.flags, _rows, 'y_flags_band').forEach(d => datasets.push(d));
+    }
+
+    if (!datasets.length) {
+      datasets.push({ _key:'_empty', label:'—', data:[{x:_tFirst,y:0},{x:_tLast,y:0}],
+        borderColor:'#333', borderWidth:1, pointRadius:0, fill:false, yAxisID:'y__empty' });
+      scales['y__empty'] = { type:'linear', display:false };
+    }
+    return new Chart(ctx, { type:'line', data:{datasets}, options:{...CHART_BASE, scales} });
   }
 
   // Crosshair plugin (synced vertical line)
@@ -2476,59 +2540,40 @@ function buildCharts(rows){
     return new Chart(ctx,{type:'line',data:{datasets},options:{...CHART_BASE,scales}});
   }
 
-  // ── Build all 6 charts ────────────────────────────────────
-  _charts.rpm   = renderChart('chartRPM',   chartCfgs[0].keys, 0);
-  _charts.fuel  = renderChart('chartFuel',  chartCfgs[1].keys, 1);
-  _charts.tps   = renderChart('chartTPS',   chartCfgs[2].keys, 2);
-  _charts.spk   = renderChart('chartSPK',   chartCfgs[3].keys, 3);
-  _charts.batt  = renderChart('chartBatt',  chartCfgs[4].keys, 4);
-  _charts.flags = renderFlagsChart('chartFlags', chartCfgs[5].keys);
-
-  // ── Signal selector UI ────────────────────────────────────
-  // Create the gear button once, but rebind handlers on EVERY build so the
-  // closures always carry the current rows/chartCfgs (stale-closure fix).
-  // The title row spans the whole horizontal scroll width, pushing the gear
-  // off-screen — clicking the title opens the same selector.
-  CHART_DEFAULTS.forEach((def, ci) => {
-    const canvas = document.getElementById(def.id);
-    if(!canvas) return;
-    const wrap = canvas.closest('.chart-wrap');
-    if(!wrap) return;
-    const titleEl = wrap.querySelector('.chart-title');
-    let btn = wrap.querySelector('.chart-title .chart-cfg-btn, .chart-cfg-btn');
-    if(!btn){
-      btn = document.createElement('button');
-      btn.className = 'chart-cfg-btn btn';
-      btn.textContent = '⚙';
-      if(titleEl) titleEl.appendChild(btn);
-      else wrap.appendChild(btn);
-    }
-    btn.onclick = (e) => { e.stopPropagation(); openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs); };
-    if(titleEl){
-      titleEl.style.cursor = 'pointer';
-      titleEl.title = 'Click: choose signals';
-      titleEl.onclick = (e) => {
-        if(e.target.closest('.chart-cfg-btn')) return;
-        openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs);
-      };
+  // ── Build all 6 fixed charts ─────────────────────────────
+  const _chartKeys = ['rpm','fuel','tps','spk','batt','flags'];
+  FIXED_CHARTS.forEach((def, i) => {
+    const key = _chartKeys[i];
+    if (def.id === 'chartFlags') {
+      _charts[key] = renderFlagsChart(def.id, def.flags);
+      // Height for flags chart
+      const inner = document.getElementById(def.id)?.closest('.chart-inner');
+      if (inner) inner.style.height = def.height + 'px';
+    } else {
+      _charts[key] = renderFixedChart(def, rows, tFirst, tLast);
     }
   });
 
-  // Sync chart titles with the configured signals (static HTML titles lie
-  // once a preset or the gear editor changes the keys)
-  CHART_DEFAULTS.forEach((def, ci) => {
+  // ── Set fixed chart titles ────────────────────────────────
+  FIXED_CHARTS.forEach(def => {
     const canvas = document.getElementById(def.id);
-    if(!canvas) return;
+    if (!canvas) return;
     const titleEl = canvas.closest('.chart-wrap')?.querySelector('.chart-title');
-    if(!titleEl) return;
+    if (!titleEl) return;
+    // Remove stale gear button if it survived a hot-reload
+    const btn = titleEl.querySelector('.chart-cfg-btn');
+    if (btn) btn.remove();
+    titleEl.style.cursor = '';
+    titleEl.title = '';
+    titleEl.onclick = null;
     let span = titleEl.querySelector('.chart-title-text');
-    if(!span){
+    if (!span) {
       span = document.createElement('span');
       span.className = 'chart-title-text';
-      Array.from(titleEl.childNodes).forEach(n => { if(n.nodeType === 3) titleEl.removeChild(n); });
+      Array.from(titleEl.childNodes).forEach(n => { if (n.nodeType === 3) titleEl.removeChild(n); });
       titleEl.insertBefore(span, titleEl.firstChild);
     }
-    span.textContent = chartCfgs[ci].keys.map(k => (SIG_MAP[k]?.label || k)).join(' · ');
+    span.textContent = def.title;
   });
 
   $id('graphLegend').style.display='flex';
