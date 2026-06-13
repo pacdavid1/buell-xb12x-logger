@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 """
-ecu/session.py — SessionManager: grabación de rides en CSV + summaries JSON
-Extraído de ddfi2_logger.py para modularización v2.0
+ecu/session.py — SessionManager: records rides to CSV + JSON summaries.
+Extracted from ddfi2_logger.py for the v2.0 modularization.
 
-Responsabilidades:
-  - Agrupar rides por checksum de versión ECU (sesión)
-  - Grabar CSV por ride con todos los parámetros RT
-  - Generar summary JSON al cerrar cada ride
-  - Evaluar objetivos de cobertura de celdas VE
-  - Generar consolidated.csv por sesión
+Responsibilities:
+  - Group rides by ECU version checksum (session)
+  - Record one CSV per ride with all real-time parameters
+  - Generate a summary JSON when each ride closes
+  - Evaluate VE cell coverage objectives
+  - Generate consolidated.csv per session
+
+DEV NOTE: All code, comments, and variable names must be in English.
 """
 
 import bisect
@@ -16,6 +18,7 @@ import csv
 import hashlib
 import json
 import logging
+import re
 import time
 import threading
 from collections import Counter
@@ -24,8 +27,26 @@ from pathlib import Path
 
 from ecu.protocol import CSV_COLUMNS, RPM_BINS, LOAD_BINS
 
-LOGGER_VERSION = "v2.3.0-MODULAR"
-MAX_CSV_ROWS   = 10000  # ~20 min a 8Hz
+def _resolve_logger_version():
+    """Resolve the current logger version from CHANGELOG.md (newest entry at
+    the top). Falls back to "unknown" if the changelog cannot be read."""
+    try:
+        changelog = Path(__file__).resolve().parent.parent / "CHANGELOG.md"
+        text = changelog.read_text()
+        # Skip the instruction block; real entries start after PROMPT_END.
+        marker = text.find("PROMPT_END -->")
+        if marker != -1:
+            text = text[marker:]
+        match = re.search(r"## \[([^\]]+)\]", text)
+        if match:
+            return match.group(1)
+    except Exception:
+        pass
+    return "unknown"
+
+
+LOGGER_VERSION = _resolve_logger_version()
+MAX_CSV_ROWS   = 10000  # ~20 minutes at 8 Hz
 
 
 class SessionManager:
@@ -70,6 +91,7 @@ class SessionManager:
                 "total_rides": 0, "total_samples": 0,
                 "total_runtime_seconds": 0,
                 "rpm_min_seen": 99999, "rpm_max_seen": 0,
+                "logger_version": LOGGER_VERSION,
                 "rider_notes": []
             }
             self.logger.info(f"Nueva sesión: {cs} firmware={version_str}")
@@ -102,9 +124,10 @@ class SessionManager:
         self.logger.info(f"EEPROM guardada: {eeprom_file.name} ({len(blob)} bytes)")
     def start_ride(self):
         if not self.current_session_dir:
-            raise RuntimeError("Sin sesión activa")
+            raise RuntimeError("No active session")
         self.session_metadata["total_rides"] = self.session_metadata.get("total_rides", 0) + 1
         self.current_ride_num  = self.session_metadata["total_rides"]
+        self.session_metadata["logger_version"] = LOGGER_VERSION
         self.current_part      = 1
         self.current_part_rows = 0
         self._open_csv_part()
@@ -112,7 +135,7 @@ class SessionManager:
         self.ride_sample_count = 0
         self._ride_start_utc   = datetime.now(timezone.utc).isoformat()
         self._save_metadata()
-        self.logger.info(f"Ride {self.current_ride_num:03d} iniciado")
+        self.logger.info(f"Ride {self.current_ride_num:03d} started")
 
     def _open_csv_part(self):
         """Abre el archivo CSV de la parte actual del ride."""

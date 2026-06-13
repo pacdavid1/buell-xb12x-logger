@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 650" font-family="'Share Tech Mono', monospace">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a0a0b"/><stop offset="100%" stop-color="#111114"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/></filter>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#55555e"/></marker>
+  </defs>
+  <rect width="1000" height="650" fill="url(#bg)" rx="8"/>
+  <text x="500" y="35" text-anchor="middle" fill="#c8c8cc" font-size="13" font-weight="900" letter-spacing="4">SYSTEM ARCHITECTURE</text>
+  <text x="500" y="52" text-anchor="middle" fill="#55555e" font-size="7">HARDWARE · SOFTWARE · DATA FLOW</text>
+  
+  <!-- Left column: Hardware -->
+  <text x="50" y="85" fill="#f5a623" font-size="8" letter-spacing="2">HARDWARE</text>
+  <rect x="20" y="95" width="280" height="520" rx="4" fill="none" stroke="#2a2a30" stroke-width="1" stroke-dasharray="4,3"/>
+  
+  <!-- Raspberry Pi -->
+  <rect x="40" y="110" width="120" height="70" rx="4" fill="#1e1e24" stroke="#e8420a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="100" y="132" text-anchor="middle" fill="#e8420a" font-size="10" font-weight="700">Raspberry Pi</text>
+  <text x="100" y="146" text-anchor="middle" fill="#c8c8cc" font-size="7">Zero / 3 / 4</text>
+  <text x="100" y="160" text-anchor="middle" fill="#55555e" font-size="7">192.168.100.80:8080</text>
+  <text x="100" y="174" text-anchor="middle" fill="#55555e" font-size="7">Python 3, tmpfs IPC</text>
+  
+  <!-- CH343P USB-Serial -->
+  <rect x="180" y="110" width="100" height="70" rx="4" fill="#1e1e24" stroke="#3d9eff" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="230" y="132" text-anchor="middle" fill="#3d9eff" font-size="10" font-weight="700">CH343P</text>
+  <text x="230" y="146" text-anchor="middle" fill="#c8c8cc" font-size="7">USB-Serial</text>
+  <text x="230" y="160" text-anchor="middle" fill="#55555e" font-size="7">9600 8N1</text>
+  <text x="230" y="174" text-anchor="middle" fill="#55555e" font-size="7">FTDI compatible</text>
+  
+  <!-- ECU -->
+  <rect x="40" y="200" width="240" height="80" rx="4" fill="#1e1e24" stroke="#ff4444" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="160" y="222" text-anchor="middle" fill="#ff4444" font-size="10" font-weight="700">Delphi DDFI2 ECU</text>
+  <text x="160" y="238" text-anchor="middle" fill="#c8c8cc" font-size="7">Alpha-N · Open Loop · Dual-fire</text>
+  <text x="160" y="252" text-anchor="middle" fill="#c8c8cc" font-size="7">80+ params @ 8Hz real-time</text>
+  <text x="160" y="268" text-anchor="middle" fill="#55555e" font-size="7">BUEIB · 1206 EEPROM bytes</text>
+  
+  <!-- Sensors -->
+  <rect x="40" y="300" width="240" height="140" rx="4" fill="#1e1e24" stroke="#2cdd6e" stroke-width="1" filter="url(#shadow)"/>
+  <text x="160" y="318" text-anchor="middle" fill="#2cdd6e" font-size="9" font-weight="700">I²C Sensors</text>
+  <line x1="55" y1="328" x2="265" y2="328" stroke="#2a2a30" stroke-width="1"/>
+  <text x="160" y="346" text-anchor="middle" fill="#c8c8cc" font-size="8">🌡️  BMP280 — Baro / Temp</text>
+  <text x="160" y="362" text-anchor="middle" fill="#c8c8cc" font-size="8">💧  AHT20 — Humidity</text>
+  <text x="160" y="378" text-anchor="middle" fill="#c8c8cc" font-size="8">🔋  CW2015 — Battery fuel gauge</text>
+  <text x="160" y="394" text-anchor="middle" fill="#c8c8cc" font-size="8">🛰️  UBX GPS — Lat/Lon/Alt/Speed</text>
+  <text x="160" y="412" text-anchor="middle" fill="#55555e" font-size="7">I²C bus + UART serial</text>
+  
+  <!-- Bike -->
+  <rect x="40" y="460" width="240" height="60" rx="4" fill="#1e1e24" stroke="#b464ff" stroke-width="1" filter="url(#shadow)"/>
+  <text x="160" y="482" text-anchor="middle" fill="#b464ff" font-size="9" font-weight="700">🛵 Buell XB12X</text>
+  <text x="160" y="498" text-anchor="middle" fill="#c8c8cc" font-size="7">2009 · 1203cc · Thunderstorm V-Twin</text>
+  <text x="160" y="512" text-anchor="middle" fill="#55555e" font-size="7">No MAP · No O2 · Always Open Loop</text>
+  
+  <!-- Middle: Data flow arrows -->
+  <line x1="300" y1="180" x2="340" y2="180" stroke="#55555e" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="320" y="172" text-anchor="middle" fill="#55555e" font-size="6">serial</text>
+  
+  <line x1="300" y1="350" x2="340" y2="350" stroke="#55555e" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="320" y="342" text-anchor="middle" fill="#55555e" font-size="6">I²C</text>
+  
+  <line x1="300" y1="490" x2="340" y2="490" stroke="#55555e" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="320" y="482" text-anchor="middle" fill="#55555e" font-size="6">mounted</text>
+  
+  <!-- Right column: Software -->
+  <text x="680" y="85" fill="#3d9eff" font-size="8" letter-spacing="2">SOFTWARE</text>
+  <rect x="355" y="95" width="625" height="520" rx="4" fill="none" stroke="#2a2a30" stroke-width="1" stroke-dasharray="4,3"/>
+  
+  <!-- main.py -->
+  <rect x="375" y="110" width="190" height="80" rx="4" fill="#1e1e24" stroke="#e8420a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="470" y="130" text-anchor="middle" fill="#e8420a" font-size="10" font-weight="700">main.py</text>
+  <text x="470" y="146" text-anchor="middle" fill="#c8c8cc" font-size="7">BuellLogger — Main process</text>
+  <text x="470" y="160" text-anchor="middle" fill="#55555e" font-size="7">Sensors · Sysmon · Network</text>
+  <text x="470" y="174" text-anchor="middle" fill="#55555e" font-size="7">Spawns ECU subprocess</text>
+  
+  <!-- logger_process.py -->
+  <rect x="590" y="110" width="180" height="80" rx="4" fill="#1e1e24" stroke="#f5a623" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="680" y="130" text-anchor="middle" fill="#f5a623" font-size="10" font-weight="700">logger_process.py</text>
+  <text x="680" y="146" text-anchor="middle" fill="#c8c8cc" font-size="7">ECU subprocess</text>
+  <text x="680" y="160" text-anchor="middle" fill="#55555e" font-size="7">Serial protocol · CSV logging</text>
+  <text x="680" y="174" text-anchor="middle" fill="#55555e" font-size="7">IPC: /tmp/buell/*.json</text>
+  
+  <!-- Arrow between main and logger -->
+  <line x1="565" y1="150" x2="590" y2="150" stroke="#55555e" stroke-width="1" marker-end="url(#arrow)"/>
+  
+  <!-- Web Server -->
+  <rect x="375" y="210" width="395" height="100" rx="4" fill="#1e1e24" stroke="#3d9eff" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="570" y="230" text-anchor="middle" fill="#3d9eff" font-size="10" font-weight="700">web/server.py — HTTP + REST</text>
+  <line x1="390" y1="240" x2="755" y2="240" stroke="#2a2a30" stroke-width="1"/>
+  <text x="570" y="258" text-anchor="middle" fill="#c8c8cc" font-size="7">Handler mixins: sessions · eeprom · fuel · rides · wifi · gps · tuner · system</text>
+  <text x="570" y="274" text-anchor="middle" fill="#55555e" font-size="7">web/templates/ — 6 HTML pages</text>
+  <text x="570" y="290" text-anchor="middle" fill="#55555e" font-size="7">web/static/app.js — 3048 lines, Canvas 2D charts</text>
+  
+  <!-- Analysis engines -->
+  <rect x="375" y="330" width="190" height="130" rx="4" fill="#1e1e24" stroke="#2cdd6e" stroke-width="1" filter="url(#shadow)"/>
+  <text x="470" y="348" text-anchor="middle" fill="#2cdd6e" font-size="9" font-weight="700">Analysis Engines</text>
+  <line x1="390" y1="358" x2="550" y2="358" stroke="#2a2a30" stroke-width="1"/>
+  <text x="470" y="376" text-anchor="middle" fill="#c8c8cc" font-size="7">📊  web/f7.py — F7 events + DTW</text>
+  <text x="470" y="392" text-anchor="middle" fill="#c8c8cc" font-size="7">📈  web/vs_engine.py — Sessions VS</text>
+  <text x="470" y="408" text-anchor="middle" fill="#c8c8cc" font-size="7">🚀  web/launch.py — Launch detect</text>
+  <text x="470" y="424" text-anchor="middle" fill="#c8c8cc" font-size="7">⚙️  web/gear_detect.py — Gear</text>
+  <text x="470" y="440" text-anchor="middle" fill="#c8c8cc" font-size="7">📒  web/burn_ledger.py — VDYNO</text>
+  
+  <!-- ECU modules -->
+  <rect x="590" y="330" width="180" height="130" rx="4" fill="#1e1e24"

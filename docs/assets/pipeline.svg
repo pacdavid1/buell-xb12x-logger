@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" font-family="'Share Tech Mono', monospace">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a0b"/>
+      <stop offset="100%" stop-color="#111114"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="480" fill="url(#bg)" rx="8"/>
+  <text x="600" y="40" text-anchor="middle" fill="#c8c8cc" font-size="14" font-weight="900" letter-spacing="4">TUNING CYCLE</text>
+  <text x="600" y="58" text-anchor="middle" fill="#55555e" font-size="8" letter-spacing="2">LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR</text>
+  <!-- Step 1: LOG -->
+  <rect x="40" y="90" width="200" height="200" rx="6" fill="#1e1e24" stroke="#e8420a" stroke-width="2" filter="url(#shadow)"/>
+  <text x="140" y="120" text-anchor="middle" fill="#e8420a" font-size="22" font-weight="700">01 LOG</text>
+  <text x="140" y="140" text-anchor="middle" fill="#55555e" font-size="8">ECU CAPTURE</text>
+  <line x1="60" y1="152" x2="220" y2="152" stroke="#2a2a30" stroke-width="1"/>
+  <text x="140" y="172" text-anchor="middle" fill="#c8c8cc" font-size="9">Pi → ECU via serial</text>
+  <text x="140" y="188" text-anchor="middle" fill="#c8c8cc" font-size="9">80+ params @ 8Hz</text>
+  <text x="140" y="204" text-anchor="middle" fill="#c8c8cc" font-size="9">BMP280 · AHT20 · GPS</text>
+  <text x="140" y="220" text-anchor="middle" fill="#c8c8cc" font-size="9">CW2015 battery</text>
+  <text x="140" y="244" text-anchor="middle" fill="#55555e" font-size="8">→ Raw CSV per ride</text>
+  <text x="140" y="270" text-anchor="middle" fill="#3d9eff" font-size="7">📁 ride_NNN.csv</text>
+  <!-- Arrow 1 -->
+  <polygon points="255,190 275,180 275,200" fill="#f5a623" opacity="0.8"/>
+  <line x1="240" y1="190" x2="275" y2="190" stroke="#f5a623" stroke-width="2" opacity="0.8"/>
+  <!-- Step 2: ACOTAR -->
+  <rect x="290" y="90" width="200" height="200" rx="6" fill="#1e1e24" stroke="#f5a623" stroke-width="2" filter="url(#shadow)"/>
+  <text x="390" y="120" text-anchor="middle" fill="#f5a623" font-size="22" font-weight="700">02 ACOTAR</text>
+  <text x="390" y="140" text-anchor="middle" fill="#55555e" font-size="8">F7 ANALYSIS</text>
+  <line x1="310" y1="152" x2="470" y2="152" stroke="#2a2a30" stroke-width="1"/>
+  <text x="390" y="172" text-anchor="middle" fill="#c8c8cc" font-size="9">F7 event detection</text>
+  <text x="390" y="188" text-anchor="middle" fill="#c8c8cc" font-size="9">Stable cond. (Bucket A)</text>
+  <text x="390" y="204" text-anchor="middle" fill="#c8c8cc" font-size="9">DTW clustering by PW</text>
+  <text x="390" y="220" text-anchor="middle" fill="#c8c8cc" font-size="9">Cross-session matching</text>
+  <text x="390" y="244" text-anchor="middle" fill="#55555e" font-size="8">→ Events + Clusters</text>
+  <text x="390" y="270" text-anchor="middle" fill="#f5a623" font-size="7">📊 f7events.json</text>
+  <!-- Arrow 2 -->
+  <polygon points="505,190 525,180 525,200" fill="#3d9eff" opacity="0.8"/>
+  <line x1="490" y1="190" x2="525" y2="190" stroke="#3d9eff" stroke-width="2" opacity="0.8"/>
+  <!-- Step 3: COMPARAR -->
+  <rect x="540" y="90" width="200" height="200" rx="6" fill="#1e1e24" stroke="#3d9eff" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="120" text-anchor="middle" fill="#3d9eff" font-size="22" font-weight="700">03 COMPARAR</text>
+  <text x="640" y="140" text-anchor="middle" fill="#55555e" font-size="8">SESSIONS VS</text>
+  <line x1="560" y1="152" x2="720" y2="152" stroke="#2a2a30" stroke-width="1"/>
+  <text x="640" y="172" text-anchor="middle" fill="#c8c8cc" font-size="9">ΔPW analysis</text>
+  <text x="640" y="188" text-anchor="middle" fill="#c8c8cc" font-size="9">SWEET/SPICY/BITTER bins</text>
+  <text x="640" y="204" text-anchor="middle" fill="#c8c8cc" font-size="9">dpw_eff per RPM×TPS cell</text>
+  <text x="640" y="220" text-anchor="middle" fill="#c8c8cc" font-size="9">Cached comparisons</text>
+  <text x="640" y="244" text-anchor="middle" fill="#55555e" font-size="8">→ Map delta</text>
+  <text x="640" y="270" text-anchor="middle" fill="#3d9eff" font-size="7">📈 sessions_vs cache</text>
+  <!-- Arrow 3 -->
+  <polygon points="755,190 775,180 775,200" fill="#2cdd6e" opacity="0.8"/>
+  <line x1="740" y1="190" x2="775" y2="190" stroke="#2cdd6e" stroke-width="2" opacity="0.8"/>
+  <!-- Step 4: PROPONER -->
+  <rect x="790" y="90" width="200" height="200" rx="6" fill="#1e1e24" stroke="#2cdd6e" stroke-width="2" filter="url(#shadow)"/>
+  <text x="890" y="120" text-anchor="middle" fill="#2cdd6e" font-size="22" font-weight="700">04 PROPONER</text>
+  <text x="890" y="140" text-anchor="middle" fill="#55555e" font-size="8">MAP PROPOSAL</text>
+  <line x1="810" y1="152" x2="970" y2="152" stroke="#2a2a30" stroke-width="1"/>
+  <text x="890" y="172" text-anchor="middle" fill="#c8c8cc" font-size="9">F7 + VS zone fusion</text>
+  <text x="890" y="188" text-anchor="middle" fill="#c8c8cc" font-size="9">IDW + Laplacian smooth</text>
+  <text x="890" y="204" text-anchor="middle" fill="#c8c8cc" font-size="9">Unified map proposal</text>
+  <text x="890" y="220" text-anchor="middle" fill="#c8c8cc" font-size="9">RdBu delta heatmap</text>
+  <text x="890" y="244" text-anchor="middle" fill="#55555e" font-size="8">→ VE proposal</text>
+  <text x="890" y="270" text-anchor="middle" fill="#2cdd6e" font-size="7">🎯 Proposed EEPROM</text>
+  <!-- Arrow 4 -->
+  <polygon points="1005,190 1025,180 1025,200" fill="#ff4444" opacity="0.8"/>
+  <line x1="990" y1="190" x2="1025" y2="190" stroke="#ff4444" stroke-width="2" opacity="0.8"/>
+  <!-- Step 5: QUEMAR -->
+  <rect x="1040" y="90" width="130" height="200" rx="6" fill="#1e1e24" stroke="#ff4444" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1105" y="120" text-anchor="middle" fill="#ff4444" font-size="22" font-weight="700">05 🔥</text>
+  <text x="1105" y="140" text-anchor="middle" fill="#55555e" font-size="8">BURN</text>
+  <line x1="1055" y1="152" x2="1155" y2="152" stroke="#2a2a30" stroke-width="1"/>
+  <text x="1105" y="172" text-anchor="middle" fill="#c8c8cc" font-size="9">EEPROM write</text>
+  <text x="1105" y="188" text-anchor="middle" fill="#c8c8cc" font-size="9">From browser</text>
+  <text x="1105" y="204" text-anchor="middle" fill="#c8c8cc" font-size="9">Burn ledger</text>
+  <text x="1105" y="220" text-anchor="middle" fill="#c8c8cc" font-size="9">Parent→child lineage</text>
+  <text x="1105" y="244" text-anchor="middle" fill="#55555e" font-size="8">→ New session</text>
+  <text x="1105" y="270" text-anchor="middle" fill="#ff4444" font-size="7">⚡ burns.json</text>
+  <!-- Cycle loop -->
+  <path d="M 1105 290 L 1105 370 L 140 370 L 140 290" fill="none" stroke="#55555e" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <polygon points="140,290 132,302 148,302" fill="#55555e"/>
+  <text x="600" y="390" text-anchor="middle" fill="#55555e" font-size="9" letter-spacing="2">EACH RIDE IMPROVES THE MAP — CYCLE REPEATS</text>
+  <!-- Bottom bar -->
+  <rect x="200" y="420" width="800" height="2" rx="1" fill="#e8420a" opacity="0.3"/>
+  <text x="600" y="450" text-anchor="middle" fill="#55555e" font-size="7">Buell XB12X · DDFI2 ECU · Alpha-N · Open Loop · Raspberry Pi Zero</text>
+  <text x="600" y="465" text-anchor="middle" fill="#3d9eff" font-size="7" opacity="0.5">π at 192.168.100.80:8080</text>
+</svg>

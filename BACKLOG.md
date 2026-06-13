@@ -421,7 +421,6 @@ This is incremental — only add to files you touch, never as a bulk pass on unt
 
 ## REFACTOR — JS Robustness
 
-- [ ] **app.js setInterval without clearInterval** (lines ~641, 642, 2319): timers keep running in history-viewing mode — should pause polling when not in live ride view
 - [ ] **app.js getElementById without null checks** (~30+ instances): if HTML changes, silent crashes — add guards or use a safe `el()` wrapper
 - [ ] **app.js global namespace pollution**: `lastData`, `_fetchingLive`, `_lastLiveOk`, `SESSIONS`, `DATA` are unnamespaced globals — risk of collision if scripts grow — consider wrapping in an `App` object
 

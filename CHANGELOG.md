@@ -21,6 +21,46 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+
+
+
+## [v2.7.130] — 2026-06-13
+### Fixed
+- app.js: the `fetchFuelStatus` 30s poller was never tracked or cleared, so it
+  kept hitting /fuel/status while viewing ride history. It now uses a
+  `_fuelInterval` handle that is cleared in viewSelectedRides() and restarted in
+  exitHistory(), matching the live/freeze/coverage pollers (BACKLOG: JS Robustness).
+### AI
+- Claude Fable 5, Anthropic
+
+## [v2.7.129] — 2026-06-13
+### Removed
+- Dead JS function `saveObj()` in web/static/app.js (BL-DI-10): it was defined
+  but never referenced from any template or script. Confirmed via the cross-AI
+  dead-code audit. `loadObj()`/`objJson` left intact (audit scoped to saveObj only).
+### AI
+- Claude Fable 5, Anthropic
+
+## [v2.7.128] — 2026-06-13
+### Fixed
+- Logger version detection was broken: both `_get_version()` in main.py and the
+  CSV/metadata version in ecu/session.py matched the `## [vX.Y.Z]` template inside
+  the CHANGELOG instruction block, so the startup banner, CLI description, and every
+  ride CSV header recorded a placeholder/stale version instead of the real one.
+  Both now skip past `PROMPT_END -->` and resolve the live version (v2.7.127).
+- ecu/session.py no longer hardcodes `LOGGER_VERSION = "v2.3.0-MODULAR"`; it
+  derives the version from CHANGELOG.md the same way main.py does.
+### Added
+- Per-ride version tracking (BACKLOG: "Version tracking per ride"):
+  `logger_version` is stored in session_metadata.json at session creation and
+  stamped on every ride start, so logged rides can be correlated with the code
+  version that produced them.
+### Changed
+- ecu/session.py module docstring translated to English + DEV NOTE added;
+  Spanish log strings in start_ride translated.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.127] — 2026-06-11
 ### Fixed
 - Power-off button: any exception in the pre-poweroff cleanup steps
