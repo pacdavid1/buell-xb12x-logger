@@ -25,6 +25,15 @@ PROMPT_END -->
 
 
 
+## [v2.7.135] — 2026-06-13
+### Fixed
+- ecu/session.py: translate Spanish log strings to English (watchdog, ride recovery)
+- ecu/protocol.py: translate Spanish comment on VSS_CPKM25 constant
+- web/vs_engine.py: translate Spanish API error string
+- web/launch.py: translate Spanish comment
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.134] — 2026-06-13
 
 ### Changed

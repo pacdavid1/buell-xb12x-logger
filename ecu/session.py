@@ -585,11 +585,11 @@ class SessionManager:
                 try:
                     self._rebuild_summary(sdir, checksum, ride_num, ride_files)
                     recovered += 1
-                    self.logger.info(f"Recuperado ride {ride_num:03d} sesion {checksum}")
+                    self.logger.info(f"Recovered ride {ride_num:03d} session {checksum}")
                 except Exception as e:
                     self.logger.warning(f"Error ride {ride_num:03d}: {e}")
         if recovered:
-            self.logger.info(f"Perro guardian: {recovered} rides recuperados")
+            self.logger.info(f"Watchdog: {recovered} rides recovered")
         return recovered
 
     def _rebuild_summary(self, sdir, checksum, ride_num, csv_files):
