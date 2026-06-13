@@ -112,6 +112,7 @@ class DashboardHandler(
             '/burns':           self._handle_burns_list,
             '/vdyno':           self._handle_vdyno,
             '/vdyno/compare':   self._handle_vdyno_compare,
+            '/vdyno_rows':       self._handle_vdyno_rows,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
