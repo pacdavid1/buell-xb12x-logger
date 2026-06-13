@@ -193,6 +193,7 @@ async function compare(){
     _data=await r.json();
     if(_data.error){st('Error: '+_data.error);document.getElementById('btnCmp').disabled=false;return}
     render();
+    fetchDyno(a, b);
   }catch(e){st('Error: '+e.message)}
   document.getElementById('btnCmp').disabled=false;
 }
@@ -821,6 +822,108 @@ function drawLaunchChart(canvas, series) {
   ctx.fillStyle = '#ff8866'; ctx.fillText('TPS%', W-28, 12);
 }
 
+async function fetchDyno(a, b) {
+  var ds = document.getElementById('dyno-section');
+  var st2 = document.getElementById('dynoStatus');
+  ds.style.display = 'none';
+  try {
+    var r = await fetch('/vdyno/compare?a=' + a + '&b=' + b);
+    if (!r.ok) { if(st2) st2.textContent = '(no dyno data)'; return; }
+    var d = await r.json();
+    if (!d.ok || !d.bins || !d.bins.length) {
+      if(st2) st2.textContent = '(no WOT segments found)'; return;
+    }
+    ds.style.display = 'block';
+    if(st2) st2.textContent = '(' + d.bins.length + ' RPM bins)';
+    drawDynoChart(d);
+  } catch(e) {
+    if(st2) st2.textContent = '(dyno error: ' + e.message + ')';
+  }
+}
+
+function drawDynoChart(d) {
+  var canvas = document.getElementById('dynoCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var PAD = {t:24, r:20, b:40, l:52};
+  var CW = W - PAD.l - PAD.r, CH = H - PAD.t - PAD.b;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, W, H);
+
+  var bins = d.bins;
+  var rpms = bins.map(function(b){return b.rpm});
+  var minRPM = Math.min.apply(null, rpms) - 125;
+  var maxRPM = Math.max.apply(null, rpms) + 125;
+  var allP = bins.map(function(b){return b.p_kw_a}).concat(bins.map(function(b){return b.p_kw_b}));
+  var maxP = Math.max.apply(null, allP) * 1.15;
+  var minP = Math.max(0, Math.min.apply(null, allP) * 0.85);
+
+  function xp(rpm) { return PAD.l + (rpm - minRPM) / (maxRPM - minRPM) * CW; }
+  function yp(p)   { return PAD.t + CH - (p - minP) / (maxP - minP) * CH; }
+
+  // Grid
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;
+  for(var g = 0; g <= 4; g++) {
+    var gy = PAD.t + g * CH / 4;
+    ctx.beginPath(); ctx.moveTo(PAD.l, gy); ctx.lineTo(PAD.l + CW, gy); ctx.stroke();
+    var pval = maxP - g * (maxP - minP) / 4;
+    ctx.fillStyle = '#555'; ctx.font = '9px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(pval.toFixed(0), PAD.l - 4, gy + 3);
+  }
+
+  // RPM axis
+  ctx.fillStyle = '#555'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  var rpmRange = maxRPM - minRPM;
+  var rpmStep = Math.ceil(rpmRange / 6 / 500) * 500;
+  for(var rpm = Math.ceil(minRPM / rpmStep) * rpmStep; rpm <= maxRPM; rpm += rpmStep) {
+    var lx = xp(rpm);
+    ctx.fillText((rpm/1000).toFixed(1)+'k', lx, H - PAD.b + 14);
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lx, PAD.t); ctx.lineTo(lx, PAD.t + CH); ctx.stroke();
+  }
+
+  // Y label
+  ctx.save(); ctx.translate(12, PAD.t + CH/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle = '#555'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('kW', 0, 0); ctx.restore();
+
+  // Session A (blue)
+  ctx.strokeStyle = '#4488ff'; ctx.lineWidth = 2; ctx.beginPath();
+  bins.forEach(function(b, i) {
+    var x = xp(b.rpm), y = yp(b.p_kw_a);
+    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Session B (orange)
+  ctx.strokeStyle = '#ff8844'; ctx.lineWidth = 2; ctx.beginPath();
+  bins.forEach(function(b, i) {
+    var x = xp(b.rpm), y = yp(b.p_kw_b);
+    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Delta dots at fixed Y (green = B > A, red = B < A)
+  var dotY = PAD.t + CH + 8;
+  bins.forEach(function(b) {
+    ctx.fillStyle = b.delta_kw >= 0 ? '#33cc66' : '#cc3333';
+    ctx.beginPath(); ctx.arc(xp(b.rpm), dotY, 3.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#666'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+    if(b.delta_pct != null)
+      ctx.fillText((b.delta_pct>0?'+':'')+b.delta_pct+'%', xp(b.rpm), dotY + 12);
+  });
+
+  // Legend
+  ctx.font = '9px monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#4488ff'; ctx.fillRect(PAD.l, 8, 18, 3);
+  ctx.fillStyle = '#aaa'; ctx.fillText('A: ' + d.session_a, PAD.l + 22, 12);
+  ctx.fillStyle = '#ff8844'; ctx.fillRect(PAD.l + 100, 8, 18, 3);
+  ctx.fillStyle = '#aaa'; ctx.fillText('B: ' + d.session_b, PAD.l + 122, 12);
+  ctx.fillStyle = '#555'; ctx.textAlign = 'center'; ctx.fillText('RPM', W/2, H - 2);
+}
+
 </script>
 
 <!-- Launch Events Section -->
@@ -843,6 +946,16 @@ function drawLaunchChart(canvas, series) {
     <h4 style="color:#cccc88;font-size:12px;margin:6px 0 3px">Type B &mdash; From Moderate Acceleration</h4>
     <div id="launch-b-content" style="font-size:11px;color:#555">None detected</div>
   </div>
+</div>
+
+<!-- Dyno Section (VDYNO Phase V1) -->
+<div id="dyno-section" style="display:none;margin-top:20px">
+  <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+    <h3 style="color:#66aaff;margin:0">&#9654; Virtual Dyno</h3>
+    <span style="font-size:10px;color:#666">P(kW) vs RPM &mdash; differential A vs B</span>
+    <span id="dynoStatus" style="font-size:10px;color:#888"></span>
+  </div>
+  <canvas id="dynoCanvas" width="640" height="240" style="display:block;border:1px solid #222;border-radius:4px;background:#0d0d0d"></canvas>
 </div>
 
 <script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>

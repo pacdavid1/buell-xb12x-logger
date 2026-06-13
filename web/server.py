@@ -33,11 +33,12 @@ from web.handlers.gps import GpsHandlerMixin
 from web.handlers.tuner import TunerHandlerMixin
 from web.handlers.system import SystemHandlerMixin
 from web.handlers.rides import RidesHandlerMixin
+from web.handlers.vdyno import VdynoHandlerMixin
 
 class DashboardHandler(
     FuelHandlerMixin, SessionsHandlerMixin, EepromHandlerMixin,
     WifiHandlerMixin, GpsHandlerMixin, TunerHandlerMixin,
-    SystemHandlerMixin, RidesHandlerMixin,
+    SystemHandlerMixin, RidesHandlerMixin, VdynoHandlerMixin,
     BaseHTTPRequestHandler
 ):
 
@@ -109,6 +110,8 @@ class DashboardHandler(
             "/eeprom/propose":  self._handle_eeprom_propose,
             '/eeprom/msq':      self._handle_eeprom_msq,
             '/burns':           self._handle_burns_list,
+            '/vdyno':           self._handle_vdyno,
+            '/vdyno/compare':   self._handle_vdyno_compare,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
