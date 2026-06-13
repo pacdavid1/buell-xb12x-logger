@@ -40,7 +40,7 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
     sc=[k for k in SK if k in mA and k in mB and _maps_differ(mA[k],mB[k])]
     ac=fc+sc
     if not ac:
-        return {'error':'Sin cambios entre sesiones','changed':[],'attributable':False}
+        return {'error':'No changes between sessions','changed':[],'attributable':False}
     if fc and sc:
         attr=False
     else:
