@@ -2171,6 +2171,10 @@ function buildCharts(rows){
     { key:'DIn',         label:'DIn RAW',       color:'#666' },
     { key:'DOut',        label:'DOut RAW',      color:'#666' },
     { key:'Rides',       label:'Rides',         color:'#888' },
+    // VDYNO computed channels (WOT-only, null elsewhere)
+    { key:'p_kw',        label:'P kW (WOT)',    color:'#ff9900' },
+    { key:'hp',          label:'HP (WOT)',       color:'#ff5500' },
+    { key:'torque_nm',   label:'Torque N·m',    color:'#ffcc00' },
   ];
 
   // Signal lookup by key
@@ -2751,6 +2755,27 @@ async function loadGraphRide(directFile){
       titleEl.innerHTML = "▶ " + escapeHtml(rideLabel) + datePart;
       titleEl.style.display='block';
     }
+    // Merge vdyno_rows sidecar (WOT-only HP/torque) into rows
+    try {
+      const csvParts = csvName.replace('.csv','').split('_');
+      if(csvParts.length >= 3) {
+        const vdynoResp = await fetch('/vdyno_rows?session='+csvParts[1]+'&ride='+parseInt(csvParts[2],10)+'&t='+Date.now());
+        if(vdynoResp.ok) {
+          const vd = await vdynoResp.json();
+          if(vd.ok && vd.rows && vd.rows.length) {
+            const tMap = {};
+            vd.rows.forEach(r => { tMap[r.time_s.toFixed(3)] = r; });
+            rows.forEach(row => {
+              const t = ((row.time_elapsed_s ?? 0)).toFixed(3);
+              const sr = tMap[t];
+              row.p_kw      = sr ? sr.p_kw      : null;
+              row.hp        = sr ? sr.hp        : null;
+              row.torque_nm = sr ? sr.torque_nm : null;
+            });
+          }
+        }
+      }
+    } catch(_) { /* sidecar is optional, never block chart render */ }
     buildCharts(rows);
   }catch(e){
     status.textContent = 'Error: '+e;

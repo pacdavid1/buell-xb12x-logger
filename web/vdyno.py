@@ -12,6 +12,7 @@ See docs/11_VDYNO_PLAN.md and BACKLOG_VDYNO.md.
 """
 import csv
 import json
+import math
 import os
 from pathlib import Path
 
@@ -20,6 +21,7 @@ import numpy as np
 _CACHE_V = 1
 _G = 9.81           # m/s^2
 _KPH_TO_MS = 1.0 / 3.6
+_HP_PER_KW = 1.34102
 
 _DEFAULT_CFG = {
     'mass_kg': 295,         # bike wet + average rider (kg)
@@ -97,14 +99,18 @@ def _extract_segments(rows, cfg):
     return segs
 
 
-def _seg_bins(seg, cfg):
-    """Power bins {rpm_center: [kw]} for one WOT segment."""
+def _seg_physics(seg, cfg):
+    """Compute per-row physics arrays for one WOT segment.
+
+    Returns (times, rpms, vss_s, P_w) or None if segment is too short.
+    P_w is in watts.
+    """
     times = np.array([float(r.get('time_elapsed_s') or 0) for r in seg])
     vss   = np.array([float(r.get('VS_KPH') or 0) for r in seg]) * _KPH_TO_MS
     rpms  = np.array([float(r.get('RPM') or 0) for r in seg])
 
     if len(times) < 4:
-        return {}
+        return None
 
     dt_med = float(np.median(np.diff(times))) or 0.125
     window = max(3, int(cfg['smooth_s'] / dt_med))
@@ -112,36 +118,46 @@ def _seg_bins(seg, cfg):
 
     dt = np.diff(times)
     dt[dt == 0] = dt_med
-    # Pad acceleration array to match vss_s length
     a = np.append(np.diff(vss_s) / dt, 0.0)
 
     m   = cfg['mass_kg']
-    rho = cfg['rho']
-    CdA = cfg['CdA']
-    Crr = cfg['Crr']
-    F   = m * a + 0.5 * rho * CdA * vss_s ** 2 + Crr * m * _G
-    P_kw = F * vss_s / 1000.0
+    F   = m * a + 0.5 * cfg['rho'] * cfg['CdA'] * vss_s ** 2 + cfg['Crr'] * m * _G
+    P_w = F * vss_s  # watts
+
+    return times, rpms, vss_s, P_w
+
+
+def _seg_bins(seg, cfg):
+    """Power bins {rpm_center: [kw]} for one WOT segment."""
+    result = _seg_physics(seg, cfg)
+    if result is None:
+        return {}
+    times, rpms, vss_s, P_w = result
 
     bw = cfg['rpm_bin']
     bins = {}
-    for i, p in enumerate(P_kw):
-        if vss_s[i] < 5:   # ignore near-stationary noise
+    for i, p_w in enumerate(P_w):
+        if vss_s[i] < 5:
             continue
         center = int(rpms[i] / bw) * bw + bw // 2
-        bins.setdefault(center, []).append(float(p))
+        bins.setdefault(center, []).append(p_w / 1000.0)
     return bins
 
 
 def _build_result_bins(all_bins):
     result = []
     for rpm in sorted(all_bins):
-        arr = np.array(all_bins[rpm])
+        arr    = np.array(all_bins[rpm])
+        p_med  = float(np.median(arr))
+        omega  = rpm * 2 * math.pi / 60
         result.append({
-            'rpm':      rpm,
-            'p_kw_med': round(float(np.median(arr)), 2),
-            'p_kw_p25': round(float(np.percentile(arr, 25)), 2),
-            'p_kw_p75': round(float(np.percentile(arr, 75)), 2),
-            'n':        len(arr),
+            'rpm':        rpm,
+            'p_kw_med':   round(p_med, 2),
+            'p_kw_p25':   round(float(np.percentile(arr, 25)), 2),
+            'p_kw_p75':   round(float(np.percentile(arr, 75)), 2),
+            'hp_med':     round(p_med * _HP_PER_KW, 1),
+            'torque_nm':  round((p_med * 1000 / omega) if omega else 0.0, 1),
+            'n':          len(arr),
         })
     return result
 
@@ -193,6 +209,70 @@ def compute_ride(buell_dir, session_id, ride_num):
     return result
 
 
+def compute_ride_rows(buell_dir, session_id, ride_num):
+    """Sparse per-row HP/torque for WOT rows only (null elsewhere).
+
+    Returns {vdyno_v, session_id, ride_num, rows: [{time_s, p_kw, hp, torque_nm}]}
+    or None if no usable WOT data. Result is cached to _vdyno_rows.json.
+    Only WOT rows are included -- non-WOT rows are absent (treated as null in JS).
+    """
+    session_dir = Path(buell_dir) / 'sessions' / session_id
+    csv_path    = session_dir / 'ride_{}_{:03d}.csv'.format(session_id, ride_num)
+    if not csv_path.exists():
+        return None
+
+    cache = session_dir / 'ride_{}_{:03d}_vdyno_rows.json'.format(session_id, ride_num)
+    if cache.exists():
+        try:
+            c = json.loads(cache.read_text())
+            if c.get('vdyno_v') == _CACHE_V:
+                return c
+        except Exception:
+            pass
+
+    cfg  = _load_cfg(buell_dir)
+    rows = _read_csv(csv_path)
+    if not rows:
+        return None
+
+    segs = _extract_segments(rows, cfg)
+    if not segs:
+        return None
+
+    result_rows = []
+    rpm_min = cfg.get('rpm_min', 1500)
+    for seg in segs:
+        phys = _seg_physics(seg, cfg)
+        if phys is None:
+            continue
+        times, rpms, vss_s, P_w = phys
+        for i, row in enumerate(seg):
+            if vss_s[i] < 5 or rpms[i] < rpm_min:
+                continue
+            omega = rpms[i] * 2 * math.pi / 60
+            p_kw  = P_w[i] / 1000.0
+            result_rows.append({
+                'time_s':    round(float(times[i]), 3),
+                'p_kw':      round(p_kw, 2),
+                'hp':        round(p_kw * _HP_PER_KW, 1),
+                'torque_nm': round((P_w[i] / omega) if omega else 0.0, 1),
+            })
+
+    if not result_rows:
+        return None
+
+    result = {
+        'vdyno_v':    _CACHE_V,
+        'session_id': session_id,
+        'ride_num':   ride_num,
+        'rows':       result_rows,
+    }
+    tmp = cache.with_suffix('.tmp')
+    tmp.write_text(json.dumps(result))
+    os.replace(tmp, cache)
+    return result
+
+
 def session_bins(buell_dir, session_id):
     """Merge all rides in a session -> {rpm_center: [median_kw_per_ride]}."""
     merged = {}
@@ -221,15 +301,21 @@ def compare_sessions(buell_dir, session_a, session_b):
         vb = bins_b.get(rpm, [])
         if not va or not vb:
             continue
-        med_a = float(np.median(va))
-        med_b = float(np.median(vb))
+        med_a  = float(np.median(va))
+        med_b  = float(np.median(vb))
+        omega  = rpm * 2 * math.pi / 60
         rows.append({
-            'rpm':       rpm,
-            'p_kw_a':    round(med_a, 2),
-            'p_kw_b':    round(med_b, 2),
-            'delta_kw':  round(med_b - med_a, 2),
-            'delta_pct': round(100 * (med_b - med_a) / med_a, 1) if med_a else None,
-            'n_a':       len(va),
-            'n_b':       len(vb),
+            'rpm':          rpm,
+            'p_kw_a':       round(med_a, 2),
+            'p_kw_b':       round(med_b, 2),
+            'hp_a':         round(med_a * _HP_PER_KW, 1),
+            'hp_b':         round(med_b * _HP_PER_KW, 1),
+            'torque_nm_a':  round((med_a * 1000 / omega) if omega else 0.0, 1),
+            'torque_nm_b':  round((med_b * 1000 / omega) if omega else 0.0, 1),
+            'delta_kw':     round(med_b - med_a, 2),
+            'delta_hp':     round((med_b - med_a) * _HP_PER_KW, 1),
+            'delta_pct':    round(100 * (med_b - med_a) / med_a, 1) if med_a else None,
+            'n_a':          len(va),
+            'n_b':          len(vb),
         })
     return {'session_a': session_a, 'session_b': session_b, 'bins': rows}
