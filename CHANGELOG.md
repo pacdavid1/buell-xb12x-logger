@@ -22,6 +22,15 @@
 PROMPT_END -->
 
 
+
+## [v2.7.129] — 2026-06-13
+### Removed
+- Dead JS function `saveObj()` in web/static/app.js (BL-DI-10): it was defined
+  but never referenced from any template or script. Confirmed via the cross-AI
+  dead-code audit. `loadObj()`/`objJson` left intact (audit scoped to saveObj only).
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.128] — 2026-06-13
 ### Fixed
 - Logger version detection was broken: both `_get_version()` in main.py and the

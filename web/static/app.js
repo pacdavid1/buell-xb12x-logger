@@ -1141,14 +1141,6 @@ async function loadObj() {
     $id('objJson').value = JSON.stringify(d.raw_objectives||{}, null, 2);
   } catch(e){ $id('objJson').value='{}'; }
 }
-async function saveObj() {
-  try {
-    const v = JSON.parse($id('objJson').value);
-    await fetch('/obj',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(v)});
-    showTab('ride');
-  } catch(e){ alert('JSON invalido: '+e); }
-}
-
 
 // ── CLOSE RIDE ─────────────────────────────────────────────────────
 async function closeRide(){
