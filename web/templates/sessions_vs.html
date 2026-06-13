@@ -100,6 +100,18 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
   <div class="fsum" id="fsum" style="display:none">
     <div class="fc" id="fcA"></div>
     <div class="fc" id="fcB"></div>
+    <div class="fc" id="dynoStatA" style="display:none">
+      <div class="fl" style="color:#4488ff">VDYNO A</div>
+      <div class="fv"><span>Max HP</span><span id="dMaxHpA">—</span></div>
+      <div class="fv"><span>Max Tq N·m</span><span id="dMaxTqA">—</span></div>
+      <div class="fv"><span>@ RPM</span><span id="dRpmA">—</span></div>
+    </div>
+    <div class="fc" id="dynoStatB" style="display:none">
+      <div class="fl" style="color:#ff8844">VDYNO B</div>
+      <div class="fv"><span>Max HP</span><span id="dMaxHpB">—</span></div>
+      <div class="fv"><span>Max Tq N·m</span><span id="dMaxTqB">—</span></div>
+      <div class="fv"><span>@ RPM</span><span id="dRpmB">—</span></div>
+    </div>
   </div>
   <div class="ftabs" id="ftabs" style="display:none">
     <button class="ftab on" data-mode="SPORT" onclick="setMode(this)">&#9889; SPORT</button>
@@ -922,6 +934,23 @@ function drawDynoChart(d) {
   ctx.fillStyle = '#ff8844'; ctx.fillRect(PAD.l + 100, 8, 18, 3);
   ctx.fillStyle = '#aaa'; ctx.fillText('B: ' + d.session_b, PAD.l + 122, 12);
   ctx.fillStyle = '#555'; ctx.textAlign = 'center'; ctx.fillText('RPM', W/2, H - 2);
+
+  // Populate dyno stat cards in fsum
+  function _fillStat(sfx, hpKey, tqKey) {
+    var maxHp = 0, maxTq = 0, rpmAtPeak = 0;
+    bins.forEach(function(b) {
+      if (b[hpKey] > maxHp) { maxHp = b[hpKey]; rpmAtPeak = b.rpm; }
+      if (b[tqKey] > maxTq) maxTq = b[tqKey];
+    });
+    document.getElementById('dMaxHp' + sfx).textContent = maxHp > 0 ? maxHp.toFixed(1) + ' HP' : '—';
+    document.getElementById('dMaxTq' + sfx).textContent = maxTq > 0 ? maxTq.toFixed(1) : '—';
+    document.getElementById('dRpm'   + sfx).textContent = rpmAtPeak > 0 ? Math.round(rpmAtPeak) : '—';
+    document.getElementById('dynoStat' + sfx).style.display = '';
+  }
+  if (bins.length) {
+    _fillStat('A', 'hp_a', 'torque_nm_a');
+    _fillStat('B', 'hp_b', 'torque_nm_b');
+  }
 }
 
 </script>

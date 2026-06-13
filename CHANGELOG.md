@@ -25,6 +25,12 @@ PROMPT_END -->
 
 
 
+## [v2.7.134] — 2026-06-13
+
+### Changed
+- sessions_vs: add VDYNO stat cards to fsum (max HP, peak torque N·m, RPM at peak)
+  for session A and B, populated after dyno compare loads
+
 ## [v2.7.133] — 2026-06-13
 
 ### Changed
