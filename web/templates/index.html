@@ -462,12 +462,9 @@ table.veg td:active{filter:brightness(1.6)}
   <div id="graphStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
        margin-bottom:6px;min-height:14px"></div>
 
-  <!-- Chart preset selector -->
-  <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-    <span style="font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.08em">PRESET</span>
-    <select id="graphPreset" onchange="applyChartPreset(this.value)"
-            style="background:var(--bg);border:1px solid var(--border);color:#7df;
-                   font-family:var(--mono);font-size:9px;padding:3px 6px">
+  <!-- Chart preset selector — hidden: fixed layout active -->
+  <div style="display:none">
+    <select id="graphPreset" onchange="applyChartPreset(this.value)">
       <option value="CUSTOM">CUSTOM</option>
     </select>
   </div>
@@ -490,7 +487,7 @@ table.veg td:active{filter:brightness(1.6)}
     <div class="charts-scroll-inner" id="chartsInner">
       <!-- Chart 1: RPM + KPH + CLT triple eje -->
       <div class="chart-wrap">
-        <div class="chart-title">RPM · VELOCIDAD · TEMPERATURA</div>
+        <div class="chart-title">DYNAMICS</div>
     <!-- Tuning values panel -->
     <div id="tunePanel" style="position:fixed; right:10px; top:120px; width:140px; 
          background:rgba(10,10,10,0.95); border:1px solid #333; padding:12px; 
@@ -506,32 +503,32 @@ table.veg td:active{filter:brightness(1.6)}
         <!-- Filled dynamically -->
       </div>
     </div>
-        <div class="chart-inner" style="height:120px"><canvas id="chartRPM"></canvas></div>
+        <div class="chart-inner" style="height:200px"><canvas id="chartRPM"></canvas></div>
       </div>
       <!-- Chart 2: EGO + AFV + WUE + AE + promedio -->
       <div class="chart-wrap">
-        <div class="chart-title">CORRECCIONES COMBUSTIBLE — EGO · AFV · WUE · AE · PROMEDIO</div>
-        <div class="chart-inner" style="height:100px"><canvas id="chartFuel"></canvas></div>
+        <div class="chart-title">FUEL</div>
+        <div class="chart-inner" style="height:160px"><canvas id="chartFuel"></canvas></div>
       </div>
       <!-- Chart 3: TPS solo -->
       <div class="chart-wrap">
-        <div class="chart-title">TPS %</div>
-        <div class="chart-inner" style="height:85px"><canvas id="chartTPS"></canvas></div>
+        <div class="chart-title">IGNITION</div>
+        <div class="chart-inner" style="height:120px"><canvas id="chartTPS"></canvas></div>
       </div>
       <!-- Chart 4: Spark + Pulse Width doble eje -->
       <div class="chart-wrap">
-        <div class="chart-title">ENCENDIDO (°) · PULSO INYECTOR (ms)</div>
-        <div class="chart-inner" style="height:95px"><canvas id="chartSPK"></canvas></div>
+        <div class="chart-title">ENVIRONMENT</div>
+        <div class="chart-inner" style="height:140px"><canvas id="chartSPK"></canvas></div>
       </div>
       <!-- Chart 5: Batt V -->
       <div class="chart-wrap">
-        <div class="chart-title">VOLTAJE BATERÍA (V)</div>
-        <div class="chart-inner" style="height:70px"><canvas id="chartBatt"></canvas></div>
+        <div class="chart-title">VDYNO</div>
+        <div class="chart-inner" style="height:140px"><canvas id="chartBatt"></canvas></div>
       </div>
       <!-- Chart 6: Flags / digital signals -->
       <div class="chart-wrap">
-        <div class="chart-title">FLAGS · SEÑALES DIGITALES</div>
-        <div class="chart-inner" style="height:220px"><canvas id="chartFlags"></canvas></div>
+        <div class="chart-title">ALL FLAGS</div>
+        <div class="chart-inner" style="height:140px"><canvas id="chartFlags"></canvas></div>
       </div>
     </div>
   </div>
