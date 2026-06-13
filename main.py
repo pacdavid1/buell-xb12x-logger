@@ -61,6 +61,10 @@ def _get_version():
         import re
         with open("/home/pi/buell/CHANGELOG.md") as f:
             cl = f.read()
+        # Skip the instruction block; real entries start after PROMPT_END.
+        marker = cl.find("PROMPT_END -->")
+        if marker != -1:
+            cl = cl[marker:]
         m = re.search(r"## \[([^\]]+)\]", cl)
         return m.group(1) if m else "unknown"
     except Exception:

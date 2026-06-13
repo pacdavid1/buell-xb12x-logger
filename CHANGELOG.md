@@ -21,6 +21,27 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+
+## [v2.7.128] — 2026-06-13
+### Fixed
+- Logger version detection was broken: both `_get_version()` in main.py and the
+  CSV/metadata version in ecu/session.py matched the `## [vX.Y.Z]` template inside
+  the CHANGELOG instruction block, so the startup banner, CLI description, and every
+  ride CSV header recorded a placeholder/stale version instead of the real one.
+  Both now skip past `PROMPT_END -->` and resolve the live version (v2.7.127).
+- ecu/session.py no longer hardcodes `LOGGER_VERSION = "v2.3.0-MODULAR"`; it
+  derives the version from CHANGELOG.md the same way main.py does.
+### Added
+- Per-ride version tracking (BACKLOG: "Version tracking per ride"):
+  `logger_version` is stored in session_metadata.json at session creation and
+  stamped on every ride start, so logged rides can be correlated with the code
+  version that produced them.
+### Changed
+- ecu/session.py module docstring translated to English + DEV NOTE added;
+  Spanish log strings in start_ride translated.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.127] — 2026-06-11
 ### Fixed
 - Power-off button: any exception in the pre-poweroff cleanup steps
