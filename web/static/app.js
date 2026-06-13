@@ -2438,20 +2438,42 @@ function buildCharts(rows){
   }
 
   // ── Render one chart ──────────────────────────────────────
+  function _isFlagKey(k){ return /^(fl_|do_|di_)/.test(k); }
+
+  // Build stacked flag datasets on a shared hidden axis (logic-analyzer style)
+  function _buildFlagDatasets(flagKeys, dataRows, axisId){
+    return flagKeys.map((key,i)=>{
+      const sig=SIG_MAP[key]; if(!sig) return null;
+      const base=i*2;
+      return {
+        _key:key, label:sig.label,
+        data:dataRows.map(r=>({x:r.time_elapsed_s, y:r[key]!=null?base+(r[key]>0?1.4:0):null})),
+        borderColor:sig.color, backgroundColor:sig.color+'40',
+        borderWidth:1.5, pointRadius:0, stepped:'before', tension:0, fill:false,
+        yAxisID:axisId,
+      };
+    }).filter(Boolean);
+  }
+
   function renderChart(chartId, keys, chartKey){
     const canvas = document.getElementById(chartId);
     if(!canvas) return null;
     const ctx = canvas.getContext('2d');
-    const datasets = keys.map(k=>makeDataset(k,rows,tFirst,tLast)).filter(Boolean);
-    if(!datasets.length){
-      datasets.push({ _key:'_empty', label:'—', data:[{x:tFirst,y:0},{x:tLast,y:0}],
-                      borderColor:'#333', borderWidth:1, pointRadius:0, fill:false,
-                      yAxisID:'y__empty' });
+    const flagKeys   = keys.filter(_isFlagKey);
+    const analogKeys = keys.filter(k=>!_isFlagKey(k));
+    const datasets   = analogKeys.map(k=>makeDataset(k,rows,tFirst,tLast)).filter(Boolean);
+    const scales     = buildYScales(analogKeys, rows);
+    if(flagKeys.length){
+      const N=flagKeys.length;
+      scales['y_flags_band']={type:'linear',display:false,min:-0.5,max:N*2};
+      _buildFlagDatasets(flagKeys, rows, 'y_flags_band').forEach(d=>datasets.push(d));
     }
-    const scales = buildYScales(keys, rows);
-    return new Chart(ctx, { type:'line', data:{ datasets },
-      options:{ ...CHART_BASE, scales }
-    });
+    if(!datasets.length){
+      datasets.push({_key:'_empty',label:'—',data:[{x:tFirst,y:0},{x:tLast,y:0}],
+                     borderColor:'#333',borderWidth:1,pointRadius:0,fill:false,yAxisID:'y__empty'});
+      scales['y__empty']={type:'linear',display:false};
+    }
+    return new Chart(ctx,{type:'line',data:{datasets},options:{...CHART_BASE,scales}});
   }
 
   // ── Build all 6 charts ────────────────────────────────────
@@ -2639,14 +2661,27 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
       const t1 = window._lastBuildRows ? window._lastBuildRows[window._lastBuildRows.length-1]?.time_elapsed_s??1 : 1;
       const durS2 = t1-t0||1;
 
-      const datasets = chartCfgs[ci].keys.map(key=>{
+      const _rebuildRows = window._lastBuildRows||[];
+      const _flagKs  = chartCfgs[ci].keys.filter(_isFlagKey);
+      const _analogKs = chartCfgs[ci].keys.filter(k=>!_isFlagKey(k));
+      const datasets = _analogKs.map(key=>{
         const sig=SIG_MAP2[key]; if(!sig) return null;
         return { _key:key, label:sig.label,
-          data:(window._lastBuildRows||[]).map(r=>({x:r.time_elapsed_s,y:r[key]??null})),
+          data:_rebuildRows.map(r=>({x:r.time_elapsed_s,y:r[key]??null})),
           borderColor:sig.color, borderWidth:1.5, borderDash:sig.dash||[],
           pointRadius:0, fill:false, tension:0, yAxisID:'y_'+key };
       }).filter(Boolean);
-
+      if(_flagKs.length){
+        _flagKs.forEach((key,i)=>{
+          const sig=SIG_MAP2[key]; if(!sig) return;
+          const base=i*2;
+          datasets.push({_key:key,label:sig.label,
+            data:_rebuildRows.map(r=>({x:r.time_elapsed_s,y:r[key]!=null?base+(r[key]>0?1.4:0):null})),
+            borderColor:sig.color,backgroundColor:sig.color+'40',
+            borderWidth:1.5,pointRadius:0,stepped:'before',tension:0,fill:false,
+            yAxisID:'y_flags_band'});
+        });
+      }
       if(!datasets.length) datasets.push({
         _key:'_empty',label:'—',data:[{x:t0,y:0},{x:t1,y:0}],
         borderColor:'#333',borderWidth:1,pointRadius:0,fill:false
@@ -2665,23 +2700,33 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
               titleColor:'#aaa', titleFont:{family:'monospace',size:9},
               bodyFont:{family:'monospace',size:9},
               callbacks:{
-                label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1):'--'}`,
+                label:ctx=>{
+                  const k=ctx.dataset._key;
+                  const y=ctx.parsed.y;
+                  if(y==null) return `${ctx.dataset.label}: --`;
+                  if(_isFlagKey(k)){
+                    const i=_flagKs.indexOf(k);
+                    const on=i>=0?y>i*2+0.7:y>0.7;
+                    return `${ctx.dataset.label}: ${on?'ON':'OFF'}`;
+                  }
+                  return `${ctx.dataset.label}: ${y.toFixed(1)}`;
+                },
                 labelColor:ctx=>{ const s=SIG_MAP2[ctx.dataset._key]; return {borderColor:s?.color||'#fff',backgroundColor:s?.color||'#fff'}; }
               }
             }
           },
           scales:(()=>{
-            const _rows = window._lastBuildRows||[];
-            const sc = {x:{type:'linear',min:t0,max:t1,
+            const sc={x:{type:'linear',min:t0,max:t1,
                ticks:{font:{family:'monospace',size:8},color:'#444',callback:v=>v%60===0?(v+'s'):'',maxTicksLimit:Math.ceil(durS2/60)+1},
                grid:{color:'rgba(255,255,255,.04)'}}};
-            chartCfgs[ci].keys.forEach(key=>{
-              const vals=_rows.map(r=>r[key]).filter(v=>v!=null&&!isNaN(v));
+            _analogKs.forEach(key=>{
+              const vals=_rebuildRows.map(r=>r[key]).filter(v=>v!=null&&!isNaN(v));
               const mn=vals.length?Math.min(...vals):0;
               const mx=vals.length?Math.max(...vals):1;
               const pad=(mx-mn)*0.1||1;
               sc['y_'+key]={type:'linear',display:false,min:mn-pad,max:mx+pad};
             });
+            if(_flagKs.length) sc['y_flags_band']={type:'linear',display:false,min:-0.5,max:_flagKs.length*2};
             if(!chartCfgs[ci].keys.length) sc['y__empty']={type:'linear',display:false};
             return sc;
           })()
