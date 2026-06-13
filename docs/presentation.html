@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buell XB12X Logger — Presentation</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0b; --p: #111114; --bd: #1e1e24;
+  --tx: #c8c8cc; --dm: #55555e;
+  --ac: #e8420a; --a2: #f5a623; --bl: #3d9eff;
+  --gn: #2cdd6e; --rd: #ff4444; --pu: #b464ff;
+  --mn: 'Share Tech Mono', monospace;
+  --bc: 'Barlow Condensed', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--tx); font-family: var(--mn); overflow-x: hidden; }
+
+/* ── Slide system ── */
+.slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: 100vh; scrollbar-width: none; }
+.slides::-webkit-scrollbar { display: none; }
+.slide { min-width: 100vw; height: 100vh; scroll-snap-align: start; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; position: relative; }
+.slide::before { content: ''; position: absolute; inset: 0; opacity: 0.03; background: radial-gradient(ellipse at center, var(--ac), transparent 70%); pointer-events: none; }
+
+/* ── Navigation ── */
+.nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 100; }
+.nav button { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--dm); background: transparent; cursor: pointer; transition: all .3s; }
+.nav button.active { background: var(--ac); border-color: var(--ac); box-shadow: 0 0 8px var(--ac); }
+
+/* ── Typography ── */
+h1 { font-family: var(--mn); font-size: clamp(28px, 5vw, 52px); font-weight: 900; letter-spacing: 4px; text-align: center; }
+h2 { font-family: var(--mn); font-size: clamp(16px, 2.5vw, 28px); font-weight: 700; letter-spacing: 3px; color: var(--a2); margin-bottom: 16px; }
+h3 { font-family: var(--mn); font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--dm); margin-bottom: 8px; }
+p { font-family: var(--bc); font-size: clamp(14px, 1.8vw, 20px); line-height: 1.6; color: var(--tx); max-width: 700px; text-align: center; }
+.tagline { font-family: var(--mn); font-size: clamp(10px, 1.2vw, 14px); color: var(--dm); letter-spacing: 2px; margin-top: 12px; }
+
+/* ── Accent stripe ── */
+.stripe { width: 60px; height: 3px; background: var(--ac); margin: 16px auto; border-radius: 2px; }
+
+/* ── Cards ── */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; max-width: 900px; width: 100%; margin-top: 20px; }
+.card { background: var(--p); border: 1px solid var(--bd); border-radius: 4px; padding: 16px; text-align: center; transition: all .3s; cursor: default; }
+.card:hover { border-color: var(--ac); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(232,66,10,.15); }
+.card .icon { font-size: 28px; margin-bottom: 8px; }
+.card .title { font-family: var(--mn); font-size: 10px; font-weight: 700; color: var(--tx); letter-spacing: 1px; }
+.card .desc { font-family: var(--bc); font-size: 13px; color: var(--dm); margin-top: 4px; }
+
+/* ── Pipeline diagram ── */
+.pipeline { display: flex; gap: 6px; max-width: 1000px; width: 100%; margin-top: 20px; }
+.pstep { flex: 1; background: var(--p); border: 1px solid var(--bd); border-radius: 4px; padding: 12px 8px; text-align: center; transition: all .3s; }
+.pstep:hover { transform: scale(1.05); }
+.pstep .step-num { font-size: 22px; font-weight: 900; }
+.pstep .step-label { font-family: var(--mn); font-size: 9px; letter-spacing: 1px; margin-top: 4px; }
+.pstep .step-desc { font-family: var(--bc); font-size: 11px; color: var(--dm); margin-top: 6px; }
+.pipeline-arrow { display: flex; align-items: center; color: var(--dm); font-size: 18px; }
+.step-1 { border-color: var(--ac); } .step-1 .step-num { color: var(--ac); }
+.step-2 { border-color: var(--a2); } .step-2 .step-num { color: var(--a2); }
+.step-3 { border-color: var(--bl); } .step-3 .step-num { color: var(--bl); }
+.step-4 { border-color: var(--gn); } .step-4 .step-num { color: var(--gn); }
+.step-5 { border-color: var(--rd); } .step-5 .step-num { color: var(--rd); }
+
+/* ── Metrics ── */
+.metrics { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+.metric { text-align: center; }
+.metric .num { font-family: var(--mn); font-size: clamp(24px, 4vw, 48px); font-weight: 900; }
+.metric .num.ac { color: var(--ac); } .metric .num.bl { color: var(--bl); } .metric .num.gn { color: var(--gn); } .metric .num.pu { color: var(--pu); }
+.metric .lbl { font-family: var(--mn); font-size: 9px; color: var(--dm); letter-spacing: 2px; }
+
+/* ── Hero ── */
+.hero-sub { font-family: var(--bc); font-size: clamp(16px, 2.5vw, 28px); font-weight: 700; color: var(--tx); margin-top: 8px; }
+.hero-badge { display: inline-block; background: var(--ac); color: #fff; padding: 3px 10px; border-radius: 2px; font-size: 10px; letter-spacing: 2px; margin-top: 20px; font-weight: 700; }
+
+/* ── Page list ── */
+.page-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; max-width: 900px; width: 100%; margin-top: 16px; }
+.page-item { background: var(--p); border: 1px solid var(--bd); border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; transition: all .3s; }
+.page-item:hover { border-color: var(--bl); }
+.page-item .page-icon { font-size: 20px; }
+.page-item .page-name { font-family: var(--mn); font-size: 10px; font-weight: 700; color: var(--tx); }
+.page-item .page-route { font-family: var(--mn); font-size: 8px; color: var(--dm); }
+.page-item .page-desc { font-family: var(--bc); font-size: 13px; color: var(--tx); flex: 1; text-align: right; }
+
+/* ── Responsive ── */
+@media (max-width: 700px) {
+  .pipeline { flex-direction: column; }
+  .pipeline-arrow { transform: rotate(90deg); }
+  .slide { padding: 20px; }
+}
+
+/* ── Animation ── */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.slide.active-content .fade-in { animation: fadeIn .6s ease-out forwards; }
+.fade-in { opacity: 0; }
+
+/* ── Tech stack tags ── */
+.tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
+.tag { background: var(--p); border: 1px solid var(--bd); padding: 4px 10px; border-radius: 4px; font-size: 9px; color: var(--tx); letter-spacing: 1px; }
+.tag.ac { border-color: var(--ac); color: var(--ac); }
+.tag.bl { border-color: var(--bl); color: var(--bl); }
+.tag.gn { border-color: var(--gn); color: var(--gn); }
+.tag.pu { border-color: var(--pu); color: var(--pu); }
+.tag.a2 { border-color: var(--a2); color: var(--a2); }
+
+/* ── Config table ── */
+.specs { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; max-width: 600px; margin-top: 16px; font-size: clamp(12px, 1.5vw, 16px); font-family: var(--bc); }
+.specs .label { color: var(--dm); text-align: right; }
+.specs .value { color: var(--tx); }
+</style>
+</head>
+<body>
+
+<div class="slides" id="slides">
+
+  <!-- SLIDE 1: Hero -->
+  <div class="slide" data-slide="0">
+    <div class="fade-in">
+      <h1 style="color: #fff;">BUELL LOGGER</h1>
+      <div class="hero-sub">XB12X · DDFI2 · Raspberry Pi</div>
+      <div class="stripe"></div>
+      <p>Real-time datalogger and AI-assisted tuning platform for the Buell XB12X with a Delphi DDFI2 ECU. No dyno needed — tuning is entirely data-driven from real street rides.</p>
+      <div class="hero-badge">v2.7.130 · 284 versions</div>
+      <div class="tags">
+        <span class="tag ac">Python 3</span>
+        <span class="tag bl">Canvas 2D</span>
+        <span class="tag gn">Alpha-N</span>
+        <span class="tag a2">Open Loop</span>
+        <span class="tag pu">AI Agents</span>
+      </div>
+      <div class="tagline">← Swipe or use dots →</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: Pipeline -->
+  <div class="slide" data-slide="1">
+    <div class="fade-in">
+      <h2>THE TUNING CYCLE</h2>
+      <p>LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR</p>
+      <div class="pipel
