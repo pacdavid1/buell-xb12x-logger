@@ -3,137 +3,141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buell XB12X Logger — Interactive Guide</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+<title>Buell XB12X Logger — Presentation</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #0a0a0b; --p: #111114; --bd: #1e1e24;
   --tx: #c8c8cc; --dm: #55555e;
   --ac: #e8420a; --a2: #f5a623; --bl: #3d9eff;
   --gn: #2cdd6e; --rd: #ff4444; --pu: #b464ff;
-  --mn: 'Share Tech Mono', monospace;
-  --bc: 'Barlow Condensed', sans-serif;
+  --cy: #00d4d4;
+  --mono: 'JetBrains Mono', monospace;
 }
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--tx);font-family:var(--mn);overflow-x:hidden}
-.slides{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;height:100vh;scrollbar-width:none}
-.slides::-webkit-scrollbar{display:none}
-.slide{min-width:100vw;height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px 40px;position:relative}
-.slide::before{content:'';position:absolute;inset:0;opacity:0.03;background:radial-gradient(ellipse at center,var(--ac),transparent 70%);pointer-events:none}
-.nav{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:100}
-.nav button{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--dm);background:transparent;cursor:pointer;transition:all .3s}
-.nav button.active{background:var(--ac);border-color:var(--ac);box-shadow:0 0 10px var(--ac)}
-h1{font-family:var(--mn);font-size:clamp(32px,5vw,56px);font-weight:900;letter-spacing:4px;text-align:center}
-h2{font-family:var(--mn);font-size:clamp(20px,3vw,34px);font-weight:700;letter-spacing:3px;color:var(--a2);margin-bottom:20px}
-h3{font-family:var(--mn);font-size:14px;font-weight:700;letter-spacing:2px;color:var(--dm);margin-bottom:10px}
-p{font-family:var(--bc);font-size:clamp(16px,2vw,22px);line-height:1.5;color:var(--tx);max-width:800px;text-align:center}
-.tagline{font-family:var(--mn);font-size:clamp(11px,1.4vw,16px);color:var(--dm);letter-spacing:2px;margin-top:14px}
-.stripe{width:80px;height:3px;background:var(--ac);margin:18px auto;border-radius:2px}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--tx); font-family: var(--mono); overflow-x: hidden; font-size: 15px; line-height: 1.5; }
 
-/* Cards & Grid */
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;max-width:1000px;width:100%;margin-top:24px}
-.card{background:var(--p);border:1px solid var(--bd);border-radius:6px;padding:20px;text-align:center;transition:all .3s;cursor:default}
-.card:hover{border-color:var(--ac);transform:translateY(-3px);box-shadow:0 6px 24px rgba(232,66,10,.15)}
-.card .icon{font-size:32px;margin-bottom:10px}
-.card .title{font-family:var(--mn);font-size:13px;font-weight:700;color:var(--tx);letter-spacing:1px}
-.card .desc{font-family:var(--bc);font-size:16px;color:var(--dm);margin-top:6px}
+.slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: 100vh; scrollbar-width: none; }
+.slides::-webkit-scrollbar { display: none; }
+.slide { flex: 0 0 100%; height: 100vh; scroll-snap-align: start; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 60px; position: relative; opacity: 0; transition: opacity 0.7s ease; }
+.slide.active { opacity: 1; }
+
+.nav-dots { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 100; }
+.nav-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dm); border: none; cursor: pointer; transition: all 0.3s; }
+.nav-dot.active { background: var(--ac); width: 28px; border-radius: 5px; }
+.nav-keys { position: fixed; bottom: 50px; right: 30px; z-index: 100; color: var(--dm); font-size: 11px; letter-spacing: 1px; }
+
+.slide-number { position: absolute; top: 20px; right: 30px; font-size: 13px; color: var(--dm); letter-spacing: 2px; }
+
+h1 { font-size: clamp(28px, 5vw, 56px); font-weight: 900; letter-spacing: 2px; color: #fff; text-transform: uppercase; }
+h2 { font-size: clamp(20px, 3vw, 32px); font-weight: 700; letter-spacing: 2px; color: #fff; text-transform: uppercase; margin-bottom: 10px; }
+h3 { font-size: clamp(15px, 2vw, 22px); font-weight: 700; color: var(--ac); margin-bottom: 8px; }
+.subtitle { color: var(--dm); font-size: clamp(12px, 1.4vw, 18px); letter-spacing: 2px; margin-bottom: 20px; }
+.tagline { color: var(--tx); font-size: clamp(11px, 1.2vw, 15px); max-width: 700px; text-align: center; line-height: 1.7; }
+code { background: var(--p); padding: 1px 6px; border-radius: 3px; font-size: 0.85em; color: var(--a2); }
+
+/* Badges */
+.badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 15px 0; }
+.badge { background: var(--bd); color: var(--tx); padding: 4px 12px; border-radius: 20px; font-size: 11px; letter-spacing: 1px; border: 1px solid #333; }
+.badge.ac { border-color: var(--ac); color: var(--ac); }
+.badge.bl { border-color: var(--bl); color: var(--bl); }
+.badge.gn { border-color: var(--gn); color: var(--gn); }
+.badge.pu { border-color: var(--pu); color: var(--pu); }
+.badge.a2 { border-color: var(--a2); color: var(--a2); }
 
 /* Pipeline */
-.pipeline{display:flex;gap:8px;max-width:1100px;width:100%;margin-top:24px}
-.pstep{flex:1;background:var(--p);border:1px solid var(--bd);border-radius:6px;padding:16px 12px;text-align:center;transition:all .3s}
-.pstep:hover{transform:scale(1.05)}
-.pstep .step-num{font-size:28px;font-weight:900}
-.pstep .step-label{font-family:var(--mn);font-size:12px;letter-spacing:1.5px;margin-top:6px}
-.pstep .step-desc{font-family:var(--bc);font-size:15px;color:var(--dm);margin-top:8px}
-.pipeline-arrow{display:flex;align-items:center;color:var(--dm);font-size:24px}
-.step-1{border-color:var(--ac)}.step-1 .step-num{color:var(--ac)}
-.step-2{border-color:var(--a2)}.step-2 .step-num{color:var(--a2)}
-.step-3{border-color:var(--bl)}.step-3 .step-num{color:var(--bl)}
-.step-4{border-color:var(--gn)}.step-4 .step-num{color:var(--gn)}
-.step-5{border-color:var(--rd)}.step-5 .step-num{color:var(--rd)}
+.pipeline { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center; margin: 25px 0; }
+.p-step { background: var(--p); border: 1px solid #333; border-radius: 8px; padding: 14px 18px; text-align: center; min-width: 130px; }
+.p-step .icon { font-size: 24px; margin-bottom: 4px; }
+.p-step .label { font-size: 12px; font-weight: 700; letter-spacing: 2px; color: var(--ac); text-transform: uppercase; }
+.p-step .desc { font-size: 10px; color: var(--dm); margin-top: 3px; }
+.p-arrow { color: var(--dm); font-size: 20px; }
 
-/* Metrics */
-.metrics{display:flex;gap:32px;margin-top:24px;flex-wrap:wrap;justify-content:center}
-.metric{text-align:center}
-.metric .num{font-family:var(--mn);font-size:clamp(32px,5vw,60px);font-weight:900}
-.metric .num.ac{color:var(--ac)}.metric .num.bl{color:var(--bl)}.metric .num.gn{color:var(--gn)}.metric .num.pu{color:var(--pu)}
-.metric .lbl{font-family:var(--mn);font-size:12px;color:var(--dm);letter-spacing:2px;margin-top:4px}
+/* Content layout */
+.content { max-width: 1100px; width: 100%; margin: 0 auto; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px; }
+.cols-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 15px; }
+.cols-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-top: 15px; }
 
-/* Hero */
-.hero-sub{font-family:var(--bc);font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--tx);margin-top:10px}
-.hero-badge{display:inline-block;background:var(--ac);color:#fff;padding:6px 16px;border-radius:3px;font-size:13px;letter-spacing:2px;margin-top:24px;font-weight:700}
+/* UI Mockup (real layout from templates) */
+.ui-mockup { background: var(--bg); border: 1px solid #333; border-radius: 6px; overflow: hidden; font-size: 10px; line-height: 1.3; }
+.ui-mockup .ui-header { background: #131316; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--ac); }
+.ui-mockup .ui-header .title { color: #fff; font-weight: 700; letter-spacing: 1px; }
+.ui-mockup .ui-header .status { color: var(--gn); font-size: 8px; }
+.ui-mockup .ui-tabs { display: flex; gap: 2px; background: var(--p); padding: 4px 8px; border-bottom: 1px solid #222; flex-wrap: wrap; }
+.ui-mockup .ui-tabs .tab { padding: 2px 8px; font-size: 9px; color: var(--dm); border-radius: 3px; cursor: default; }
+.ui-mockup .ui-tabs .tab.active { background: var(--ac); color: #fff; }
+.ui-mockup .ui-stats { padding: 5px 8px; display: flex; flex-wrap: wrap; gap: 4px 12px; background: var(--p); border-bottom: 1px solid #1a1a1e; font-size: 9px; }
+.ui-mockup .ui-stats .stat { display: flex; gap: 3px; }
+.ui-mockup .ui-stats .stat .val { color: var(--a2); font-weight: 700; }
+.ui-mockup .ui-stats .stat .val.gn { color: var(--gn); }
+.ui-mockup .ui-stats .stat .val.bl { color: var(--bl); }
+.ui-mockup .ui-stats .stat .val.rd { color: var(--rd); }
+.ui-mockup .ui-bigdisplay { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 6px; background: var(--bg); }
+.ui-mockup .ui-bigdisplay .bw { background: #0d0d10; border: 1px solid #222; border-radius: 4px; padding: 6px 8px; text-align: center; }
+.ui-mockup .ui-bigdisplay .bw .bw-label { font-size: 8px; color: var(--dm); letter-spacing: 1px; }
+.ui-mockup .ui-bigdisplay .bw .bw-val { font-size: 18px; font-weight: 900; color: #fff; }
+.ui-mockup .ui-bigdisplay .bw .bw-val.ac { color: var(--ac); }
+.ui-mockup .ui-bigdisplay .bw .bw-val.bl { color: var(--bl); }
+.ui-mockup .ui-bigdisplay .bw .bw-val.gn { color: var(--gn); }
 
-/* Tags */
-.tags{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:18px}
-.tag{background:var(--p);border:1px solid var(--bd);padding:6px 14px;border-radius:4px;font-size:12px;color:var(--tx);letter-spacing:1px}
-.tag.ac{border-color:var(--ac);color:var(--ac)}
-.tag.bl{border-color:var(--bl);color:var(--bl)}
-.tag.gn{border-color:var(--gn);color:var(--gn)}
+/* Card info */
+.info-card { background: var(--p); border: 1px solid #333; border-radius: 6px; padding: 14px; }
+.info-card h4 { color: var(--ac); font-size: 12px; letter-spacing: 1px; margin-bottom: 6px; }
+.info-card p, .info-card li { font-size: 11px; color: var(--tx); line-height: 1.5; }
+.info-card ul { list-style: none; padding: 0; }
+.info-card ul li::before { content: "> "; color: var(--dm); }
+.info-card .row { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid #1a1a1e; font-size: 10px; }
+.info-card .row .lbl { color: var(--dm); }
+.info-card .row .val { color: var(--a2); font-weight: 700; }
+.info-card .row .val.gn { color: var(--gn); }
+.info-card .row .val.bl { color: var(--bl); }
+.info-card .row .val.rd { color: var(--rd); }
+.info-card .row .val.pu { color: var(--pu); }
 
-/* UI Mockup Container */
-.mockup{background:var(--p);border:1px solid var(--bd);border-radius:8px;padding:16px;width:100%;max-width:1100px;position:relative;margin-top:12px}
-.mockup-screen{background:#0a0a0b;border-radius:4px;border:1px solid #1a1a20;overflow:hidden;position:relative;font-family:'Share Tech Mono',monospace}
-.mockup-hdr{background:var(--p);border-bottom:2px solid var(--ac);padding:6px 12px;display:flex;align-items:center;gap:12px}
-.mockup-hdr .logo{color:#fff;font-size:15px;font-weight:900;letter-spacing:1px}
-.mockup-hdr .live-dot{width:8px;height:8px;border-radius:50%;background:var(--gn);animation:blink 1.4s infinite}
-.mockup-hdr .ver{color:var(--bl);font-size:12px}
-.mockup-hdr .bat{color:var(--gn);font-size:12px;margin-left:auto}
-.mockup-hdr .fuel-bar{width:60px;height:6px;background:#1e1e24;border-radius:2px;overflow:hidden}
-.mockup-hdr .fuel-fill{height:100%;width:65%;background:var(--gn);border-radius:2px}
+/* Event chips */
+.chip { display: inline-flex; align-items: center; gap: 4px; background: var(--bd); border: 1px solid #333; border-radius: 12px; padding: 3px 8px; font-size: 9px; margin: 2px; }
+.chip .gear { color: var(--bl); font-weight: 700; }
+.chip .cnt { color: var(--dm); }
+.chip .label { color: var(--tx); }
+.chip.ok { border-color: var(--gn); }
+.chip.warn { border-color: var(--a2); }
 
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+/* Comparison table mockup */
+.comp-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+.comp-table th { background: var(--p); color: var(--dm); padding: 3px 6px; text-align: left; border-bottom: 1px solid #333; letter-spacing: 1px; }
+.comp-table td { padding: 2px 6px; border-bottom: 1px solid #1a1a1e; }
+.comp-table .rpm { color: var(--bl); font-weight: 700; }
+.comp-table .pw-a { color: var(--a2); }
+.comp-table .pw-b { color: var(--cy); }
+.comp-table .delta { color: var(--gn); }
+.comp-table .delta.neg { color: var(--rd); }
 
-/* Dashboard grid mockup */
-.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px}
-.dash-widget{background:#111114;border:1px solid #1e1e24;border-radius:4px;padding:8px 10px;min-height:40px}
-.dash-widget .wl{font-size:8px;color:var(--a2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
-.dash-widget .wv{font-size:22px;font-weight:700;color:#fff}
-.dash-widget .wu{font-size:9px;color:var(--dm);margin-left:4px}
-.dash-chart{grid-column:1/-1;background:#111114;border:1px solid #1e1e24;border-radius:4px;padding:10px;min-height:80px;position:relative}
-.dash-chart .cl{font-size:8px;color:var(--a2);letter-spacing:1.5px;text-transform:uppercase}
+/* Annotations */
+.annot { position: absolute; background: var(--ac); color: #fff; font-size: 9px; font-weight: 700; border-radius: 50%; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; cursor: default; z-index: 5; }
+.annot-label { position: absolute; background: rgba(232,66,10,0.9); color: #fff; font-size: 9px; padding: 2px 6px; border-radius: 3px; white-space: nowrap; z-index: 5; }
 
-/* Grid micro VE */
-.ve-micro{display:grid;grid-template-columns:repeat(12,14px);gap:1px;margin-top:4px}
-.ve-cell{width:14px;height:12px;border-radius:1px}
+/* 3D canvas mockup */
+.canvas3d-mock { width: 100%; height: 100px; background: linear-gradient(135deg, #050508 0%, #0d0d14 50%, #050508 100%); border: 1px solid #333; border-radius: 4px; position: relative; overflow: hidden; }
+.canvas3d-mock .grid-line { position: absolute; background: rgba(61,158,255,0.08); }
+.canvas3d-mock .peak { position: absolute; background: radial-gradient(ellipse, rgba(232,66,10,0.3) 0%, transparent 70%); border-radius: 50%; }
 
-/* Callout annotations */
-.cal{position:absolute;display:flex;align-items:center;gap:6px;pointer-events:none}
-.cal-dot{width:18px;height:18px;border-radius:50%;background:var(--ac);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:none;z-index:10}
-.cal-line{width:40px;height:1.5px;background:var(--ac);pointer-events:none}
-.cal-text{font-size:11px;color:#fff;background:rgba(0,0,0,0.85);padding:4px 10px;border-radius:3px;border:1px solid var(--ac);max-width:260px;pointer-events:none;line-height:1.4}
+/* Legend items */
+.legend { display: flex; gap: 15px; flex-wrap: wrap; margin: 8px 0; font-size: 10px; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
-/* Description panel */
-.desc-panel{background:var(--p);border:1px solid var(--bl);border-radius:6px;padding:16px 20px;max-width:1100px;width:100%;margin-top:12px;display:grid;grid-template-columns:auto 1fr;gap:8px 20px}
-.desc-num{color:var(--ac);font-size:13px;font-weight:700;text-align:right}
-.desc-text{color:var(--tx);font-size:14px;font-family:var(--bc);line-height:1.5}
-.desc-text strong{color:#fff;font-family:var(--mn)}
+/* Launch section */
+.launch-card { background: var(--p); border: 1px solid #333; border-radius: 6px; padding: 10px; margin-top: 8px; }
+.launch-card .type-label { color: var(--bl); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
 
-/* Page list */
-.page-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;max-width:1000px;width:100%;margin-top:20px}
-.page-item{background:var(--p);border:1px solid var(--bd);border-radius:6px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:all .3s}
-.page-item:hover{border-color:var(--bl)}
-.page-item .pi-icon{font-size:13px;font-weight:700;color:var(--ac);width:30px;text-align:center}
-.page-item .pi-name{font-family:var(--mn);font-size:13px;font-weight:700;color:var(--tx)}
-.page-item .pi-route{font-family:var(--mn);font-size:10px;color:var(--dm)}
-.page-item .pi-desc{font-family:var(--bc);font-size:15px;color:var(--tx);flex:1;text-align:right}
-
-/* Specs table */
-.specs{display:grid;grid-template-columns:auto 1fr;gap:6px 20px;max-width:700px;margin-top:20px;font-size:clamp(14px,1.8vw,20px);font-family:var(--bc)}
-.specs .label{color:var(--dm);text-align:right}
-.specs .value{color:var(--tx)}
-
-/* Animations */
-@keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-.slide.active-content .fade-in{animation:fadeIn .6s ease-out forwards}
-.fade-in{opacity:0}
-
-@media(max-width:700px){
-  .pipeline{flex-direction:column}
-  .pipeline-arrow{transform:rotate(90deg)}
-  .slide{padding:16px 20px}
-  .mockup{overflow-x:auto}
-  .dash-grid{grid-template-columns:1fr}
-  .desc-panel{grid-template-columns:1fr;gap:4px}
+@media (max-width: 900px) {
+  .slide { padding: 20px; }
+  .cols { grid-template-columns: 1fr; }
+  .cols-3 { grid-template-columns: 1fr; }
+  .cols-4 { grid-template-columns: 1fr 1fr; }
+  .pipeline { flex-direction: column; }
+  .p-arrow { transform: rotate(90deg); }
 }
 </style>
 </head>
@@ -141,177 +145,732 @@ p{font-family:var(--bc);font-size:clamp(16px,2vw,22px);line-height:1.5;color:var
 
 <div class="slides" id="slides">
 
-<!-- 0: HERO -->
-<div class="slide" data-slide="0">
-<div class="fade-in" style="text-align:center">
-<h1 style="color:#fff;">BUELL LOGGER</h1>
-<div class="hero-sub">XB12X · DDFI2 · Raspberry Pi</div>
-<div class="stripe"></div>
-<p>Real-time datalogger and AI-assisted tuning platform for the Buell XB12X with a Delphi DDFI2 ECU. No dyno needed &mdash; tuning is entirely data-driven from real street rides.</p>
-<div class="hero-badge">v2.7.133 &middot; 284+ versions</div>
-<div class="tags">
-<span class="tag ac">Python 3</span>
-<span class="tag bl">Canvas 2D</span>
-<span class="tag gn">Alpha-N</span>
-<span class="tag a2">Open Loop</span>
-<span class="tag pu">AI Agents</span>
-</div>
-<div class="tagline">&larr; Swipe or use arrow keys &rarr;</div>
-</div>
-</div>
-
-<!-- 1: PIPELINE -->
-<div class="slide" data-slide="1">
-<div class="fade-in" style="text-align:center">
-<h2>THE TUNING CYCLE</h2>
-<div class="pipeline">
-<div class="pstep step-1"><div class="step-num">01 LOG</div><div class="step-label">ECU CAPTURE</div><div class="step-desc">80+ parameters at 8Hz via serial. Raw CSV per ride.</div></div>
-<div class="pipeline-arrow">&rarr;</div>
-<div class="pstep step-2"><div class="step-num">02 ACOTAR</div><div class="step-label">F7 ANALYSIS</div><div class="step-desc">Event detection + DTW clustering of stable conditions.</div></div>
-<div class="pipeline-arrow">&rarr;</div>
-<div class="pstep step-3"><div class="step-num">03 COMPARAR</div><div class="step-label">SESSIONS VS</div><div class="step-desc">Cross-session cell comparison: &Delta;PW per RPM &times; TPS.</div></div>
-<div class="pipeline-arrow">&rarr;</div>
-<div class="pstep step-4"><div class="step-num">04 PROPONER</div><div class="step-label">MAP PROPOSAL</div><div class="step-desc">F7 + VS zone fusion with IDW + Laplacian smoothing.</div></div>
-<div class="pipeline-arrow">&rarr;</div>
-<div class="pstep step-5"><div class="step-num">05 BURN</div><div class="step-label">EEPROM WRITE</div><div class="step-desc">Burn proposed map from browser. Burn ledger tracks lineage.</div></div>
-</div>
-<div class="tagline">Each ride improves the map &mdash; the cycle repeats</div>
-</div>
+<!-- ═══════════════ SLIDE 0: HERO ═══════════════ -->
+<div class="slide" data-index="0">
+  <div class="slide-number">00 / 11</div>
+  <div class="content" style="text-align:center">
+    <div style="font-size:14px;letter-spacing:6px;color:var(--ac);font-weight:700;margin-bottom:10px">BUELL XB12X — DDFI2</div>
+    <h1>Datalogger + AI Tuning<br>Platform</h1>
+    <div class="subtitle" style="margin-top:10px">LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR</div>
+    <div class="tagline" style="margin-top:15px">
+      Real-time engine data acquisition, AI-assisted VE/spark map tuning,<br>
+      and session analysis for the Buell XB12X with Delphi DDFI2 ECU
+    </div>
+    <div class="badges" style="margin-top:20px">
+      <span class="badge ac">Raspberry Pi Zero 2W</span>
+      <span class="badge bl">Python 3</span>
+      <span class="badge gn">Serial 9600 8N1</span>
+      <span class="badge pu">Alpha-N · Open Loop</span>
+      <span class="badge a2">Vanilla JS · Canvas 2D</span>
+      <span class="badge">Chart.js · Leaflet</span>
+    </div>
+    <div style="margin-top:30px;color:var(--dm);font-size:11px;letter-spacing:2px">
+      ← swipe or use arrow keys →
+    </div>
+  </div>
 </div>
 
-<!-- 2: HARDWARE -->
-<div class="slide" data-slide="2">
-<div class="fade-in" style="text-align:center">
-<h2>HARDWARE SETUP</h2>
-<div class="specs">
-<span class="label">Bike</span><span class="value">Buell XB12X &middot; 1203cc V-Twin &middot; 2009</span>
-<span class="label">ECU</span><span class="value">Delphi DDFI2 (BUEIB) &middot; Alpha-N &middot; Open Loop</span>
-<span class="label">Logger</span><span class="value">Raspberry Pi &middot; 192.168.100.80:8080</span>
-<span class="label">Serial</span><span class="value">CH343P USB-Serial &middot; 9600 8N1</span>
-<span class="label">Sensors</span><span class="value">BMP280 &middot; AHT20 &middot; CW2015 &middot; UBX GPS</span>
-</div>
-<div class="cards" style="margin-top:24px;max-width:700px">
-<div class="card"><div class="icon">&#9925;</div><div class="title">BMP280</div><div class="desc">Barometric pressure + ambient temperature via I2C.</div></div>
-<div class="card"><div class="icon">&#127235;</div><div class="title">AHT20</div><div class="desc">Humidity sensor for atmospheric density correction.</div></div>
-<div class="card"><div class="icon">&#128267;</div><div class="title">CW2015</div><div class="desc">Battery fuel gauge &mdash; voltage, SOC, remaining time.</div></div>
-<div class="card"><div class="icon">&#128225;</div><div class="title">UBX GPS</div><div class="desc">Position, speed, altitude for track logging + calibration.</div></div>
-</div>
-<p style="margin-top:16px;font-size:15px;color:var(--dm)">ECU runs <strong style="color:var(--ac)">Alpha-N</strong> (TPS + RPM only, no MAP sensor) in permanent <strong style="color:var(--a2)">Open Loop</strong>. O2 sensor is disconnected &mdash; EGO_Corr = AFV = 100 at all times.</p>
-</div>
-</div>
-
-<!-- 3: DASHBOARD OVERVIEW - Annotated Mockup -->
-<div class="slide" data-slide="3">
-<div class="fade-in" style="text-align:center;width:100%;display:flex;flex-direction:column;align-items:center">
-<h2>DASHBOARD &mdash; LIVE VIEW</h2>
-<p style="font-size:16px;color:var(--dm);margin-bottom:4px">Main screen showing real-time ECU data, VE coverage, and ride controls.</p>
-<div class="mockup" style="max-width:1000px">
-<div class="mockup-screen">
-<div class="mockup-hdr">
-<span class="live-dot"></span>
-<span class="logo">BUELL LOGGER</span>
-<span class="ver">v2.7.133</span>
-<span class="bat">&#9889; 13.82V</span>
-<div class="fuel-bar"><div class="fuel-fill"></div></div>
-<span style="font-size:10px;color:#55555e">65%</span>
-</div>
-<div class="dash-grid">
-<!-- RPM -->
-<div class="dash-widget" style="border-top-color:var(--ac)">
-<div class="wl">ENGINE</div>
-<div><span class="wv" style="color:var(--ac)">2,994</span><span class="wu">RPM</span></div>
-<div style="display:flex;gap:16px;margin-top:4px">
-<div><span style="font-size:14px;font-weight:700;color:#fff">76.7</span><span class="wu">km/h</span></div>
-<div><span style="font-size:14px;font-weight:700;color:#fff">34.0</span><span class="wu">TPS%</span></div>
-<div><span style="font-size:14px;font-weight:700;color:#fff">6.18</span><span class="wu">PW1ms</span></div>
-<div><span style="font-size:14px;font-weight:700;color:#fff">132</span><span class="wu">CLT&deg;C</span></div>
-<div><span style="font-size:14px;font-weight:700;color:#b464ff">5th</span><span class="wu">GEAR</span></div>
-</div>
-</div>
-<!-- VE Coverage -->
-<div class="dash-widget" style="border-top-color:var(--a2)">
-<div class="wl">VE CELLS 12&times;11</div>
-<div class="ve-micro">
-<div class="ve-cell" style="background:#2a1f08"></div>
-<div class="ve-cell" style="background:#3a3000"></div>
-<div class="ve-cell" style="background:#0f2e0f"></div>
-<div class="ve-cell" style="background:#0a420a"></div>
-<div class="ve-cell" style="background:#141417"></div>
-<div class="ve-cell" style="background:#141417"></div>
-<div class="ve-cell" style="background:#141417"></div>
-<div class="ve-cell" style="background:#141417"></div>
-<div class="ve-cell" style="background:#141417"></div>
-<div class="ve-cell" style="background:#141417"></div>
-<div class="ve-cell" style="background:#141417"></div>
-<div class="ve-cell" style="background:#141417"></div>
-<div class="ve-cell" style="background:#3d0800"></div>
-<div class="ve-cell" style="background:#2a1f08"></div>
-<div class="ve-cell" style="background:#3a3000"></div>
-<div class="ve-cell" style="background:#0f2e0f"></div>
-<div class="ve-cell" style="background:#0a420a"></div>
-<div class="ve-cell" style="background:#141417"></div>
-</div>
-<div style="margin-top:4px;font-size:9px;color:#55555e">RPM &rarr; &middot; TPS &darr; &middot; Tap cell for details</div>
-</div>
-<!-- Launch Bar -->
-<div class="dash-widget" style="grid-column:1/-1;padding:6px 10px;height:32px;display:flex;align-items:center">
-<div style="flex:1;height:12px;background:#1e1e24;border-radius:6px;overflow:hidden">
-<div style="height:100%;width:35%;background:linear-gradient(90deg,var(--gn),var(--ac));border-radius:6px;opacity:0.6"></div>
-</div>
-<span style="font-size:10px;color:#2cdd6e;margin-left:10px;letter-spacing:2px">STANDBY</span>
-</div>
-<!-- Charts preview -->
-<div class="dash-chart" style="min-height:120px">
-<div class="cl">CHARTS &mdash; MIXTURE / PW (OPEN LOOP)</div>
-<div style="height:80px;margin-top:6px;position:relative;background:#0a0a0b;border-radius:2px;overflow:hidden">
-<div style="position:absolute;bottom:0;left:0;right:0;height:1px;background:#1e1e24;top:25%"></div>
-<div style="position:absolute;bottom:0;left:0;right:0;height:1px;background:#1e1e24;top:50%"></div>
-<div style="position:absolute;bottom:0;left:0;right:0;height:1px;background:#1e1e24;top:75%"></div>
-<svg width="100%" height="80" style="position:absolute;bottom:0">
-<polyline points="10,65 30,60 60,50 90,35 120,28 150,22 180,18 210,15 240,14 270,13 300,12" fill="none" stroke="#e8420a" stroke-width="2.5"/>
-<polyline points="10,65 30,62 60,52 90,40 120,33 150,27 180,23 210,20 240,18 270,17 300,16" fill="none" stroke="#3d9eff" stroke-width="1.2" stroke-dasharray="4,2"/>
-<polyline points="10,50 30,47 60,40 90,32 120,26 150,22 180,19 210,17 240,16 270,15 300,14" fill="none" stroke="#ffc832" stroke-width="1.5"/>
-</svg>
-</div>
-</div>
-<!-- Bottom: Sessions + Map -->
-<div class="dash-widget" style="min-height:50px;display:flex;gap:10px">
-<div style="flex:1">
-<div class="wl">SESSIONS</div>
-<div style="font-size:11px;color:#c8c8cc;padding:2px 0"><span style="color:#f5a623;font-weight:700">27F1A2</span> &middot; active &middot; Today</div>
-<div style="font-size:11px;color:#55555e">248AE2 &middot; Jun 12</div>
-<div style="font-size:11px;color:#55555e">AC501E &middot; Jun 11</div>
-</div>
-<div style="width:120px;height:50px;background:#0d1518;border-radius:2px;border:1px solid #1e1e24">
-<svg width="120" height="50" viewBox="0 0 120 50">
-<path d="M20,40 Q35,30 50,28 Q65,25 80,22 Q95,20 105,25" fill="none" stroke="#e8420a" stroke-width="1.5" opacity="0.8"/>
-<circle cx="20" cy="40" r="3" fill="#2cdd6e"/>
-<circle cx="105" cy="25" r="3" fill="#ff4444"/>
-</svg>
-</div>
-</div>
-</div>
-</div>
-</div>
-<!-- Annotations -->
-<div class="desc-panel" style="margin-top:10px;max-width:1000px">
-<div class="desc-num">1</div><div class="desc-text"><strong>Header</strong> &mdash; Live indicator (green blink), logger version, battery voltage (color-coded), fuel level bar with range remaining.</div>
-<div class="desc-num">2</div><div class="desc-text"><strong>Engine Widget</strong> &mdash; Configurable display. Tap to cycle: RPM, Speed, Fuel level, Consumption, Range, Tank %. Shows gear, CLT, PW1 real-time.</div>
-<div class="desc-num">3</div><div class="desc-text"><strong>VE Cells Grid</strong> &mdash; 12 RPM bins &times; 11 TPS bins. Color: grey=no data, yellow=partial, green=good, red=active cell. Modes: Seconds, EGO, SWEET, TIPOUT, Confidence, WOT.</div>
-<div class="desc-num">4</div><div class="desc-text"><strong>Launch Detection</strong> &mdash; Bar fills as conditions are met (gear stable, TPS tip-in &gt;8%). Turns green when ready to capture a WOT launch event.</div>
-<div class="desc-num">5</div><div class="desc-text"><strong>Charts</strong> &mdash; Canvas 2D with presets: Mixture/PW, Transients/Accel, Thermal/Warmup, Spark, Electrical/Health. Click title to edit signals per panel.</div>
-<div class="desc-num">6</div><div class="desc-text"><strong>Sessions + GPS</strong> &mdash; Session list grouped by EEPROM checksum. GPS track map with start (green) and end (red) markers. Altitude profile below.</div>
-</div>
-</div>
+<!-- ═══════════════ SLIDE 1: PIPELINE ═══════════════ -->
+<div class="slide" data-index="1">
+  <div class="slide-number">01 / 11</div>
+  <div class="content">
+    <h2 style="text-align:center">The Tuning Cycle</h2>
+    <div class="subtitle" style="text-align:center">From raw data to EEPROM — 5 steps</div>
+    <div class="pipeline">
+      <div class="p-step"><div class="icon">📡</div><div class="label">LOG</div><div class="desc">ECU serial capture<br>80+ params @ 8Hz</div></div>
+      <div class="p-arrow">→</div>
+      <div class="p-step"><div class="icon">🔍</div><div class="label">ACOTAR</div><div class="desc">F7 event detection<br>DTW clustering</div></div>
+      <div class="p-arrow">→</div>
+      <div class="p-step"><div class="icon">⚖️</div><div class="label">COMPARAR</div><div class="desc">Session A vs B<br>Cell-by-cell delta</div></div>
+      <div class="p-arrow">→</div>
+      <div class="p-step"><div class="icon">🧠</div><div class="label">PROPONER</div><div class="desc">AI suggests map<br>merge & balance</div></div>
+      <div class="p-arrow">→</div>
+      <div class="p-step"><div class="icon">🔥</div><div class="label">QUEMAR</div><div class="desc">Stage cells →<br>Burn to EEPROM</div></div>
+    </div>
+    <div style="margin-top:20px;text-align:center">
+      <code>Ride → Analyze → Compare → Propose → Burn → Repeat</code>
+    </div>
+  </div>
 </div>
 
-<!-- 4: CHARTS + SIGNAL SELECTOR -->
-<div class="slide" data-slide="4">
-<div class="fade-in" style="text-align:center;width:100%;display:flex;flex-direction:column;align-items:center">
-<h2>CHARTS &amp; SIGNAL ANALYSIS</h2>
-<p style="font-size:16px;color:var(--dm);margin-bottom:4px">Detailed ride charts with preset signal groups and customizable panel layout.</p>
-<div class="mockup" style="max-width:1000px">
-<div class="mockup-screen">
-<div style="background:#111114;border-bottom:1px solid #1e1e24;padding:8px 12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-<span style="font-size:9px;color:#f5a623;letter-spacing:1.5px">PRESET:</span>
-<span style="font-size:9px;color:#e8420a;border:1px solid #e8420a;padding:3px 8px;border-radius:2p
+<!-- ═══════════════ SLIDE 2: HARDWARE ═══════════════ -->
+<div class="slide" data-index="2">
+  <div class="slide-number">02 / 11</div>
+  <div class="content">
+    <h2 style="text-align:center">Hardware Stack</h2>
+    <div class="subtitle" style="text-align:center">What runs where</div>
+    <div class="cols-3">
+      <div class="info-card">
+        <h4>🔴 Pi Zero 2W</h4>
+        <ul>
+          <li>Runs Python 3 multiprocess</li>
+          <li>Main process + ECU subprocess</li>
+          <li>IPC via tmpfs files</li>
+          <li>Web server on :8080</li>
+          <li>Wi-Fi AP + client modes</li>
+          <li>CH343P USB-Serial adapter</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4>⚙️ ECU DDFI2</h4>
+        <ul>
+          <li>Delphi DDFI2 — Alpha-N</li>
+          <li>Open Loop (no O2 sensor)</li>
+          <li>Serial 9600 8N1 protocol</li>
+          <li>80+ parameters per frame</li>
+          <li>VE + Spark maps (12x11)</li>
+          <li>EEPROM read/write via K-Line</li>
+        </ul>
+      </div>
+      <div class="info-card">
+        <h4>📡 Sensors</h4>
+        <ul>
+          <li>BMP280 — barometric pressure</li>
+          <li>AHT20 — intake air temp</li>
+          <li>CW2015 — battery monitor</li>
+          <li>Ublox GPS — position + speed</li>
+          <li>All via I²C bus</li>
+          <li>Logged at 1–8 Hz</li>
+        </ul>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:15px">
+      <code style="font-size:12px">Pi ⇄ CH343P ⇄ DDFI2 ⇄ Buell XB12X (1203cc V-Twin)</code>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 3: DASHBOARD (Index) ═══════════════ -->
+<div class="slide" data-index="3">
+  <div class="slide-number">03 / 11</div>
+  <div class="content">
+    <h2>Dashboard — Live View</h2>
+    <div class="subtitle">index.html · The main telemetry screen</div>
+    <div class="cols" style="grid-template-columns:1.4fr 1fr">
+      <div class="ui-mockup" style="position:relative">
+        <!-- Header -->
+        <div class="ui-header">
+          <span class="title">BUELL LOGGER v2.7</span>
+          <span class="status">● LIVE</span>
+        </div>
+        <!-- Navigation tabs -->
+        <div class="ui-tabs">
+          <span class="tab active">Ride</span>
+          <span class="tab">Sesiones</span>
+          <span class="tab">Graf</span>
+          <span class="tab">VE</span>
+          <span class="tab">Config</span>
+          <span class="tab">Redes</span>
+          <span class="tab">Mapa</span>
+          <span style="margin-left:auto;color:var(--dm);font-size:8px">◆ Session Events · VS · Launch · Tuner · Errors · Fuel</span>
+        </div>
+        <!-- Row 1: Bike stats -->
+        <div class="ui-stats">
+          <span class="stat">EGO <span class="val gn">14.6</span></span>
+          <span class="stat">MAT <span class="val">28°C</span></span>
+          <span class="stat">BAT <span class="val gn">12.8V</span></span>
+          <span class="stat">GER <span class="val bl">3</span></span>
+          <span class="stat">BARO <span class="val">100.2kPa</span></span>
+          <span class="stat">RID <span class="val a2">#015</span></span>
+          <span class="stat">GPS <span class="val gn">7</span></span>
+        </div>
+        <!-- Row 2: Serial stats -->
+        <div class="ui-stats">
+          <span class="stat">SER <span class="val">9600 8N1</span></span>
+          <span class="stat">TTL <span class="val">34281</span></span>
+          <span class="stat">BPS <span class="val">80</span></span>
+          <span class="stat">SAT <span class="val gn">98%</span></span>
+          <span class="stat">MEM <span class="val a2">67%</span></span>
+        </div>
+        <!-- Row 3: Sensor stats -->
+        <div class="ui-stats">
+          <span class="stat">TMP <span class="val">52°C</span></span>
+          <span class="stat">CLT <span class="val">88°C</span></span>
+          <span class="stat">TPS <span class="val">4.3%</span></span>
+          <span class="stat">VSS <span class="val">0 km/h</span></span>
+          <span class="stat">RPM <span class="val bl">1200</span></span>
+          <span class="stat">PW <span class="val a2">3.2ms</span></span>
+          <span class="stat">MAP <span class="val a2">45 kPa</span></span>
+        </div>
+        <!-- Big Display: 2x2 grid -->
+        <div class="ui-bigdisplay">
+          <div class="bw"><div class="bw-label">CHT</div><div class="bw-val ac">88°C</div></div>
+          <div class="bw"><div class="bw-label">KPH</div><div class="bw-val bl">0</div></div>
+          <div class="bw"><div class="bw-label">TPS</div><div class="bw-val a2">4.3%</div></div>
+          <div class="bw"><div class="bw-label">RPM</div><div class="bw-val gn">1,200</div></div>
+        </div>
+        <!-- Launch bar -->
+        <div style="padding:4px 8px;font-size:8px;color:var(--dm)">
+          LAUNCH <span style="display:inline-block;width:80px;height:6px;background:var(--bd);border-radius:3px;vertical-align:middle;margin:0 4px"><span style="display:block;width:0%;height:100%;background:var(--ac);border-radius:3px"></span></span> 0%
+        </div>
+        <!-- VE Grid (simplified) -->
+        <div style="padding:4px 8px;border-top:1px solid #1a1a1e">
+          <div style="font-size:8px;color:var(--dm);margin-bottom:2px">VE COVERAGE 12×11</div>
+          <div style="display:grid;grid-template-columns:repeat(12,1fr);gap:1px">
+            <span style="background:var(--gn);height:6px;border-radius:1px"></span>
+            <span style="background:var(--gn);height:6px;border-radius:1px"></span>
+            <span style="background:var(--a2);height:6px;border-radius:1px"></span>
+            <span style="background:var(--gn);height:6px;border-radius:1px"></span>
+            <span style="background:var(--bd);height:6px;border-radius:1px"></span>
+            <span style="background:var(--gn);height:6px;border-radius:1px"></span>
+            <span style="background:var(--a2);height:6px;border-radius:1px"></span>
+            <span style="background:var(--gn);height:6px;border-radius:1px"></span>
+            <span style="background:var(--gn);height:6px;border-radius:1px"></span>
+            <span style="background:var(--rd);height:6px;border-radius:1px"></span>
+            <span style="background:var(--bd);height:6px;border-radius:1px"></span>
+            <span style="background:var(--gn);height:6px;border-radius:1px"></span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:2px;font-size:7px;color:var(--dm)">
+            <span>■ seconds</span><span>■ EGO</span><span>■ SWEET</span><span>■ TIPOUT</span><span>◆ 72% covered</span>
+          </div>
+        </div>
+      </div>
+      <div class="info-card">
+        <h4>Dashboard Features</h4>
+        <ul>
+          <li class="info-card" style="border:none;padding:0;margin-bottom:6px">
+            <strong style="color:var(--bl)">3 stat rows</strong> — Bike vitals, serial health, sensor readings
+          </li>
+          <li class="info-card" style="border:none;padding:0;margin-bottom:6px">
+            <strong style="color:var(--bl)">Big Display</strong> — CHT, KPH, TPS, RPM in 2×2 grid
+          </li>
+          <li class="info-card" style="border:none;padding:0;margin-bottom:6px">
+            <strong style="color:var(--bl)">Launch bar</strong> — Visual progress indicator
+          </li>
+          <li class="info-card" style="border:none;padding:0;margin-bottom:6px">
+            <strong style="color:var(--bl)">VE Coverage grid</strong> — 12×11 cells with color-coded status
+          </li>
+          <li class="info-card" style="border:none;padding:0;margin-bottom:6px">
+            <strong style="color:var(--bl)">Ride sessions</strong> — List with refresh & link controls
+          </li>
+          <li class="info-card" style="border:none;padding:0;margin-bottom:6px">
+            <strong style="color:var(--bl)">Live updates</strong> — 8Hz polling from ECU subprocess
+          </li>
+          <li class="info-card" style="border:none;padding:0">
+            <strong style="color:var(--bl)">7 tabs</strong> — Ride, Sesiones, Graf, VE, Config, Redes, Mapa
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 4: CHARTS (Graf) ═══════════════ -->
+<div class="slide" data-index="4">
+  <div class="slide-number">04 / 11</div>
+  <div class="content">
+    <h2>Charts & Signal Analysis</h2>
+    <div class="subtitle">Graf tab · Chart.js · Multi-panel synced scrolling</div>
+    <div class="cols">
+      <div class="ui-mockup">
+        <div class="ui-header"><span class="title">GRAF — Signal Analysis</span></div>
+        <div style="padding:4px 8px;background:var(--p);font-size:8px;color:var(--dm)">
+          ◆ Presets: <span style="color:var(--ac)">Mixture/PW</span> · Transients · Spark · Fuel Economy · All
+        </div>
+        <!-- Chart canvases mockup -->
+        <div style="padding:4px">
+          <div style="height:45px;margin-bottom:3px;background:linear-gradient(180deg,rgba(45,205,110,0.15) 0%,transparent 100%);border:1px solid #222;border-radius:3px;position:relative">
+            <span style="position:absolute;top:2px;left:4px;font-size:7px;color:var(--gn)">● RPM</span>
+            <svg width="100%" height="100%" viewBox="0 0 500 45" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#2cdd6e" stroke-width="1" points="0,40 20,38 40,35 60,30 80,25 100,15 120,10 140,8 160,12 180,20 200,28 220,32 240,35 260,38 280,40 300,38 320,35 340,30 360,22 380,15 400,10 420,12 440,18 460,25 480,30 500,35"/>
+            </svg>
+          </div>
+          <div style="height:45px;margin-bottom:3px;background:linear-gradient(180deg,rgba(245,166,35,0.1) 0%,transparent 100%);border:1px solid #222;border-radius:3px;position:relative">
+            <span style="position:absolute;top:2px;left:4px;font-size:7px;color:var(--a2)">● PW Fuel</span>
+            <svg width="100%" height="100%" viewBox="0 0 500 45" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#f5a623" stroke-width="1" points="0,35 20,32 40,28 60,25 80,20 100,15 120,18 140,22 160,28 180,30 200,25 220,20 240,15 260,12 280,10 300,15 320,20 340,28 360,32 380,35 400,30 420,25 440,18 460,12 480,8 500,10"/>
+            </svg>
+          </div>
+          <div style="height:45px;margin-bottom:3px;background:linear-gradient(180deg,rgba(61,158,255,0.1) 0%,transparent 100%);border:1px solid #222;border-radius:3px;position:relative">
+            <span style="position:absolute;top:2px;left:4px;font-size:7px;color:var(--bl)">● TPS</span>
+            <svg width="100%" height="100%" viewBox="0 0 500 45" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#3d9eff" stroke-width="1" points="0,42 20,40 40,38 60,35 80,30 100,20 120,8 140,5 160,8 180,15 200,25 220,35 240,40 260,42 280,40 300,38 320,30 340,15 360,5 380,3 400,8 420,18 440,30 460,38 480,42 500,42"/>
+            </svg>
+          </div>
+          <div style="height:45px;margin-bottom:3px;background:linear-gradient(180deg,rgba(180,100,255,0.1) 0%,transparent 100%);border:1px solid #222;border-radius:3px;position:relative">
+            <span style="position:absolute;top:2px;left:4px;font-size:7px;color:var(--pu)">● SPK</span>
+            <svg width="100%" height="100%" viewBox="0 0 500 45" preserveAspectRatio="none">
+              <polyline fill="none" stroke="#b464ff" stroke-width="1" points="0,20 20,18 40,15 60,12 80,10 100,8 120,10 140,15 160,20 180,25 200,22 220,18 240,14 260,10 280,8 300,10 320,15 340,20 360,25 380,22 400,18 420,12 440,8 460,5 480,8 500,12"/>
+            </svg>
+          </div>
+        </div>
+        <div style="padding:3px 8px;font-size:7px;color:var(--dm);border-top:1px solid #1a1a1e">
+          #chartRPM · #chartFuel · #chartTPS · #chartSPK · #chartBatt · #chartFlags
+        </div>
+      </div>
+      <div class="info-card">
+        <h4>Chart Features</h4>
+        <ul>
+          <li><strong style="color:var(--a2)">6 chart canvases</strong> — RPM, Fuel PW, TPS, Spark, Battery, Digital Flags</li>
+          <li><strong style="color:var(--a2)">Synced scrolling</strong> — All charts pan together horizontally</li>
+          <li><strong style="color:var(--a2)">Signal presets</strong> — Quick-switch between predefined signal groups</li>
+          <li><strong style="color:var(--a2)">Floating cursor</strong> — Hover data panel (#tunePanel) with crosshair</li>
+          <li><strong style="color:var(--a2)">Open Loop compliance</strong> — Overlay target AFR on PW chart</li>
+          <li><strong style="color:var(--a2)">Chart.js</strong> — Renderer with custom scales and annotations</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 5: VE TAB ═══════════════ -->
+<div class="slide" data-index="5">
+  <div class="slide-number">05 / 11</div>
+  <div class="content">
+    <h2>VE Tab — Map Editor</h2>
+    <div class="subtitle">Fuel & Spark maps · 3D visualization · EEPROM burn</div>
+    <div class="cols">
+      <div class="ui-mockup">
+        <div class="ui-header"><span class="title">VE — Fuel / Spark Maps</span></div>
+        <div style="display:flex;gap:2px;background:var(--p);padding:3px 6px;font-size:9px">
+          <span style="color:var(--ac);font-weight:700">Fuel FR</span>
+          <span style="color:var(--dm)">Fuel RR</span>
+          <span style="color:var(--dm)">Spark FR</span>
+          <span style="color:var(--dm)">Spark RR</span>
+          <span style="margin-left:auto;color:var(--dm)">🔥 <span style="color:var(--a2)">3 cells staged</span></span>
+        </div>
+        <!-- Mini VE grid -->
+        <div style="padding:6px">
+          <div style="font-size:8px;color:var(--dm);margin-bottom:4px">FUEL MAP FRONT — 12×11 (TPS × RPM)</div>
+          <table style="border-collapse:collapse;width:100%;font-size:7px">
+            <tr>
+              <td style="background:#0a2a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">56</td>
+              <td style="background:#0a2a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">58</td>
+              <td style="background:#1a3a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">61</td>
+              <td style="background:#2a4a0a;color:var(--a2);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">65</td>
+              <td style="background:#3a5a0a;color:var(--a2);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">70</td>
+              <td style="background:#4a6a0a;color:var(--rd);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">78</td>
+              <td style="background:#5a4a0a;color:var(--rd);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">85</td>
+              <td style="background:#6a2a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">92</td>
+              <td style="background:#5a2a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">88</td>
+              <td style="background:#4a2a0a;color:var(--rd);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">80</td>
+              <td style="background:#2a3a0a;color:var(--a2);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">68</td>
+              <td style="background:#1a2a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">60</td>
+            </tr>
+            <tr>
+              <td style="background:#0a2a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">54</td>
+              <td style="background:#0a2a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">56</td>
+              <td style="background:#1a3a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">60</td>
+              <td style="background:#3a5a0a;color:var(--a2);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">72</td>
+              <td style="background:#5a7a0a;color:var(--rd);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">88</td>
+              <td style="background:#7a5a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">105</td>
+              <td style="background:#8a3a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">118</td>
+              <td style="background:#7a2a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">108</td>
+              <td style="background:#6a2a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">95</td>
+              <td style="background:#4a3a0a;color:var(--rd);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">78</td>
+              <td style="background:#2a3a0a;color:var(--a2);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">66</td>
+              <td style="background:#1a2a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">58</td>
+            </tr>
+            <tr>
+              <td style="background:#0a2a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">52</td>
+              <td style="background:#1a3a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">60</td>
+              <td style="background:#3a5a0a;color:var(--a2);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">75</td>
+              <td style="background:#6a5a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">96</td>
+              <td style="background:#8a5a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">120</td>
+              <td style="background:#9a3a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">135</td>
+              <td style="background:#8a3a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">118</td>
+              <td style="background:#7a3a0a;color:#fff;padding:1px 3px;border:1px solid #1a3a1a;text-align:center">105</td>
+              <td style="background:#5a4a0a;color:var(--rd);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">85</td>
+              <td style="background:#3a4a0a;color:var(--a2);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">72</td>
+              <td style="background:#2a3a0a;color:var(--a2);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">65</td>
+              <td style="background:#1a2a0a;color:var(--gn);padding:1px 3px;border:1px solid #1a3a1a;text-align:center">58</td>
+            </tr>
+          </table>
+          <div style="display:flex;gap:6px;margin-top:4px;font-size:7px;color:var(--dm)">
+            <span style="background:var(--gn);width:6px;height:6px;display:inline-block;border-radius:1px"></span> lean
+            <span style="background:var(--a2);width:6px;height:6px;display:inline-block;border-radius:1px"></span> mid
+            <span style="background:var(--rd);width:6px;height:6px;display:inline-block;border-radius:1px"></span> rich
+            <span style="margin-left:auto">🔥 <span style="color:var(--ac)">BURN (3)</span> · ⟳ Reset</span>
+          </div>
+        </div>
+        <div style="padding:4px 6px;border-top:1px solid #1a1a1e;font-size:8px;color:var(--dm)">
+          Burn History: <span style="color:var(--ac)">#042</span> 2026-06-13 18:30 · Δ -2.1% avg
+        </div>
+      </div>
+      <div class="info-card">
+        <h4>VE Tab Features</h4>
+        <ul>
+          <li><strong style="color:var(--a2)">Fuel & Spark maps</strong> — Front and Rear, 12×11 grid</li>
+          <li><strong style="color:var(--a2)">Cell editing</strong> — Click to modify individual VE/spark values</li>
+          <li><strong style="color:var(--a2)">Stage & Burn</strong> — Stage cells, then write to EEPROM</li>
+          <li><strong style="color:var(--a2)">Burn History Ledger</strong> — Complete audit trail of every EEPROM write</li>
+          <li><strong style="color:var(--a2)">Color-coded heatmap</strong> — Lean (green) → mid (amber) → rich (red)</li>
+          <li><strong style="color:var(--a2)">3D canvas</strong> — Visualize map as 3D surface</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 6: SESSION EVENTS (F7) ═══════════════ -->
+<div class="slide" data-index="6">
+  <div class="slide-number">06 / 11</div>
+  <div class="content">
+    <h2>Session Events — F7 Analysis</h2>
+    <div class="subtitle">Event detection · DTW clustering · Time-series chart</div>
+    <div class="cols">
+      <div class="ui-mockup">
+        <div class="ui-header"><span class="title">SESSION EVENTS</span></div>
+        <!-- Controls -->
+        <div style="display:flex;gap:6px;padding:4px 8px;background:var(--p);font-size:9px;align-items:center;flex-wrap:wrap">
+          <span style="color:var(--dm)">Session:</span>
+          <span style="background:var(--bd);padding:1px 6px;border-radius:3px">ride_27F1A2_006</span>
+          <span style="color:var(--dm)">DTW:</span>
+          <span style="background:var(--bd);padding:1px 6px;border-radius:3px">0.90</span>
+          <span style="background:var(--ac);padding:1px 8px;border-radius:3px;color:#fff">LOAD</span>
+          <span style="margin-left:auto;color:var(--gn)">12 clusters · 47 events</span>
+        </div>
+        <!-- Filter -->
+        <div style="padding:3px 8px;font-size:8px;border-bottom:1px solid #1a1a1e">
+          Type: <span style="color:var(--ac);font-weight:700">ALL</span> <span style="color:var(--dm)">· ACCEL (28) · DECEL (19)</span>
+        </div>
+        <!-- Cluster strip -->
+        <div style="padding:4px 8px;display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid #1a1a1e">
+          <span class="chip ok"><span class="gear">[3]</span><span class="cnt">8</span><span class="label">SWEET</span></span>
+          <span class="chip warn"><span class="gear">[4]</span><span class="cnt">5</span><span class="label">SPICY_TIPIN</span></span>
+          <span class="chip ok"><span class="gear">[2]</span><span class="cnt">6</span><span class="label">CRUISE</span></span>
+          <span class="chip"><span class="gear">[5]</span><span class="cnt">3</span><span class="label">WOT</span></span>
+          <span class="chip warn"><span class="gear">[3]</span><span class="cnt">4</span><span class="label">DECEL_FUELCUT</span></span>
+          <span class="chip ok"><span class="gear">[4]</span><span class="cnt">7</span><span class="label">SWEET</span></span>
+          <span class="chip"><span class="gear">[1]</span><span class="cnt">2</span><span class="label">IDLE</span></span>
+        </div>
+        <!-- Chart + conditions -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;">
+          <div style="padding:4px;border-right:1px solid #1a1a1e">
+            <div style="height:70px;background:linear-gradient(180deg,rgba(45,205,110,0.08) 0%,transparent 100%);border:1px solid #222;border-radius:3px;position:relative">
+              <span style="position:absolute;top:2px;left:3px;font-size:7px;color:var(--gn)">● PW</span>
+              <svg width="100%" height="100%" viewBox="0 0 300 70" preserveAspectRatio="none">
+                <polyline fill="none" stroke="#2cdd6e" stroke-width="1.5" points="0,60 15,55 30,48 45,35 60,20 75,10 90,8 105,15 120,25 135,35 150,45 165,50 180,52 195,48 210,40 225,30 240,22 255,15 270,10 285,12 300,18"/>
+                <polyline fill="none" stroke="#f5a623" stroke-width="0.8" opacity="0.5" points="0,58 15,52 30,42 45,28 60,15 75,8 90,10 105,18 120,28 135,38 150,48 165,50 180,48 195,42 210,35 225,25 240,18 255,12 270,10 285,15 300,22"/>
+              </svg>
+              <span style="position:absolute;bottom:2px;right:3px;font-size:6px;color:var(--dm)">PW · PW1 · PW2</span>
+            </div>
+            <div style="display:flex;gap:2px;margin-top:2px;font-size:7px;color:var(--dm)">
+              <span style="background:var(--bd);padding:0 4px;border-radius:2px">● PW</span>
+              <span style="background:var(--bd);padding:0 4px;border-radius:2px">● PW1</span>
+              <span style="background:var(--bd);padding:0 4px;border-radius:2px">● PW2</span>
+              <span style="background:var(--bd);padding:0 4px;border-radius:2px">● RPM</span>
+              <span style="background:var(--bd);padding:0 4px;border-radius:2px">● VSS</span>
+            </div>
+          </div>
+          <div style="padding:4px;font-size:7px">
+            <div style="color:var(--dm);margin-bottom:2px">CONDITIONS</div>
+            <div class="info-card" style="border:none;padding:2px 0">
+              <span class="row"><span class="lbl">RPM</span><span class="val bl">2,450 ±180</span></span>
+              <span class="row"><span class="lbl">TPS</span><span class="val a2">34.2% ±5.1</span></span>
+              <span class="row"><span class="lbl">VSS</span><span class="val bl">78 km/h</span></span>
+              <span class="row"><span class="lbl">PW</span><span class="val a2">4.8ms ±0.6</span></span>
+              <span class="row"><span class="lbl">Gear</span><span class="val pu">3</span></span>
+              <span class="row"><span class="lbl">ΔPW</span><span class="val gn">+0.3ms</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="info-card">
+        <h4>Event Detection Features</h4>
+        <ul>
+          <li><strong style="color:var(--bl)">F7 detection</strong> — Identifies 7 event types: SWEET, SPICY_WOT, SPICY_TIPIN, SALTY_UP, SALTY_DOWN, CRUISE, DECEL_FUELCUT</li>
+          <li><strong style="color:var(--bl)">DTW clustering</strong> — Dynamic Time Warping similarity matching with configurable threshold (0.80–0.95)</li>
+          <li><strong style="color:var(--bl)">Cluster strip</strong> — Visual chips with gear, count, and status indicators</li>
+          <li><strong style="color:var(--bl)">Time-series chart</strong> — Multi-metric overlay (PW, PW1, PW2, RPM, VSS, TPS)</li>
+          <li><strong style="color:var(--bl)">Conditions boxes</strong> — Bucket A (initial) + Bucket B (outcome) statistics</li>
+          <li><strong style="color:var(--bl)">Members table</strong> — Individual event detail within selected cluster</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 7: SESSIONS VS ═══════════════ -->
+<div class="slide" data-index="7">
+  <div class="slide-number">07 / 11</div>
+  <div class="content">
+    <h2>Sessions VS — Comparison</h2>
+    <div class="subtitle">Session A vs B · Delta analysis · Launch events</div>
+    <div class="cols">
+      <div class="ui-mockup">
+        <div class="ui-header"><span class="title">SESSIONS VS</span></div>
+        <div style="display:flex;gap:6px;padding:4px 8px;background:var(--p);font-size:9px;align-items:center;flex-wrap:wrap">
+          <span style="color:var(--dm)">A:</span>
+          <span style="background:var(--bd);padding:1px 6px;border-radius:3px;color:var(--a2)">ride_27F1A2_006</span>
+          <span style="color:var(--dm)">B:</span>
+          <span style="background:var(--bd);padding:1px 6px;border-radius:3px;color:var(--cy)">ride_653DC0_005</span>
+          <span style="background:var(--ac);padding:1px 8px;border-radius:3px;color:#fff">COMPARAR</span>
+          <span style="margin-left:auto;color:var(--dm)">↓ JSON</span>
+        </div>
+        <!-- Mode toggles -->
+        <div style="display:flex;gap:4px;padding:3px 8px;font-size:8px;border-bottom:1px solid #1a1a1e">
+          <span style="background:var(--ac);padding:1px 6px;border-radius:3px;color:#fff">ALL</span>
+          <span style="color:var(--dm)">· SPORT · ECO</span>
+          <span style="margin-left:8px;color:var(--dm)">Flavors:</span>
+          <span style="color:var(--gn)">SWEET</span>
+          <span style="color:var(--a2)">SALTY</span>
+          <span style="color:var(--rd)">WOT</span>
+          <span style="color:var(--pu)">TIP-IN</span>
+        </div>
+        <!-- Comparison table mockup -->
+        <div style="padding:4px;overflow-x:auto">
+          <table class="comp-table">
+            <thead><tr><th>RPM</th><th>TPS%</th><th>PW FR A</th><th>PW FR B</th><th>dPW</th><th>SPK A</th><th>SPK B</th><th>dSPK</th><th>dACC</th></tr></thead>
+            <tbody>
+              <tr><td class="rpm">2000</td><td>5</td><td class="pw-a">3.2</td><td class="pw-b">3.0</td><td class="delta gn">-0.2</td><td>28</td><td>30</td><td class="delta gn">+2</td><td class="delta">0.0</td></tr>
+              <tr><td class="rpm">2500</td><td>8</td><td class="pw-a">3.8</td><td class="pw-b">3.5</td><td class="delta gn">-0.3</td><td>26</td><td>28</td><td class="delta gn">+2</td><td class="delta gn">+0.2</td></tr>
+              <tr><td class="rpm">3000</td><td>15</td><td class="pw-a">4.5</td><td class="pw-b">4.8</td><td class="delta neg">+0.3</td><td>24</td><td>25</td><td class="delta gn">+1</td><td class="delta gn">+0.5</td></tr>
+              <tr><td class="rpm">3500</td><td>25</td><td class="pw-a">5.2</td><td class="pw-b">5.0</td><td class="delta gn">-0.2</td><td>22</td><td>24</td><td class="delta gn">+2</td><td class="delta gn">+0.8</td></tr>
+              <tr><td class="rpm">4000</td><td>40</td><td class="pw-a">6.0</td><td class="pw-b">6.5</td><td class="delta neg">+0.5</td><td>20</td><td>22</td><td class="delta gn">+2</td><td class="delta gn">+1.2</td></tr>
+              <tr><td class="rpm">5000</td><td>60</td><td class="pw-a">7.5</td><td class="pw-b">7.0</td><td class="delta gn">-0.5</td><td>18</td><td>20</td><td class="delta gn">+2</td><td class="delta gn">+1.8</td></tr>
+              <tr><td class="rpm">6000</td><td>80</td><td class="pw-a">8.8</td><td class="pw-b">8.2</td><td class="delta gn">-0.6</td><td>16</td><td>18</td><td class="delta gn">+2</td><td class="delta gn">+2.5</td></tr>
+              <tr><td class="rpm">7000</td><td>95</td><td class="pw-a">9.5</td><td class="pw-b">9.0</td><td class="delta gn">-0.5</td><td>14</td><td>16</td><td class="delta gn">+2</td><td class="delta gn">+3.0</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- Launch section -->
+        <div style="padding:4px 8px;border-top:1px solid #1a1a1e;font-size:8px">
+          <span style="color:var(--bl);font-weight:700">LAUNCH EVENTS</span>
+          <div style="display:flex;gap:15px;margin-top:2px">
+            <span>Type A (cruise): <span style="color:var(--gn)">3 matches</span></span>
+            <span>Type B (accel): <span style="color:var(--a2)">2 matches</span></span>
+            <span>Peak ΔPW: <span style="color:var(--rd)">-0.8ms</span></span>
+          </div>
+        </div>
+      </div>
+      <div class="info-card">
+        <h4>Comparison Features</h4>
+        <ul>
+          <li><strong style="color:var(--cy)">Side-by-side</strong> — Compare any two sessions cell-by-cell</li>
+          <li><strong style="color:var(--cy)">Delta columns</strong> — dPW, dSPK, dACC, dVSS, dCLT</li>
+          <li><strong style="color:var(--cy)">Flavor analysis</strong> — Filter by SWEET, SALTY, WOT, TIP-IN events</li>
+          <li><strong style="color:var(--cy)">SPORT/ECO/ALL</strong> — Tune mode comparison</li>
+          <li><strong style="color:var(--cy)">Launch detection</strong> — Type A (stable cruise) and Type B (moderate accel)</li>
+          <li><strong style="color:var(--cy)">Cluster charts</strong> — Canvas overlay of matched clusters</li>
+          <li><strong style="color:var(--cy)">Sortable table</strong> — Click headers to sort by any metric</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 8: TUNER ═══════════════ -->
+<div class="slide" data-index="8">
+  <div class="slide-number">08 / 11</div>
+  <div class="content">
+    <h2>Tuner — 3D Map Studio</h2>
+    <div class="subtitle">Session comparison · 3D visualization · Merge engine</div>
+    <div class="cols">
+      <div class="ui-mockup">
+        <div class="ui-header"><span class="title">TUNER — Map Comparador</span></div>
+        <!-- Session selectors -->
+        <div style="display:flex;gap:6px;padding:4px 8px;background:var(--p);font-size:9px;align-items:center;flex-wrap:wrap">
+          <span style="color:var(--dm)">Base:</span>
+          <span style="background:var(--bd);padding:1px 6px;border-radius:3px;color:var(--a2)">ride_27F1A2_006</span>
+          <span style="color:var(--dm)">⟷</span>
+          <span style="color:var(--dm)">Mod:</span>
+          <span style="background:var(--bd);padding:1px 6px;border-radius:3px;color:var(--cy)">ride_653DC0_005</span>
+          <span style="margin-left:auto;color:var(--dm);font-size:11px">⇄</span>
+        </div>
+        <!-- Delta modes -->
+        <div style="display:flex;gap:4px;padding:3px 8px;font-size:8px;border-bottom:1px solid #1a1a1e">
+          <span style="background:var(--ac);padding:1px 6px;border-radius:3px;color:#fff">DLT</span>
+          <span style="color:var(--dm)">· OVR · SPK · WIR</span>
+          <span style="margin-left:8px;color:var(--dm)">YAW:-25° PIT:30° ALT:1.0</span>
+        </div>
+        <!-- 3D canvases mockup -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;padding:4px">
+          <div class="canvas3d-mock">
+            <div style="position:absolute;bottom:3px;left:4px;font-size:7px;color:var(--a2)">BASE</div>
+            <div class="peak" style="width:30px;height:20px;top:20px;left:30px"></div>
+            <div class="peak" style="width:40px;height:30px;top:40px;left:80px"></div>
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;top:0;left:0">
+              <polygon points="10,80 50,30 90,80" fill="none" stroke="#f5a623" stroke-width="0.5" opacity="0.3"/>
+              <polygon points="10,70 50,20 90,70" fill="none" stroke="#f5a623" stroke-width="0.5" opacity="0.3"/>
+              <polygon points="10,60 50,10 90,60" fill="none" stroke="#f5a623" stroke-width="0.5" opacity="0.3"/>
+            </svg>
+          </div>
+          <div class="canvas3d-mock">
+            <div style="position:absolute;bottom:3px;left:4px;font-size:7px;color:var(--rd)">DELTA</div>
+            <div class="peak" style="width:20px;height:15px;top:35px;left:50px;background:radial-gradient(ellipse,rgba(255,68,68,0.3),transparent 70%)"></div>
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;top:0;left:0">
+              <polygon points="10,75 50,40 90,75" fill="none" stroke="#ff4444" stroke-width="0.5" opacity="0.3"/>
+              <polygon points="10,65 50,30 90,65" fill="none" stroke="#ff4444" stroke-width="0.5" opacity="0.3"/>
+            </svg>
+          </div>
+          <div class="canvas3d-mock">
+            <div style="position:absolute;bottom:3px;left:4px;font-size:7px;color:var(--gn)">MOD</div>
+            <div class="peak" style="width:35px;height:25px;top:15px;left:40px"></div>
+            <div class="peak" style="width:20px;height:15px;top:50px;left:70px"></div>
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style="position:absolute;top:0;left:0">
+              <polygon points="10,78 50,28 90,78" fill="none" stroke="#2cdd6e" stroke-width="0.5" opacity="0.3"/>
+              <polygon points="10,68 50,18 90,68" fill="none" stroke="#2cdd6e" stroke-width="0.5" opacity="0.3"/>
+              <polygon points="10,58 50,8 90,58" fill="none" stroke="#2cdd6e" stroke-width="0.5" opacity="0.3"/>
+            </svg>
+          </div>
+        </div>
+        <!-- Merge controls -->
+        <div style="display:flex;gap:6px;padding:4px 8px;border-top:1px solid #1a1a1e;font-size:8px;align-items:center">
+          <span style="color:var(--dm)">Merge:</span>
+          <span style="background:var(--bd);padding:1px 6px;border-radius:3px">BAL</span>
+          <span style="color:var(--dm)">· ECO · SPT</span>
+          <span style="background:var(--ac);padding:1px 8px;border-radius:3px;color:#fff;margin-left:6px">CALCULAR</span>
+          <span style="color:var(--dm);margin-left:6px">↓ JSON</span>
+          <span style="margin-left:auto;color:var(--a2)">🔥 5 cells staged</span>
+        </div>
+      </div>
+      <div class="info-card">
+        <h4>Tuner Features</h4>
+        <ul>
+          <li><strong style="color:var(--pu)">3 canvases</strong> — c3b (BASE), c3d (DELTA), c3m (MOD)</li>
+          <li><strong style="color:var(--pu)">4 delta modes</strong> — DLT (difference), OVR (overlay), SPK (spikes), WIR (wireframe)</li>
+          <li><strong style="color:var(--pu)">3D controls</strong> — YAW, PIT, ROL, ALT, ZOOM with INV toggle</li>
+          <li><strong style="color:var(--pu)">Merge engine</strong> — BALANCE · ECO · SPORT modes</li>
+          <li><strong style="color:var(--pu)">Stage & Burn</strong> — Select cells, preview diff, commit to EEPROM</li>
+          <li><strong style="color:var(--pu)">Session swap</strong> — One-click swap Base ↔ Modified</li>
+          <li><strong style="color:var(--pu)">MSQ download</strong> — Export maps as TunerPro .msq format</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 9: AI AGENTS ═══════════════ -->
+<div class="slide" data-index="9">
+  <div class="slide-number">09 / 11</div>
+  <div class="content">
+    <h2 style="text-align:center">AI Agents</h2>
+    <div class="subtitle" style="text-align:center">Two AI systems power the tuning workflow</div>
+    <div class="cols">
+      <div class="info-card" style="border-color:var(--pu)">
+        <h4 style="color:var(--pu)">🧠 Claude Code (Implementer)</h4>
+        <ul>
+          <li>Writes and debugs all Python/JS code</li>
+          <li>Gits commits and manages version history</li>
+          <li>Implements new features on demand</li>
+          <li>Refactors and maintains code quality</li>
+          <li>Integrates with Pi via SSH</li>
+        </ul>
+      </div>
+      <div class="info-card" style="border-color:var(--a2)">
+        <h4 style="color:var(--a2)">🔍 freebuff (Researcher/Auditor)</h4>
+        <ul>
+          <li>Analyzes session data independently</li>
+          <li>Detects trends and tuning opportunities</li>
+          <li>Audits Claude Code's changes</li>
+          <li>Suggests VE/spark map proposals</li>
+          <li>Cross-references with DDFI2 documentation</li>
+        </ul>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:15px">
+      <code style="font-size:11px">Claude Code writes the code · freebuff checks the math</code>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 10: VDYNO ═══════════════ -->
+<div class="slide" data-index="10">
+  <div class="slide-number">10 / 11</div>
+  <div class="content">
+    <h2 style="text-align:center">VDYNO Program</h2>
+    <div class="subtitle" style="text-align:center">Virtual Dyno — Roadmap V0 → V4</div>
+    <div class="cols-4">
+      <div class="info-card" style="border-color:var(--dm)">
+        <h4 style="color:var(--dm)">V0 · Burn Ledger</h4>
+        <p style="font-size:10px">Complete audit trail of all EEPROM burns. Each write logged with timestamp, session hash, cell deltas, and rollback capability. <strong style="color:var(--gn)">✓ Done</strong></p>
+      </div>
+      <div class="info-card" style="border-color:var(--gn)">
+        <h4 style="color:var(--gn)">V1 · Physical Power</h4>
+        <p style="font-size:10px">Estimate rear-wheel HP from logged VSS + acceleration. Use known drag coefficients (CdA, rolling resistance) for the XB12X. Compare before/after burns.</p>
+      </div>
+      <div class="info-card" style="border-color:var(--a2)">
+        <h4 style="color:var(--a2)">V2 · Session Pairs</h4>
+        <p style="font-size:10px">Auto-pair matching sessions by GPS route + weather. Normalize for wind, gradient, temperature. Deliver "this tune vs that tune" HP delta with confidence.</p>
+      </div>
+      <div class="info-card" style="border-color:var(--ac)">
+        <h4 style="color:var(--ac)">V3-V4 · AI Directed</h4>
+        <p style="font-size:10px">Targeted data gathering: AI identifies VE cells with high uncertainty and suggests specific RPM/TPS regions to log. Fully automated optimization loops.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SLIDE 11: CLOSE ═══════════════ -->
+<div class="slide" data-index="11">
+  <div class="slide-number">11 / 11</div>
+  <div class="content" style="text-align:center">
+    <div style="font-size:14px;letter-spacing:6px;color:var(--ac);font-weight:700;margin-bottom:15px">BUELL XB12X — DDFI2</div>
+    <h1 style="font-size:clamp(24px,4vw,42px)">Datalogger + AI Tuning<br>Platform</h1>
+    <div style="margin-top:20px">
+      <span class="badge ac">Raspberry Pi Zero 2W</span>
+      <span class="badge bl">Python 3 Multiprocess</span>
+      <span class="badge gn">Delphi DDFI2 · Alpha-N</span>
+      <span class="badge pu">Serial 9600 8N1</span>
+    </div>
+    <div style="margin-top:30px;display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
+      <span><code>http://192.168.100.80:8080</code></span>
+      <span><code>/docs/presentation.html</code></span>
+    </div>
+    <div style="margin-top:40px;color:var(--dm);font-size:11px">
+      LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR<br>
+      v2.7.130 — 13 Jun 2026 — 284 changelog entries
+    </div>
+  </div>
+</div>
+
+</div><!-- /slides -->
+
+<!-- Navigation dots -->
+<div class="nav-dots" id="navDots"></div>
+
+<script>
+(function() {
+  const slides = document.querySelectorAll('.slide');
+  const navDots = document.getElementById('navDots');
+  const total = slides.length;
+
+  // Build dots
+  for (let i = 0; i < total; i++) {
+    const dot = document.createElement('button');
+    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+    dot.addEventListener('click', () => {
+      slides[i].scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' });
+    });
+    navDots.appendChild(dot);
+  }
+
+  // IntersectionObserver for active state
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const idx = parseInt(entry.target.dataset.index);
+        entry.target.classList.add('active');
+        document.querySelectorAll('.nav-dot').forEach((d, i) => {
+          d.classList.toggle('active', i === idx);
+        });
+      }
+    });
+  }, { threshold: 0.6 });
+
+  slides.forEach(s => observer.observe(s));
+
+  // Keyboard navigation
+  const slidesContainer = document.querySelector('.slides');
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      const activeSlide = document.querySelector('.slide.active');
+      if (activeSlide && activeSlide.nextElementSibling) {
+        activeSlide.nextElementSibling.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' });
+      }
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      const activeSlide = document.querySelector('.slide.active');
+      if (activeSlide && activeSlide.previousElementSibling) {
+        activeSlide.previousElementSibling.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'start' });
+      }
+    }
+  });
+
+  // Activate first slide immediately
+  slides[0].classList.add('active');
+})();
+</script>
+</body>
+</html>
