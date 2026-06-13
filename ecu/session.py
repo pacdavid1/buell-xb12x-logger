@@ -94,7 +94,7 @@ class SessionManager:
                 "logger_version": LOGGER_VERSION,
                 "rider_notes": []
             }
-            self.logger.info(f"Nueva sesión: {cs} firmware={version_str}")
+            self.logger.info(f"New session: {cs} firmware={version_str}")
         return sdir, meta
 
     def open_session(self, version_str, blob):
