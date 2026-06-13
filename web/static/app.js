@@ -2536,6 +2536,7 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
     'CDiag0','CDiag1','CDiag2','CDiag3','CDiag4',
     'HDiag0','HDiag1','HDiag2','HDiag3','HDiag4',
     'SysConfig','DIn','DOut','Rides',
+    'p_kw','hp','torque_nm',
   ];
 
   const panel = document.createElement('div');
@@ -2629,6 +2630,9 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
        'Unk63','Unk80','Unk81','Unk82','CDiag0','CDiag1','CDiag2','CDiag3','CDiag4',
        'HDiag0','HDiag1','HDiag2','HDiag3','HDiag4','SysConfig','DIn','DOut','Rides'
       ].forEach(k=>ALL_S.push({key:k,color:'#666'}));
+      // VDYNO computed channels
+      [{key:'p_kw',color:'#ff9900'},{key:'hp',color:'#ff5500'},{key:'torque_nm',color:'#ffcc00'}]
+        .forEach(s=>ALL_S.push(s));
       ALL_S.forEach(s=>SIG_MAP2[s.key]=s);
 
       const t0 = window._lastBuildRows ? window._lastBuildRows[0]?.time_elapsed_s??0 : 0;
@@ -2640,7 +2644,7 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
         return { _key:key, label:sig.label,
           data:(window._lastBuildRows||[]).map(r=>({x:r.time_elapsed_s,y:r[key]??null})),
           borderColor:sig.color, borderWidth:1.5, borderDash:sig.dash||[],
-          pointRadius:0, fill:false, tension:0.1 };
+          pointRadius:0, fill:false, tension:0, yAxisID:'y_'+key };
       }).filter(Boolean);
 
       if(!datasets.length) datasets.push({
@@ -2666,12 +2670,21 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
               }
             }
           },
-          scales:{
-            x:{type:'linear',min:t0,max:t1,
+          scales:(()=>{
+            const _rows = window._lastBuildRows||[];
+            const sc = {x:{type:'linear',min:t0,max:t1,
                ticks:{font:{family:'monospace',size:8},color:'#444',callback:v=>v%60===0?(v+'s'):'',maxTicksLimit:Math.ceil(durS2/60)+1},
-               grid:{color:'rgba(255,255,255,.04)'}},
-            y:{display:false}
-          }
+               grid:{color:'rgba(255,255,255,.04)'}}};
+            chartCfgs[ci].keys.forEach(key=>{
+              const vals=_rows.map(r=>r[key]).filter(v=>v!=null&&!isNaN(v));
+              const mn=vals.length?Math.min(...vals):0;
+              const mx=vals.length?Math.max(...vals):1;
+              const pad=(mx-mn)*0.1||1;
+              sc['y_'+key]={type:'linear',display:false,min:mn-pad,max:mx+pad};
+            });
+            if(!chartCfgs[ci].keys.length) sc['y__empty']={type:'linear',display:false};
+            return sc;
+          })()
         }
       });
     }
