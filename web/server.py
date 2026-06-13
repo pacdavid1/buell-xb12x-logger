@@ -80,6 +80,11 @@ class DashboardHandler(
             self._handle_static(self.path)
             return
 
+        # Docs (presentation.html, assets/*)
+        if self.path.startswith("/docs/"):
+            self._handle_docs(self.path)
+            return
+
         _routes = {
             '/tuner/sessions': self._handle_tuner_sessions,
             '/tuner/maps': self._handle_tuner_maps,
@@ -181,6 +186,26 @@ class DashboardHandler(
             return
 
         self._json({"error": "unknown endpoint"}, 404)
+
+    def _handle_docs(self, path=None):
+        """Serve files from the docs/ directory at project root."""
+        path = self.path.split("?", 1)[0].removeprefix("/")
+        base = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+        fpath = os.path.realpath(os.path.join(base, path))
+        if os.path.commonpath([base, fpath]) == base and os.path.isfile(fpath):
+            mime, _ = mimetypes.guess_type(fpath)
+            with open(fpath, "rb") as f:
+                body = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", mime or "application/octet-stream")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        self.send_response(404)
+        self.end_headers()
+        self.wfile.write(b"Not Found")
 
     def _handle_static(self, path=None):
         path = self.path.split("?", 1)[0].removeprefix("/")
