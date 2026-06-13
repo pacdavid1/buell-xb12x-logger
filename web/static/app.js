@@ -58,6 +58,7 @@ let _cobertData = null;
 let _liveInterval = null;
 let _freezeInterval = null;
 let _cobertInterval = null;
+let _fuelInterval = null;
 
 // ── Configurable widgets ─────────────────────────────────────────────────
 // Widget A: tap the RPM big-card to cycle.
@@ -1833,6 +1834,7 @@ async function viewSelectedRides(){
   if(_liveInterval) clearInterval(_liveInterval);
   if(_freezeInterval) clearInterval(_freezeInterval);
   if(_cobertInterval) clearInterval(_cobertInterval);
+  if(_fuelInterval) clearInterval(_fuelInterval);
   showTab('ride');
   $id('objList').insertAdjacentHTML('afterbegin',
     `<div style="background:rgba(232,66,10,.12);border:1px solid var(--accent);padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:9px;color:var(--accent);width:100%">
@@ -1861,6 +1863,7 @@ function exitHistory(){
   // Restart live polling intervals (they were stopped in viewSelectedRides)
   _cobertInterval = setInterval(pollCobertGrid, 1000);
   _liveInterval = setInterval(fetchLive, 500);
+  _fuelInterval = setInterval(fetchFuelStatus, 30000);
   _freezeInterval = setInterval(()=>{
     const frozen = (Date.now() - _lastLiveOk) > 5000;
     const tabs = document.querySelector('.tabs');
@@ -2948,7 +2951,7 @@ async function gitPull() {
 
 
 // Load cal on startup (not only on tab open)
-document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); _cobertInterval = setInterval(pollCobertGrid, 1000); fetchFuelStatus(); setInterval(fetchFuelStatus, 30000); });
+document.addEventListener("DOMContentLoaded", ()=>{ buildCobertGrid(); renderCobertLegend(); fetchLive(); _cobertInterval = setInterval(pollCobertGrid, 1000); fetchFuelStatus(); _fuelInterval = setInterval(fetchFuelStatus, 30000); });
 
 
 // ── Error Log Viewer ──

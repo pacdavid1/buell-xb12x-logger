@@ -23,6 +23,16 @@ PROMPT_END -->
 
 
 
+
+## [v2.7.130] — 2026-06-13
+### Fixed
+- app.js: the `fetchFuelStatus` 30s poller was never tracked or cleared, so it
+  kept hitting /fuel/status while viewing ride history. It now uses a
+  `_fuelInterval` handle that is cleared in viewSelectedRides() and restarted in
+  exitHistory(), matching the live/freeze/coverage pollers (BACKLOG: JS Robustness).
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.129] — 2026-06-13
 ### Removed
 - Dead JS function `saveObj()` in web/static/app.js (BL-DI-10): it was defined
