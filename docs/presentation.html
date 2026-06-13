@@ -16,37 +16,24 @@
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: var(--bg); color: var(--tx); font-family: var(--mn); overflow-x: hidden; }
-
-/* ── Slide system ── */
 .slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: 100vh; scrollbar-width: none; }
 .slides::-webkit-scrollbar { display: none; }
 .slide { min-width: 100vw; height: 100vh; scroll-snap-align: start; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; position: relative; }
 .slide::before { content: ''; position: absolute; inset: 0; opacity: 0.03; background: radial-gradient(ellipse at center, var(--ac), transparent 70%); pointer-events: none; }
-
-/* ── Navigation ── */
 .nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 100; }
 .nav button { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--dm); background: transparent; cursor: pointer; transition: all .3s; }
 .nav button.active { background: var(--ac); border-color: var(--ac); box-shadow: 0 0 8px var(--ac); }
-
-/* ── Typography ── */
 h1 { font-family: var(--mn); font-size: clamp(28px, 5vw, 52px); font-weight: 900; letter-spacing: 4px; text-align: center; }
 h2 { font-family: var(--mn); font-size: clamp(16px, 2.5vw, 28px); font-weight: 700; letter-spacing: 3px; color: var(--a2); margin-bottom: 16px; }
-h3 { font-family: var(--mn); font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--dm); margin-bottom: 8px; }
 p { font-family: var(--bc); font-size: clamp(14px, 1.8vw, 20px); line-height: 1.6; color: var(--tx); max-width: 700px; text-align: center; }
 .tagline { font-family: var(--mn); font-size: clamp(10px, 1.2vw, 14px); color: var(--dm); letter-spacing: 2px; margin-top: 12px; }
-
-/* ── Accent stripe ── */
 .stripe { width: 60px; height: 3px; background: var(--ac); margin: 16px auto; border-radius: 2px; }
-
-/* ── Cards ── */
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; max-width: 900px; width: 100%; margin-top: 20px; }
 .card { background: var(--p); border: 1px solid var(--bd); border-radius: 4px; padding: 16px; text-align: center; transition: all .3s; cursor: default; }
 .card:hover { border-color: var(--ac); transform: translateY(-2px); box-shadow: 0 4px 20px rgba(232,66,10,.15); }
 .card .icon { font-size: 28px; margin-bottom: 8px; }
 .card .title { font-family: var(--mn); font-size: 10px; font-weight: 700; color: var(--tx); letter-spacing: 1px; }
 .card .desc { font-family: var(--bc); font-size: 13px; color: var(--dm); margin-top: 4px; }
-
-/* ── Pipeline diagram ── */
 .pipeline { display: flex; gap: 6px; max-width: 1000px; width: 100%; margin-top: 20px; }
 .pstep { flex: 1; background: var(--p); border: 1px solid var(--bd); border-radius: 4px; padding: 12px 8px; text-align: center; transition: all .3s; }
 .pstep:hover { transform: scale(1.05); }
@@ -59,19 +46,13 @@ p { font-family: var(--bc); font-size: clamp(14px, 1.8vw, 20px); line-height: 1.
 .step-3 { border-color: var(--bl); } .step-3 .step-num { color: var(--bl); }
 .step-4 { border-color: var(--gn); } .step-4 .step-num { color: var(--gn); }
 .step-5 { border-color: var(--rd); } .step-5 .step-num { color: var(--rd); }
-
-/* ── Metrics ── */
 .metrics { display: flex; gap: 24px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
 .metric { text-align: center; }
 .metric .num { font-family: var(--mn); font-size: clamp(24px, 4vw, 48px); font-weight: 900; }
 .metric .num.ac { color: var(--ac); } .metric .num.bl { color: var(--bl); } .metric .num.gn { color: var(--gn); } .metric .num.pu { color: var(--pu); }
 .metric .lbl { font-family: var(--mn); font-size: 9px; color: var(--dm); letter-spacing: 2px; }
-
-/* ── Hero ── */
 .hero-sub { font-family: var(--bc); font-size: clamp(16px, 2.5vw, 28px); font-weight: 700; color: var(--tx); margin-top: 8px; }
 .hero-badge { display: inline-block; background: var(--ac); color: #fff; padding: 3px 10px; border-radius: 2px; font-size: 10px; letter-spacing: 2px; margin-top: 20px; font-weight: 700; }
-
-/* ── Page list ── */
 .page-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; max-width: 900px; width: 100%; margin-top: 16px; }
 .page-item { background: var(--p); border: 1px solid var(--bd); border-radius: 4px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; transition: all .3s; }
 .page-item:hover { border-color: var(--bl); }
@@ -79,20 +60,14 @@ p { font-family: var(--bc); font-size: clamp(14px, 1.8vw, 20px); line-height: 1.
 .page-item .page-name { font-family: var(--mn); font-size: 10px; font-weight: 700; color: var(--tx); }
 .page-item .page-route { font-family: var(--mn); font-size: 8px; color: var(--dm); }
 .page-item .page-desc { font-family: var(--bc); font-size: 13px; color: var(--tx); flex: 1; text-align: right; }
-
-/* ── Responsive ── */
 @media (max-width: 700px) {
   .pipeline { flex-direction: column; }
   .pipeline-arrow { transform: rotate(90deg); }
   .slide { padding: 20px; }
 }
-
-/* ── Animation ── */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 .slide.active-content .fade-in { animation: fadeIn .6s ease-out forwards; }
 .fade-in { opacity: 0; }
-
-/* ── Tech stack tags ── */
 .tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 16px; }
 .tag { background: var(--p); border: 1px solid var(--bd); padding: 4px 10px; border-radius: 4px; font-size: 9px; color: var(--tx); letter-spacing: 1px; }
 .tag.ac { border-color: var(--ac); color: var(--ac); }
@@ -100,39 +75,235 @@ p { font-family: var(--bc); font-size: clamp(14px, 1.8vw, 20px); line-height: 1.
 .tag.gn { border-color: var(--gn); color: var(--gn); }
 .tag.pu { border-color: var(--pu); color: var(--pu); }
 .tag.a2 { border-color: var(--a2); color: var(--a2); }
-
-/* ── Config table ── */
 .specs { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; max-width: 600px; margin-top: 16px; font-size: clamp(12px, 1.5vw, 16px); font-family: var(--bc); }
 .specs .label { color: var(--dm); text-align: right; }
 .specs .value { color: var(--tx); }
 </style>
 </head>
 <body>
-
 <div class="slides" id="slides">
 
-  <!-- SLIDE 1: Hero -->
-  <div class="slide" data-slide="0">
-    <div class="fade-in">
-      <h1 style="color: #fff;">BUELL LOGGER</h1>
-      <div class="hero-sub">XB12X · DDFI2 · Raspberry Pi</div>
-      <div class="stripe"></div>
-      <p>Real-time datalogger and AI-assisted tuning platform for the Buell XB12X with a Delphi DDFI2 ECU. No dyno needed — tuning is entirely data-driven from real street rides.</p>
-      <div class="hero-badge">v2.7.130 · 284 versions</div>
-      <div class="tags">
-        <span class="tag ac">Python 3</span>
-        <span class="tag bl">Canvas 2D</span>
-        <span class="tag gn">Alpha-N</span>
-        <span class="tag a2">Open Loop</span>
-        <span class="tag pu">AI Agents</span>
-      </div>
-      <div class="tagline">← Swipe or use dots →</div>
-    </div>
-  </div>
+<div class="slide" data-slide="0">
+<div class="fade-in">
+<h1 style="color:#fff;">BUELL LOGGER</h1>
+<div class="hero-sub">XB12X · DDFI2 · Raspberry Pi</div>
+<div class="stripe"></div>
+<p>Real-time datalogger and AI-assisted tuning platform for the Buell XB12X with a Delphi DDFI2 ECU. No dyno needed — tuning is entirely data-driven from real street rides.</p>
+<div class="hero-badge">v2.7.130 · 284 versions</div>
+<div class="tags">
+<span class="tag ac">Python 3</span>
+<span class="tag bl">Canvas 2D</span>
+<span class="tag gn">Alpha-N</span>
+<span class="tag a2">Open Loop</span>
+<span class="tag pu">AI Agents</span>
+</div>
+<div class="tagline">&larr; Swipe or use dots &rarr;</div>
+</div>
+</div>
 
-  <!-- SLIDE 2: Pipeline -->
-  <div class="slide" data-slide="1">
-    <div class="fade-in">
-      <h2>THE TUNING CYCLE</h2>
-      <p>LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR</p>
-      <div class="pipel
+<div class="slide" data-slide="1">
+<div class="fade-in">
+<h2>THE TUNING CYCLE</h2>
+<p>LOG &rarr; ACOTAR &rarr; COMPARAR &rarr; PROPONER &rarr; QUEMAR</p>
+<div class="pipeline">
+<div class="pstep step-1"><div class="step-num">01 LOG</div><div class="step-label">ECU CAPTURE</div><div class="step-desc">80+ params @ 8Hz via serial. CSVs per ride.</div></div>
+<div class="pipeline-arrow">&rarr;</div>
+<div class="pstep step-2"><div class="step-num">02 ACOTAR</div><div class="step-label">F7 ANALYSIS</div><div class="step-desc">Event detection + DTW clustering</div></div>
+<div class="pipeline-arrow">&rarr;</div>
+<div class="pstep step-3"><div class="step-num">03 COMPARAR</div><div class="step-label">SESSIONS VS</div><div class="step-desc">Delta PW per RPM x TPS cell</div></div>
+<div class="pipeline-arrow">&rarr;</div>
+<div class="pstep step-4"><div class="step-num">04 PROPONER</div><div class="step-label">MAP PROPOSAL</div><div class="step-desc">F7 + VS zone fusion</div></div>
+<div class="pipeline-arrow">&rarr;</div>
+<div class="pstep step-5"><div class="step-num">05 FIRE</div><div class="step-label">BURN</div><div class="step-desc">EEPROM write from browser</div></div>
+</div>
+<div class="tagline" style="margin-top:16px">Each ride improves the map &mdash; the cycle repeats</div>
+</div>
+</div>
+
+<div class="slide" data-slide="2">
+<div class="fade-in">
+<h2>HARDWARE</h2>
+<div class="specs">
+<span class="label">Bike</span><span class="value">Buell XB12X &middot; 1203cc V-Twin &middot; 2009</span>
+<span class="label">ECU</span><span class="value">Delphi DDFI2 (BUEIB) &middot; Alpha-N &middot; Open Loop</span>
+<span class="label">Logger</span><span class="value">Raspberry Pi &middot; 192.168.100.80:8080</span>
+<span class="label">Serial</span><span class="value">CH343P USB-Serial &middot; 9600 8N1</span>
+<span class="label">Sensors</span><span class="value">BMP280 &middot; AHT20 &middot; CW2015 &middot; GPS</span>
+</div>
+<div class="cards" style="margin-top:24px; max-width:700px">
+<div class="card"><div class="icon">TEMP</div><div class="title">BMP280</div><div class="desc">Barometric pressure + temperature</div></div>
+<div class="card"><div class="icon">HUM</div><div class="title">AHT20</div><div class="desc">Humidity sensor</div></div>
+<div class="card"><div class="icon">BAT</div><div class="title">CW2015</div><div class="desc">Battery fuel gauge</div></div>
+<div class="card"><div class="icon">GPS</div><div class="title">GPS</div><div class="desc">Position &middot; Speed &middot; Altitude</div></div>
+</div>
+<p style="margin-top:16px;font-size:13px;color:var(--dm)">ECU runs Alpha-N (TPS + RPM only, no MAP) in permanent Open Loop. O2 disconnected.</p>
+</div>
+</div>
+
+<div class="slide" data-slide="3">
+<div class="fade-in">
+<h2>WEB DASHBOARD</h2>
+<p>6 main pages accessible from any browser on the network</p>
+<div class="page-list">
+<div class="page-item"><span class="page-icon">D</span><div><div class="page-name">DASHBOARD</div><div class="page-route">/</div></div><div class="page-desc">Live ECU, VE heatmap, Fuel, Config</div></div>
+<div class="page-item"><span class="page-icon">E</span><div><div class="page-name">SESSION EVENTS</div><div class="page-route">/session_events</div></div><div class="page-desc">F7 detection + DTW clustering</div></div>
+<div class="page-item"><span class="page-icon">V</span><div><div class="page-name">SESSIONS VS</div><div class="page-route">/sessions_vs</div></div><div class="page-desc">Cross-session cell comparison</div></div>
+<div class="page-item"><span class="page-icon">L</span><div><div class="page-name">LAUNCH</div><div class="page-route">/sessions_launch</div></div><div class="page-desc">Launch detection and analysis</div></div>
+<div class="page-item"><span class="page-icon">T</span><div><div class="page-name">TUNER</div><div class="page-route">/tuner</div></div><div class="page-desc">3D map viewer + editor + proposal</div></div>
+<div class="page-item"><span class="page-icon">F</span><div><div class="page-name">FUEL</div><div class="page-route">/fuel</div></div><div class="page-desc">Fill-up tracking + range estimation</div></div>
+</div>
+</div>
+</div>
+
+<div class="slide" data-slide="4">
+<div class="fade-in">
+<h2>SOFTWARE ARCHITECTURE</h2>
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 800px; width: 100%; margin-top: 16px; font-family: var(--bc); font-size: clamp(12px, 1.3vw, 16px);">
+<div style="background:var(--p);border:1px solid var(--ac);border-radius:4px;padding:16px"><div style="color:var(--ac);font-weight:700;margin-bottom:8px">main.py</div><div style="color:var(--dm)">Sensors &middot; Sysmon &middot; Network &middot; Spawns ECU subprocess</div></div>
+<div style="background:var(--p);border:1px solid var(--a2);border-radius:4px;padding:16px"><div style="color:var(--a2);font-weight:700;margin-bottom:8px">ecu/logger_process.py</div><div style="color:var(--dm)">ECU serial + CSV logging (process-isolated)</div></div>
+<div style="background:var(--p);border:1px solid var(--bl);border-radius:4px;padding:16px"><div style="color:var(--bl);font-weight:700;margin-bottom:8px">web/server.py</div><div style="color:var(--dm)">HTTP &middot; REST &middot; 8 handler mixins &middot; IPC</div></div>
+<div style="background:var(--p);border:1px solid var(--gn);border-radius:4px;padding:16px"><div style="color:var(--gn);font-weight:700;margin-bottom:8px">Analysis Engines</div><div style="color:var(--dm)">f7.py &middot; vs_engine.py &middot; launch.py &middot; gear_detect.py</div></div>
+<div style="background:var(--p);border:1px solid var(--pu);border-radius:4px;padding:16px"><div style="color:var(--pu);font-weight:700;margin-bottom:8px">ECU Modules</div><div style="color:var(--dm)">connection.py &middot; protocol.py &middot; eeprom.py &middot; session.py</div></div>
+<div style="background:var(--p);border:1px solid #50c8c8;border-radius:4px;padding:16px"><div style="color:#50c8c8;font-weight:700;margin-bottom:8px">Frontend</div><div style="color:var(--dm)">app.js (3048 lines) &middot; Canvas 2D &middot; Leaflet maps</div></div>
+</div>
+</div>
+</div>
+
+<div class="slide" data-slide="5">
+<div class="fade-in">
+<h2>KEY FEATURES</h2>
+<div class="metrics">
+<div class="metric"><div class="num ac">80+</div><div class="lbl">ECU PARAMS</div></div>
+<div class="metric"><div class="num bl">8 Hz</div><div class="lbl">SAMPLE RATE</div></div>
+<div class="metric"><div class="num gn">284</div><div class="lbl">VERSIONS</div></div>
+<div class="metric"><div class="num pu">3048</div><div class="lbl">JS LINES</div></div>
+<div class="metric"><div class="num ac">13K</div><div class="lbl">TOTAL LINES</div></div>
+</div>
+<div class="cards" style="margin-top:20px">
+<div class="card"><div class="icon">ISO</div><div class="title">Process Isolation</div><div class="desc">ECU logging in subprocess &mdash; dash crashes cannot stop CSV</div></div>
+<div class="card"><div class="icon">LEDGER</div><div class="title">Burn Ledger</div><div class="desc">VDYNO V0 &mdash; every burn tracked with lineage</div></div>
+<div class="card"><div class="icon">CANVAS</div><div class="title">Canvas 2D Charts</div><div class="desc">No libraries &mdash; custom rendering throughout</div></div>
+<div class="card"><div class="icon">3D</div><div class="title">3D GPS Track</div><div class="desc">Rotating 3D view in Mapa subtab</div></div>
+<div class="card"><div class="icon">AI</div><div class="title">Dual AI</div><div class="desc">Claude Code + freebuff in parallel</div></div>
+<div class="card"><div class="icon">BURN</div><div class="title">Browser Burn</div><div class="desc">Write EEPROM from web dashboard</div></div>
+</div>
+</div>
+</div>
+
+<div class="slide" data-slide="6">
+<div class="fade-in">
+<h2>AI AGENT SYSTEM</h2>
+<p>Two AI agents work in parallel</p>
+<div style="display:flex; gap:16px; max-width:700px; width:100%; margin-top:20px">
+<div style="flex:1; background:var(--p); border:1px solid var(--bl); border-radius:6px; padding:20px; text-align:center">
+<div style="font-size:36px; margin-bottom:8px">CLAUDE</div>
+<div style="color:var(--bl); font-weight:700; font-size:16px">Claude Code</div>
+<div style="font-size:9px; color:var(--dm); margin:4px 0 8px">IMPLEMENTER</div>
+<div style="font-size:13px; color:var(--tx)">Writes and commits all code. Reads instructions from CLAUDE.md.</div>
+</div>
+<div style="flex:1; background:var(--p); border:1px solid var(--gn); border-radius:6px; padding:20px; text-align:center">
+<div style="font-size:36px; margin-bottom:8px">FREEBUFF</div>
+<div style="color:var(--gn); font-weight:700; font-size:16px">freebuff</div>
+<div style="font-size:9px; color:var(--dm); margin:4px 0 8px">ANALYST + VALIDATOR</div>
+<div style="font-size:13px; color:var(--tx)">Researches, designs, audits every commit, validates OL compliance.</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="slide" data-slide="7">
+<div class="fade-in">
+<h2>VDYNO PROGRAM</h2>
+<div class="stripe"></div>
+<p>Virtual dyno &mdash; phased implementation for data-driven tuning validation</p>
+<div class="cards">
+<div class="card"><div class="icon">V0</div><div class="title">V0 &middot; Burn Ledger</div><div class="desc">Done &mdash; burns.json with full lineage</div></div>
+<div class="card"><div class="icon">V1</div><div class="title">V1 &middot; Virtual Dyno</div><div class="desc">Physics-based power estimation from logged data</div></div>
+<div class="card"><div class="icon">V2</div><div class="title">V2 &middot; Burn Verdict</div><div class="desc">Did the burn help? Verdict from before/after comparison</div></div>
+<div class="card"><div class="icon">V3</div><div class="title">V3 &middot; Evidence Instructor</div><div class="desc">Tell the AI what evidence to gather next ride</div></div>
+<div class="card"><div class="icon">V4</div><div class="title">V4 &middot; Proposal to VE</div><div class="desc">End-to-end: from data to map diff to apply</div></div>
+</div>
+<div class="tagline" style="margin-top:16px">No autonomous EEPROM writes &middot; new checksum per proposal &middot; verdicts beat noise floor</div>
+</div>
+</div>
+
+<div class="slide" data-slide="8">
+<div class="fade-in">
+<h2>DESIGN SYSTEM</h2>
+<p>Dark, monospace-driven, high-contrast interface</p>
+<div style="display:flex; gap:16px; max-width:700px; margin-top:16px">
+<div style="width:40px;height:40px;background:#0a0a0b;border-radius:4px;border:2px solid var(--bd)"></div>
+<div style="width:40px;height:40px;background:#111114;border-radius:4px;border:2px solid var(--bd)"></div>
+<div style="width:40px;height:40px;background:#e8420a;border-radius:4px"></div>
+<div style="width:40px;height:40px;background:#f5a623;border-radius:4px"></div>
+<div style="width:40px;height:40px;background:#3d9eff;border-radius:4px"></div>
+<div style="width:40px;height:40px;background:#2cdd6e;border-radius:4px"></div>
+<div style="width:40px;height:40px;background:#ff4444;border-radius:4px"></div>
+<div style="width:40px;height:40px;background:#b464ff;border-radius:4px"></div>
+</div>
+<div class="tags" style="margin-top:12px">
+<span class="tag">Share Tech Mono</span>
+<span class="tag">Barlow Condensed</span>
+<span class="tag">Canvas 2D</span>
+<span class="tag">7-14px scale</span>
+</div>
+</div>
+</div>
+
+<div class="slide" data-slide="9">
+<div class="fade-in">
+<h1 style="color:#fff;font-size:clamp(20px,3vw,36px)">BUELL XB12X LOGGER</h1>
+<div class="stripe"></div>
+<p style="font-size:14px;color:var(--dm)">Raspberry Pi &middot; Python 3 &middot; Delphi DDFI2 &middot; Alpha-N &middot; Open Loop</p>
+<div class="tagline" style="margin-top:20px">192.168.100.80:8080 &middot; /home/pi/buell</div>
+<div style="margin-top:8px; font-size:10px; color:var(--dm)">MIT License &mdash; free for personal and community use</div>
+</div>
+</div>
+
+</div>
+
+<div class="nav" id="nav"></div>
+
+<script>
+var slides = document.querySelectorAll('.slide');
+var nav = document.getElementById('nav');
+var container = document.getElementById('slides');
+
+slides.forEach(function(_, i) {
+  var btn = document.createElement('button');
+  btn.dataset.index = i;
+  btn.addEventListener('click', function() {
+    container.scrollTo({ left: i * window.innerWidth, behavior: 'smooth' });
+  });
+  nav.appendChild(btn);
+  if (i === 0) btn.classList.add('active');
+});
+
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    var idx = parseInt(entry.target.dataset.slide);
+    var dots = nav.querySelectorAll('button');
+    if (entry.isIntersecting) {
+      dots.forEach(function(d) { d.classList.remove('active'); });
+      if (dots[idx]) dots[idx].classList.add('active');
+      entry.target.classList.add('active-content');
+    }
+  });
+}, { threshold: 0.6 });
+
+slides.forEach(function(s) { observer.observe(s); });
+
+document.addEventListener('keydown', function(e) {
+  var activeIdx = Array.from(slides).findIndex(function(s) {
+    var rect = s.getBoundingClientRect();
+    return rect.left < window.innerWidth/2 && rect.right > window.innerWidth/2;
+  });
+  if (e.key === 'ArrowRight' && activeIdx < slides.length - 1) {
+    container.scrollTo({ left: (activeIdx + 1) * window.innerWidth, behavior: 'smooth' });
+  } else if (e.key === 'ArrowLeft' && activeIdx > 0) {
+    container.scrollTo({ left: (activeIdx - 1) * window.innerWidth, behavior: 'smooth' });
+  }
+});
+</script>
+</body>
+</html>
