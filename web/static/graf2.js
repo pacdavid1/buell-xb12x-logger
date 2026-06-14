@@ -233,17 +233,17 @@
     };
   }
 
-  // ── flag lane labels (logic-analyzer style, left-aligned per lane) ──
-  function flagLaneLabelPlugin(flags, band, nF) {
+  // ── lane labels (logic-analyzer style, left-aligned per stacked lane) ──
+  function laneLabelPlugin(laned, laneH, nL) {
     return {
       hooks: {
         draw: (u) => {
-          if (!nF) return;
+          if (!nL) return;
           const ctx = u.ctx, x = u.bbox.left + 4, top = u.bbox.top, H = u.bbox.height;
           ctx.save();
           ctx.font = '9px monospace'; ctx.textBaseline = 'middle'; ctx.globalAlpha = 0.92;
-          flags.forEach((k, i) => {
-            const frac = (i + 0.42) / nF * band;        // lane center, fraction from bottom
+          laned.forEach((k, i) => {
+            const frac = (i + 0.5) * laneH;             // lane center, fraction from bottom
             ctx.fillStyle = colorOf(k);
             ctx.fillText(k, x, top + H * (1 - frac));
           });
@@ -256,19 +256,27 @@
   // ── build one uPlot block ──────────────────────────────────
   function makeOpts(block, width) {
     const keys = block.keys.filter((k) => DATA.cols[k]);
-    const flags = keys.filter(isFlag);
-    const analog = keys.filter((k) => !isFlag(k));
-    const nF = flags.length;
-    const LANE = 0.14;                                  // each flag lane ≈14% of panel height
-    // bottom band reserved for stacked flag lanes; whole panel if there are no analog signals
-    const band = nF === 0 ? 0 : (analog.length ? Math.min(0.55, nF * LANE) : 1);
+    const laneSet = new Set(block.lanes || []);
+    const laned = keys.filter((k) => isFlag(k) || laneSet.has(k));   // flags always laned + manually-laned signals
+    const free = keys.filter((k) => !isFlag(k) && !laneSet.has(k));  // analog signals sharing the top area
+    const nL = laned.length;
+    const LANE_FRAC = 0.20;                             // each stacked lane ≈20% of panel height
+    const band = nL === 0 ? 0 : Math.min(0.95, nL * LANE_FRAC);
+    const laneH = nL ? band / nL : 0;                   // height fraction of a single lane
+
+    const minmax = (k) => {
+      const c = DATA.cols[k]; let mn = Infinity, mx = -Infinity;
+      for (let i = 0; i < c.length; i++) { const v = c[i]; if (v != null) { if (v < mn) mn = v; if (v > mx) mx = v; } }
+      if (mn === Infinity) return [0, 1];
+      return mn === mx ? [mn, mn + 1] : [mn, mx];
+    };
 
     const series = [{}];
     const scales = { x: { time: false } };
     const data = [DATA.x];
 
-    // analog signals — own auto scale, padded below so the trace stays ABOVE the flag band
-    analog.forEach((k) => {
+    // free analog signals — own auto scale, padded below so the trace stays ABOVE the lane band
+    free.forEach((k) => {
       const sc = 's_' + k;
       scales[sc] = {
         range: (u, dmin, dmax) => {
@@ -287,17 +295,26 @@
       data.push(DATA.cols[k]);
     });
 
-    // flags — stacked thin lanes inside the bottom band, sharing one [0,1] scale
-    if (nF) scales.y_flags = { range: [0, 1] };
-    flags.forEach((k, i) => {
-      const col = DATA.cols[k];
-      // remap 0/1 to a thin lane within [0, band]; lane 0 sits at the bottom
-      const remap = col.map((v) => (v == null ? null : (i + (v > 0 ? 0.78 : 0.06)) / nF * band));
+    // laned signals — stacked lanes from the bottom, sharing one [0,1] scale; never overlap
+    if (nL) scales.y_lanes = { range: [0, 1] };
+    laned.forEach((k, i) => {
+      const col = DATA.cols[k], bottom = i * laneH, flag = isFlag(k);
+      let remap;
+      if (flag) {
+        remap = col.map((v) => (v == null ? null : bottom + (v > 0 ? 0.82 : 0.10) * laneH));
+      } else {
+        const [mn, mx] = minmax(k), span = mx - mn;     // analog: auto-scale within its own lane
+        remap = col.map((v) => (v == null ? null : bottom + (0.08 + 0.84 * (v - mn) / span) * laneH));
+      }
       series.push({
-        label: k, stroke: colorOf(k), width: 1.3, scale: 'y_flags', points: { show: false },
-        paths: uPlot.paths.stepped({ align: 1 }),
-        // legend shows the real 0/1, not the remapped lane position
-        value: (u, _v, _si, di) => (di == null || col[di] == null ? '--' : (col[di] > 0 ? '1' : '0')),
+        label: k, stroke: colorOf(k), width: flag ? 1.3 : 1.4, scale: 'y_lanes', points: { show: false },
+        paths: flag ? uPlot.paths.stepped({ align: 1 }) : undefined,
+        // legend shows the real value, not the remapped lane position
+        value: (u, _v, _si, di) => {
+          if (di == null || col[di] == null) return '--';
+          const o = col[di];
+          return flag ? (o > 0 ? '1' : '0') : (Math.abs(o) >= 100 ? o.toFixed(0) : o.toFixed(2));
+        },
       });
       data.push(remap);
     });
@@ -314,14 +331,14 @@
           { show: false },
         ],
         series,
-        plugins: [flagShadePlugin(), wheelZoomPlugin(), touchGesturePlugin(), flagLaneLabelPlugin(flags, band, nF)],
+        plugins: [flagShadePlugin(), wheelZoomPlugin(), touchGesturePlugin(), laneLabelPlugin(laned, laneH, nL)],
         hooks: {
           setScale: [(u, key) => { if (key === 'x') syncX(u); }],
           setCursor: [() => updateReadout(block.id)],
         },
       },
       data,
-      seriesKeys: [...analog, ...flags],   // series order (after the x base) for the legend chips
+      seriesKeys: [...free, ...laned],   // series order after the x base, for the legend chips
     };
   }
 
@@ -366,14 +383,24 @@
       block.keys.forEach((k) => {
         if (!DATA.cols[k]) return;
         const sIdx = seriesKeys.indexOf(k) + 1;        // series[0] is the x base
+        const inLane = (block.lanes || []).includes(k);
         const c = document.createElement('span'); c.className = 'chip';
+        // flags are always laned; analog signals get a ≡ toggle to stack them into their own lane
+        const laneBtn = isFlag(k) ? '' : `<span class="lane${inLane ? ' on' : ''}" title="stack in its own lane">≡</span>`;
         c.innerHTML = `<span class="dot" style="background:${colorOf(k)}"></span>`
-          + `<span class="cname">${k}</span><span class="cval">--</span><span class="x" title="remove">×</span>`;
+          + `<span class="cname">${k}</span><span class="cval">--</span>${laneBtn}<span class="x" title="remove">×</span>`;
         c.onclick = (ev) => {
-          if (ev.target.classList.contains('x')) return;
+          if (ev.target.classList.contains('x') || ev.target.classList.contains('lane')) return;
           const show = !u.series[sIdx].show;
           u.setSeries(sIdx, { show });
           c.classList.toggle('off', !show);
+        };
+        const lb = c.querySelector('.lane');
+        if (lb) lb.onclick = (ev) => {
+          ev.stopPropagation();
+          const cur = block.lanes || [];
+          block.lanes = cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k];
+          save(); renderBlocks();
         };
         c.querySelector('.x').onclick = (ev) => { ev.stopPropagation(); block.keys = block.keys.filter((x) => x !== k); save(); renderBlocks(); };
         chips.appendChild(c);
