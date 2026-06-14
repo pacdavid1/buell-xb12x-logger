@@ -25,6 +25,13 @@ PROMPT_END -->
 
 
 
+## [v2.7.137] — 2026-06-13
+### Fixed
+- web/static/app.js: add fl_hot band to FUEL fixed panel (see PW vs thermal flag)
+- web/static/app.js: add do_fan band to ENVIRONMENT fixed panel (see CLT vs fan activation)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.136] — 2026-06-13
 ### Added
 - web/static/app.js: THERMAL ENRICHMENT preset — CLT+do_fan panel, pw1+pw2+fl_hot panel for thermal enrichment correlation
