@@ -25,6 +25,13 @@ PROMPT_END -->
 
 
 
+## [v2.7.142] — 2026-06-14
+### Added
+- GRAF2 region annotations (Phase 1): mark a time span [t0,t1] with a note, persisted on the Pi at sessions/<session>/ride_*_annotations.json for F7 to consume in Phase 2. 🔖 Mark button (2-click start/end), note modal, blue shaded bands drawn across all synced blocks, marks list/delete. Backend: GET/POST /annotations (web/server.py, web/handlers/rides.py).
+- GRAF2 Y-axis toggle (Y: full / Y: fit): default fixed to the full-ride range so absolute magnitude is kept on zoom; fit re-scales to the visible window. Lanes and flags were already fixed.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.141] — 2026-06-14
 ### Added
 - web/static/graf2.js, web/templates/graf2.html: GRAF2 manual lane stacking. Any analog signal can be sent to its own stacked lane via the ≡ chip toggle (binary flags are always laned). Lanes stack from the bottom, ~20% panel height each (LANE_FRAC, capped at 95% total), auto-scale within their own lane, never overlap, and are labeled left. Persists in localStorage (block.lanes). Replaces the flag-only lane logic with a unified lane model.
