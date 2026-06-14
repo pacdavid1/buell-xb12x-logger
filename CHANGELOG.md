@@ -25,6 +25,12 @@ PROMPT_END -->
 
 
 
+## [v2.7.139] — 2026-06-13
+### Changed
+- web/static/app.js: Graf panel gear button (⚙) moved to left of title
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.138] — 2026-06-13
 ### Added
 - web/static/app.js: configurable Graf panels — each panel has ⚙ (signal picker) and × (delete); + Panel button adds new panel; layout persists in localStorage buell_chart_layout_v2

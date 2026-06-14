@@ -1962,8 +1962,8 @@ function _rebuildDOM(totalW) {
     }).join('');
     wrap.innerHTML =
       `<div class="chart-title">` +
-        `<span class="chart-title-text">${panel.title}</span>` +
         `<button class="chart-ctrl-btn" onclick="openSignalPicker('${panel.id}')" title="Edit signals">⚙</button>` +
+        `<span class="chart-title-text">${panel.title}</span>` +
         `<button class="chart-ctrl-btn chart-del-btn" onclick="removePanel('${panel.id}')" title="Remove panel">×</button>` +
       `</div>` +
       `<div class="chart-inner" style="height:${panel.height}px;width:${totalW}px">` +
