@@ -25,6 +25,15 @@ PROMPT_END -->
 
 
 
+## [v2.7.138] — 2026-06-13
+### Added
+- web/static/app.js: configurable Graf panels — each panel has ⚙ (signal picker) and × (delete); + Panel button adds new panel; layout persists in localStorage buell_chart_layout_v2
+- web/templates/index.html: chartsInner is now empty (panels built by _rebuildDOM); tunePanel moved before chartsOuter
+- web/templates/index.html: CSS for .chart-ctrl-btn, .signal-picker, .sig-chip, .picker-item, .picker-swatch, .chart-add-btn
+- web/static/app.js: DEFAULT_LAYOUT replaces FIXED_CHARTS (6 panels: DYNAMICS, FUEL, IGNITION, ENVIRONMENT, VDYNO, ALL FLAGS)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.137] — 2026-06-13
 ### Fixed
 - web/static/app.js: add fl_hot band to FUEL fixed panel (see PW vs thermal flag)
