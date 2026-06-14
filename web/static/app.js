@@ -1923,6 +1923,137 @@ const CHART_DEFAULTS = {
 
 let _charts = {};
 
+const LS_LAYOUT_KEY = 'buell_chart_layout_v2';
+const DEFAULT_LAYOUT = [
+  { id:'cp0', title:'DYNAMICS',    height:200, keys:['RPM','VS_KPH','TPS_pct','Gear','fl_wot','fl_decel','fl_accel'] },
+  { id:'cp1', title:'FUEL',        height:160, keys:['pw1','pw2','WUE','Accel_Corr','Decel_Corr','fl_accel','fl_closed_loop','fl_rich','fl_hot'] },
+  { id:'cp2', title:'IGNITION',    height:120, keys:['spark1','spark2','veCurr1_RAW','veCurr2_RAW'] },
+  { id:'cp3', title:'ENVIRONMENT', height:140, keys:['CLT','MAT','Batt_V','fl_hot','do_fan'] },
+  { id:'cp4', title:'VDYNO',       height:140, keys:['hp','torque_nm','RPM','fl_wot'] },
+  { id:'cp5', title:'ALL FLAGS',   height:140, keys:['fl_engine_run','fl_wot','fl_accel','fl_decel','fl_closed_loop','fl_rich','fl_learn','fl_hot','fl_kill','fl_fuel_cut','fl_o2_active','fl_ignition','do_coil1','do_inj1','do_fan','do_fuel_pump'] },
+];
+let _layout = null;
+let _openPickerId = null;
+let _SIG_MAP = {};
+let _ALL_SIGNALS = [];
+
+function _loadLayout() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LS_LAYOUT_KEY));
+    if (Array.isArray(s) && s.length) return s;
+  } catch(e) {}
+  return DEFAULT_LAYOUT.map(p => ({ ...p, keys: [...p.keys] }));
+}
+function _saveLayout() {
+  try { localStorage.setItem(LS_LAYOUT_KEY, JSON.stringify(_layout)); } catch(e) {}
+}
+function _rebuildDOM(totalW) {
+  const inner = document.getElementById('chartsInner');
+  if (!inner) return;
+  inner.querySelectorAll('.chart-wrap,.chart-add-wrap').forEach(el => el.remove());
+  _layout.forEach(panel => {
+    const wrap = document.createElement('div');
+    wrap.className = 'chart-wrap';
+    wrap.dataset.pid = panel.id;
+    const chips = panel.keys.map(k => {
+      const sig = _SIG_MAP[k];
+      if (!sig) return '';
+      return `<span class="sig-chip" style="border-color:${sig.color}" onclick="toggleSignalKey('${panel.id}','${k}',false)"><span style="color:${sig.color}">■</span> ${sig.label} ×</span>`;
+    }).join('');
+    wrap.innerHTML =
+      `<div class="chart-title">` +
+        `<span class="chart-title-text">${panel.title}</span>` +
+        `<button class="chart-ctrl-btn" onclick="openSignalPicker('${panel.id}')" title="Edit signals">⚙</button>` +
+        `<button class="chart-ctrl-btn chart-del-btn" onclick="removePanel('${panel.id}')" title="Remove panel">×</button>` +
+      `</div>` +
+      `<div class="chart-inner" style="height:${panel.height}px;width:${totalW}px">` +
+        `<canvas id="${panel.id}"></canvas>` +
+      `</div>` +
+      `<div id="picker_${panel.id}" class="signal-picker" style="display:none">` +
+        `<div class="picker-chips">${chips}</div>` +
+        `<div class="picker-search-wrap">` +
+          `<input type="text" class="picker-search" placeholder="Search signal…"` +
+                 ` oninput="filterPicker('${panel.id}',this.value)">` +
+        `</div>` +
+        `<div class="picker-list" id="pickerList_${panel.id}"></div>` +
+      `</div>`;
+    inner.appendChild(wrap);
+  });
+  const addDiv = document.createElement('div');
+  addDiv.className = 'chart-add-wrap';
+  addDiv.innerHTML = '<button class="chart-add-btn" onclick="addPanel()">+ Panel</button>';
+  inner.appendChild(addDiv);
+}
+function openSignalPicker(panelId) {
+  if (_openPickerId && _openPickerId !== panelId) {
+    const prev = document.getElementById('picker_' + _openPickerId);
+    if (prev) prev.style.display = 'none';
+  }
+  const picker = document.getElementById('picker_' + panelId);
+  if (!picker) return;
+  if (picker.style.display !== 'none') { picker.style.display = 'none'; _openPickerId = null; return; }
+  const panel = _layout.find(p => p.id === panelId);
+  if (!panel) return;
+  const active = new Set(panel.keys);
+  const list = document.getElementById('pickerList_' + panelId);
+  if (list) {
+    list.innerHTML = _ALL_SIGNALS.map(s =>
+      `<label class="picker-item${active.has(s.key) ? ' is-active' : ''}">` +
+        `<input type="checkbox" ${active.has(s.key) ? 'checked' : ''}` +
+               ` onchange="toggleSignalKey('${panelId}','${s.key}',this.checked)">` +
+        `<span class="picker-swatch" style="background:${s.color}"></span>` +
+        `<span>${s.label}</span>` +
+      `</label>`
+    ).join('');
+  }
+  const chipsDiv = picker.querySelector('.picker-chips');
+  if (chipsDiv) {
+    chipsDiv.innerHTML = panel.keys.map(k => {
+      const sig = _SIG_MAP[k];
+      if (!sig) return '';
+      return `<span class="sig-chip" style="border-color:${sig.color}" onclick="toggleSignalKey('${panelId}','${k}',false)"><span style="color:${sig.color}">■</span> ${sig.label} ×</span>`;
+    }).join('');
+  }
+  picker.style.display = 'block';
+  _openPickerId = panelId;
+  const inp = picker.querySelector('.picker-search');
+  if (inp) { inp.value = ''; filterPicker(panelId, ''); inp.focus(); }
+}
+function filterPicker(panelId, q) {
+  const lq = q.toLowerCase();
+  const list = document.getElementById('pickerList_' + panelId);
+  if (!list) return;
+  list.querySelectorAll('.picker-item').forEach(el => {
+    el.style.display = el.textContent.toLowerCase().includes(lq) ? '' : 'none';
+  });
+}
+function toggleSignalKey(panelId, key, checked) {
+  if (!_layout) return;
+  const panel = _layout.find(p => p.id === panelId);
+  if (!panel) return;
+  if (checked && !panel.keys.includes(key)) panel.keys.push(key);
+  else if (!checked) panel.keys = panel.keys.filter(k => k !== key);
+  _saveLayout();
+  if (_lastChartRows) buildCharts(_lastChartRows);
+}
+function addPanel() {
+  if (!_layout) _layout = _loadLayout();
+  _layout.push({ id: 'cp' + Date.now(), title: 'PANEL', height: 140, keys: ['RPM'] });
+  _saveLayout();
+  if (_lastChartRows) buildCharts(_lastChartRows);
+}
+function removePanel(panelId) {
+  if (!_layout || _layout.length <= 1) return;
+  _layout = _layout.filter(p => p.id !== panelId);
+  _saveLayout();
+  if (_lastChartRows) buildCharts(_lastChartRows);
+}
+function resetLayout() {
+  _layout = DEFAULT_LAYOUT.map(p => ({ ...p, keys: [...p.keys] }));
+  _saveLayout();
+  if (_lastChartRows) buildCharts(_lastChartRows);
+}
+
 function destroyCharts(){
   for(const ch of Object.values(_charts)) try{ ch.destroy(); }catch(e){ console.warn("destroy chart:", e); }
   _charts={};
@@ -2027,6 +2158,7 @@ function populateChartPresets(){
 // ── BUILD CHARTS ────────────────────────────────────────────────────
 function buildCharts(rows){
   _lastChartRows = rows;
+  if (!_layout) _layout = _loadLayout();
   populateChartPresets();
   window._lastBuildRows = rows;
   destroyCharts();
@@ -2179,6 +2311,7 @@ function buildCharts(rows){
   // Signal lookup by key
   const SIG_MAP = {};
   ALL_SIGNALS.forEach(s => SIG_MAP[s.key] = s);
+  _SIG_MAP = SIG_MAP; _ALL_SIGNALS = ALL_SIGNALS;
 
   // ── Fixed chart layout (6 permanent groups, no presets) ─────
   const FIXED_CHARTS = [
@@ -2539,40 +2672,10 @@ function buildCharts(rows){
     return new Chart(ctx,{type:'line',data:{datasets},options:{...CHART_BASE,scales}});
   }
 
-  // ── Build all 6 fixed charts ─────────────────────────────
-  const _chartKeys = ['rpm','fuel','tps','spk','batt','flags'];
-  FIXED_CHARTS.forEach((def, i) => {
-    const key = _chartKeys[i];
-    if (def.id === 'chartFlags') {
-      _charts[key] = renderFlagsChart(def.id, def.flags);
-      // Height for flags chart
-      const inner = document.getElementById(def.id)?.closest('.chart-inner');
-      if (inner) inner.style.height = def.height + 'px';
-    } else {
-      _charts[key] = renderFixedChart(def, rows, tFirst, tLast);
-    }
-  });
-
-  // ── Set fixed chart titles ────────────────────────────────
-  FIXED_CHARTS.forEach(def => {
-    const canvas = document.getElementById(def.id);
-    if (!canvas) return;
-    const titleEl = canvas.closest('.chart-wrap')?.querySelector('.chart-title');
-    if (!titleEl) return;
-    // Remove stale gear button if it survived a hot-reload
-    const btn = titleEl.querySelector('.chart-cfg-btn');
-    if (btn) btn.remove();
-    titleEl.style.cursor = '';
-    titleEl.title = '';
-    titleEl.onclick = null;
-    let span = titleEl.querySelector('.chart-title-text');
-    if (!span) {
-      span = document.createElement('span');
-      span.className = 'chart-title-text';
-      Array.from(titleEl.childNodes).forEach(n => { if (n.nodeType === 3) titleEl.removeChild(n); });
-      titleEl.insertBefore(span, titleEl.firstChild);
-    }
-    span.textContent = def.title;
+  // ── Render configurable panels ──────────────────────────
+  _rebuildDOM(totalW);
+  _layout.forEach(panel => {
+    _charts[panel.id] = renderChart(panel.id, panel.keys, panel.id);
   });
 
   $id('graphLegend').style.display='flex';

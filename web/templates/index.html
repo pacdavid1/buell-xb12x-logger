@@ -249,6 +249,34 @@ table.veg td:active{filter:brightness(1.6)}
 .wa-opt{font-family:var(--mono);font-size:11px;padding:6px 8px;cursor:pointer;
   border-radius:2px;color:var(--dim);white-space:nowrap}
 .wa-opt:hover,.wa-opt.sel{background:rgba(255,255,255,.08);color:#fff}
+
+/* ── Configurable Graf panels ─────────────────────── */
+.chart-title{display:flex;align-items:center;gap:4px}
+.chart-title-text{flex:1}
+.chart-ctrl-btn{background:none;border:1px solid #2a2a2a;color:#555;font-size:11px;
+  cursor:pointer;padding:1px 5px;border-radius:3px;line-height:1.4;font-family:var(--mono)}
+.chart-ctrl-btn:hover{color:#ccc;border-color:#555}
+.chart-del-btn:hover{color:#f44;border-color:#f44}
+.signal-picker{background:#0d0d0d;border:1px solid #2a2a2a;border-top:none;
+  padding:6px;display:flex;flex-direction:column;gap:4px;width:100%;box-sizing:border-box}
+.picker-chips{display:flex;flex-wrap:wrap;gap:4px;min-height:18px}
+.sig-chip{font-size:9px;font-family:var(--mono);border:1px solid;border-radius:3px;
+  padding:1px 5px;cursor:pointer;color:#999;white-space:nowrap}
+.sig-chip:hover{background:#1a1a1a;color:#ddd}
+.picker-search-wrap{width:100%}
+.picker-search{width:100%;background:#0a0a0b;border:1px solid #2a2a2a;color:#aaa;
+  font-size:9px;font-family:var(--mono);padding:4px 6px;border-radius:2px;
+  outline:none;box-sizing:border-box}
+.picker-list{overflow-y:auto;max-height:150px}
+.picker-item{display:flex;align-items:center;gap:6px;padding:2px 4px;
+  font-size:9px;font-family:var(--mono);cursor:pointer;color:#666;user-select:none}
+.picker-item:hover,.picker-item.is-active{color:#ccc;background:#1a1a1a}
+.picker-item input{margin:0;cursor:pointer;accent-color:#4ab4ff}
+.picker-swatch{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.chart-add-wrap{padding:6px 0}
+.chart-add-btn{background:none;border:1px dashed #2a2a2a;color:#444;padding:4px 16px;
+  font-size:10px;font-family:var(--mono);cursor:pointer;border-radius:3px;letter-spacing:.05em}
+.chart-add-btn:hover{border-color:#555;color:#aaa}
 </style>
 <script>window.LOGGER_VERSION = "--LOGGER_VERSION--";</script>
 </head>
@@ -483,53 +511,21 @@ table.veg td:active{filter:brightness(1.6)}
   <!-- Synced scrollbar -->
   <div id="chartScrollbar"><div id="chartScrollbarInner"></div></div>
   <!-- Charts — synced scroll -->
-  <div class="charts-scroll-outer" id="chartsOuter">
-    <div class="charts-scroll-inner" id="chartsInner">
-      <!-- Chart 1: RPM + KPH + CLT triple eje -->
-      <div class="chart-wrap">
-        <div class="chart-title">DYNAMICS</div>
-    <!-- Tuning values panel -->
-    <div id="tunePanel" style="position:fixed; right:10px; top:120px; width:140px; 
-         background:rgba(10,10,10,0.95); border:1px solid #333; padding:12px; 
-         font-family:'JetBrains Mono',monospace; z-index:1000; border-radius:4px;">
-      <div style="color:#666; font-size:9px; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; border-bottom:1px solid #333; padding-bottom:4px;">
-        Datos Cursor
+      <!-- Cursor data panel (fixed overlay) -->
+    <div id="tunePanel" style="position:fixed;right:10px;top:120px;width:140px;
+         background:rgba(10,10,10,0.95);border:1px solid #333;padding:12px;
+         font-family:'JetBrains Mono',monospace;z-index:1000;border-radius:4px;display:none">
+      <div style="color:#666;font-size:9px;text-transform:uppercase;letter-spacing:.1em;
+           margin-bottom:8px;border-bottom:1px solid #333;padding-bottom:4px">Cursor</div>
+      <div style="margin-bottom:8px">
+        <div style="color:#666;font-size:8px">TIME</div>
+        <div id="panelTime" style="color:#fff;font-size:14px;font-weight:bold">--</div>
       </div>
-      <div style="margin-bottom:8px;">
-        <div style="color:#666; font-size:8px;">TIEMPO</div>
-        <div id="panelTime" style="color:#fff; font-size:14px; font-weight:bold;">--</div>
-      </div>
-      <div id="panelItems" style="display:flex; flex-direction:column; gap:6px;">
-        <!-- Filled dynamically -->
-      </div>
+      <div id="panelItems" style="display:flex;flex-direction:column;gap:6px"></div>
     </div>
-        <div class="chart-inner" style="height:200px"><canvas id="chartRPM"></canvas></div>
-      </div>
-      <!-- Chart 2: EGO + AFV + WUE + AE + promedio -->
-      <div class="chart-wrap">
-        <div class="chart-title">FUEL</div>
-        <div class="chart-inner" style="height:160px"><canvas id="chartFuel"></canvas></div>
-      </div>
-      <!-- Chart 3: TPS solo -->
-      <div class="chart-wrap">
-        <div class="chart-title">IGNITION</div>
-        <div class="chart-inner" style="height:120px"><canvas id="chartTPS"></canvas></div>
-      </div>
-      <!-- Chart 4: Spark + Pulse Width doble eje -->
-      <div class="chart-wrap">
-        <div class="chart-title">ENVIRONMENT</div>
-        <div class="chart-inner" style="height:140px"><canvas id="chartSPK"></canvas></div>
-      </div>
-      <!-- Chart 5: Batt V -->
-      <div class="chart-wrap">
-        <div class="chart-title">VDYNO</div>
-        <div class="chart-inner" style="height:140px"><canvas id="chartBatt"></canvas></div>
-      </div>
-      <!-- Chart 6: Flags / digital signals -->
-      <div class="chart-wrap">
-        <div class="chart-title">ALL FLAGS</div>
-        <div class="chart-inner" style="height:140px"><canvas id="chartFlags"></canvas></div>
-      </div>
+<div class="charts-scroll-outer" id="chartsOuter">
+    <div class="charts-scroll-inner" id="chartsInner">
+      <!-- panels built dynamically by _rebuildDOM() -->
     </div>
   </div>
 </div>
