@@ -25,6 +25,14 @@ PROMPT_END -->
 
 
 
+## [v2.7.136] — 2026-06-13
+### Added
+- web/static/app.js: THERMAL ENRICHMENT preset — CLT+do_fan panel, pw1+pw2+fl_hot panel for thermal enrichment correlation
+### Fixed
+- web/server.py: /health endpoint version was hardcoded v2.7.132, now uses _get_version()
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.135] — 2026-06-13
 ### Fixed
 - ecu/session.py: translate Spanish log strings to English (watchdog, ride recovery)

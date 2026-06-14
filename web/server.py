@@ -223,7 +223,7 @@ class DashboardHandler(
         self.end_headers()
         self.wfile.write(json.dumps({
             "status": "ok",
-            "version": "v2.7.132",
+            "version": _get_version(),
             "uptime_s": int(__import__("time").time() - 1741370800)
         }).encode())
 
