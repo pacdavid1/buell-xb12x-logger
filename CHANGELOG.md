@@ -25,6 +25,12 @@ PROMPT_END -->
 
 
 
+## [v2.7.141] — 2026-06-14
+### Added
+- web/static/graf2.js, web/templates/graf2.html: GRAF2 manual lane stacking. Any analog signal can be sent to its own stacked lane via the ≡ chip toggle (binary flags are always laned). Lanes stack from the bottom, ~20% panel height each (LANE_FRAC, capped at 95% total), auto-scale within their own lane, never overlap, and are labeled left. Persists in localStorage (block.lanes). Replaces the flag-only lane logic with a unified lane model.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.140] — 2026-06-14
 ### Added
 - web/templates/graf2.html, web/static/graf2.js, web/static/uPlot.* : new GRAF2 telemetry page (/graf2)
