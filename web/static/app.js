@@ -2201,7 +2201,7 @@ function buildCharts(rows){
         { key:'Accel_Corr', min:0,   max:100, color:'#88ff88' },
         { key:'Decel_Corr', min:0,   max:100, color:'#ff8888' },
       ],
-      flags: ['fl_accel','fl_closed_loop','fl_rich'],
+      flags: ['fl_accel','fl_closed_loop','fl_rich','fl_hot'],
     },
     {
       id: 'chartTPS', title: 'IGNITION', height: 120,
@@ -2220,7 +2220,7 @@ function buildCharts(rows){
         { key:'MAT',    min:0,  max:80,  color:'#ffbb55' },
         { key:'Batt_V', min:10, max:16,  color:'#77ddff' },
       ],
-      flags: ['fl_hot'],
+      flags: ['fl_hot','do_fan'],
     },
     {
       id: 'chartBatt', title: 'VDYNO', height: 140,
