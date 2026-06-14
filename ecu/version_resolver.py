@@ -27,7 +27,7 @@ def _load_ecm_table():
         tree = ET.parse(FILES_XML)
         root = tree.getroot()
     except Exception as e:
-        logger.error(f"Error parseando files.xml: {e}")
+        logger.error(f"Error parsing files.xml: {e}")
         return []
 
     def strip_ns(tag):

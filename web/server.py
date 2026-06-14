@@ -33,11 +33,12 @@ from web.handlers.gps import GpsHandlerMixin
 from web.handlers.tuner import TunerHandlerMixin
 from web.handlers.system import SystemHandlerMixin
 from web.handlers.rides import RidesHandlerMixin
+from web.handlers.vdyno import VdynoHandlerMixin
 
 class DashboardHandler(
     FuelHandlerMixin, SessionsHandlerMixin, EepromHandlerMixin,
     WifiHandlerMixin, GpsHandlerMixin, TunerHandlerMixin,
-    SystemHandlerMixin, RidesHandlerMixin,
+    SystemHandlerMixin, RidesHandlerMixin, VdynoHandlerMixin,
     BaseHTTPRequestHandler
 ):
 
@@ -80,6 +81,16 @@ class DashboardHandler(
             self._handle_static(self.path)
             return
 
+        # Docs (presentation.html, assets/*)
+        if self.path.startswith("/docs/"):
+            self._handle_docs(self.path)
+            return
+
+        # Health check
+        if self.path == "/health":
+            self._handle_health()
+            return
+
         _routes = {
             '/tuner/sessions': self._handle_tuner_sessions,
             '/tuner/maps': self._handle_tuner_maps,
@@ -88,6 +99,7 @@ class DashboardHandler(
             '/sessions_vs/compare': self._handle_sessions_vs_compare,
             '/sessions_vs/download': self._handle_sessions_vs_download,
             '/tuner': self._handle_tuner,
+            '/graf2': self._handle_graf2,
             '/': self._handle_index,
             '/index.html': self._handle_index,
             '/live.json': self._handle_live_json,
@@ -99,6 +111,10 @@ class DashboardHandler(
             "/eeprom/propose":  self._handle_eeprom_propose,
             '/eeprom/msq':      self._handle_eeprom_msq,
             '/burns':           self._handle_burns_list,
+            '/vdyno':           self._handle_vdyno,
+            '/vdyno/compare':   self._handle_vdyno_compare,
+            '/vdyno/launch':    self._handle_vdyno_launch,
+            '/vdyno_rows':       self._handle_vdyno_rows,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
             '/maps': self._handle_maps,
@@ -109,9 +125,11 @@ class DashboardHandler(
             '/gps_fix': self._handle_gps_fix,
             '/gps_track': self._handle_gps_track,
             '/ride_note': self._handle_ride_note,
+            '/annotations': self._handle_annotations,
             '/session_events': self._handle_session_events,
             '/session_events/data':     self._handle_session_events_data,
             '/session_events/download': self._handle_session_events_download,
+            '/launch_power':  self._handle_launch_power,
             '/sessions_launch': self._handle_sessions_launch,
             '/sessions_launch/data': self._handle_sessions_launch_data,
             '/fuel': self._handle_fuel,
@@ -167,6 +185,7 @@ class DashboardHandler(
             '/keepalive': self._handle_post_keepalive,
             '/git_pull': self._handle_post_git_pull,
             '/ride_note': self._handle_post_ride_note,
+            '/annotations': self._handle_post_annotations,
             '/close_ride': self._handle_post_close_ride,
             '/restart_logger': self._handle_post_restart_logger,
             '/reboot_pi': self._handle_post_reboot_pi,
@@ -181,6 +200,37 @@ class DashboardHandler(
             return
 
         self._json({"error": "unknown endpoint"}, 404)
+
+    def _handle_docs(self, path=None):
+        """Serve files from the docs/ directory at project root."""
+        path = self.path.split("?", 1)[0].removeprefix("/")
+        base = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+        fpath = os.path.realpath(os.path.join(base, path))
+        if os.path.commonpath([base, fpath]) == base and os.path.isfile(fpath):
+            mime, _ = mimetypes.guess_type(fpath)
+            with open(fpath, "rb") as f:
+                body = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", mime or "application/octet-stream")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-cache, must-revalidate")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        self.send_response(404)
+        self.end_headers()
+        self.wfile.write(b"Not Found")
+
+    def _handle_health(self):
+        import json
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({
+            "status": "ok",
+            "version": _get_version(),
+            "uptime_s": int(__import__("time").time() - 1741370800)
+        }).encode())
 
     def _handle_static(self, path=None):
         path = self.path.split("?", 1)[0].removeprefix("/")
@@ -202,6 +252,13 @@ class DashboardHandler(
             self.end_headers()
             self.wfile.write(b"Not Found")
             return
+
+    def _handle_launch_power(self, path=None):
+        try:
+            html = (Path(__file__).parent / 'templates' / 'launch_power.html').read_text(encoding='utf-8')
+            self._html(html)
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
 
     def _load_html(self):
         template = Path(__file__).parent / 'templates' / 'index.html'

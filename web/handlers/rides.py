@@ -144,6 +144,94 @@ class RidesHandlerMixin:
         except Exception as e:
             self._json({'error': str(e)}, 500)
 
+    def _handle_graf2(self, path=None):
+        try:
+            html = (_TEMPLATES / 'graf2.html').read_text(encoding='utf-8')
+            self._html(html.replace('--LOGGER_VERSION--', _get_version()))
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+
+    def _annotations_path(self, ride):
+        if not ride:
+            return None
+        rides = self.server_instance._get_rides()
+        fname_summary = ride.replace('.csv', '_summary.json')
+        match = next((x for x in rides if x['filename'] == ride or x['filename'] == fname_summary), None)
+        if not match:
+            return None
+        sdir = self.server_instance.buell_dir / 'sessions' / match['session']
+        stem = ride.replace('_summary.json', '').replace('.csv', '')
+        return sdir / (stem + '_annotations.json')
+
+    def _load_annotations(self, ride):
+        ann_path = self._annotations_path(ride)
+        if ann_path is None:
+            return None, None
+        if ann_path.exists():
+            try:
+                with open(ann_path) as fh:
+                    return ann_path, json.load(fh)
+            except Exception:
+                pass
+        return ann_path, {'ride': ride, 'annotations': []}
+
+    def _handle_annotations(self, path=None):
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        ride = params.get('ride', [''])[0]
+        ann_path, data = self._load_annotations(ride)
+        if ann_path is None:
+            self._json({'error': 'ride not found'}, 404)
+            return
+        self._json(data)
+
+    def _handle_post_annotations(self, path=None, payload=None):
+        payload = payload or {}
+        ride = payload.get('ride', '')
+        ann_path, data = self._load_annotations(ride)
+        if ann_path is None:
+            self._json({'error': 'ride not found'}, 404)
+            return
+        if payload.get('action') == 'delete':
+            aid = str(payload.get('id', ''))
+            data['annotations'] = [a for a in data['annotations'] if str(a.get('id')) != aid]
+        else:
+            try:
+                t0 = float(payload.get('t0_s', 0))
+                t1 = float(payload.get('t1_s', 0))
+            except (TypeError, ValueError):
+                self._json({'error': 'invalid t0_s/t1_s'}, 400)
+                return
+            if t1 < t0:
+                t0, t1 = t1, t0
+            atype = payload.get('type')
+            atype = atype if atype in ('launch', 'diagnostic', 'note') else 'launch'
+            aid = str(payload.get('id') or '')
+            existing = next((a for a in data['annotations'] if str(a.get('id')) == aid), None) if aid else None
+            if existing is not None:
+                existing['t0_s'] = round(t0, 3)
+                existing['t1_s'] = round(t1, 3)
+                existing['note'] = str(payload.get('note', ''))[:500]
+                existing['type'] = atype
+                existing['updated_utc'] = datetime.datetime.utcnow().isoformat() + 'Z'
+            else:
+                data['annotations'].append({
+                    'id': aid or datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f'),
+                    't0_s': round(t0, 3),
+                    't1_s': round(t1, 3),
+                    'note': str(payload.get('note', ''))[:500],
+                    'type': atype,
+                    'created_utc': datetime.datetime.utcnow().isoformat() + 'Z',
+                })
+        try:
+            tmp = ann_path.with_name(ann_path.name + '.tmp')
+            with open(tmp, 'w') as fh:
+                json.dump(data, fh, indent=2)
+            tmp.replace(ann_path)
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+            return
+        self._json({'ok': True, 'annotations': data['annotations']})
+
     def _handle_errorlog_viz(self, path=None):
         try:
             html = (_TEMPLATES / 'errorlog_viz.html').read_text(encoding='utf-8')

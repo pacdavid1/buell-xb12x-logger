@@ -94,7 +94,7 @@ class SessionManager:
                 "logger_version": LOGGER_VERSION,
                 "rider_notes": []
             }
-            self.logger.info(f"Nueva sesión: {cs} firmware={version_str}")
+            self.logger.info(f"New session: {cs} firmware={version_str}")
         return sdir, meta
 
     def open_session(self, version_str, blob):
@@ -585,11 +585,11 @@ class SessionManager:
                 try:
                     self._rebuild_summary(sdir, checksum, ride_num, ride_files)
                     recovered += 1
-                    self.logger.info(f"Recuperado ride {ride_num:03d} sesion {checksum}")
+                    self.logger.info(f"Recovered ride {ride_num:03d} session {checksum}")
                 except Exception as e:
                     self.logger.warning(f"Error ride {ride_num:03d}: {e}")
         if recovered:
-            self.logger.info(f"Perro guardian: {recovered} rides recuperados")
+            self.logger.info(f"Watchdog: {recovered} rides recovered")
         return recovered
 
     def _rebuild_summary(self, sdir, checksum, ride_num, csv_files):

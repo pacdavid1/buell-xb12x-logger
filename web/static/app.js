@@ -1923,6 +1923,137 @@ const CHART_DEFAULTS = {
 
 let _charts = {};
 
+const LS_LAYOUT_KEY = 'buell_chart_layout_v2';
+const DEFAULT_LAYOUT = [
+  { id:'cp0', title:'DYNAMICS',    height:200, keys:['RPM','VS_KPH','TPS_pct','Gear','fl_wot','fl_decel','fl_accel'] },
+  { id:'cp1', title:'FUEL',        height:160, keys:['pw1','pw2','WUE','Accel_Corr','Decel_Corr','fl_accel','fl_closed_loop','fl_rich','fl_hot'] },
+  { id:'cp2', title:'IGNITION',    height:120, keys:['spark1','spark2','veCurr1_RAW','veCurr2_RAW'] },
+  { id:'cp3', title:'ENVIRONMENT', height:140, keys:['CLT','MAT','Batt_V','fl_hot','do_fan'] },
+  { id:'cp4', title:'VDYNO',       height:140, keys:['hp','torque_nm','RPM','fl_wot'] },
+  { id:'cp5', title:'ALL FLAGS',   height:140, keys:['fl_engine_run','fl_wot','fl_accel','fl_decel','fl_closed_loop','fl_rich','fl_learn','fl_hot','fl_kill','fl_fuel_cut','fl_o2_active','fl_ignition','do_coil1','do_inj1','do_fan','do_fuel_pump'] },
+];
+let _layout = null;
+let _openPickerId = null;
+let _SIG_MAP = {};
+let _ALL_SIGNALS = [];
+
+function _loadLayout() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LS_LAYOUT_KEY));
+    if (Array.isArray(s) && s.length) return s;
+  } catch(e) {}
+  return DEFAULT_LAYOUT.map(p => ({ ...p, keys: [...p.keys] }));
+}
+function _saveLayout() {
+  try { localStorage.setItem(LS_LAYOUT_KEY, JSON.stringify(_layout)); } catch(e) {}
+}
+function _rebuildDOM(totalW) {
+  const inner = document.getElementById('chartsInner');
+  if (!inner) return;
+  inner.querySelectorAll('.chart-wrap,.chart-add-wrap').forEach(el => el.remove());
+  _layout.forEach(panel => {
+    const wrap = document.createElement('div');
+    wrap.className = 'chart-wrap';
+    wrap.dataset.pid = panel.id;
+    const chips = panel.keys.map(k => {
+      const sig = _SIG_MAP[k];
+      if (!sig) return '';
+      return `<span class="sig-chip" style="border-color:${sig.color}" onclick="toggleSignalKey('${panel.id}','${k}',false)"><span style="color:${sig.color}">■</span> ${sig.label} ×</span>`;
+    }).join('');
+    wrap.innerHTML =
+      `<div class="chart-title">` +
+        `<button class="chart-ctrl-btn" onclick="openSignalPicker('${panel.id}')" title="Edit signals">⚙</button>` +
+        `<span class="chart-title-text">${panel.title}</span>` +
+        `<button class="chart-ctrl-btn chart-del-btn" onclick="removePanel('${panel.id}')" title="Remove panel">×</button>` +
+      `</div>` +
+      `<div class="chart-inner" style="height:${panel.height}px;width:${totalW}px">` +
+        `<canvas id="${panel.id}"></canvas>` +
+      `</div>` +
+      `<div id="picker_${panel.id}" class="signal-picker" style="display:none">` +
+        `<div class="picker-chips">${chips}</div>` +
+        `<div class="picker-search-wrap">` +
+          `<input type="text" class="picker-search" placeholder="Search signal…"` +
+                 ` oninput="filterPicker('${panel.id}',this.value)">` +
+        `</div>` +
+        `<div class="picker-list" id="pickerList_${panel.id}"></div>` +
+      `</div>`;
+    inner.appendChild(wrap);
+  });
+  const addDiv = document.createElement('div');
+  addDiv.className = 'chart-add-wrap';
+  addDiv.innerHTML = '<button class="chart-add-btn" onclick="addPanel()">+ Panel</button>';
+  inner.appendChild(addDiv);
+}
+function openSignalPicker(panelId) {
+  if (_openPickerId && _openPickerId !== panelId) {
+    const prev = document.getElementById('picker_' + _openPickerId);
+    if (prev) prev.style.display = 'none';
+  }
+  const picker = document.getElementById('picker_' + panelId);
+  if (!picker) return;
+  if (picker.style.display !== 'none') { picker.style.display = 'none'; _openPickerId = null; return; }
+  const panel = _layout.find(p => p.id === panelId);
+  if (!panel) return;
+  const active = new Set(panel.keys);
+  const list = document.getElementById('pickerList_' + panelId);
+  if (list) {
+    list.innerHTML = _ALL_SIGNALS.map(s =>
+      `<label class="picker-item${active.has(s.key) ? ' is-active' : ''}">` +
+        `<input type="checkbox" ${active.has(s.key) ? 'checked' : ''}` +
+               ` onchange="toggleSignalKey('${panelId}','${s.key}',this.checked)">` +
+        `<span class="picker-swatch" style="background:${s.color}"></span>` +
+        `<span>${s.label}</span>` +
+      `</label>`
+    ).join('');
+  }
+  const chipsDiv = picker.querySelector('.picker-chips');
+  if (chipsDiv) {
+    chipsDiv.innerHTML = panel.keys.map(k => {
+      const sig = _SIG_MAP[k];
+      if (!sig) return '';
+      return `<span class="sig-chip" style="border-color:${sig.color}" onclick="toggleSignalKey('${panelId}','${k}',false)"><span style="color:${sig.color}">■</span> ${sig.label} ×</span>`;
+    }).join('');
+  }
+  picker.style.display = 'block';
+  _openPickerId = panelId;
+  const inp = picker.querySelector('.picker-search');
+  if (inp) { inp.value = ''; filterPicker(panelId, ''); inp.focus(); }
+}
+function filterPicker(panelId, q) {
+  const lq = q.toLowerCase();
+  const list = document.getElementById('pickerList_' + panelId);
+  if (!list) return;
+  list.querySelectorAll('.picker-item').forEach(el => {
+    el.style.display = el.textContent.toLowerCase().includes(lq) ? '' : 'none';
+  });
+}
+function toggleSignalKey(panelId, key, checked) {
+  if (!_layout) return;
+  const panel = _layout.find(p => p.id === panelId);
+  if (!panel) return;
+  if (checked && !panel.keys.includes(key)) panel.keys.push(key);
+  else if (!checked) panel.keys = panel.keys.filter(k => k !== key);
+  _saveLayout();
+  if (_lastChartRows) buildCharts(_lastChartRows);
+}
+function addPanel() {
+  if (!_layout) _layout = _loadLayout();
+  _layout.push({ id: 'cp' + Date.now(), title: 'PANEL', height: 140, keys: ['RPM'] });
+  _saveLayout();
+  if (_lastChartRows) buildCharts(_lastChartRows);
+}
+function removePanel(panelId) {
+  if (!_layout || _layout.length <= 1) return;
+  _layout = _layout.filter(p => p.id !== panelId);
+  _saveLayout();
+  if (_lastChartRows) buildCharts(_lastChartRows);
+}
+function resetLayout() {
+  _layout = DEFAULT_LAYOUT.map(p => ({ ...p, keys: [...p.keys] }));
+  _saveLayout();
+  if (_lastChartRows) buildCharts(_lastChartRows);
+}
+
 function destroyCharts(){
   for(const ch of Object.values(_charts)) try{ ch.destroy(); }catch(e){ console.warn("destroy chart:", e); }
   _charts={};
@@ -1977,13 +2108,12 @@ const CHART_PRESETS = {
     ['VS_KPH','Gear','VSS_RPM_Ratio'],
     ['fl_accel','fl_wot','fl_decel'],
   ],
-  'THERMAL / WARMUP': [
-    ['RPM'],
-    ['CLT','MAT'],
+  'THERMAL ENRICHMENT': [
+    ['RPM','TPS_pct'],
+    ['CLT','do_fan'],
+    ['pw1','pw2','fl_hot'],
     ['WUE'],
-    ['pw1'],
     ['Fan_Duty_Pct'],
-    ['fl_engine_run','fl_hot','do_fan'],
   ],
   'SPARK': [
     ['RPM'],
@@ -2028,6 +2158,7 @@ function populateChartPresets(){
 // ── BUILD CHARTS ────────────────────────────────────────────────────
 function buildCharts(rows){
   _lastChartRows = rows;
+  if (!_layout) _layout = _loadLayout();
   populateChartPresets();
   window._lastBuildRows = rows;
   destroyCharts();
@@ -2171,53 +2302,122 @@ function buildCharts(rows){
     { key:'DIn',         label:'DIn RAW',       color:'#666' },
     { key:'DOut',        label:'DOut RAW',      color:'#666' },
     { key:'Rides',       label:'Rides',         color:'#888' },
+    // VDYNO computed channels (WOT-only, null elsewhere)
+    { key:'p_kw',        label:'P kW (WOT)',    color:'#ff9900' },
+    { key:'hp',          label:'HP (WOT)',       color:'#ff5500' },
+    { key:'torque_nm',   label:'Torque N·m',    color:'#ffcc00' },
   ];
 
   // Signal lookup by key
   const SIG_MAP = {};
   ALL_SIGNALS.forEach(s => SIG_MAP[s.key] = s);
+  _SIG_MAP = SIG_MAP; _ALL_SIGNALS = ALL_SIGNALS;
 
-  // ── Default configs per chart (6 charts) ─────────────────
-  const CHART_DEFAULTS = [
-    { id:'chartRPM',  title:'CHART 1', keys:['RPM','VS_KPH','CLT'] },
-    { id:'chartFuel', title:'CHART 2', keys:['EGO_Corr','AFV','WUE','Accel_Corr'] },
-    { id:'chartTPS',  title:'CHART 3', keys:['TPS_pct'] },
-    { id:'chartSPK',  title:'CHART 4', keys:['spark1','spark2','pw1','pw2'] },
-    { id:'chartBatt', title:'CHART 5', keys:['Batt_V'] },
-    { id:'chartFlags',title:'CHART 6', keys:['fl_engine_run','fl_wot','fl_accel','fl_decel','fl_closed_loop','fl_rich','fl_learn','fl_hot','fl_kill','fl_fuel_cut','do_cel'] },
+  // ── Fixed chart layout (6 permanent groups, no presets) ─────
+  const FIXED_CHARTS = [
+    {
+      id: 'chartRPM', title: 'DYNAMICS', height: 200,
+      signals: [
+        { key:'RPM',     min:0,    max:9000, color:'#e8420a' },
+        { key:'VS_KPH',  min:0,    max:200,  color:'#4ab4ff' },
+        { key:'TPS_pct', min:0,    max:100,  color:'#38aaff' },
+        { key:'Gear',    min:0,    max:6,    color:'#aaaaaa' },
+      ],
+      flags: ['fl_wot','fl_decel','fl_accel'],
+    },
+    {
+      id: 'chartFuel', title: 'FUEL', height: 160,
+      signals: [
+        { key:'pw1',        min:0,   max:8,   color:'#ff9900' },
+        { key:'pw2',        min:0,   max:8,   color:'#ffcc44', dash:[3,2] },
+        { key:'WUE',        min:80,  max:130, color:'#ffff00' },
+        { key:'Accel_Corr', min:0,   max:100, color:'#88ff88' },
+        { key:'Decel_Corr', min:0,   max:100, color:'#ff8888' },
+      ],
+      flags: ['fl_accel','fl_closed_loop','fl_rich','fl_hot'],
+    },
+    {
+      id: 'chartTPS', title: 'IGNITION', height: 120,
+      signals: [
+        { key:'spark1',      min:0,  max:45,  color:'#aa88ff' },
+        { key:'spark2',      min:0,  max:45,  color:'#cc99ff', dash:[3,2] },
+        { key:'veCurr1_RAW', min:0,  max:255, color:'#88ffff' },
+        { key:'veCurr2_RAW', min:0,  max:255, color:'#aaffff', dash:[3,2] },
+      ],
+      flags: [],
+    },
+    {
+      id: 'chartSPK', title: 'ENVIRONMENT', height: 140,
+      signals: [
+        { key:'CLT',    min:0,  max:250, color:'#ff9900' },
+        { key:'MAT',    min:0,  max:80,  color:'#ffbb55' },
+        { key:'Batt_V', min:10, max:16,  color:'#77ddff' },
+      ],
+      flags: ['fl_hot','do_fan'],
+    },
+    {
+      id: 'chartBatt', title: 'VDYNO', height: 140,
+      signals: [
+        { key:'hp',        min:0,    max:100,  color:'#ff5500' },
+        { key:'torque_nm', min:0,    max:150,  color:'#ffcc00' },
+        { key:'RPM',       min:0,    max:9000, color:'#e8420a44' },
+      ],
+      flags: ['fl_wot'],
+    },
+    {
+      id: 'chartFlags', title: 'ALL FLAGS', height: 140,
+      signals: [],
+      flags: [
+        'fl_engine_run','fl_wot','fl_accel','fl_decel',
+        'fl_closed_loop','fl_rich','fl_learn','fl_hot',
+        'fl_kill','fl_fuel_cut','fl_o2_active','fl_ignition',
+        'do_coil1','do_inj1','do_fan','do_fuel_pump',
+      ],
+    },
   ];
 
-  // Load saved config from localStorage
-  const LS_KEY = 'buell_chart_cfg_v2';
-  let chartCfgs;
-  try {
-    const saved = localStorage.getItem(LS_KEY);
-    chartCfgs = saved ? JSON.parse(saved) : CHART_DEFAULTS.map(d=>({id:d.id, keys:[...d.keys]}));
-  } catch(e) {
-    chartCfgs = CHART_DEFAULTS.map(d=>({id:d.id, keys:[...d.keys]}));
-  }
-  // Ensure all 6 charts exist in config
-  CHART_DEFAULTS.forEach((def,i) => {
-    if(!chartCfgs[i]) chartCfgs[i] = {id:def.id, keys:[...def.keys]};
-  });
+  // Render a fixed chart with per-signal explicit y-ranges
+  function renderFixedChart(def, _rows, _tFirst, _tLast) {
+    const canvas = document.getElementById(def.id);
+    if (!canvas) return null;
+    const inner = canvas.closest('.chart-inner');
+    if (inner) inner.style.height = def.height + 'px';
+    const ctx = canvas.getContext('2d');
+    const datasets = [];
+    const scales = { x: CHART_BASE.scales.x };
 
-  // Active preset overrides in memory only — LS_KEY keeps the CUSTOM config
-  let _activePreset = null;
-  try{ _activePreset = localStorage.getItem(LS_PRESET_KEY); }catch(e){}
-  if(_activePreset && CHART_PRESETS[_activePreset]){
-    CHART_PRESETS[_activePreset].forEach((keys,i) => {
-      chartCfgs[i] = {id:CHART_DEFAULTS[i].id, keys:[...keys]};
+    def.signals.forEach(sig => {
+      const sigDef = SIG_MAP[sig.key];
+      if (!sigDef) return;
+      const axisId = 'y_' + sig.key;
+      scales[axisId] = { type:'linear', display:false, min:sig.min, max:sig.max };
+      const ds = {
+        _key: sig.key,
+        label: sigDef.label,
+        data: _rows.map(r => ({ x: r.time_elapsed_s, y: r[sig.key] ?? null })),
+        borderColor: sig.color || sigDef.color,
+        borderWidth: 1.5,
+        borderDash: sig.dash || [],
+        pointRadius: 0,
+        tension: 0,
+        fill: false,
+        yAxisID: axisId,
+      };
+      datasets.push(ds);
     });
-  } else if(_activePreset === 'DEFAULT'){
-    chartCfgs = CHART_DEFAULTS.map(d => ({id:d.id, keys:[...d.keys]}));
-  }
 
-  function saveChartCfgs(){
-    try{
-      localStorage.setItem(LS_PRESET_KEY, 'CUSTOM');
-      const ps = $id('graphPreset'); if(ps) ps.value = 'CUSTOM';
-      localStorage.setItem(LS_KEY, JSON.stringify(chartCfgs));
-    }catch(e){ console.warn("saveChartCfgs:", e); }
+    if (def.flags && def.flags.length) {
+      const N = def.flags.length;
+      scales['y_flags_band'] = { type:'linear', display:false, min:-0.5, max:N*2 };
+      _buildFlagDatasets(def.flags, _rows, 'y_flags_band').forEach(d => datasets.push(d));
+    }
+
+    if (!datasets.length) {
+      datasets.push({ _key:'_empty', label:'—', data:[{x:_tFirst,y:0},{x:_tLast,y:0}],
+        borderColor:'#333', borderWidth:1, pointRadius:0, fill:false, yAxisID:'y__empty' });
+      scales['y__empty'] = { type:'linear', display:false };
+    }
+    return new Chart(ctx, { type:'line', data:{datasets}, options:{...CHART_BASE, scales} });
   }
 
   // Crosshair plugin (synced vertical line)
@@ -2434,75 +2634,48 @@ function buildCharts(rows){
   }
 
   // ── Render one chart ──────────────────────────────────────
+  function _isFlagKey(k){ return /^(fl_|do_|di_)/.test(k); }
+
+  // Build stacked flag datasets on a shared hidden axis (logic-analyzer style)
+  function _buildFlagDatasets(flagKeys, dataRows, axisId){
+    return flagKeys.map((key,i)=>{
+      const sig=SIG_MAP[key]; if(!sig) return null;
+      const base=i*2;
+      return {
+        _key:key, label:sig.label,
+        data:dataRows.map(r=>({x:r.time_elapsed_s, y:r[key]!=null?base+(r[key]>0?1.4:0):null})),
+        borderColor:sig.color, backgroundColor:sig.color+'40',
+        borderWidth:1.5, pointRadius:0, stepped:'before', tension:0, fill:false,
+        yAxisID:axisId,
+      };
+    }).filter(Boolean);
+  }
+
   function renderChart(chartId, keys, chartKey){
     const canvas = document.getElementById(chartId);
     if(!canvas) return null;
     const ctx = canvas.getContext('2d');
-    const datasets = keys.map(k=>makeDataset(k,rows,tFirst,tLast)).filter(Boolean);
-    if(!datasets.length){
-      datasets.push({ _key:'_empty', label:'—', data:[{x:tFirst,y:0},{x:tLast,y:0}],
-                      borderColor:'#333', borderWidth:1, pointRadius:0, fill:false,
-                      yAxisID:'y__empty' });
+    const flagKeys   = keys.filter(_isFlagKey);
+    const analogKeys = keys.filter(k=>!_isFlagKey(k));
+    const datasets   = analogKeys.map(k=>makeDataset(k,rows,tFirst,tLast)).filter(Boolean);
+    const scales     = buildYScales(analogKeys, rows);
+    if(flagKeys.length){
+      const N=flagKeys.length;
+      scales['y_flags_band']={type:'linear',display:false,min:-0.5,max:N*2};
+      _buildFlagDatasets(flagKeys, rows, 'y_flags_band').forEach(d=>datasets.push(d));
     }
-    const scales = buildYScales(keys, rows);
-    return new Chart(ctx, { type:'line', data:{ datasets },
-      options:{ ...CHART_BASE, scales }
-    });
+    if(!datasets.length){
+      datasets.push({_key:'_empty',label:'—',data:[{x:tFirst,y:0},{x:tLast,y:0}],
+                     borderColor:'#333',borderWidth:1,pointRadius:0,fill:false,yAxisID:'y__empty'});
+      scales['y__empty']={type:'linear',display:false};
+    }
+    return new Chart(ctx,{type:'line',data:{datasets},options:{...CHART_BASE,scales}});
   }
 
-  // ── Build all 6 charts ────────────────────────────────────
-  _charts.rpm   = renderChart('chartRPM',   chartCfgs[0].keys, 0);
-  _charts.fuel  = renderChart('chartFuel',  chartCfgs[1].keys, 1);
-  _charts.tps   = renderChart('chartTPS',   chartCfgs[2].keys, 2);
-  _charts.spk   = renderChart('chartSPK',   chartCfgs[3].keys, 3);
-  _charts.batt  = renderChart('chartBatt',  chartCfgs[4].keys, 4);
-  _charts.flags = renderFlagsChart('chartFlags', chartCfgs[5].keys);
-
-  // ── Signal selector UI ────────────────────────────────────
-  // Create the gear button once, but rebind handlers on EVERY build so the
-  // closures always carry the current rows/chartCfgs (stale-closure fix).
-  // The title row spans the whole horizontal scroll width, pushing the gear
-  // off-screen — clicking the title opens the same selector.
-  CHART_DEFAULTS.forEach((def, ci) => {
-    const canvas = document.getElementById(def.id);
-    if(!canvas) return;
-    const wrap = canvas.closest('.chart-wrap');
-    if(!wrap) return;
-    const titleEl = wrap.querySelector('.chart-title');
-    let btn = wrap.querySelector('.chart-title .chart-cfg-btn, .chart-cfg-btn');
-    if(!btn){
-      btn = document.createElement('button');
-      btn.className = 'chart-cfg-btn btn';
-      btn.textContent = '⚙';
-      if(titleEl) titleEl.appendChild(btn);
-      else wrap.appendChild(btn);
-    }
-    btn.onclick = (e) => { e.stopPropagation(); openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs); };
-    if(titleEl){
-      titleEl.style.cursor = 'pointer';
-      titleEl.title = 'Click: choose signals';
-      titleEl.onclick = (e) => {
-        if(e.target.closest('.chart-cfg-btn')) return;
-        openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCfgs);
-      };
-    }
-  });
-
-  // Sync chart titles with the configured signals (static HTML titles lie
-  // once a preset or the gear editor changes the keys)
-  CHART_DEFAULTS.forEach((def, ci) => {
-    const canvas = document.getElementById(def.id);
-    if(!canvas) return;
-    const titleEl = canvas.closest('.chart-wrap')?.querySelector('.chart-title');
-    if(!titleEl) return;
-    let span = titleEl.querySelector('.chart-title-text');
-    if(!span){
-      span = document.createElement('span');
-      span.className = 'chart-title-text';
-      Array.from(titleEl.childNodes).forEach(n => { if(n.nodeType === 3) titleEl.removeChild(n); });
-      titleEl.insertBefore(span, titleEl.firstChild);
-    }
-    span.textContent = chartCfgs[ci].keys.map(k => (SIG_MAP[k]?.label || k)).join(' · ');
+  // ── Render configurable panels ──────────────────────────
+  _rebuildDOM(totalW);
+  _layout.forEach(panel => {
+    _charts[panel.id] = renderChart(panel.id, panel.keys, panel.id);
   });
 
   $id('graphLegend').style.display='flex';
@@ -2532,6 +2705,7 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
     'CDiag0','CDiag1','CDiag2','CDiag3','CDiag4',
     'HDiag0','HDiag1','HDiag2','HDiag3','HDiag4',
     'SysConfig','DIn','DOut','Rides',
+    'p_kw','hp','torque_nm',
   ];
 
   const panel = document.createElement('div');
@@ -2625,20 +2799,36 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
        'Unk63','Unk80','Unk81','Unk82','CDiag0','CDiag1','CDiag2','CDiag3','CDiag4',
        'HDiag0','HDiag1','HDiag2','HDiag3','HDiag4','SysConfig','DIn','DOut','Rides'
       ].forEach(k=>ALL_S.push({key:k,color:'#666'}));
+      // VDYNO computed channels
+      [{key:'p_kw',color:'#ff9900'},{key:'hp',color:'#ff5500'},{key:'torque_nm',color:'#ffcc00'}]
+        .forEach(s=>ALL_S.push(s));
       ALL_S.forEach(s=>SIG_MAP2[s.key]=s);
 
       const t0 = window._lastBuildRows ? window._lastBuildRows[0]?.time_elapsed_s??0 : 0;
       const t1 = window._lastBuildRows ? window._lastBuildRows[window._lastBuildRows.length-1]?.time_elapsed_s??1 : 1;
       const durS2 = t1-t0||1;
 
-      const datasets = chartCfgs[ci].keys.map(key=>{
+      const _rebuildRows = window._lastBuildRows||[];
+      const _flagKs  = chartCfgs[ci].keys.filter(_isFlagKey);
+      const _analogKs = chartCfgs[ci].keys.filter(k=>!_isFlagKey(k));
+      const datasets = _analogKs.map(key=>{
         const sig=SIG_MAP2[key]; if(!sig) return null;
         return { _key:key, label:sig.label,
-          data:(window._lastBuildRows||[]).map(r=>({x:r.time_elapsed_s,y:r[key]??null})),
+          data:_rebuildRows.map(r=>({x:r.time_elapsed_s,y:r[key]??null})),
           borderColor:sig.color, borderWidth:1.5, borderDash:sig.dash||[],
-          pointRadius:0, fill:false, tension:0.1 };
+          pointRadius:0, fill:false, tension:0, yAxisID:'y_'+key };
       }).filter(Boolean);
-
+      if(_flagKs.length){
+        _flagKs.forEach((key,i)=>{
+          const sig=SIG_MAP2[key]; if(!sig) return;
+          const base=i*2;
+          datasets.push({_key:key,label:sig.label,
+            data:_rebuildRows.map(r=>({x:r.time_elapsed_s,y:r[key]!=null?base+(r[key]>0?1.4:0):null})),
+            borderColor:sig.color,backgroundColor:sig.color+'40',
+            borderWidth:1.5,pointRadius:0,stepped:'before',tension:0,fill:false,
+            yAxisID:'y_flags_band'});
+        });
+      }
       if(!datasets.length) datasets.push({
         _key:'_empty',label:'—',data:[{x:t0,y:0},{x:t1,y:0}],
         borderColor:'#333',borderWidth:1,pointRadius:0,fill:false
@@ -2657,17 +2847,36 @@ function openChartCfg(ci, def, wrap, rows, tFirst, tLast, chartCfgs, saveChartCf
               titleColor:'#aaa', titleFont:{family:'monospace',size:9},
               bodyFont:{family:'monospace',size:9},
               callbacks:{
-                label:ctx=>`${ctx.dataset.label}: ${ctx.parsed.y!=null?ctx.parsed.y.toFixed(1):'--'}`,
+                label:ctx=>{
+                  const k=ctx.dataset._key;
+                  const y=ctx.parsed.y;
+                  if(y==null) return `${ctx.dataset.label}: --`;
+                  if(_isFlagKey(k)){
+                    const i=_flagKs.indexOf(k);
+                    const on=i>=0?y>i*2+0.7:y>0.7;
+                    return `${ctx.dataset.label}: ${on?'ON':'OFF'}`;
+                  }
+                  return `${ctx.dataset.label}: ${y.toFixed(1)}`;
+                },
                 labelColor:ctx=>{ const s=SIG_MAP2[ctx.dataset._key]; return {borderColor:s?.color||'#fff',backgroundColor:s?.color||'#fff'}; }
               }
             }
           },
-          scales:{
-            x:{type:'linear',min:t0,max:t1,
+          scales:(()=>{
+            const sc={x:{type:'linear',min:t0,max:t1,
                ticks:{font:{family:'monospace',size:8},color:'#444',callback:v=>v%60===0?(v+'s'):'',maxTicksLimit:Math.ceil(durS2/60)+1},
-               grid:{color:'rgba(255,255,255,.04)'}},
-            y:{display:false}
-          }
+               grid:{color:'rgba(255,255,255,.04)'}}};
+            _analogKs.forEach(key=>{
+              const vals=_rebuildRows.map(r=>r[key]).filter(v=>v!=null&&!isNaN(v));
+              const mn=vals.length?Math.min(...vals):0;
+              const mx=vals.length?Math.max(...vals):1;
+              const pad=(mx-mn)*0.1||1;
+              sc['y_'+key]={type:'linear',display:false,min:mn-pad,max:mx+pad};
+            });
+            if(_flagKs.length) sc['y_flags_band']={type:'linear',display:false,min:-0.5,max:_flagKs.length*2};
+            if(!chartCfgs[ci].keys.length) sc['y__empty']={type:'linear',display:false};
+            return sc;
+          })()
         }
       });
     }
@@ -2751,6 +2960,27 @@ async function loadGraphRide(directFile){
       titleEl.innerHTML = "▶ " + escapeHtml(rideLabel) + datePart;
       titleEl.style.display='block';
     }
+    // Merge vdyno_rows sidecar (WOT-only HP/torque) into rows
+    try {
+      const csvParts = csvName.replace('.csv','').split('_');
+      if(csvParts.length >= 3) {
+        const vdynoResp = await fetch('/vdyno_rows?session='+csvParts[1]+'&ride='+parseInt(csvParts[2],10)+'&t='+Date.now());
+        if(vdynoResp.ok) {
+          const vd = await vdynoResp.json();
+          if(vd.ok && vd.rows && vd.rows.length) {
+            const tMap = {};
+            vd.rows.forEach(r => { tMap[r.time_s.toFixed(3)] = r; });
+            rows.forEach(row => {
+              const t = ((row.time_elapsed_s ?? 0)).toFixed(3);
+              const sr = tMap[t];
+              row.p_kw      = sr ? sr.p_kw      : null;
+              row.hp        = sr ? sr.hp        : null;
+              row.torque_nm = sr ? sr.torque_nm : null;
+            });
+          }
+        }
+      }
+    } catch(_) { /* sidecar is optional, never block chart render */ }
     buildCharts(rows);
   }catch(e){
     status.textContent = 'Error: '+e;

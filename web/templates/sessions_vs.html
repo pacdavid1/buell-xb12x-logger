@@ -100,6 +100,18 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
   <div class="fsum" id="fsum" style="display:none">
     <div class="fc" id="fcA"></div>
     <div class="fc" id="fcB"></div>
+    <div class="fc" id="dynoStatA" style="display:none">
+      <div class="fl" style="color:#4488ff">VDYNO A</div>
+      <div class="fv"><span>Max HP</span><span id="dMaxHpA">—</span></div>
+      <div class="fv"><span>Max Tq N·m</span><span id="dMaxTqA">—</span></div>
+      <div class="fv"><span>@ RPM</span><span id="dRpmA">—</span></div>
+    </div>
+    <div class="fc" id="dynoStatB" style="display:none">
+      <div class="fl" style="color:#ff8844">VDYNO B</div>
+      <div class="fv"><span>Max HP</span><span id="dMaxHpB">—</span></div>
+      <div class="fv"><span>Max Tq N·m</span><span id="dMaxTqB">—</span></div>
+      <div class="fv"><span>@ RPM</span><span id="dRpmB">—</span></div>
+    </div>
   </div>
   <div class="ftabs" id="ftabs" style="display:none">
     <button class="ftab on" data-mode="SPORT" onclick="setMode(this)">&#9889; SPORT</button>
@@ -147,7 +159,7 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
 function escapeHtml(s){if(typeof s==='undefined'||s===null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-var _data=null,_curFlavor='SWEET',_curMode='SPORT',MIN_N=10;
+var _data=null,_launchPowerData=null,_curFlavor='SWEET',_curMode='SPORT',MIN_N=10;
 
 async function init(){
   try{
@@ -193,6 +205,7 @@ async function compare(){
     _data=await r.json();
     if(_data.error){st('Error: '+_data.error);document.getElementById('btnCmp').disabled=false;return}
     render();
+    fetchDyno(a, b);
   }catch(e){st('Error: '+e.message)}
   document.getElementById('btnCmp').disabled=false;
 }
@@ -426,13 +439,140 @@ function renderClusterTable(elId, clusters, ses, data) {
     h += '<td>'+(cl.rpm_gain_mean||0).toFixed(0)+'\u00b1'+(cl.rpm_gain_std||0).toFixed(0)+'</td>';
     h += '<td>'+(cl.spd_gain_mean||0).toFixed(1)+'\u00b1'+(cl.spd_gain_std||0).toFixed(1)+'</td>';
     h += '</tr>';
-    h += '<tr class="cluster-detail" style="display:none"><td colspan="11"><canvas width="600" height="180"></canvas></td></tr>';
+    h += '<tr class="cluster-detail" style="display:none"><td colspan="11"><canvas width="600" height="180" style="display:block;margin-bottom:2px"></canvas><canvas width="600" height="160" style="display:block"></canvas></td></tr>';
   }
   h += '</table>';
   el.innerHTML = h;
 }
 
-function renderClusterMatches(data) {
+
+
+function drawClusterPowerChart(canvas, cIdx, ses) {
+  /* Draw HP vs RPM curve for a single launch cluster.
+     Data comes from _launchPowerData fetched via /vdyno/compare. */
+  var clusters = ses === 'B' ? (_launchPowerData ? _launchPowerData.b : null) : (_launchPowerData ? _launchPowerData.a : null);
+  if(!clusters || !clusters[cIdx]) return;
+  var cl = clusters[cIdx];
+  var bins = cl.bins || [];
+  if(!bins || bins.length < 2) return;
+
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var pad = {t: 20, b: 30, r: 16, l: 46};
+  var cw = W - pad.l - pad.r;
+  var ch = H - pad.t - pad.b;
+
+  var minRpm = bins[0].rpm, maxRpm = bins[bins.length-1].rpm;
+  var minRpm = Math.floor(minRpm / 250) * 250 - 125;
+  var maxRpm = Math.ceil(maxRpm / 250) * 250 + 125;
+  var maxHp = 0;
+  var maxTq = 0;
+  bins.forEach(function(b){
+    if(b.hp_med > maxHp) maxHp = b.hp_med;
+    if(b.torque_nm > maxTq) maxTq = b.torque_nm;
+  });
+  maxHp = Math.ceil(maxHp / 5) * 5 + 5;
+  maxTq = Math.ceil(maxTq / 5) * 5 + 5;
+
+  function xp(r){ return pad.l + (r - minRpm) / (maxRpm - minRpm) * cw; }
+  function ypHp(h){ return pad.t + ch - (h / maxHp) * ch; }
+
+  // Dark background
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, W, H);
+
+  // Grid
+  ctx.strokeStyle = '#222'; ctx.lineWidth = 0.5;
+  for(var r = 0; r <= 4; r++){
+    var y = pad.t + r * ch / 4;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + cw, y); ctx.stroke();
+    var hpVal = maxHp - r * maxHp / 4;
+    ctx.fillStyle = '#666'; ctx.font = '9px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(hpVal.toFixed(0), pad.l - 4, y + 3);
+  }
+
+  // RPM axis labels
+  ctx.fillStyle = '#555'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  var rpmStep = 1000;
+  var rpmStart = Math.ceil(minRpm / rpmStep) * rpmStep;
+  for(var r = rpmStart; r <= maxRpm; r += rpmStep){
+    var lx = xp(r);
+    ctx.fillText((r/1000).toFixed(1)+'k', lx, H - pad.b + 14);
+    ctx.strokeStyle = '#222';
+    ctx.beginPath(); ctx.moveTo(lx, pad.t); ctx.lineTo(lx, pad.t + ch); ctx.stroke();
+  }
+
+  // Y label
+  ctx.save(); ctx.translate(10, pad.t + ch/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle = '#888'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('HP', 0, 0); ctx.restore();
+
+  // X label
+  ctx.fillStyle = '#888'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('RPM', pad.l + cw/2, H - 2);
+
+  // HP curve
+  var sesColor = ses === 'B' ? '#ff8844' : '#4488ff';
+  ctx.strokeStyle = sesColor; ctx.lineWidth = 2.5; ctx.beginPath();
+  bins.forEach(function(b, i){
+    var x = xp(b.rpm), y = ypHp(b.hp_med);
+    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // HP area fill
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = sesColor; ctx.beginPath();
+  var bx1 = xp(bins[0].rpm), bx2 = xp(bins[bins.length-1].rpm);
+  ctx.moveTo(bx1, pad.t + ch);
+  bins.forEach(function(b){ ctx.lineTo(xp(b.rpm), ypHp(b.hp_med)); });
+  ctx.lineTo(bx2, pad.t + ch);
+  ctx.closePath(); ctx.fill();
+  ctx.globalAlpha = 1.0;
+
+  // Peak HP marker
+  var peak = bins.reduce(function(a,b){ return a.hp_med > b.hp_med ? a : b; });
+  var px = xp(peak.rpm), py = ypHp(peak.hp_med);
+  ctx.fillStyle = sesColor;
+  ctx.beginPath(); ctx.arc(px, py, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 10px monospace'; ctx.textAlign = 'center';
+  ctx.fillText(peak.hp_med.toFixed(1) + ' HP @ ' + (peak.rpm/1000).toFixed(1) + 'k', px, py - 10);
+
+  // Torque as dashed line (secondary axis using right side)
+  var sesTqColor = ses === 'B' ? '#ffaa66' : '#66aaff';
+  function ypTq(t){ return pad.t + ch - (t / maxTq) * ch; }
+  ctx.strokeStyle = sesTqColor; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  bins.forEach(function(b, i){
+    var x = xp(b.rpm), y = ypTq(b.torque_nm);
+    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Torque right axis
+  ctx.fillStyle = '#555'; ctx.font = '8px monospace'; ctx.textAlign = 'left';
+  ctx.fillText('Nm', W - pad.r + 2, pad.t + 8);
+  for(var t = 0; t <= 4; t++){
+    var tqVal = maxTq - t * maxTq / 4;
+    var ty = ypTq(tqVal);
+    ctx.fillText(tqVal.toFixed(0), W - pad.r + 2, ty + 3);
+  }
+
+  // Title: gear + count
+  ctx.fillStyle = '#888'; ctx.font = '10px monospace'; ctx.textAlign = 'left';
+  ctx.fillText('Cluster #' + (cIdx+1) + ' - Gear ' + cl.gear + ' (N=' + cl.count + ')', pad.l, pad.t - 6);
+
+  // Legend
+  ctx.fillStyle = sesColor; ctx.fillRect(W - 82, 4, 10, 2);
+  ctx.fillStyle = '#aaa'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+  ctx.fillText('HP ('+ses+')', W - 68, 8);
+  ctx.strokeStyle = sesTqColor; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(W - 82, 18); ctx.lineTo(W - 72, 18); ctx.stroke();
+  ctx.fillStyle = '#aaa'; ctx.font = '9px monospace';
+  ctx.fillText('Torque ('+ses+')', W - 68, 22);
+}function renderClusterMatches(data) {
   var el = document.getElementById('cluster-matches');
   if(!el)return;
   var matches = data.cluster_matches || [];
@@ -485,14 +625,19 @@ function toggleClusterSeries(tr, cIdx) {
   detail.style.display = isOpen ? 'none' : 'table-row';
   _expandedClusterRow = isOpen ? null : detail;
   if(!isOpen){
-    var canvas = detail.querySelector('canvas');
-    if(canvas){
-      var wrap = tr.closest('[id^="launch-"]');
-      var cacheKey = (wrap ? wrap.id : '') + '-' + cIdx;
-      if(!_clusterChartCache[cacheKey]){
-        drawClusterChart(canvas, cIdx);
-        _clusterChartCache[cacheKey] = true;
-      }
+    var canvases = detail.querySelectorAll('canvas');
+    var wrap = tr.closest('[id^="launch-"]');
+    var ses = wrap && wrap.id.indexOf('-b-') >= 0 ? 'B' : 'A';
+    var cacheKey = (wrap ? wrap.id : '') + '-' + cIdx;
+
+    // First canvas: RPM/TPS series
+    if(canvases[0] && !_clusterChartCache[cacheKey]){
+      drawClusterChart(canvases[0], cIdx);
+      _clusterChartCache[cacheKey] = true;
+    }
+    // Second canvas: power curve from launch power data
+    if(canvases[1]){
+      drawClusterPowerChart(canvases[1], cIdx, ses);
     }
   }
 }
@@ -821,6 +966,126 @@ function drawLaunchChart(canvas, series) {
   ctx.fillStyle = '#ff8866'; ctx.fillText('TPS%', W-28, 12);
 }
 
+async function fetchDyno(a, b) {
+  var ds = document.getElementById('launch-dyno');
+  var st2 = document.getElementById('launchDynoStatus');
+  ds.style.display = 'none';
+  try {
+    var r = await fetch('/vdyno/compare?a=' + a + '&b=' + b);
+    if (!r.ok) { if(st2) st2.textContent = '(no dyno data)'; return; }
+    var d = await r.json();
+    if (!d.ok || !d.bins || !d.bins.length) {
+      if(st2) st2.textContent = '(no WOT segments found)'; return;
+    }
+    ds.style.display = 'block';
+    if(st2) st2.textContent = '(' + d.bins.length + ' RPM bins)';
+    _launchPowerData = {a: d.launch_a || [], b: d.launch_b || []};
+    drawDynoChart(d);
+  } catch(e) {
+    if(st2) st2.textContent = '(dyno error: ' + e.message + ')';
+  }
+}
+
+function drawDynoChart(d) {
+  var canvas = document.getElementById('launchDynoCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var PAD = {t:24, r:20, b:40, l:52};
+  var CW = W - PAD.l - PAD.r, CH = H - PAD.t - PAD.b;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#0d0d0d';
+  ctx.fillRect(0, 0, W, H);
+
+  var bins = d.bins;
+  var rpms = bins.map(function(b){return b.rpm});
+  var minRPM = Math.min.apply(null, rpms) - 125;
+  var maxRPM = Math.max.apply(null, rpms) + 125;
+  var allP = bins.map(function(b){return b.p_kw_a}).concat(bins.map(function(b){return b.p_kw_b}));
+  var maxP = Math.max.apply(null, allP) * 1.15;
+  var minP = Math.max(0, Math.min.apply(null, allP) * 0.85);
+
+  function xp(rpm) { return PAD.l + (rpm - minRPM) / (maxRPM - minRPM) * CW; }
+  function yp(p)   { return PAD.t + CH - (p - minP) / (maxP - minP) * CH; }
+
+  // Grid
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;
+  for(var g = 0; g <= 4; g++) {
+    var gy = PAD.t + g * CH / 4;
+    ctx.beginPath(); ctx.moveTo(PAD.l, gy); ctx.lineTo(PAD.l + CW, gy); ctx.stroke();
+    var pval = maxP - g * (maxP - minP) / 4;
+    ctx.fillStyle = '#555'; ctx.font = '9px monospace'; ctx.textAlign = 'right';
+    ctx.fillText(pval.toFixed(0), PAD.l - 4, gy + 3);
+  }
+
+  // RPM axis
+  ctx.fillStyle = '#555'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  var rpmRange = maxRPM - minRPM;
+  var rpmStep = Math.ceil(rpmRange / 6 / 500) * 500;
+  for(var rpm = Math.ceil(minRPM / rpmStep) * rpmStep; rpm <= maxRPM; rpm += rpmStep) {
+    var lx = xp(rpm);
+    ctx.fillText((rpm/1000).toFixed(1)+'k', lx, H - PAD.b + 14);
+    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lx, PAD.t); ctx.lineTo(lx, PAD.t + CH); ctx.stroke();
+  }
+
+  // Y label
+  ctx.save(); ctx.translate(12, PAD.t + CH/2); ctx.rotate(-Math.PI/2);
+  ctx.fillStyle = '#555'; ctx.font = '9px monospace'; ctx.textAlign = 'center';
+  ctx.fillText('kW', 0, 0); ctx.restore();
+
+  // Session A (blue)
+  ctx.strokeStyle = '#4488ff'; ctx.lineWidth = 2; ctx.beginPath();
+  bins.forEach(function(b, i) {
+    var x = xp(b.rpm), y = yp(b.p_kw_a);
+    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Session B (orange)
+  ctx.strokeStyle = '#ff8844'; ctx.lineWidth = 2; ctx.beginPath();
+  bins.forEach(function(b, i) {
+    var x = xp(b.rpm), y = yp(b.p_kw_b);
+    if(i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Delta dots at fixed Y (green = B > A, red = B < A)
+  var dotY = PAD.t + CH + 8;
+  bins.forEach(function(b) {
+    ctx.fillStyle = b.delta_kw >= 0 ? '#33cc66' : '#cc3333';
+    ctx.beginPath(); ctx.arc(xp(b.rpm), dotY, 3.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#666'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+    if(b.delta_pct != null)
+      ctx.fillText((b.delta_pct>0?'+':'')+b.delta_pct+'%', xp(b.rpm), dotY + 12);
+  });
+
+  // Legend
+  ctx.font = '9px monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#4488ff'; ctx.fillRect(PAD.l, 8, 18, 3);
+  ctx.fillStyle = '#aaa'; ctx.fillText('A: ' + d.session_a, PAD.l + 22, 12);
+  ctx.fillStyle = '#ff8844'; ctx.fillRect(PAD.l + 100, 8, 18, 3);
+  ctx.fillStyle = '#aaa'; ctx.fillText('B: ' + d.session_b, PAD.l + 122, 12);
+  ctx.fillStyle = '#555'; ctx.textAlign = 'center'; ctx.fillText('RPM', W/2, H - 2);
+
+  // Populate dyno stat cards in fsum
+  function _fillStat(sfx, hpKey, tqKey) {
+    var maxHp = 0, maxTq = 0, rpmAtPeak = 0;
+    bins.forEach(function(b) {
+      if (b[hpKey] > maxHp) { maxHp = b[hpKey]; rpmAtPeak = b.rpm; }
+      if (b[tqKey] > maxTq) maxTq = b[tqKey];
+    });
+    document.getElementById('dMaxHp' + sfx).textContent = maxHp > 0 ? maxHp.toFixed(1) + ' HP' : '—';
+    document.getElementById('dMaxTq' + sfx).textContent = maxTq > 0 ? maxTq.toFixed(1) : '—';
+    document.getElementById('dRpm'   + sfx).textContent = rpmAtPeak > 0 ? Math.round(rpmAtPeak) : '—';
+    document.getElementById('dynoStat' + sfx).style.display = '';
+  }
+  if (bins.length) {
+    _fillStat('A', 'hp_a', 'torque_nm_a');
+    _fillStat('B', 'hp_b', 'torque_nm_b');
+  }
+}
+
 </script>
 
 <!-- Launch Events Section -->
@@ -843,7 +1108,19 @@ function drawLaunchChart(canvas, series) {
     <h4 style="color:#cccc88;font-size:12px;margin:6px 0 3px">Type B &mdash; From Moderate Acceleration</h4>
     <div id="launch-b-content" style="font-size:11px;color:#555">None detected</div>
   </div>
+  <!-- Virtual Dyno inside Launch Section -->
+  <div id="launch-dyno" style="margin-top:16px;display:none">
+    <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px">
+      <h4 style="color:#66aaff;margin:0;font-size:13px">&#9654; Virtual Dyno</h4>
+      <span style="font-size:10px;color:#666">P(kW) vs RPM &mdash; differential A vs B</span>
+      <span id="launchDynoStatus" style="font-size:10px;color:#888"></span>
+    </div>
+    <canvas id="launchDynoCanvas" width="640" height="200" style="display:block;border:1px solid #222;border-radius:4px;background:#0d0d0d"></canvas>
+  </div>
 </div>
+</div>
+
+
 
 <script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>
 <script>

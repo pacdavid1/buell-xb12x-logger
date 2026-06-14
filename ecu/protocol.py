@@ -87,7 +87,7 @@ RT_VARIABLES: dict[str, tuple[int, int, float, float]] = {
 }
 
 # ── VSS / Velocidad ───────────────────────────────────────────
-VSS_CPKM25 = 1518.0  # counts por 25km/h — recalibrado vs GPS (ride_015 + rides 4-5 sesión 47BF04)
+VSS_CPKM25 = 1518.0  # counts per 25km/h — recalibrated vs GPS (ride_015 + rides 4-5 session 47BF04)
 
 # ── GearFilter: windowed statistical gear detection ──────────
 # Internal ratio = RPM / KPH (inverted vs VSS_RPM_Ratio) for

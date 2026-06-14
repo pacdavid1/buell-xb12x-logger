@@ -487,7 +487,7 @@ def _compare_sessions(buell_dir, sa, sb):
             }
         return result, dict(fc)
 
-    # Cargar ambas sesiones
+    # Load both sessions
     ma, mb = load_meta(sa), load_meta(sb)
     ra, rb = load_csv(sa), load_csv(sb)
     derivatives(ra); derivatives(rb)

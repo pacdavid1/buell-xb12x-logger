@@ -21,8 +21,139 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.145] — 2026-06-14
+### Added
+- GRAF2 annotation `type` field (Phase 2.1): mark modal now has a launch/diagnostic/note selector (default launch); type is persisted and validated server-side against an allow-list, falling back to launch on unknown values (web/handlers/rides.py). Bands are colored by type in the viewer (launch=blue, diagnostic=gray, note=green); legacy annotations without a type render as launch. This is the prerequisite for Phase 2.2, where F7 will consume only `type=launch` marks as a separate PILOT-MARKED category (web/static/graf2.js).
+### AI
+- Claude Opus 4.8, Anthropic
 
 
+
+
+
+## [v2.7.144] — 2026-06-14
+### Added
+- BACKLOG_GRAF2.md: GRAF2 work plan for any AI/session — current state (v2.7.140-143), Phase 2 (annotation `type` field + F7 consuming launch marks as a separate PILOT-MARKED category, option B), Phase 3 (A/B overlay), and validated findings (CLT in °C, WOT +10%, segregate comparisons by fl_wot, signal-gap bug task_052).
+### AI
+- Claude Fable 5, Anthropic
+
+## [v2.7.143] — 2026-06-14
+### Added
+- GRAF2 annotation edit/delete: click an existing band (outside mark mode) opens the note for editing or deletion. Backend POST /annotations now updates by id instead of always appending (web/handlers/rides.py).
+### AI
+- Claude Fable 5, Anthropic
+
+## [v2.7.142] — 2026-06-14
+### Added
+- GRAF2 region annotations (Phase 1): mark a time span [t0,t1] with a note, persisted on the Pi at sessions/<session>/ride_*_annotations.json for F7 to consume in Phase 2. 🔖 Mark button (2-click start/end), note modal, blue shaded bands drawn across all synced blocks, marks list/delete. Backend: GET/POST /annotations (web/server.py, web/handlers/rides.py).
+- GRAF2 Y-axis toggle (Y: full / Y: fit): default fixed to the full-ride range so absolute magnitude is kept on zoom; fit re-scales to the visible window. Lanes and flags were already fixed.
+### AI
+- Claude Fable 5, Anthropic
+
+## [v2.7.141] — 2026-06-14
+### Added
+- web/static/graf2.js, web/templates/graf2.html: GRAF2 manual lane stacking. Any analog signal can be sent to its own stacked lane via the ≡ chip toggle (binary flags are always laned). Lanes stack from the bottom, ~20% panel height each (LANE_FRAC, capped at 95% total), auto-scale within their own lane, never overlap, and are labeled left. Persists in localStorage (block.lanes). Replaces the flag-only lane logic with a unified lane model.
+### AI
+- Claude Fable 5, Anthropic
+
+## [v2.7.140] — 2026-06-14
+### Added
+- web/templates/graf2.html, web/static/graf2.js, web/static/uPlot.* : new GRAF2 telemetry page (/graf2)
+  - uPlot-based; zoom and cursor synced across all blocks
+  - flag-state background shading (fl_hot, do_fan, ...) to reveal effects on analog traces
+  - logic-analyzer flag lanes: each binary flag in its own stacked lane; analog signals confined above the lane band
+  - unified legend chips in the block header: color, name, live value at cursor, click-to-toggle, x-to-remove
+  - laptop trackpad gestures: pinch = zoom X, 2-finger horizontal = pan time, 2-finger vertical = page scroll
+  - per-block height resize, drag-to-reorder blocks, searchable signal picker, ride list newest-first
+- web/handlers/rides.py, web/server.py: /graf2 route + handler
+- web/templates/index.html: GRAF2 link in hamburger nav
+### Note
+- Checkpoint also captures in-progress VDYNO launch (web/vdyno.py, web/handlers/vdyno.py, web/templates/launch_power.html) and sessions_vs work, entangled via shared routes in web/server.py.
+### AI
+- Claude Fable 5, Anthropic
+
+## [v2.7.139] — 2026-06-13
+### Changed
+- web/static/app.js: Graf panel gear button (⚙) moved to left of title
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.138] — 2026-06-13
+### Added
+- web/static/app.js: configurable Graf panels — each panel has ⚙ (signal picker) and × (delete); + Panel button adds new panel; layout persists in localStorage buell_chart_layout_v2
+- web/templates/index.html: chartsInner is now empty (panels built by _rebuildDOM); tunePanel moved before chartsOuter
+- web/templates/index.html: CSS for .chart-ctrl-btn, .signal-picker, .sig-chip, .picker-item, .picker-swatch, .chart-add-btn
+- web/static/app.js: DEFAULT_LAYOUT replaces FIXED_CHARTS (6 panels: DYNAMICS, FUEL, IGNITION, ENVIRONMENT, VDYNO, ALL FLAGS)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.137] — 2026-06-13
+### Fixed
+- web/static/app.js: add fl_hot band to FUEL fixed panel (see PW vs thermal flag)
+- web/static/app.js: add do_fan band to ENVIRONMENT fixed panel (see CLT vs fan activation)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.136] — 2026-06-13
+### Added
+- web/static/app.js: THERMAL ENRICHMENT preset — CLT+do_fan panel, pw1+pw2+fl_hot panel for thermal enrichment correlation
+### Fixed
+- web/server.py: /health endpoint version was hardcoded v2.7.132, now uses _get_version()
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.135] — 2026-06-13
+### Fixed
+- ecu/session.py: translate Spanish log strings to English (watchdog, ride recovery)
+- ecu/protocol.py: translate Spanish comment on VSS_CPKM25 constant
+- web/vs_engine.py: translate Spanish API error string
+- web/launch.py: translate Spanish comment
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.134] — 2026-06-13
+
+### Changed
+- sessions_vs: add VDYNO stat cards to fsum (max HP, peak torque N·m, RPM at peak)
+  for session A and B, populated after dyno compare loads
+
+## [v2.7.133] — 2026-06-13
+
+### Changed
+- Dashboard: 6 fixed permanent chart groups replace preset-based layout
+  - DYNAMICS (200px): RPM, KPH, TPS%, Gear + WOT/Decel/Accel flags
+  - FUEL (160px): PW1/PW2, WUE, Accel/Decel corrections + fuel flags
+  - IGNITION (120px): Spark1/2, VE Curr1/2 RAW
+  - ENVIRONMENT (140px): CLT, MAT, Batt V + hot flag
+  - VDYNO (140px): HP, Torque N·m, RPM dim + WOT flag
+  - ALL FLAGS (140px): full logic-analyzer with 16 flag lanes
+- Per-signal fixed y-ranges (no more auto-scale compression)
+- Removed preset selector UI (hidden, not deleted)
+
+## [v2.7.132] — 2026-06-13
+### Fixed
+- /health endpoint added to server.py (was returning 404)
+- Spanish strings translated to English (session.py, eeprom_params.py, version_resolver.py)
+### AI
+- freebuff (audit + implementation)
+
+## [v2.7.131] — 2026-06-13
+### Fixed
+- install.sh was not reproducible and would build a broken Pi on replication:
+  - apt installed python3-serial + python3-flask, but Flask is never imported
+    (server uses stdlib http.server) and the real runtime deps (numpy, smbus2,
+    bmp280) were missing — a freshly provisioned Pi crashed on import.
+  - Malformed POLKIT here-document (escaped-quote delimiters) swallowed the rest
+    of the installer as text, so the systemd service, sudoers and enable/restart
+    steps never executed on a clean install.
+  - Missing udev rule for the stable /dev/ttyECU symlink — a fresh Pi could not
+    find the ECU port.
+### Added
+- requirements.txt with runtime Python deps pinned to the versions validated on
+  the production Pi: pyserial==3.5, smbus2==0.4.3, numpy==2.4.4, bmp280==1.0.0.
+  install.sh now pip-installs them and deploys 99-ecu-serial.rules.
+### AI
+- Claude Fable 5, Anthropic
 
 ## [v2.7.130] — 2026-06-13
 ### Fixed
