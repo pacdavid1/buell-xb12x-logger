@@ -203,12 +203,15 @@ class RidesHandlerMixin:
                 return
             if t1 < t0:
                 t0, t1 = t1, t0
+            atype = payload.get('type')
+            atype = atype if atype in ('launch', 'diagnostic', 'note') else 'launch'
             aid = str(payload.get('id') or '')
             existing = next((a for a in data['annotations'] if str(a.get('id')) == aid), None) if aid else None
             if existing is not None:
                 existing['t0_s'] = round(t0, 3)
                 existing['t1_s'] = round(t1, 3)
                 existing['note'] = str(payload.get('note', ''))[:500]
+                existing['type'] = atype
                 existing['updated_utc'] = datetime.datetime.utcnow().isoformat() + 'Z'
             else:
                 data['annotations'].append({
@@ -216,6 +219,7 @@ class RidesHandlerMixin:
                     't0_s': round(t0, 3),
                     't1_s': round(t1, 3),
                     'note': str(payload.get('note', ''))[:500],
+                    'type': atype,
                     'created_utc': datetime.datetime.utcnow().isoformat() + 'Z',
                 })
         try:

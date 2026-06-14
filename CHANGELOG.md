@@ -21,6 +21,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.145] — 2026-06-14
+### Added
+- GRAF2 annotation `type` field (Phase 2.1): mark modal now has a launch/diagnostic/note selector (default launch); type is persisted and validated server-side against an allow-list, falling back to launch on unknown values (web/handlers/rides.py). Bands are colored by type in the viewer (launch=blue, diagnostic=gray, note=green); legacy annotations without a type render as launch. This is the prerequisite for Phase 2.2, where F7 will consume only `type=launch` marks as a separate PILOT-MARKED category (web/static/graf2.js).
+### AI
+- Claude Opus 4.8, Anthropic
+
 
 
 

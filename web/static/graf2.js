@@ -38,6 +38,12 @@
   let _pendingT0 = null;
   let _curRide = '';
 
+  function annColor(type) {
+    if (type === 'diagnostic') return { fill: 'rgba(160,160,160,0.13)', stroke: 'rgba(160,160,160,0.7)', text: 'rgba(205,205,205,0.95)' };
+    if (type === 'note') return { fill: 'rgba(120,200,120,0.13)', stroke: 'rgba(120,200,120,0.7)', text: 'rgba(175,225,175,0.95)' };
+    return { fill: 'rgba(80,170,255,0.13)', stroke: 'rgba(80,170,255,0.7)', text: 'rgba(150,200,255,0.95)' };  // launch (default)
+  }
+
   function annotationsPlugin() {
     return {
       hooks: {
@@ -46,13 +52,14 @@
           ctx.save();
           ANNOTATIONS.forEach((a) => {
             const x0 = u.valToPos(a.t0_s, 'x', true), x1 = u.valToPos(a.t1_s, 'x', true);
-            ctx.fillStyle = 'rgba(80,170,255,0.13)';
+            const col = annColor(a.type);
+            ctx.fillStyle = col.fill;
             ctx.fillRect(x0, top, Math.max(1, x1 - x0), H);
-            ctx.strokeStyle = 'rgba(80,170,255,0.7)'; ctx.lineWidth = 1;
+            ctx.strokeStyle = col.stroke; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.moveTo(x0, top); ctx.lineTo(x0, top + H);
             ctx.moveTo(x1, top); ctx.lineTo(x1, top + H); ctx.stroke();
             if (a.note) {
-              ctx.fillStyle = 'rgba(150,200,255,0.95)';
+              ctx.fillStyle = col.text;
               ctx.font = '9px monospace'; ctx.textBaseline = 'top';
               ctx.fillText(a.note.slice(0, 36), x0 + 3, top + 2);
             }
@@ -118,14 +125,18 @@
     const delBtn = existing ? '<button id="noteDelete" style="margin-right:auto;color:#f66">delete</button>' : '';
     m.innerHTML = '<div class="picker" style="max-width:380px">'
       + '<div class="picker-head"><span class="t">' + title + '</span></div>'
-      + '<div class="picker-body"><textarea id="noteText" rows="3" placeholder="what happens in this stretch? (note for F7)"></textarea></div>'
+      + '<div class="picker-body">'
+      + '<div style="margin-bottom:8px"><label style="font:11px monospace;color:#9bd">type&nbsp;</label>'
+      + '<select id="noteType"><option value="launch">launch</option><option value="diagnostic">diagnostic</option><option value="note">note</option></select></div>'
+      + '<textarea id="noteText" rows="3" placeholder="what happens in this stretch? (note for F7)"></textarea></div>'
       + '<div class="picker-foot">' + delBtn + '<button id="noteCancel">cancel</button><button id="noteSave" class="accent">save</button></div>'
       + '</div>';
     document.body.appendChild(m);
     const txt = m.querySelector('#noteText'); txt.value = existing ? (existing.note || '') : ''; txt.focus();
+    const sel = m.querySelector('#noteType'); sel.value = (existing && existing.type) || 'launch';
     const close = () => { m.remove(); setMarkMode(false); };
     m.querySelector('#noteCancel').onclick = close;
-    m.querySelector('#noteSave').onclick = async () => { await postAnnotation({ id: existing ? existing.id : undefined, t0_s: t0, t1_s: t1, note: txt.value.trim() }); close(); };
+    m.querySelector('#noteSave').onclick = async () => { await postAnnotation({ id: existing ? existing.id : undefined, t0_s: t0, t1_s: t1, note: txt.value.trim(), type: sel.value }); close(); };
     const db = m.querySelector('#noteDelete');
     if (db) db.onclick = async () => { await postAnnotation({ action: 'delete', id: existing.id }); close(); };
     m.onclick = (e) => { if (e.target === m) close(); };
