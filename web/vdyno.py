@@ -319,3 +319,59 @@ def compare_sessions(buell_dir, session_a, session_b):
             'n_b':          len(vb),
         })
     return {'session_a': session_a, 'session_b': session_b, 'bins': rows}
+
+def compute_launch_cluster_power(cluster, cfg=None):
+    """Compute HP/torque from a launch cluster mean_series.
+
+    Uses same physics as _seg_physics but on pre-averaged
+    mean_series from a launch event cluster.
+
+    Returns list of dicts compatible with _build_result_bins format
+    or None if no usable data.
+    """
+    if cfg is None:
+        cfg = dict(_DEFAULT_CFG)
+
+    ms = cluster.get("mean_series")
+    if not ms or len(ms) < 4:
+        return None
+
+    times   = np.array([float(x.get("dt") or 0) for x in ms])
+    vss_kph = np.array([float(s) if s is not None else 0.0 for s in (x.get("spd") for x in ms)])
+    rpms    = np.array([float(x.get("rpm") or 0) for x in ms])
+
+    mask = vss_kph > 8
+    if mask.sum() < 4:
+        return None
+    times, vss_kph, rpms = times[mask], vss_kph[mask], rpms[mask]
+
+    vss = vss_kph * _KPH_TO_MS
+
+    dt_vals = np.diff(times)
+    dt_vals = dt_vals[dt_vals > 0]
+    dt_med  = float(np.median(dt_vals)) if len(dt_vals) > 0 else 0.25
+    window = max(3, int(round(cfg["smooth_s"] / dt_med)))
+    vss_s = _smooth(vss, window)
+
+    dt_arr = np.diff(times)
+    dt_arr[dt_arr <= 0] = dt_med
+    a = np.append(np.diff(vss_s) / dt_arr, 0.0)
+
+    m = cfg["mass_kg"]
+    F = m * a + 0.5 * cfg["rho"] * cfg["CdA"] * vss_s ** 2 + cfg["Crr"] * m * _G
+    P_w = F * vss_s
+
+    bw = cfg["rpm_bin"]
+    rpm_min = cfg.get("rpm_min", 1500)
+    all_bins = {}
+    for i, p_w in enumerate(P_w):
+        if vss_s[i] < 5 or rpms[i] < rpm_min:
+            continue
+        center = int(rpms[i] / bw) * bw + bw // 2
+        all_bins.setdefault(center, []).append(p_w / 1000.0)
+
+    if not all_bins:
+        return None
+
+    return _build_result_bins(all_bins)
+
