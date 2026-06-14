@@ -203,13 +203,21 @@ class RidesHandlerMixin:
                 return
             if t1 < t0:
                 t0, t1 = t1, t0
-            data['annotations'].append({
-                'id': str(payload.get('id') or datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f')),
-                't0_s': round(t0, 3),
-                't1_s': round(t1, 3),
-                'note': str(payload.get('note', ''))[:500],
-                'created_utc': datetime.datetime.utcnow().isoformat() + 'Z',
-            })
+            aid = str(payload.get('id') or '')
+            existing = next((a for a in data['annotations'] if str(a.get('id')) == aid), None) if aid else None
+            if existing is not None:
+                existing['t0_s'] = round(t0, 3)
+                existing['t1_s'] = round(t1, 3)
+                existing['note'] = str(payload.get('note', ''))[:500]
+                existing['updated_utc'] = datetime.datetime.utcnow().isoformat() + 'Z'
+            else:
+                data['annotations'].append({
+                    'id': aid or datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f'),
+                    't0_s': round(t0, 3),
+                    't1_s': round(t1, 3),
+                    'note': str(payload.get('note', ''))[:500],
+                    'created_utc': datetime.datetime.utcnow().isoformat() + 'Z',
+                })
         try:
             tmp = ann_path.with_name(ann_path.name + '.tmp')
             with open(tmp, 'w') as fh:

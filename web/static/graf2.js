@@ -111,19 +111,23 @@
     }
   }
 
-  function openNoteModal(t0, t1) {
+  function openNoteModal(t0, t1, existing) {
     const m = document.createElement('div');
     m.className = 'modal open'; m.id = 'noteModal';
+    const title = (existing ? 'EDIT' : 'MARK') + ' · ' + t0.toFixed(2) + 's → ' + t1.toFixed(2) + 's (' + (t1 - t0).toFixed(2) + 's)';
+    const delBtn = existing ? '<button id="noteDelete" style="margin-right:auto;color:#f66">delete</button>' : '';
     m.innerHTML = '<div class="picker" style="max-width:380px">'
-      + '<div class="picker-head"><span class="t">MARK · ' + t0.toFixed(2) + 's → ' + t1.toFixed(2) + 's (' + (t1 - t0).toFixed(2) + 's)</span></div>'
+      + '<div class="picker-head"><span class="t">' + title + '</span></div>'
       + '<div class="picker-body"><textarea id="noteText" rows="3" placeholder="what happens in this stretch? (note for F7)"></textarea></div>'
-      + '<div class="picker-foot"><button id="noteCancel">cancel</button><button id="noteSave" class="accent">save mark</button></div>'
+      + '<div class="picker-foot">' + delBtn + '<button id="noteCancel">cancel</button><button id="noteSave" class="accent">save</button></div>'
       + '</div>';
     document.body.appendChild(m);
-    const txt = m.querySelector('#noteText'); txt.focus();
+    const txt = m.querySelector('#noteText'); txt.value = existing ? (existing.note || '') : ''; txt.focus();
     const close = () => { m.remove(); setMarkMode(false); };
     m.querySelector('#noteCancel').onclick = close;
-    m.querySelector('#noteSave').onclick = async () => { await postAnnotation({ t0_s: t0, t1_s: t1, note: txt.value.trim() }); m.remove(); setMarkMode(false); };
+    m.querySelector('#noteSave').onclick = async () => { await postAnnotation({ id: existing ? existing.id : undefined, t0_s: t0, t1_s: t1, note: txt.value.trim() }); close(); };
+    const db = m.querySelector('#noteDelete');
+    if (db) db.onclick = async () => { await postAnnotation({ action: 'delete', id: existing.id }); close(); };
     m.onclick = (e) => { if (e.target === m) close(); };
   }
 
@@ -489,11 +493,13 @@
       const u = new uPlot(opts, data, wrap);
       PLOTS[block.id] = u;
 
-      // click on the plot while in mark mode captures a time point
+      // click on the plot: in mark mode captures a time point; otherwise opens a band for edit
       u.over.addEventListener('click', (e) => {
-        if (!_markMode) return;
         const rect = u.over.getBoundingClientRect();
-        onMarkClick(u.posToVal(e.clientX - rect.left, 'x'));
+        const t = u.posToVal(e.clientX - rect.left, 'x');
+        if (_markMode) { onMarkClick(t); return; }
+        const hit = ANNOTATIONS.find((a) => t >= a.t0_s && t <= a.t1_s);
+        if (hit) openNoteModal(hit.t0_s, hit.t1_s, hit);
       });
 
       // unified legend chips: color · name · live value · click=toggle · ×=remove
