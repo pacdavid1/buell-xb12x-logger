@@ -17,6 +17,7 @@
   let _pickerBlock = null;  // block id being edited
   let _dragId = null;       // block id being dragged
   let READOUT = {};         // blockId -> { u, seriesKeys, valSpans } for the unified legend
+  let _yFit = false;        // false = Y fixed to full-ride range; true = Y auto-fits the visible window
 
   // update the live values shown in each block's chips at the cursor position
   function updateReadout(blockId) {
@@ -29,6 +30,109 @@
         : isFlag(key) ? (raw > 0 ? '1' : '0')
           : (Math.abs(raw) >= 100 ? raw.toFixed(0) : raw.toFixed(2));
     }
+  }
+
+  // ── annotations (region markers persisted on the Pi, consumed by F7 later) ──
+  let ANNOTATIONS = [];
+  let _markMode = false;
+  let _pendingT0 = null;
+  let _curRide = '';
+
+  function annotationsPlugin() {
+    return {
+      hooks: {
+        draw: (u) => {
+          const ctx = u.ctx, top = u.bbox.top, H = u.bbox.height;
+          ctx.save();
+          ANNOTATIONS.forEach((a) => {
+            const x0 = u.valToPos(a.t0_s, 'x', true), x1 = u.valToPos(a.t1_s, 'x', true);
+            ctx.fillStyle = 'rgba(80,170,255,0.13)';
+            ctx.fillRect(x0, top, Math.max(1, x1 - x0), H);
+            ctx.strokeStyle = 'rgba(80,170,255,0.7)'; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(x0, top); ctx.lineTo(x0, top + H);
+            ctx.moveTo(x1, top); ctx.lineTo(x1, top + H); ctx.stroke();
+            if (a.note) {
+              ctx.fillStyle = 'rgba(150,200,255,0.95)';
+              ctx.font = '9px monospace'; ctx.textBaseline = 'top';
+              ctx.fillText(a.note.slice(0, 36), x0 + 3, top + 2);
+            }
+          });
+          if (_pendingT0 != null) {                  // start marker waiting for its end
+            const xp = u.valToPos(_pendingT0, 'x', true);
+            ctx.strokeStyle = 'rgba(255,210,0,0.9)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+            ctx.beginPath(); ctx.moveTo(xp, top); ctx.lineTo(xp, top + H); ctx.stroke();
+            ctx.setLineDash([]);
+          }
+          ctx.restore();
+        },
+      },
+    };
+  }
+
+  function redrawAll() { for (const id in PLOTS) { try { PLOTS[id].redraw(); } catch (e) {} } }
+
+  async function loadAnnotations(fname) {
+    _curRide = fname;
+    try {
+      const r = await fetch('/annotations?ride=' + encodeURIComponent(fname) + '&t=' + Date.now());
+      const d = await r.json();
+      ANNOTATIONS = (d && d.annotations) || [];
+    } catch (e) { ANNOTATIONS = []; }
+  }
+
+  async function postAnnotation(body) {
+    try {
+      const r = await fetch('/annotations', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ride: _curRide, ...body }),
+      });
+      const d = await r.json();
+      if (d && d.annotations) ANNOTATIONS = d.annotations;
+    } catch (e) { $('status').textContent = 'mark save error'; }
+    redrawAll();
+  }
+
+  function setMarkMode(on) {
+    _markMode = on; _pendingT0 = null;
+    const b = $('markBtn'); if (b) b.classList.toggle('accent', on);
+    $('status').textContent = on ? 'MARK: click start, then click end' : '';
+    redrawAll();
+  }
+
+  function onMarkClick(t) {
+    if (_pendingT0 == null) {
+      _pendingT0 = t;
+      $('status').textContent = 'start @ ' + t.toFixed(2) + 's — click end';
+      redrawAll();
+    } else {
+      const t0 = Math.min(_pendingT0, t), t1 = Math.max(_pendingT0, t);
+      _pendingT0 = null;
+      openNoteModal(t0, t1);
+    }
+  }
+
+  function openNoteModal(t0, t1) {
+    const m = document.createElement('div');
+    m.className = 'modal open'; m.id = 'noteModal';
+    m.innerHTML = '<div class="picker" style="max-width:380px">'
+      + '<div class="picker-head"><span class="t">MARK · ' + t0.toFixed(2) + 's → ' + t1.toFixed(2) + 's (' + (t1 - t0).toFixed(2) + 's)</span></div>'
+      + '<div class="picker-body"><textarea id="noteText" rows="3" placeholder="what happens in this stretch? (note for F7)"></textarea></div>'
+      + '<div class="picker-foot"><button id="noteCancel">cancel</button><button id="noteSave" class="accent">save mark</button></div>'
+      + '</div>';
+    document.body.appendChild(m);
+    const txt = m.querySelector('#noteText'); txt.focus();
+    const close = () => { m.remove(); setMarkMode(false); };
+    m.querySelector('#noteCancel').onclick = close;
+    m.querySelector('#noteSave').onclick = async () => { await postAnnotation({ t0_s: t0, t1_s: t1, note: txt.value.trim() }); m.remove(); setMarkMode(false); };
+    m.onclick = (e) => { if (e.target === m) close(); };
+  }
+
+  function listMarks() {
+    if (!ANNOTATIONS.length) { $('status').textContent = 'no marks on this ride'; return; }
+    const lines = ANNOTATIONS.map((a, j) => (j + 1) + ') ' + a.t0_s.toFixed(1) + '-' + a.t1_s.toFixed(1) + 's: ' + (a.note || '(no note)'));
+    const i = prompt('Marks on this ride — type a number to DELETE it, or cancel:\n' + lines.join('\n'));
+    const idx = parseInt(i, 10) - 1;
+    if (idx >= 0 && idx < ANNOTATIONS.length) postAnnotation({ action: 'delete', id: ANNOTATIONS[idx].id });
   }
 
   // ── signal metadata (built from CSV header) ────────────────
@@ -275,19 +379,27 @@
     const scales = { x: { time: false } };
     const data = [DATA.x];
 
-    // free analog signals — own auto scale, padded below so the trace stays ABOVE the lane band
+    // free analog signals — padded below so the trace stays ABOVE the lane band.
+    // _yFit=false: fixed to the full-ride range (Y does NOT re-scale on zoom, keeps absolute magnitude).
+    // _yFit=true : auto-fits the visible window (amplifies small variations under zoom).
+    const confineLo = (lo, hi) => (band <= 0 ? lo : (lo - band * hi) / (1 - band));
     free.forEach((k) => {
       const sc = 's_' + k;
-      scales[sc] = {
-        range: (u, dmin, dmax) => {
-          if (dmin == null) return [0, 1];
-          if (dmax === dmin) dmax = dmin + 1;
-          const pad = (dmax - dmin) * 0.06;
-          const lo = dmin - pad, hi = dmax + pad;
-          if (band <= 0) return [lo, hi];
-          return [(lo - band * hi) / (1 - band), hi];   // confine data to the top (1 - band)
-        },
-      };
+      if (_yFit) {
+        scales[sc] = {
+          range: (u, dmin, dmax) => {
+            if (dmin == null) return [0, 1];
+            if (dmax === dmin) dmax = dmin + 1;
+            const pad = (dmax - dmin) * 0.06;
+            return [confineLo(dmin - pad, dmax + pad), dmax + pad];
+          },
+        };
+      } else {
+        const [fmn, fmx] = minmax(k);
+        const pad = (fmx - fmn) * 0.06 || 1;
+        const hi = fmx + pad;
+        scales[sc] = { range: [confineLo(fmn - pad, hi), hi] };   // fixed full-ride range
+      }
       series.push({
         label: k, stroke: colorOf(k), width: 1.4, scale: sc, points: { show: false },
         value: (u, v) => (v == null ? '--' : (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2))),
@@ -331,7 +443,7 @@
           { show: false },
         ],
         series,
-        plugins: [flagShadePlugin(), wheelZoomPlugin(), touchGesturePlugin(), laneLabelPlugin(laned, laneH, nL)],
+        plugins: [flagShadePlugin(), annotationsPlugin(), wheelZoomPlugin(), touchGesturePlugin(), laneLabelPlugin(laned, laneH, nL)],
         hooks: {
           setScale: [(u, key) => { if (key === 'x') syncX(u); }],
           setCursor: [() => updateReadout(block.id)],
@@ -376,6 +488,13 @@
       const { opts, data, seriesKeys } = makeOpts(block, width);
       const u = new uPlot(opts, data, wrap);
       PLOTS[block.id] = u;
+
+      // click on the plot while in mark mode captures a time point
+      u.over.addEventListener('click', (e) => {
+        if (!_markMode) return;
+        const rect = u.over.getBoundingClientRect();
+        onMarkClick(u.posToVal(e.clientX - rect.left, 'x'));
+      });
 
       // unified legend chips: color · name · live value · click=toggle · ×=remove
       const chips = el.querySelector('.block-chips');
@@ -497,12 +616,12 @@
 
   // ── persistence ────────────────────────────────────────────
   function save() {
-    try { localStorage.setItem(LS_KEY, JSON.stringify({ blocks: BLOCKS, flag: $('flagShade').value })); } catch (e) {}
+    try { localStorage.setItem(LS_KEY, JSON.stringify({ blocks: BLOCKS, flag: $('flagShade').value, yfit: _yFit })); } catch (e) {}
   }
   function load() {
     try {
       const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
-      if (s && Array.isArray(s.blocks) && s.blocks.length) { BLOCKS = s.blocks; return s.flag || ''; }
+      if (s && Array.isArray(s.blocks) && s.blocks.length) { _yFit = !!s.yfit; BLOCKS = s.blocks; return s.flag || ''; }
     } catch (e) {}
     BLOCKS = PRESETS['HOT FLAG / FUELING'].map((keys, i) => ({ id: 'b' + i + '_' + Date.now(), keys: [...keys], height: 160 }));
     return 'fl_hot';
@@ -539,6 +658,7 @@
       const r = await fetch('/csv/' + csv + '?t=' + Date.now());
       if (!r.ok) throw new Error('HTTP ' + r.status);
       DATA = parseCSV(await r.text());
+      await loadAnnotations(fname);
       $('status').textContent = `${DATA.x.length} smp · ${Math.round(DATA.dur)}s · ${DATA.keys.length} signals`;
       renderBlocks();
     } catch (e) { $('status').textContent = 'error: ' + e.message; }
@@ -559,6 +679,11 @@
     $('loadBtn').onclick = () => loadRide($('rideSel').value);
     $('rideSel').onchange = () => loadRide($('rideSel').value);
     $('addBlock').onclick = () => { BLOCKS.push({ id: 'n_' + Date.now(), keys: [], height: 160 }); save(); renderBlocks(); openPicker(BLOCKS[BLOCKS.length - 1].id); };
+    $('markBtn').onclick = () => setMarkMode(!_markMode);
+    $('marksBtn').onclick = listMarks;
+    const updateYfitBtn = () => { const b = $('yfitBtn'); if (b) { b.textContent = _yFit ? 'Y: fit' : 'Y: full'; b.classList.toggle('accent', _yFit); } };
+    $('yfitBtn').onclick = () => { _yFit = !_yFit; save(); updateYfitBtn(); renderBlocks(); };
+    updateYfitBtn();
     $('pickerClose').onclick = closePicker;
     $('pickerSearch').oninput = (e) => { const b = BLOCKS.find((x) => x.id === _pickerBlock); if (b) buildPickerList(b, e.target.value); };
     $('pickerClear').onclick = () => { const b = BLOCKS.find((x) => x.id === _pickerBlock); if (b) { b.keys = []; buildPickerList(b, $('pickerSearch').value); } };

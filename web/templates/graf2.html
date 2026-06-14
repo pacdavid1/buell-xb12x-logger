@@ -71,6 +71,7 @@
   .picker-head .t{color:var(--accent);font-size:11px;letter-spacing:1px;flex:1}
   .search{flex:1}
   .picker-body{overflow-y:auto;padding:6px 10px}
+  .picker-body textarea{width:100%;background:var(--panel2);color:var(--fg);border:1px solid var(--border);border-radius:3px;font-family:var(--mono);font-size:11px;padding:6px;resize:vertical}
   .grp{color:var(--dim);font-size:9px;letter-spacing:2px;margin:10px 0 4px;text-transform:uppercase}
   .sig{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:3px;cursor:pointer}
   .sig:hover{background:var(--panel2)}
@@ -94,6 +95,9 @@
     <select id="rideSel"><option value="">-- ride --</option></select>
     <button id="loadBtn" class="accent">LOAD</button>
     <button id="addBlock">+ Block</button>
+    <button id="markBtn" title="mark a time span for F7">🔖 Mark</button>
+    <button id="marksBtn" title="manage marks">marks</button>
+    <button id="yfitBtn" title="Y axis: full = fixed to ride range (absolute), fit = auto-scale to visible">Y: full</button>
     <label style="color:var(--dim);font-size:10px">flag&nbsp;shade</label>
     <select id="flagShade"><option value="">none</option></select>
     <select id="presetSel"><option value="">preset…</option></select>
