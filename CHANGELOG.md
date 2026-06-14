@@ -25,6 +25,22 @@ PROMPT_END -->
 
 
 
+## [v2.7.140] — 2026-06-14
+### Added
+- web/templates/graf2.html, web/static/graf2.js, web/static/uPlot.* : new GRAF2 telemetry page (/graf2)
+  - uPlot-based; zoom and cursor synced across all blocks
+  - flag-state background shading (fl_hot, do_fan, ...) to reveal effects on analog traces
+  - logic-analyzer flag lanes: each binary flag in its own stacked lane; analog signals confined above the lane band
+  - unified legend chips in the block header: color, name, live value at cursor, click-to-toggle, x-to-remove
+  - laptop trackpad gestures: pinch = zoom X, 2-finger horizontal = pan time, 2-finger vertical = page scroll
+  - per-block height resize, drag-to-reorder blocks, searchable signal picker, ride list newest-first
+- web/handlers/rides.py, web/server.py: /graf2 route + handler
+- web/templates/index.html: GRAF2 link in hamburger nav
+### Note
+- Checkpoint also captures in-progress VDYNO launch (web/vdyno.py, web/handlers/vdyno.py, web/templates/launch_power.html) and sessions_vs work, entangled via shared routes in web/server.py.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.139] — 2026-06-13
 ### Changed
 - web/static/app.js: Graf panel gear button (⚙) moved to left of title

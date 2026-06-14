@@ -99,6 +99,7 @@ class DashboardHandler(
             '/sessions_vs/compare': self._handle_sessions_vs_compare,
             '/sessions_vs/download': self._handle_sessions_vs_download,
             '/tuner': self._handle_tuner,
+            '/graf2': self._handle_graf2,
             '/': self._handle_index,
             '/index.html': self._handle_index,
             '/live.json': self._handle_live_json,
@@ -112,6 +113,7 @@ class DashboardHandler(
             '/burns':           self._handle_burns_list,
             '/vdyno':           self._handle_vdyno,
             '/vdyno/compare':   self._handle_vdyno_compare,
+            '/vdyno/launch':    self._handle_vdyno_launch,
             '/vdyno_rows':       self._handle_vdyno_rows,
             '/msq/download':    self._handle_msq_download,
             '/tuning_report': self._handle_tuning_report,
@@ -126,6 +128,7 @@ class DashboardHandler(
             '/session_events': self._handle_session_events,
             '/session_events/data':     self._handle_session_events_data,
             '/session_events/download': self._handle_session_events_download,
+            '/launch_power':  self._handle_launch_power,
             '/sessions_launch': self._handle_sessions_launch,
             '/sessions_launch/data': self._handle_sessions_launch_data,
             '/fuel': self._handle_fuel,
@@ -247,6 +250,13 @@ class DashboardHandler(
             self.end_headers()
             self.wfile.write(b"Not Found")
             return
+
+    def _handle_launch_power(self, path=None):
+        try:
+            html = (Path(__file__).parent / 'templates' / 'launch_power.html').read_text(encoding='utf-8')
+            self._html(html)
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
 
     def _load_html(self):
         template = Path(__file__).parent / 'templates' / 'index.html'

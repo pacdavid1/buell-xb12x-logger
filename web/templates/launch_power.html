@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Launch Power &mdash; Buell Logger</title>
+<link rel="stylesheet" href="/static/uPlot.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0b;--panel:#131314;--border:#1e1e20;--dim:#666;--text:#aaa;--blue:#4488ff;--accent:#ff8844;--mono:'JetBrains Mono','Consolas',monospace;--fs:13px}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:var(--fs);padding:0;overflow-x:hidden}
+.header{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--panel);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.header h1{font-size:14px;color:#fff;font-weight:400}
+.header .sub{font-size:10px;color:var(--dim)}
+.btn{background:none;border:1px solid var(--border);color:var(--dim);font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:2px;cursor:pointer}
+.btn:hover{color:var(--blue);border-color:var(--blue)}
+.btn.active{color:var(--accent);border-color:var(--accent)}
+select.btn{color:var(--text);padding:3px 6px;font-size:10px}
+select.btn option{background:var(--panel);color:var(--text)}
+#status{font-size:10px;color:var(--dim);margin-left:auto}
+.main{padding:10px 14px;max-width:960px;margin:0 auto}
+.info-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:10px;color:var(--dim)}
+.info-row span{background:var(--panel);border:1px solid var(--border);padding:6px 10px;border-radius:2px}
+.info-row b{color:var(--text)}
+.panel-wrap{background:var(--panel);border:1px solid var(--border);border-radius:3px;margin-bottom:8px}
+.panel-title{font-size:9px;color:var(--dim);padding:6px 10px;border-bottom:1px solid var(--border);letter-spacing:.1em;text-transform:uppercase}
+.panel-body{position:relative}
+.panel-body .uplot{margin:0 auto}
+.legend-wrap{display:flex;gap:12px;flex-wrap:wrap;padding:6px 10px;border-top:1px solid var(--border);font-size:9px}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-dot{width:8px;height:2px;border-radius:1px}
+.legend-dash{width:12px;height:0;border-top:1.5px dashed}
+.note{font-size:9px;color:var(--dim);text-align:center;padding:20px 0}
+.empty-state{text-align:center;padding:40px 20px;color:var(--dim)}
+.empty-state .big{font-size:24px;margin-bottom:8px}
+.plots-grid{display:flex;flex-direction:column;gap:2px}
+.u-title{display:none!important}
+.u-select{background:rgba(68,136,255,.12)!important}
+.dd-wrap{position:relative;min-width:320px}
+.dd-trigger{display:flex;align-items:center;gap:6px;padding:3px 8px;font-size:10px;text-align:left;min-width:280px;justify-content:space-between}
+.dd-arrow{font-size:8px;color:var(--dim)}
+.dd-menu{position:absolute;top:100%;left:0;right:0;background:var(--panel);border:1px solid var(--border);border-top:none;max-height:320px;overflow-y:auto;display:none;z-index:200;border-radius:0 0 3px 3px}
+.dd-menu.open{display:block}
+.dd-search{width:100%;background:var(--bg);border:none;border-bottom:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:10px;padding:6px 8px;outline:none}
+.dd-search::placeholder{color:var(--dim)}
+.dd-row{display:grid;grid-template-columns:80px 1fr 55px 60px 55px;gap:4px;padding:5px 8px;font-size:10px;cursor:pointer;border-bottom:1px solid var(--border);align-items:center}
+.dd-row:hover,.dd-row.hl{background:rgba(68,136,255,.08)}
+.dd-row .dd-session{color:#fff;font-weight:500}
+.dd-row .dd-date{color:var(--dim)}
+.dd-row .dd-rides{color:var(--blue);text-align:right}
+.dd-row .dd-dur{color:var(--text);text-align:right}
+.dd-row .dd-samp{color:var(--dim);text-align:right}
+.dd-row .dd-badge{font-size:7px;padding:1px 4px;border-radius:2px;text-transform:uppercase;letter-spacing:.05em}
+.dd-row .dd-badge.ok{border:1px solid rgba(68,136,255,.3);color:var(--blue)}
+.dd-row .dd-badge.err{border:1px solid rgba(255,68,68,.3);color:#f44}
+.dd-head{color:var(--dim);font-size:8px;text-transform:uppercase;letter-spacing:.1em;padding:4px 8px;border-bottom:1px solid var(--border);background:var(--bg)}
+.dd-none{text-align:center;padding:20px;color:var(--dim);font-size:10px}
+.sep{color:var(--border);font-size:12px;user-select:none}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Launch Power</h1>
+  <span class="sub" id="sessionLabel">&mdash;</span>
+  <div class="dd-wrap" id="ddWrap">
+    <div class="dd-trigger btn" id="ddTrigger">&mdash; Select &mdash; <span class="dd-arrow">&#9662;</span></div>
+    <div class="dd-menu" id="ddMenu"></div>
+  </div>
+  <span class="sep">|</span>
+  <span class="sub" id="rideLabel">all rides</span>
+  <button class="btn" id="prevRideBtn" onclick="prevRide()" style="display:none">&#9664;</button>
+  <button class="btn" id="nextRideBtn" onclick="nextRide()" style="display:none">&#9654;</button>
+  <button class="btn" onclick="loadSession()">&#8635;</button>
+  <span id="status">Select a session</span>
+</div>
+
+<div class="main">
+  <div id="emptyState" class="empty-state">
+    <div class="big">&#128202;</div>
+    <div>Select a session to view launch power data</div>
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="info-row" id="infoRow"></div>
+
+    <div class="plots-grid" id="plotsGrid"></div>
+
+    <div class="note" id="clusterNav">
+      <button class="btn" onclick="prevCluster()">&#9664;</button>
+      <span id="clusterIdx">1 / 1</span>
+      <button class="btn" onclick="nextCluster()">&#9654;</button>
+      <span style="margin-left:12px;color:var(--accent);font-size:9px" id="rideModeLabel"></span>
+      <span style="margin-left:8px" id="clusterInfo"></span>
+    </div>
+
+    <div class="legend-wrap" id="legendWrap">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>HP</div>
+      <div class="legend-item"><div class="legend-dash" style="border-color:var(--blue)"></div>Torque (Nm)</div>
+    </div>
+  </div>
+</div>
+
+<script src="/static/uPlot.iife.min.js"></script>
+<script>
+// Session picker
+var SESSIONS = null;
+var _data = null;
+var _clusterIdx = 0;
+var _rideIdx = -1;
+var _rideKeys = [];
+var _uplots = [];
+
+async function fetchSessions() {
+  try {
+    var r = await fetch('/rides');
+    var d = await r.json();
+    var rides = (d.rides || []).slice();
+    rides.sort(function(a, b) {
+      return (b.closed_utc || b.opened_utc || '') > (a.closed_utc || a.opened_utc || '') ? 1 : -1;
+    });
+    window._allRides = rides;
+    renderDropdown(rides);
+  } catch(e) {
+    console.error('fetchSessions', e);
+  }
+}
+
+function renderDropdown(rides) {
+  var menu = document.getElementById('ddMenu');
+  var trigger = document.getElementById('ddTrigger');
+  var html = '<input class="dd-search" id="ddSearch" type="text" placeholder="filter sessions..." oninput="filterDropdown(this.value)">';
+  html += '<div class="dd-head" style="grid-template-columns:80px 1fr 55px 60px 55px;display:grid">' +
+    '<span>Session</span><span>Date</span><span style="text-align:right">Rides</span><span style="text-align:right">Duration</span><span style="text-align:right">Samples</span></div>';
+  html += rides.map(function(r) {
+    var badge = '';
+    if (r.has_errorlog) badge = '<span class="dd-badge err">ERR</span>';
+    var date = '';
+    if (r.closed_utc) date = r.closed_utc.split('T')[0];
+    else if (r.opened_utc) date = r.opened_utc.split('T')[0];
+    var dur = r.duration_s ? Math.round(r.duration_s / 60) + 'm' : '';
+    var ridesCount = r.ride_num || '';
+    var samples = r.samples ? (r.samples / 1000).toFixed(0) + 'k' : '';
+    var sid = r.session;
+    return '<div class="dd-row" data-session="' + sid + '" onclick="selectSession(\'' + sid + '\')">' +
+      '<span class="dd-session">' + sid + '</span>' +
+      '<span class="dd-date">' + date + ' ' + badge + '</span>' +
+      '<span class="dd-rides">' + ridesCount + '</span>' +
+      '<span class="dd-dur">' + dur + '</span>' +
+      '<span class="dd-samp">' + samples + '</span></div>';
+  }).join('');
+  html += '<div class="dd-none" id="ddNone" style="display:none">No sessions match</div>';
+  menu.innerHTML = html;
+}
+
+function filterDropdown(q) {
+  var rows = document.querySelectorAll('#ddMenu .dd-row');
+  var none = document.getElementById('ddNone');
+  var visible = 0;
+  q = q.toLowerCase();
+  rows.forEach(function(row) {
+    var match = row.textContent.toLowerCase().indexOf(q) >= 0;
+    row.style.display = match ? 'grid' : 'none';
+    if (match) visible++;
+  });
+  if (none) none.style.display = visible ? 'none' : 'block';
+}
+
+function toggleDropdown() {
+  var menu = document.getElementById('ddMenu');
+  menu.classList.toggle('open');
+  if (menu.classList.contains('open')) {
+    setTimeout(function() {
+      var inp = document.getElementById('ddSearch');
+      if (inp) { inp.value = ''; inp.focus(); filterDropdown(''); }
+    }, 50);
+  }
+}
+
+function selectSession(sid) {
+  document.getElementById('ddMenu').classList.remove('open');
+  document.getElementById('ddTrigger').innerHTML = sid + ' <span class="dd-arrow">&#9662;</span>';
+  loadSession(sid);
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', function(e) {
+  var wrap = document.getElementById('ddWrap');
+  if (wrap && !wrap.contains(e.target)) {
+    var menu = document.getElementById('ddMenu');
+    if (menu) menu.classList.remove('open');
+  }
+});
+
+async function loadSession(sid) {
+  if (!sid) return;
+  document.getElementById('status').textContent = 'Loading...';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  _clusterIdx = 0;
+  _uplots.forEach(function(u) { try { u.destroy(); } catch(e) {} });
+  _uplots = [];
+  document.getElementById('plotsGrid').innerHTML = '';
+
+  try {
+    var r = await fetch('/vdyno/launch?session=' + encodeURIComponent(sid));
+    var d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'request failed');
+    _data = d;
+    document.getElementById('sessionLabel').textContent = sid;
+    document.getElementById('status').textContent =
+      d.n_clusters + ' clusters \u00b7 ' + d.n_launches + ' launches \u00b7 cfg: ' +
+      d.cfg.mass_kg + 'kg CdA=' + d.cfg.CdA + ' Crr=' + d.cfg.Crr;
+
+    if (d.clusters.length === 0) {
+      document.getElementById('plotsGrid').innerHTML =
+        '<div class="empty-state"><div class="big">&#128237;</div>No launch events found</div>';
+      return;
+    }
+    // Init ride nav
+    _rideIdx = -1;
+    _rideKeys = Object.keys(d.rides || {}).sort(function(a,b) { return parseInt(a) - parseInt(b); });
+    updateRideNav(d);
+    document.getElementById('rideModeLabel').textContent = '';
+    renderCluster(d.clusters, _clusterIdx);
+  } catch(e) {
+    document.getElementById('status').textContent = 'Error: ' + e.message;
+  }
+}
+
+function updateRideNav(d) {
+  var label = document.getElementById('rideLabel');
+  var prevBtn = document.getElementById('prevRideBtn');
+  var nextBtn = document.getElementById('nextRideBtn');
+  if (!d.rides || _rideKeys.length === 0) {
+    label.textContent = 'no rides';
+    prevBtn.style.display = 'none';
+    nextBtn.style.display = 'none';
+    return;
+  }
+  if (_rideIdx < 0) {
+    label.textContent = 'all rides (' + _rideKeys.length + ')';
+    prevBtn.style.display = 'inline-block';
+    nextBtn.style.display = 'inline-block';
+    return;
+  }
+  var rk = _rideKeys[_rideIdx];
+  var rd = d.rides[rk];
+  label.textContent = 'ride ' + rk + ' (' + (rd ? rd.n_launches : 0) + ' launches)';
+  prevBtn.style.display = 'inline-block';
+  nextBtn.style.display = 'inline-block';
+}
+
+function prevRide() {
+  if (!_data || _rideKeys.length === 0) return;
+  if (_rideIdx < 0) {
+    _rideIdx = _rideKeys.length - 1;
+  } else {
+    _rideIdx--;
+    if (_rideIdx < 0) _rideIdx = -1;
+  }
+  switchRide();
+}
+
+function nextRide() {
+  if (!_data || _rideKeys.length === 0) return;
+  if (_rideIdx < 0) {
+    _rideIdx = 0;
+  } else {
+    _rideIdx++;
+    if (_rideIdx >= _rideKeys.length) _rideIdx = -1;
+  }
+  switchRide();
+}
+
+function switchRide() {
+  if (!_data) return;
+  _clusterIdx = 0;
+  _uplots.forEach(function(u) { try { u.destroy(); } catch(e) {} });
+  _uplots = [];
+  document.getElementById('plotsGrid').innerHTML = '';
+
+  if (_rideIdx < 0) {
+    // All rides (global clusters)
+    document.getElementById('rideModeLabel').textContent = '';
+    renderCluster(_data.clusters, _clusterIdx);
+  } else {
+    var rk = _rideKeys[_rideIdx];
+    var rd = _data.rides[rk];
+    if (!rd || !rd.clusters || rd.clusters.length === 0) {
+      document.getElementById('plotsGrid').innerHTML =
+        '<div class="empty-state"><div class="big">&#128237;</div>No launch events in ride ' + rk + '</div>';
+      return;
+    }
+    document.getElementById('rideModeLabel').textContent = 'Ride ' + rk + ' only';
+    renderCluster(rd.clusters, _clusterIdx);
+  }
+  updateRideNav(_data);
+}
+
+function renderCluster(clusters, idx) {
+  if (idx < 0) idx = 0;
+  if (idx >= clusters.length) idx = clusters.length - 1;
+  _clusterIdx = idx;
+
+  var cl = clusters[idx];
+  document.getElementById('clusterIdx').textContent = (idx + 1) + ' / ' + clusters.length;
+  document.getElementById('clusterInfo').textContent =
+    'Gear ' + cl.gear + ' \u00b7 N=' + cl.count +
+    ' \u00b7 Peak ' + (cl.peak_hp != null ? cl.peak_hp.toFixed(1) : '\u2014') + ' HP @ ' +
+    (cl.peak_rpm || '\u2014') + ' rpm';
+
+  document.getElementById('infoRow').innerHTML =
+    '<span><b>Gear</b> ' + cl.gear + '</span>' +
+    '<span><b>Launches</b> ' + cl.count + '</span>' +
+    '<span><b>Mean RPM</b> ' + cl.mean_rpm.toFixed(0) + '</span>' +
+    '<span><b>Mean Speed</b> ' + cl.mean_spd.toFixed(1) + ' km/h</span>' +
+    (cl.peak_hp != null ? '<span><b>Peak HP</b> ' + cl.peak_hp.toFixed(1) +
+      ' @ ' + cl.peak_rpm + ' rpm</span>' : '');
+
+  var bins = cl.bins || [];
+
+  // Prepare data columns for uPlot
+  var rpms = bins.map(function(b) { return b.rpm; });
+  var hp   = bins.map(function(b) { return b.hp_med; });
+  var tq   = bins.map(function(b) { return b.torque_nm; });
+
+  if (rpms.length < 2) {
+    document.getElementById('plotsGrid').innerHTML =
+      '<div class="empty-state"><div class="big">&#128201;</div>Not enough data points for this cluster</div>';
+    return;
+  }
+
+  var grid = document.getElementById('plotsGrid');
+  grid.innerHTML = '';
+
+  // Compute max values for scaling
+  var maxHp = Math.max.apply(null, hp);
+  var maxTq = Math.max.apply(null, tq);
+  var minRpm = rpms[0], maxRpm = rpms[rpms.length - 1];
+  var padRpm = (maxRpm - minRpm) * 0.08 || 250;
+  minRpm -= padRpm;
+  maxRpm += padRpm;
+  if (maxHp < 1) maxHp = 10;
+  maxHp = Math.ceil((maxHp + 3) / 5) * 5;
+  maxTq = Math.ceil((maxTq + 5) / 10) * 10;
+
+  var sync = uPlot.sync('launch-power');
+
+  var width = Math.min(900, grid.clientWidth || 900);
+
+  function makeOpts(ylab, scaleY, seriesY, maxY, extraAxis) {
+    var series = [
+      { label: 'RPM' },
+      seriesY,
+    ];
+    if (extraAxis) series.push(extraAxis);
+
+    var axes = [
+      { label: 'RPM', stroke: '#666', grid: { stroke: 'rgba(255,255,255,.04)' }, ticks: { stroke: '#333' } },
+      { label: ylab, scale: scaleY, stroke: '#888', grid: { stroke: 'rgba(255,255,255,.04)' }, ticks: { stroke: '#333' } },
+    ];
+    if (extraAxis) {
+      axes.push({
+        label: 'Nm', scale: 'y2', side: 1,
+        stroke: '#88aaff', grid: { show: false }, ticks: { stroke: '#444' },
+        size: 50,
+      });
+    }
+
+    return {
+      width: width,
+      height: 200,
+      sync: sync,
+      cursor: { sync: { key: 'launch-power' } },
+      select: { show: true, left: 0, width: 0, top: 0, height: 0 },
+      scales: {
+        x: { time: false, range: [minRpm, maxRpm] },
+        y: { range: [0, maxY] },
+        y2: extraAxis ? { range: [0, maxTq] } : undefined,
+      },
+      series: series,
+      axes: axes,
+      legend: { show: false },
+    };
+  }
+
+  // Panel 1: HP vs RPM
+  var hpDiv = document.createElement('div');
+  hpDiv.className = 'panel-wrap';
+  hpDiv.innerHTML = '<div class="panel-title">HP vs RPM</div><div class="panel-body" id="hpPanel"></div>';
+  grid.appendChild(hpDiv);
+
+  var hpData = [rpms, hp];
+  var hpOpts = makeOpts('HP', 'y', {
+    label: 'HP', scale: 'y', value: function(u, v) { return v.toFixed(1) + ' HP'; },
+    stroke: '#4488ff', width: 2.5, fill: 'rgba(68,136,255,.08)',
+    points: { show: false },
+  }, maxHp, null);
+  var hpChart = new uPlot(hpOpts, hpData, document.getElementById('hpPanel'));
+  _uplots.push(hpChart);
+
+  // Panel 2: HP + Torque (dual axis)
+  var tqDiv = document.createElement('div');
+  tqDiv.className = 'panel-wrap';
+  tqDiv.innerHTML = '<div class="panel-title">HP + Torque vs RPM</div><div class="panel-body" id="tqPanel"></div>';
+  grid.appendChild(tqDiv);
+
+  var tqData = [rpms, hp, tq];
+  var tqOpts = makeOpts('HP', 'y', {
+    label: 'HP', scale: 'y', value: function(u, v) { return v.toFixed(1) + ' HP'; },
+    stroke: '#4488ff', width: 2.5, fill: 'rgba(68,136,255,.08)',
+    points: { show: false },
+  }, maxHp, {
+    label: 'Torque', scale: 'y2', value: function(u, v) { return v.toFixed(1) + ' Nm'; },
+    stroke: '#88aaff', width: 1.5, dash: [4, 3],
+    points: { show: false },
+  });
+  maxTq = Math.max(maxTq, 1);
+  var tqChart = new uPlot(tqOpts, tqData, document.getElementById('tqPanel'));
+  _uplots.push(tqChart);
+
+  // Panel 3: Power (kW) 
+  var kwDiv = document.createElement('div');
+  kwDiv.className = 'panel-wrap';
+  kwDiv.innerHTML = '<div class="panel-title">Power (kW) vs RPM</div><div class="panel-body" id="kwPanel"></div>';
+  grid.appendChild(kwDiv);
+
+  var kw = bins.map(function(b) { return b.p_kw_med; });
+  var maxKw = Math.max.apply(null, kw);
+  if (maxKw < 1) maxKw = 10;
+  maxKw = Math.ceil((maxKw + 2) / 5) * 5;
+
+  var kwData = [rpms, kw];
+  var kwOpts = makeOpts('kW', 'y', {
+    label: 'kW', scale: 'y', value: function(u, v) { return v.toFixed(1) + ' kW'; },
+    stroke: '#4488ff', width: 2.5, fill: 'rgba(68,136,255,.06)',
+    points: { show: false },
+  }, maxKw, null);
+  var kwChart = new uPlot(kwOpts, kwData, document.getElementById('kwPanel'));
+  _uplots.push(kwChart);
+
+  // Apply zoom reset on dblclick
+  _uplots.forEach(function(u) {
+    u.root.addEventListener('dblclick', function() {
+      u.setScale('x', { min: minRpm, max: maxRpm });
+      u.setScale('y', { min: u.scales.y.min, max: u.scales.y.max });
+    });
+  });
+}
+
+function prevCluster() {
+  if (!_data) return;
+  var clusters = (_rideIdx >= 0 && _data.rides && _rideKeys[_rideIdx])
+    ? (_data.rides[_rideKeys[_rideIdx]].clusters || _data.clusters)
+    : _data.clusters;
+  renderCluster(clusters, _clusterIdx - 1);
+}
+
+function nextCluster() {
+  if (!_data) return;
+  var clusters = (_rideIdx >= 0 && _data.rides && _rideKeys[_rideIdx])
+    ? (_data.rides[_rideKeys[_rideIdx]].clusters || _data.clusters)
+    : _data.clusters;
+  renderCluster(clusters, _clusterIdx + 1);
+}
+
+// Init
+document.getElementById('ddTrigger').addEventListener('click', toggleDropdown);
+fetchSessions();
+
+// Listen for resize
+window.addEventListener('resize', function() {
+  _uplots.forEach(function(u) {
+    var w = Math.min(900, document.getElementById('plotsGrid').clientWidth || 900);
+    if (u.width !== w) u.setSize({ width: w, height: 200 });
+  });
+});
+</script>
+</body>
+</html>

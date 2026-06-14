@@ -144,6 +144,13 @@ class RidesHandlerMixin:
         except Exception as e:
             self._json({'error': str(e)}, 500)
 
+    def _handle_graf2(self, path=None):
+        try:
+            html = (_TEMPLATES / 'graf2.html').read_text(encoding='utf-8')
+            self._html(html.replace('--LOGGER_VERSION--', _get_version()))
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+
     def _handle_errorlog_viz(self, path=None):
         try:
             html = (_TEMPLATES / 'errorlog_viz.html').read_text(encoding='utf-8')
