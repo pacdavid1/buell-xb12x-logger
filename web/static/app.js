@@ -1977,13 +1977,12 @@ const CHART_PRESETS = {
     ['VS_KPH','Gear','VSS_RPM_Ratio'],
     ['fl_accel','fl_wot','fl_decel'],
   ],
-  'THERMAL / WARMUP': [
-    ['RPM'],
-    ['CLT','MAT'],
+  'THERMAL ENRICHMENT': [
+    ['RPM','TPS_pct'],
+    ['CLT','do_fan'],
+    ['pw1','pw2','fl_hot'],
     ['WUE'],
-    ['pw1'],
     ['Fan_Duty_Pct'],
-    ['fl_engine_run','fl_hot','do_fan'],
   ],
   'SPARK': [
     ['RPM'],
