@@ -25,6 +25,12 @@ PROMPT_END -->
 
 
 
+## [v2.7.144] — 2026-06-14
+### Added
+- BACKLOG_GRAF2.md: GRAF2 work plan for any AI/session — current state (v2.7.140-143), Phase 2 (annotation `type` field + F7 consuming launch marks as a separate PILOT-MARKED category, option B), Phase 3 (A/B overlay), and validated findings (CLT in °C, WOT +10%, segregate comparisons by fl_wot, signal-gap bug task_052).
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.143] — 2026-06-14
 ### Added
 - GRAF2 annotation edit/delete: click an existing band (outside mark mode) opens the note for editing or deletion. Backend POST /annotations now updates by id instead of always appending (web/handlers/rides.py).
