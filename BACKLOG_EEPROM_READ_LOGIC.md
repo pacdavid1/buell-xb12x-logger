@@ -41,8 +41,34 @@ de regresión ya existentes, no hace falta capturar nada** (decisión #5 resuelt
 **Pendiente de freebuff (research read-only):** tabla maestra de offsets/dims/stride por
 los 14 firmwares, `safe_zone` por firmware, caza de `.adx`, naming del 2nd fuel map.
 
-**Por dónde empezar a codear:** Fase A (parser `ecm_defs.py`) → validar contra los `.bin`
-BUEIB byte a byte → Fase B (lectura) → Fase C (burn con guard). Detalle abajo.
+### PROGRESO
+
+**✅ Fase A HECHA** (commit `be16635` en rama `feat/ecm-defs`, NO mergeado a main):
+- `ecu/ecm_defs.py` — decoder XML-driven. `decode_maps(blob, version_string)` devuelve
+  el dict legacy-compatible (`{axes:{spark_load,spark_rpm,fuel_load,fuel_rpm}, fuel_front,
+  fuel_rear, spark_front, spark_rear}`). Stride dinámico (`size//rows`), ejes 2-byte (RPM)
+  invertidos, filas invertidas.
+- Mapeo nombre XML→llave en `MAP_KEYS`/`AXIS_KEYS`. OJO: los "spark" se llaman
+  **"Timing Table"** en el XML (Front/Rear off 670/770, 10×10 denso, sc 0.25); fuel =
+  "Fuel Map" Front/Rear (off 870/1038, 12×13 separador).
+- **Validado 12/12 golden `.bin` BYTE-IDÉNTICO** vs el decoder viejo `eeprom.decode_eeprom_maps`.
+- Goldens + harness en `C:\Users\pacda\_eeprom_goldens\` (12 `.bin` + `validate_ecm_defs.py`,
+  FUERA del repo). Re-correr: `cd <repo> && python C:\Users\pacda\_eeprom_goldens\validate_ecm_defs.py`.
+- Sin CHANGELOG/bump (WIP de rama; el bump va al merge). Nada importa `ecm_defs.py` aún → no rompe nada.
+
+**⏭️ EMPEZAR AQUÍ (Fase B, paso 1 — conservador, retrocompatible):**
+1. En `ecu/eeprom.py`: `decode_eeprom_maps(blob, version=None)` que **delega en
+   `ecm_defs.decode_maps`** con default `"BUEIB"` si no llega versión. Todos los callers
+   actuales (`decode_eeprom_maps(blob)`) siguen funcionando → BUEIB → resultado idéntico
+   (ya validado). Re-correr el harness vía la función real.
+2. Pasar la versión real donde exista (`main.py:173`, `web/handlers/eeprom.py`, `tuner.py`,
+   `server.py`, `vs_engine.py`).
+3. Bins desde ejes (`protocol.py:414` + `session.py CellTracker`), páginas dinámicas
+   (`connection.py`), grid VE del Dashboard (`app.js:37-38`).
+4. Fase C (burn) al FINAL, con guard (hard-refuse si firmware no matchea, dentro de safe_zone).
+
+**Estado git:** rama `feat/ecm-defs` @ `be16635`; `main` @ `6d44b66` (intacto); Pi en `main`.
+**Regla:** un solo conductor commiteando a la vez. El burn NO se ejecuta real hasta validar.
 
 ---
 
