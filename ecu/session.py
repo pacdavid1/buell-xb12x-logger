@@ -82,7 +82,15 @@ class SessionManager:
                 self.logger.info(f"Sesión existente: {cs} ({meta.get('total_rides',0)} rides)")
             except Exception as e:
                 self.logger.warning(f"session_metadata.json corrupted, reinitializing: {e}")
-                meta = None
+                meta = {
+                    "checksum": cs, "version_string": version_str,
+                    "created_utc": datetime.now(timezone.utc).isoformat(),
+                    "total_rides": 0, "total_samples": 0,
+                    "total_runtime_seconds": 0,
+                    "rpm_min_seen": 99999, "rpm_max_seen": 0,
+                    "logger_version": LOGGER_VERSION,
+                    "rider_notes": []
+                }
         else:
             sdir.mkdir(parents=True, exist_ok=True)
             meta = {
@@ -363,7 +371,7 @@ class SessionManager:
                 "valid_ego_avg": v_ego,
                 "clt_avg":       clt_avg,
                 "afv_avg":       afv_avg,
-                    "o2_adc_avg":     round(v["o2_adc_sum"] / n, 1) if n else None,
+                    "o2_adc_avg":     round(a["o2_adc_sum"] / n, 1) if n else None,
                 "inv_reasons":   a["inv_reasons"],
                 "suggestion":    suggestion,
             }
@@ -659,7 +667,9 @@ class SessionManager:
             meta["total_samples"]=meta.get("total_samples",0)+total_samples
             meta["total_runtime_seconds"]=meta.get("total_runtime_seconds",0)+last_elapsed
             if ride_num>meta.get("total_rides",0): meta["total_rides"]=ride_num
-            with open(meta_file,"w") as f: json.dump(meta,f,indent=2)
+            tmp = meta_file.with_suffix(".tmp")
+            with open(tmp,"w") as f: json.dump(meta,f,indent=2)
+            tmp.replace(meta_file)
 
 def cell_key(rpm, load):
     ri = bisect.bisect_right(RPM_BINS, rpm) - 1

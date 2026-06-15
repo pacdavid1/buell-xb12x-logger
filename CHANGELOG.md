@@ -21,6 +21,38 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.146] — 2026-06-14
+### Fixed
+- ecu/session.py: **CRITICAL** — `_update_tuning_report` usaba `v["o2_adc_sum"]`
+  (variable del loop anterior de cells) en vez de `a["o2_adc_sum"]` (loop actual
+  de agg). Cada celda del tuning report tenía el o2_adc_avg de otra celda.
+- ecu/session.py: `_load_or_create` asignaba `meta = None` cuando el JSON
+  estaba corrupto, causando AttributeError en posteriores `.get()`. Ahora
+  inicializa con dict completo para evitar pérdida silenciosa del ride.
+- ecu/session.py: `_rebuild_summary` escribía session_metadata.json
+  directamente sin atomic write (tmp+rename). Riesgo de corrupción.
+- web/server.py: `_get_live_data()` y `_get_live()` leían `ecu_live`,
+  `ecu_connected` y `serial_stats` sin adquirir `_data_lock`, creando una
+  race condition reader-writer con el IPC reader thread.
+- web/server.py: docstring del módulo movido al inicio del archivo
+  (estaba después de `import os`, por lo que `__doc__` era None).
+- web/server.py: `_get_rides` abría cada CSV huérfano dos veces — la segunda
+  sin `with`, dejando file descriptors abiertos temporalmente.
+- ecu/logger_process.py: `consecutive_errors` se incrementaba dos veces por
+  frame en excepción (una en except, otra en `if data is None`).
+- ecu/logger_process.py: hard reconnect no asignaba `ecu.get_version()`
+  a `ecu_version`. Burns posteriores usaban versión stale.
+- main.py: heartbeats de threads inicializados a `float('inf')` y seteados
+  al inicio de cada thread loop para evitar falsos positivos del watchdog.
+- main.py: timeout de `_stop_logger_subprocess` aumentado de 5s a 10s
+  antes de `os.execv` por memoria crítica.
+- ecu/connection.py: `_read_exact` no adquiría `self._lock`, permitiendo
+  acceso serial concurrente entre `_send` y `_read`.
+- ecu/connection.py: docstring de `_sync_to_soh` movido a posición correcta.
+- ecu/protocol.py: type hint de `decode_rt_packet` corregido a `| None`.
+### AI
+- DeepSeek V4 Flash (codebuff)
+
 ## [v2.7.145] — 2026-06-14
 ### Added
 - GRAF2 annotation `type` field (Phase 2.1): mark modal now has a launch/diagnostic/note selector (default launch); type is persisted and validated server-side against an allow-list, falling back to launch on unknown values (web/handlers/rides.py). Bands are colored by type in the viewer (launch=blue, diagnostic=gray, note=green); legacy annotations without a type render as launch. This is the prerequisite for Phase 2.2, where F7 will consume only `type=launch` marks as a separate PILOT-MARKED category (web/static/graf2.js).

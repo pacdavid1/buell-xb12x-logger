@@ -1,9 +1,9 @@
-import os
 """
 WebServer - HTTP server con endpoints para red y status
 v2.1.0 - Fix scan GET, redirect URL, switch status polling
 """
 
+import os
 import csv
 import io
 import json
@@ -268,7 +268,8 @@ class DashboardHandler(
 
 
     def _get_live_data(self):
-        data = dict(self.server_instance.ecu_live or {})
+        with self.server_instance._data_lock:
+            data = dict(self.server_instance.ecu_live or {})
         gps = self.server_instance.gps
         if gps:
             fix = gps.get_fix()
@@ -278,8 +279,9 @@ class DashboardHandler(
     def _get_live(self):
         net = self.server_instance.network
         _snap = self.server_instance.cell_tracker.snapshot() if self.server_instance.cell_tracker else (None, None)
-        _ecu_ok = self.server_instance.ecu_connected
-        _ss = self.server_instance.serial_stats or {}
+        with self.server_instance._data_lock:
+            _ecu_ok = self.server_instance.ecu_connected
+            _ss = dict(self.server_instance.serial_stats or {})
         _bat_v = _ss.get("bat_voltage")
         _bat_soc = _ss.get("bat_soc")
         if not _ecu_ok:
@@ -486,7 +488,7 @@ class WebServer:
                             except Exception:
                                 pass
                     # Count data lines efficiently (C-optimized sum)
-                    n = sum(1 for _ in open(rf) if not _.startswith('#')) - 1
+                    with open(rf) as f2: n = sum(1 for _ in f2 if not _.startswith('#')) - 1
                     rides.append({
                         'session': session_dir.name, 'firmware': fw,
                         'filename': rf.name, 'ride_num': rnum,

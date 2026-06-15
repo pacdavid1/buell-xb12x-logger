@@ -143,19 +143,20 @@ class DDFI2Connection:
             self.ser.flush()
 
     def _read_exact(self, n: int, timeout_s: float = 1.0) -> bytes:
-        if not self.ser:
-            raise RuntimeError("Serial port not connected")
-        buf = bytearray()
-        deadline = time.monotonic() + timeout_s
-        while len(buf) < n:
-            rem = deadline - time.monotonic()
-            if rem <= 0:
-                raise TimeoutError(f"{len(buf)}/{n}")
-            self.ser.timeout = min(rem, 0.1)
-            chunk = self.ser.read(n - len(buf))
-            if chunk:
-                buf.extend(chunk)
-        return bytes(buf)
+        with self._lock:
+            if not self.ser:
+                raise RuntimeError("Serial port not connected")
+            buf = bytearray()
+            deadline = time.monotonic() + timeout_s
+            while len(buf) < n:
+                rem = deadline - time.monotonic()
+                if rem <= 0:
+                    raise TimeoutError(f"{len(buf)}/{n}")
+                self.ser.timeout = min(rem, 0.1)
+                chunk = self.ser.read(n - len(buf))
+                if chunk:
+                    buf.extend(chunk)
+            return bytes(buf)
 
     def get_version(self) -> str | None:
         """Reintentar hasta 5 veces con flush — ECU puede estar en modo RT."""
@@ -188,9 +189,9 @@ class DDFI2Connection:
         return None
 
     def _sync_to_soh(self, timeout_s: float = 0.5) -> bool:
+        """Descarta basura del buffer hasta encontrar SOH (0x01)."""
         if not self.ser:
             return False
-        """Descarta basura del buffer hasta encontrar SOH (0x01)."""
         deadline = time.monotonic() + timeout_s
         while time.monotonic() < deadline:
             self.ser.timeout = 0.05

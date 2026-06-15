@@ -314,7 +314,7 @@ def vss_changed_significantly() -> bool:
     return _vss_calibrator.changed_significantly()
 
 
-def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any]:
+def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any] | None:
     """Convierte frame RT raw (107 bytes) → dict de parámetros ECU.
     Retorna None si el frame es inválido o el checksum no coincide."""
     if len(raw_bytes) < RT_RESPONSE_SIZE:

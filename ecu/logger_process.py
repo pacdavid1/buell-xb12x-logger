@@ -241,7 +241,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                 error_log.serial_exception(elapsed_s=elapsed_s, exc_msg=e,
                                            consecutive_before=consecutive_errors)
             data = None
-            consecutive_errors += 1
+            # consecutive_errors incremented once below in data is None check
             if ecu_lost_since is None:
                 ecu_lost_since = time.monotonic()
             time.sleep(ECU_READ_ERROR_DELAY)
@@ -269,8 +269,10 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                     ecu.disconnect()
                     time.sleep(HARD_RECONNECT_DELAY)
                     ecu.connect()
-                    if ecu.get_version():
+                    ver = ecu.get_version()
+                    if ver:
                         log.info("ECU back after hard reconnect")
+                        ecu_version = ver
                         consecutive_errors = 0
                         ecu_lost_since = None
                         last_lost_interval = -1

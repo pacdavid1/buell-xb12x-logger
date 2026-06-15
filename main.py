@@ -105,8 +105,8 @@ class BuellLogger:
         self._ipc_dir         = IPC_DIR
         self._ipc_reader_thread  = None
         self._sysmon_thread      = None
-        self._ipc_reader_heartbeat  = time.monotonic()
-        self._sysmon_heartbeat      = time.monotonic()
+        self._ipc_reader_heartbeat  = float('inf')  # set inside thread, not here
+        self._sysmon_heartbeat      = float('inf')
         self._bat_voltages    = []
         self._bat_socs        = []
         self._boot_soc        = None
@@ -223,6 +223,7 @@ class BuellLogger:
         _last_checksum   = None
         _last_cells_mtime = 0.0
 
+        self._ipc_reader_heartbeat = time.monotonic()  # init at thread start
         while self._running:
             t0 = time.monotonic()
 
@@ -295,6 +296,7 @@ class BuellLogger:
     # ── Sysmon thread ──────────────────────────────────────────────────────────
 
     def _sysmon_loop(self):
+        self._sysmon_heartbeat = time.monotonic()  # init at thread start
         """System monitor thread — reads sensors, writes sysmon.json + gps.json for subprocess."""
         _cpu_prev = None
         while self._running:
@@ -326,7 +328,9 @@ class BuellLogger:
                 if stats['mem_pct'] > 90:
                     self.logger.error(f"MEM {stats['mem_pct']}% — restarting to avoid OOM crash")
                     # SIGTERM subprocess so it can close the ride cleanly before we execv
-                    self._stop_logger_subprocess(timeout=5.0)
+                    # Give subprocess time to flush CSV + close ride before execv replaces us
+                    self._stop_logger_subprocess(timeout=10.0)
+                    time.sleep(0.5)  # extra margin for filesystem sync
                     os.execv(sys.executable, [sys.executable] + sys.argv)
             except Exception as e:
                 self.logger.debug(f"sysmon: {e}")
