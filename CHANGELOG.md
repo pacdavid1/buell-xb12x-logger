@@ -21,6 +21,30 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.148] — 2026-06-14
+### Note
+- Carries the actual GRAF2 type-required code + backlog docs that were missing from the
+  `v2.7.147` commit (a `git add` with a stale pathspec staged nothing but the file rename,
+  so `v2.7.147` landed empty). This commit completes it.
+### Changed
+- GRAF2 annotation `type` is now REQUIRED instead of defaulting to `launch`. The mark
+  modal opens with no type selected ("— choose type —") and saving is blocked with an
+  inline "pick a type first" warning until the user picks launch/diagnostic/note
+  (web/static/graf2.js). Backend rejects writes without a valid type with HTTP 400
+  (web/handlers/rides.py). Rationale: a `launch` default makes users pass everything as
+  launch, polluting the F7 PILOT-MARKED pipeline.
+- GRAF2 annotations with no/unknown type now render in an amber "unclassified" color so
+  legacy/untyped marks are visually flagged for reclassification (web/static/graf2.js).
+### Added
+- BACKLOG_ECM_DEFS.md (BL-ECM-01): multi-ECU support via EcmSpy XML — promoted from the
+  freebuff inbox. Plan to remove hardcoded BUEIB EEPROM/RT offsets (14 firmwares, 217
+  differing offsets). Marked TOP priority / core of the project in BACKLOG.md (without it
+  the logger only works for the author's BUEIB); flags the burn-corruption risk in
+  encode_eeprom_maps() and the open RT_VARIABLES / backward-compat questions.
+- BACKLOG BL-DX-01: auto-bump README/architecture version on commit (low priority).
+### AI
+- Claude Opus 4.8, Anthropic
+
 ## [v2.7.146] — 2026-06-14
 ### Fixed
 - ecu/session.py: **CRITICAL** — `_update_tuning_report` usaba `v["o2_adc_sum"]`

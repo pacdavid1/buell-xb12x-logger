@@ -1,5 +1,40 @@
 # BACKLOG — Buell Logger / Tuner
 
+## Core refactor (2026-06-14)
+
+### BL-ECM-01 — Multi-ECU support vía EcmSpy XML (quitar offsets hardcodeados BUEIB)
+**Priority:** 🔴 MÁXIMA — CORAZÓN DEL PROYECTO
+**Plan completo:** ver [BACKLOG_ECM_DEFS.md](BACKLOG_ECM_DEFS.md)
+
+> **Por qué es lo más importante:** sin esto el logger SOLO sirve para una BUEIB (la XB12X
+> del autor). Es lo que convierte el proyecto de "mi herramienta personal" en algo que
+> sirve para CUALQUIER Buell con DDFI2. Es el norte del proyecto, va por encima de features.
+
+Hoy el 100% de los offsets de EEPROM y RT params están hardcodeados para el firmware
+BUEIB. Hay 14 XMLs de EcmSpy en `ecu_defs/` y **217 entradas críticas difieren de offset
+entre firmwares** (solo 10 comparten offset). Conectar cualquier otra ECU (BUE1D, BUEWD,
+etc.) rompe TODO el pipeline (valores en vivo + burns de EEPROM).
+
+**Riesgo de seguridad (crítico):** `encode_eeprom_maps()` escribe en offsets fijos de
+BUEIB; con otra ECU (p.ej. BUE1D, mapa en 2072 vs 870) **podría CORROMPER la EEPROM al
+quemar**. La validación pre-write es lo primero a blindar en la migración.
+
+Plan en 4–6 fases (parser XML EcmSpy → pages dinámicas → bins dinámicos → UI agnóstica
+de dimensiones → validación de burn). Abiertos: RT_VARIABLES (frame 107 bytes) NO está
+en los XMLs (investigar si cambia entre firmwares); compat hacia atrás de rides viejos
+guardados con bins BUEIB. Tablas de los 14 firmwares, inventario de hardcodeos
+(ecu/eeprom.py ~68 offsets, connection.py BUEIB_PAGES, protocol.py RPM/LOAD_BINS) y el
+plan por fases están en BACKLOG_ECM_DEFS.md. Prompt de análisis de arquitectura para un
+arquitecto IA en inbox/prompt_para_claude.md.
+
+### BL-DX-01 — Auto-bump de versión en README/architecture al commitear
+**Priority:** LOW
+
+El README no refleja la versión actual. Antes existía un comando que actualizaba el
+architecture en cada commit. Idea: hook git (pre-commit o post-commit) que sincronice
+la versión desde el top de CHANGELOG.md hacia el README (badge/encabezado) de forma
+automática. Detalle menor, puede esperar.
+
 ## UX — Mejoras urgentes (2026-06-07)
 
 ### BL-BUG-03 — VS compare OOM on uncached large session pairs

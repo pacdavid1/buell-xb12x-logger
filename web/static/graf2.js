@@ -39,9 +39,10 @@
   let _curRide = '';
 
   function annColor(type) {
+    if (type === 'launch') return { fill: 'rgba(80,170,255,0.13)', stroke: 'rgba(80,170,255,0.7)', text: 'rgba(150,200,255,0.95)' };
     if (type === 'diagnostic') return { fill: 'rgba(160,160,160,0.13)', stroke: 'rgba(160,160,160,0.7)', text: 'rgba(205,205,205,0.95)' };
     if (type === 'note') return { fill: 'rgba(120,200,120,0.13)', stroke: 'rgba(120,200,120,0.7)', text: 'rgba(175,225,175,0.95)' };
-    return { fill: 'rgba(80,170,255,0.13)', stroke: 'rgba(80,170,255,0.7)', text: 'rgba(150,200,255,0.95)' };  // launch (default)
+    return { fill: 'rgba(255,170,40,0.15)', stroke: 'rgba(255,170,40,0.8)', text: 'rgba(255,200,110,0.95)' };  // unclassified (no/unknown type) — needs attention
   }
 
   function annotationsPlugin() {
@@ -127,16 +128,21 @@
       + '<div class="picker-head"><span class="t">' + title + '</span></div>'
       + '<div class="picker-body">'
       + '<div style="margin-bottom:8px"><label style="font:11px monospace;color:#9bd">type&nbsp;</label>'
-      + '<select id="noteType"><option value="launch">launch</option><option value="diagnostic">diagnostic</option><option value="note">note</option></select></div>'
+      + '<select id="noteType"><option value="" disabled selected>— choose type —</option><option value="launch">launch</option><option value="diagnostic">diagnostic</option><option value="note">note</option></select>'
+      + '<span id="noteTypeWarn" style="display:none;margin-left:8px;font:11px monospace;color:#f66">pick a type first</span></div>'
       + '<textarea id="noteText" rows="3" placeholder="what happens in this stretch? (note for F7)"></textarea></div>'
       + '<div class="picker-foot">' + delBtn + '<button id="noteCancel">cancel</button><button id="noteSave" class="accent">save</button></div>'
       + '</div>';
     document.body.appendChild(m);
     const txt = m.querySelector('#noteText'); txt.value = existing ? (existing.note || '') : ''; txt.focus();
-    const sel = m.querySelector('#noteType'); sel.value = (existing && existing.type) || 'launch';
+    const sel = m.querySelector('#noteType'); sel.value = (existing && existing.type) || '';
+    sel.onchange = () => { const w = m.querySelector('#noteTypeWarn'); if (w) w.style.display = 'none'; };
     const close = () => { m.remove(); setMarkMode(false); };
     m.querySelector('#noteCancel').onclick = close;
-    m.querySelector('#noteSave').onclick = async () => { await postAnnotation({ id: existing ? existing.id : undefined, t0_s: t0, t1_s: t1, note: txt.value.trim(), type: sel.value }); close(); };
+    m.querySelector('#noteSave').onclick = async () => {
+      if (!sel.value) { const w = m.querySelector('#noteTypeWarn'); if (w) w.style.display = 'inline'; sel.focus(); return; }
+      await postAnnotation({ id: existing ? existing.id : undefined, t0_s: t0, t1_s: t1, note: txt.value.trim(), type: sel.value }); close();
+    };
     const db = m.querySelector('#noteDelete');
     if (db) db.onclick = async () => { await postAnnotation({ action: 'delete', id: existing.id }); close(); };
     m.onclick = (e) => { if (e.target === m) close(); };

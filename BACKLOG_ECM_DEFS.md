@@ -1,3 +1,6 @@
+<!-- DEV NOTE: planning doc (Spanish per project convention). All CODE remains English.
+     Promoted from inbox/ecm_defs_refactor.md (freebuff) on 2026-06-14. Tracked in BACKLOG.md as BL-ECM-01. -->
+
 # EcmDefs Refactor: Multi-ECU Support via EcmSpy XML
 
 ## Fecha

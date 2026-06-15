@@ -204,7 +204,9 @@ class RidesHandlerMixin:
             if t1 < t0:
                 t0, t1 = t1, t0
             atype = payload.get('type')
-            atype = atype if atype in ('launch', 'diagnostic', 'note') else 'launch'
+            if atype not in ('launch', 'diagnostic', 'note'):
+                self._json({'error': 'type required (launch/diagnostic/note)'}, 400)
+                return
             aid = str(payload.get('id') or '')
             existing = next((a for a in data['annotations'] if str(a.get('id')) == aid), None) if aid else None
             if existing is not None:
