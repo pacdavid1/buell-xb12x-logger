@@ -165,6 +165,9 @@ function dlMsq(selId) {
 var AX={fuel_front:['fuel_rpm','fuel_load'],fuel_rear:['fuel_rpm','fuel_load'],spark_front:['spark_rpm','spark_load'],spark_rear:['spark_rpm','spark_load']};
 var SC={fuel_front:0.50,fuel_rear:0.50,spark_front:0.30,spark_rear:0.30,delta:0.08};
 var CAM={zoom:1};
+var CAM_STORE_KEY='buell_cam_3d';
+function saveCameraState(){try{localStorage.setItem(CAM_STORE_KEY,JSON.stringify({tps:document.getElementById('inTps').value,rpm:document.getElementById('inRpm').value,val:document.getElementById('inVal').value,zoom:document.getElementById('inZoom').value,cam:document.getElementById('inCam').value}));}catch(e){}}
+function loadCameraState(){try{var s=localStorage.getItem(CAM_STORE_KEY);if(!s)return;var c=JSON.parse(s);if(c.tps!=null)document.getElementById('inTps').value=c.tps;if(c.rpm!=null)document.getElementById('inRpm').value=c.rpm;if(c.val!=null)document.getElementById('inVal').value=c.val;if(c.zoom!=null)document.getElementById('inZoom').value=c.zoom;if(c.cam!=null)document.getElementById('inCam').value=c.cam;applyAngles();}catch(e){}}
 var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},delta:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},mod:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0}};
 var INV={X:false,Y:false,Z:false};
 function toggleInv(ax){INV[ax]=!INV[ax];var el=document.getElementById('inv'+ax);el.style.color=INV[ax]?'var(--ac)':'';el.style.borderColor=INV[ax]?'var(--ac)':'';drawAll();}
@@ -288,7 +291,7 @@ function init3D(){
     function rs(){var r=el.getBoundingClientRect();el.width=r.width||300;el.height=r.height||250;drawAll()}
     el.addEventListener('mousedown',function(e){C3[key].drag=true;C3[key].lx=e.clientX;C3[key].ly=e.clientY});
     el.addEventListener('touchstart',function(e){C3[key].drag=true;C3[key].lx=e.touches[0].clientX;C3[key].ly=e.touches[0].clientY},{passive:true});
-    el.addEventListener('wheel',function(e){e.preventDefault();var z=CAM.zoom+(e.deltaY<0?0.05:-0.05);CAM.zoom=Math.min(2.5,Math.max(0.3,Math.round(z*100)/100));var ci=document.getElementById('inCam');if(ci)ci.value=CAM.zoom;var cv=document.getElementById('camVal');if(cv)cv.textContent=CAM.zoom.toFixed(2);drawAll()},{passive:false});
+    el.addEventListener('wheel',function(e){e.preventDefault();var z=CAM.zoom+(e.deltaY<0?0.05:-0.05);CAM.zoom=Math.min(2.5,Math.max(0.3,Math.round(z*100)/100));var ci=document.getElementById('inCam');if(ci)ci.value=CAM.zoom;var cv=document.getElementById('camVal');if(cv)cv.textContent=CAM.zoom.toFixed(2);drawAll();saveCameraState();},{passive:false});
     rs();
   });
   window.addEventListener('resize',function(){
@@ -636,10 +639,10 @@ function applyAngles(){
   for(var k in C3){C3[k].ang=tpsR;C3[k].tilt=rpmR;C3[k].roll=valR}
   var zv=document.getElementById('zoomVal');if(zv){var zi=document.getElementById('inZoom');zv.textContent=parseFloat(zi.value).toFixed(1);}
   var ci=document.getElementById('inCam');if(ci){CAM.zoom=parseFloat(ci.value)||1;var cv=document.getElementById('camVal');if(cv)cv.textContent=CAM.zoom.toFixed(2);}
-  drawAll();
+  drawAll();saveCameraState();
 }
 
-init();init3D();
+init();init3D();loadCameraState();
 function downloadMerge(){
   if(!mMerge){st('No hay merge');return}
   var blob=new Blob([JSON.stringify(mMerge,null,2)],{type:'application/json'});

@@ -21,6 +21,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.151] — 2026-06-18
+### Added
+- BL-3DV-10: persist 3D camera state in `localStorage` (`buell_cam_3d`). YAW/PIT/ROL
+  angles, ALT scale, and ZOOM survive page reload. Saved on every `applyAngles()` call
+  and on mouse-wheel zoom; loaded automatically in `init3D()` startup.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.150] — 2026-06-18
 ### Added
 - BL-3DV-07: PNG snapshot button in 3D control bar (`tuner.html`). Clicking PNG
