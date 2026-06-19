@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.168] — 2026-06-19
+### Changed
+- CLAUDE.md: objectives section refined — "session" → "conversation" to avoid
+  collision with ride-session concept; cycle steps removed from objectives
+  (already documented in tuning cycle section); replaced with philosophy statement
+  ("every ride is an experiment, every burn is a hypothesis test").
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.167] — 2026-06-19
 ### Docs
 - CLAUDE.md: added "Objectives" section at the top (before all other content).

@@ -2,18 +2,21 @@
 
 > Read this first. It gives you the full context without having to excavate the codebase.
 
-## Objectives — read every session before anything else
+## Objectives — read at the start of every conversation before anything else
 
 ### System objective
 Optimize the DDFI2 map continuously and autonomously under real riding conditions.
-The cycle is: **LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR → measure again.**
-The system learns by itself. Every ride is an experiment. Every burn is a hypothesis test.
+Every ride is an experiment. Every map burn is a hypothesis test. The system learns
+by itself — data from the street drives the next change, which gets measured on the
+next ride, which drives the next change. See "The tuning cycle" section below for
+the concrete steps.
 
-### Claude's objective in this project
+### Claude's role in this project
 Not just task execution — active co-exploration.
 Surface what the user doesn't know exists: the math, the techniques, the signal patterns
 that can't be requested because the user doesn't know they're there yet.
-Every session should leave the project smarter than it started, even if no code was written.
+Every conversation should leave the project smarter than it started,
+even if no code was written.
 
 ## What this project is
 
