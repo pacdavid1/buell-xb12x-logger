@@ -361,7 +361,9 @@ def _compare_sessions(buell_dir, sa, sb):
                         'gear':          sf(r.get('Gear', 0)),
                         'gear_detected':  _detect_gear(rpm, sf(r.get('VS_KPH', 0))),
                         'spd':  sf(r.get('VS_KPH', 0)),
-                        'alt':  sf(r.get('gps_alt_m'), None) if r.get('gps_valid','').strip().lower() in ('true','1') else None,
+                        'alt':       sf(r.get('gps_alt_m'), None) if r.get('gps_valid','').strip().lower() in ('true','1') else None,
+                        'baro_temp': sf(r.get('baro_temp_c', '')),
+                        'humidity':  sf(r.get('humidity_pct', '')),
                         'fl_wot':  r.get('fl_wot','0').strip() in ('1','True','true'),
                         'fl_decel':r.get('fl_decel','0').strip() in ('1','True','true'),
                         'fl_fc':   r.get('fl_fuel_cut','0').strip() in ('1','True','true'),
@@ -487,6 +489,20 @@ def _compare_sessions(buell_dir, sa, sb):
             }
         return result, dict(fc)
 
+    def _env_stats(rows):
+        baro_vals  = [r['baro']      for r in rows if r.get('baro_valid')]
+        btemp_vals = [r['baro_temp'] for r in rows if r.get('baro_temp', 0) > 0]
+        hum_vals   = [r['humidity']  for r in rows if r.get('humidity',  0) > 0]
+        alt_vals   = [r['alt']       for r in rows if r.get('alt') is not None]
+        return {
+            'baro_avg':      round(sum(baro_vals)  / len(baro_vals),  1) if baro_vals  else None,
+            'baro_n':        len(baro_vals),
+            'baro_temp_avg': round(sum(btemp_vals) / len(btemp_vals), 1) if btemp_vals else None,
+            'humidity_avg':  round(sum(hum_vals)   / len(hum_vals),   1) if hum_vals   else None,
+            'alt_avg':       round(sum(alt_vals)   / len(alt_vals))       if alt_vals   else None,
+            'alt_n':         len(alt_vals),
+        }
+
     # Load both sessions
     ma, mb = load_meta(sa), load_meta(sb)
     ra, rb = load_csv(sa), load_csv(sb)
@@ -552,11 +568,11 @@ def _compare_sessions(buell_dir, sa, sb):
         'sa': {'id': sa, 'checksum': ma.get('checksum','?'), 'version': ma.get('version_string','?'),
                'created': ma.get('created_utc','')[:10], 'rides': ma.get('total_rides',0),
                'samples': len(ra), 'flavors': fca,
-               'launches_a': launches_a},
+               'launches_a': launches_a, 'env': _env_stats(ra)},
         'sb': {'id': sb, 'checksum': mb.get('checksum','?'), 'version': mb.get('version_string','?'),
                'created': mb.get('created_utc','')[:10], 'rides': mb.get('total_rides',0),
                'samples': len(rb), 'flavors': fcb,
-               'launches_b': launches_b},
+               'launches_b': launches_b, 'env': _env_stats(rb)},
         'clusters_a': clusters_a,
         'clusters_b': clusters_b,
         'cluster_matches': cluster_matches,

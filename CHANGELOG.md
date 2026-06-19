@@ -21,6 +21,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.159] — 2026-06-19
+### Added
+- BL-UX-03 (Sessions VS): environmental stats row per session. `load_csv` now
+  captures `baro_temp` and `humidity` per row. New helper `_env_stats(rows)`
+  computes avg baro_hPa, baro_temp_c, humidity_pct, and gps_alt_m from rows
+  with valid readings. Stats added to `sa.env` / `sb.env` in compare result.
+  Frontend `renderFlavors` shows a dimmed env row (baro · °C · humidity · alt)
+  below the flavor legend when any env data is present. CACHE_VERSION bumped
+  7→8 to force cache rebuild with new env fields.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.158] — 2026-06-18
 ### Added
 - BL-3DV-03: staged cells now highlighted in MOD 3D view. Faces adjacent to any

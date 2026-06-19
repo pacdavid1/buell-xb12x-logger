@@ -244,6 +244,16 @@ function renderFlavors(id,meta){
       +'<span style="color:var(--dm)">'+v.toLocaleString()+' ('+pct+'%)</span></span>';
   }
   html+='</div>';
+  var ev=meta.env||{};
+  var hasEnv=ev.baro_avg!=null||ev.alt_avg!=null||ev.humidity_avg!=null;
+  if(hasEnv){
+    html+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;font-family:var(--mn);font-size:7px;color:var(--dm)">';
+    if(ev.baro_avg!=null) html+='<span title="avg barometric pressure ('+ev.baro_n+' samples)">&#9684; '+ev.baro_avg+' hPa</span>';
+    if(ev.baro_temp_avg!=null) html+='<span title="avg ambient temp">'+ev.baro_temp_avg+'°C</span>';
+    if(ev.humidity_avg!=null) html+='<span title="avg humidity">&#x1F4A7; '+ev.humidity_avg+'%</span>';
+    if(ev.alt_avg!=null) html+='<span title="avg GPS altitude ('+ev.alt_n+' samples)">&#x25B3; '+ev.alt_avg+'m</span>';
+    html+='</div>';
+  }
   el.innerHTML=html;
 }
 
