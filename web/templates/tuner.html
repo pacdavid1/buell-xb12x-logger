@@ -134,6 +134,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <span class="vb" id="invX" onclick="toggleInv('X')">X</span>
 <span class="vb" id="invY" onclick="toggleInv('Y')">Y</span>
 <span class="vb" id="invZ" onclick="toggleInv('Z')">Z</span>
+<span class="vb" onclick="snapshotAll3D()" title="Export 3D views as PNG" style="margin-left:8px;color:var(--a2)">PNG</span>
 </div>
 <div class="g3">
 <div class="g3c"><div class="g3t">BASE 3D</div><canvas id="c3b"></canvas><div class="leg" id="lb"></div></div>
@@ -167,6 +168,32 @@ var CAM={zoom:1};
 var C3={base:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},delta:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0},mod:{ang:-0.65,tilt:0.88,roll:0,drag:false,lx:0,ly:0}};
 var INV={X:false,Y:false,Z:false};
 function toggleInv(ax){INV[ax]=!INV[ax];var el=document.getElementById('inv'+ax);el.style.color=INV[ax]?'var(--ac)':'';el.style.borderColor=INV[ax]?'var(--ac)':'';drawAll();}
+function snapshotAll3D(){
+  var entries=[{id:'c3b',name:'BASE'},{id:'c3d',name:'DELTA'},{id:'c3m',name:'MOD'}];
+  var cs=entries.map(function(e){return{el:document.getElementById(e.id),name:e.name};});
+  var w=cs[0].el.width,h=cs[0].el.height;
+  if(!w||!h){st('3D not rendered — load maps first');return;}
+  var PAD=2,LH=16;
+  var tmp=document.createElement('canvas');
+  tmp.width=w*3+PAD*2;tmp.height=h+LH;
+  var ctx=tmp.getContext('2d');
+  ctx.fillStyle='#1a1a1f';ctx.fillRect(0,0,tmp.width,tmp.height);
+  ctx.font='bold 10px monospace';ctx.textAlign='center';
+  for(var i=0;i<cs.length;i++){
+    var x=i*(w+PAD);
+    ctx.fillStyle='#888';ctx.fillText(cs[i].name,x+w/2,11);
+    ctx.drawImage(cs[i].el,x,LH);
+  }
+  var mapId=cur.toUpperCase().replace('_','-');
+  var sid=(document.getElementById('sM')||{}).value||'';
+  var d=new Date();
+  var ts=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  var fname='3D_'+mapId+(sid?'_'+sid.slice(0,8):'')+('_'+ts)+'.png';
+  tmp.toBlob(function(blob){
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname;a.click();
+    URL.revokeObjectURL(a.href);
+  },'image/png');
+}
 var DM='delta';
 var DM_IDS={delta:'dmD',overlay:'dmO',spikes:'dmS',wire:'dmW'};
 function setDM(m){DM=m;var all=document.querySelectorAll('.vb.dm');for(var i=0;i<all.length;i++)all[i].classList.remove('on');document.getElementById(DM_IDS[m]).classList.add('on');drawAll();}

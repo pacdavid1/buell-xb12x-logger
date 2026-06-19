@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.150] — 2026-06-18
+### Added
+- BL-3DV-07: PNG snapshot button in 3D control bar (`tuner.html`). Clicking PNG
+  stitches all three canvases (BASE / DELTA / MOD) into one wide image with labels,
+  triggers a `canvas.toBlob()` download named
+  `3D_{MAP}_{SESSION}_{DATE}.png`. No server round-trip.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.149] — 2026-06-18
 ### Removed
 - `decode_params_dict()` from `ecu/eeprom_params.py` — compat wrapper (returns
