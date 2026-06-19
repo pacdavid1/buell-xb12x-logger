@@ -21,6 +21,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.171] — 2026-06-19
+### Fixed
+- web/static/graf2.js: GRAF2 floating cursor readout stretches full width when cursor
+  moves to left half. Cause: CSS stylesheet has `right:8px` as a rule; JS was setting
+  `el.style.right=''` which only clears inline style, leaving the stylesheet rule active —
+  so left:8px + right:8px (from CSS) = full width stretch. Fixed: use 'auto' instead of
+  '' so the inactive side is explicitly overridden in both directions.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.170] — 2026-06-19
 ### Docs
 - BACKLOG.md: added BL-GRAF-03 — remove GRAF2 floating cursor readout (#cur-readout

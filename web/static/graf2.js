@@ -56,7 +56,7 @@
     const mid = window.innerWidth / 2, H = 80;
     if (!_rdLeft && _curX < mid - H) _rdLeft = true;
     else if (_rdLeft && _curX > mid + H) _rdLeft = false;
-    el.style.left = _rdLeft ? '8px' : ''; el.style.right = _rdLeft ? '' : '8px';
+    el.style.left = _rdLeft ? '8px' : 'auto'; el.style.right = _rdLeft ? 'auto' : '8px';
   }
 
   // ── annotations (region markers persisted on the Pi, consumed by F7 later) ──
