@@ -124,6 +124,8 @@ class DashboardHandler(
             '/wifi/status': self._handle_wifi_status,
             '/gps_fix': self._handle_gps_fix,
             '/gps_track': self._handle_gps_track,
+            '/gps_config': self._handle_gps_config,
+            '/gps_config_update': self._handle_gps_config_update,
             '/ride_note': self._handle_ride_note,
             '/annotations': self._handle_annotations,
             '/session_events': self._handle_session_events,

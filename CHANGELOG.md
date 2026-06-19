@@ -21,6 +21,28 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.164] — 2026-06-19
+### Added
+- ecu/protocol.py: 5 new GPS fields added to CSV_COLUMNS — gps_mode, gps_epx,
+  gps_epy, gps_epv, gps_snr_avg. These are now persisted to CSV for post-analysis
+  (resolves BL-GPS-01). Freebuff/Buffy authored; version corrected from stale v2.7.158.
+- web/handlers/gps.py: _handle_gps_config() GET endpoint — returns current GPSConfig
+  as JSON (stale_timeout, turn_rate_threshold, min_snr).
+- web/handlers/gps.py: _handle_gps_config_update() POST endpoint — applies runtime
+  GPSConfig changes via query params.
+- web/handlers/gps.py: /gps_track enriched — track points now include gps_heading,
+  gps_mode, gps_snr_avg when available. Freebuff/Buffy authored.
+- web/server.py: registered /gps_config and /gps_config_update routes (were missing —
+  freebuff added handlers but did not wire routes).
+### Fixed
+- web/vdyno.py: SAE J1349 correction in _seg_physics() silently never applied because
+  r.get('IAT') always returns None (CSV field is IAT_Corr). Fixed to r.get('IAT_Corr').
+  Freebuff/Buffy authored J1349 block (version corrected from stale v2.7.157);
+  field name bug found and fixed by Claude Sonnet 4.6 during inbox validation.
+### AI
+- DeepSeek V4 Flash, Codebuff (Buffy) — GPS Fase 3 handlers + J1349 block
+- Claude Sonnet 4.6, Anthropic — route registration fix + IAT field name fix + validation
+
 ## [v2.7.163] — 2026-06-19
 ### Docs
 - IDEAS.md: merged IDEA-016/017/018 from freebuff (Buffy). IDEA-016: bootstrap

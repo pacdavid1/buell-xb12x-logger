@@ -439,6 +439,7 @@ CSV_COLUMNS: list[str] = [
     "buf_in",
     "ttl_pct", "cpu_pct", "cpu_temp", "mem_pct",
     "gps_lat", "gps_lon", "gps_alt_m", "gps_speed_kmh", "gps_heading", "gps_satellites", "gps_valid",
+    "gps_mode", "gps_epx", "gps_epy", "gps_epv", "gps_snr_avg",
     "baro_hPa", "baro_temp_c",
         "humidity_pct",
 ]

@@ -1,47 +1,72 @@
-# DEV NOTE: All code, comments, and variable names must be in English.
-import csv
-import urllib.parse
-from pathlib import Path
-
-
+#!/usr/bin/env python3
+import json, os, csv, glob
 class GpsHandlerMixin:
-    def _handle_gps_fix(self, path=None):
-        try:
-            gps = self.server_instance.gps
-            fix = gps.get_fix() if gps else None
-            self._json(fix.as_dict() if fix else {'error': 'no gps'})
-        except Exception as e:
-            self._json({'error': str(e)})
-
+    def _handle_gps_fix(self):
+        gps = getattr(self.server_instance, 'gps', None)
+        if not gps:
+            return {"error": "GPS not available"}
+        return gps.get_fix().as_dict()
+    def _handle_gps_config(self):
+        gps = getattr(self.server_instance, 'gps', None)
+        if not gps:
+            return {"error": "GPS not available"}
+        return gps.get_config().as_dict()
+    def _handle_gps_config_update(self):
+        gps = getattr(self.server_instance, 'gps', None)
+        if not gps:
+            return {"error": "GPS not available"}
+        kwargs = {}
+        for k, v in self.query.items():
+            if hasattr(gps.config, k):
+                try:
+                    kwargs[k] = float(v)
+                except ValueError:
+                    kwargs[k] = v
+        if kwargs:
+            gps.set_config(**kwargs)
+        return {"status": "ok", "config": gps.get_config().as_dict()}
     def _handle_gps_track(self, path=None):
+        session = self.query.get('session')
+        ride = self.query.get('ride')
+        if not session or not ride:
+            return {"error": "Missing session/ride params"}
+        buell_dir = getattr(self.server_instance, 'buell_dir', None)
+        if not buell_dir:
+            return {"error": "No buell_dir"}
+        rides_dir = os.path.join(buell_dir, 'sessions', session)
+        if not os.path.isdir(rides_dir):
+            return {"error": f"Session dir not found: {rides_dir}"}
+        pat = os.path.join(rides_dir, f"ride_{session}_{int(ride):03d}*.csv")
+        files = sorted(glob.glob(pat))
+        if not files:
+            return {"error": f"No CSV found for {session} ride {ride}"}
+        points = []
         try:
-            params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            session_id = params.get('session', [''])[0]
-            ride_num = int(params.get('ride', [0])[0])
-            sessions_dir = Path(self.server_instance.buell_dir) / 'sessions'
-            ride_files = sorted(sessions_dir.glob(f'{session_id}/ride_{session_id}_{ride_num:03d}*.csv'))
-            if not ride_files:
-                self._json({'error': 'ride not found', 'points': []})
-                return
-            points = []
-            for rf in ride_files:
-                with open(rf, newline='') as f:
-                    filtered = (row for row in f if not row.startswith('#'))
-                    reader = csv.DictReader(filtered)
-                    for row in reader:
+            with open(files[0]) as f:
+                first = f.readline()
+                if not first.startswith('#'):
+                    f.seek(0)
+                for row in csv.DictReader(f):
+                    lat = row.get('gps_lat')
+                    lon = row.get('gps_lon')
+                    if lat and lon:
                         try:
-                            lat = float(row.get('gps_lat') or 0)
-                            lon = float(row.get('gps_lon') or 0)
-                            if lat != 0.0 and lon != 0.0:
-                                points.append({
-                                    'lat': lat,
-                                    'lon': lon,
-                                    'spd': float(row.get('gps_speed_kmh') or 0),
-                                    'alt': float(row.get('gps_alt_m') or 0),
-                                    't': float(row.get('time_elapsed_s') or 0),
-                                })
-                        except (ValueError, TypeError):
+                            lat_f = float(lat)
+                            lon_f = float(lon)
+                        except ValueError:
                             continue
-            self._json({'ok': True, 'points': points, 'count': len(points)})
+                        if abs(lat_f) < 90 and abs(lon_f) < 180:
+                            pt = {'lat': lat_f, 'lon': lon_f,
+                                  'spd': float(row.get('gps_speed_kmh') or 0),
+                                  'alt': float(row.get('gps_alt_m') or 0),
+                                  't': float(row.get('time_elapsed_s') or 0)}
+                            if row.get('gps_heading'):
+                                pt['hdg'] = float(row['gps_heading'])
+                            if row.get('gps_mode'):
+                                pt['mode'] = int(float(row['gps_mode']))
+                            if row.get('gps_snr_avg'):
+                                pt['snr'] = round(float(row['gps_snr_avg']), 1)
+                            points.append(pt)
         except Exception as e:
-            self._json({'error': str(e), 'points': []}, 500)
+            return {"error": str(e)}
+        return {"points": points, "count": len(points)}

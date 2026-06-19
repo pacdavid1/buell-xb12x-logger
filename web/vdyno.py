@@ -124,6 +124,20 @@ def _seg_physics(seg, cfg):
     F   = m * a + 0.5 * cfg['rho'] * cfg['CdA'] * vss_s ** 2 + cfg['Crr'] * m * _G
     P_w = F * vss_s  # watts
 
+    # SAE J1349 correction factor for air density
+    try:
+        iats = [float(r.get('IAT_Corr') or 0) for r in seg if r.get('IAT_Corr')]
+        baros = [float(r.get('baro_hPa') or 0) for r in seg if r.get('baro_hPa')]
+        if iats and baros:
+            iat_c = float(np.mean(iats))  # IAT in Celsius
+            baro_hpa = float(np.mean(baros))  # baro in hPa
+            iat_f = iat_c * 9.0 / 5.0 + 32.0  # Celsius to Fahrenheit
+            baro_inhg = baro_hpa * 0.02953  # hPa to inHg
+            j1349_cf = (29.23 / baro_inhg) * ((iat_f + 460.0) / 537.0) ** 0.5
+            P_w = P_w * j1349_cf
+    except Exception:
+        pass  # skip correction if data is missing
+
     return times, rpms, vss_s, P_w
 
 
