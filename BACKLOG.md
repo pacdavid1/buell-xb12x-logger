@@ -1147,11 +1147,6 @@ No necesita learning cycle manual.
   Archivo: web/proposal.py linea ~192
   Estimado: 10min
 
-## Prioridad: HECHA (v2.7.25) - Verificada por freebuff
-- [x] pw1/pw2 raw preserved in load_csv() - BUG FIXED
-  Commit 2b87e4f. pw1 ahora es RAW, pw1_norm agregado, CACHE_VERSION bump a 7.
-  detect_launches() usa pw1 raw correctamente.
-  Archivos: launch.py, vs_engine.py, CHANGELOG.md
 ---
 
 # Backlog: Knowledge Graph de Mapas — Diseño (freebuff task 028)
