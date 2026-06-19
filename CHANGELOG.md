@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.157] — 2026-06-18
+### Fixed
+- MSQ download buttons in tuner.html were `<button>` elements with class `.vb`,
+  which received a white browser-default background because `.vb` had no `background`
+  property. Fixed by: (1) adding `background:transparent` to `.vb` CSS rule,
+  (2) converting both MSQ buttons from `<button>` to `<span>` elements, and
+  (3) moving them inline beside the Base/Modificada labels instead of below the
+  select dropdown, so they no longer clutter the session selector area.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.156] — 2026-06-18
 ### Fixed
 - BL-GRAF-05: GRAF2 ⚙ gear button moved to left side of block header so it is

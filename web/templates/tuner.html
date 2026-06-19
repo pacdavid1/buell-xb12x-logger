@@ -55,7 +55,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 .g3c canvas{display:block;flex:1;touch-action:none;max-width:100%;max-height:100%}
 .leg{display:flex;align-items:center;gap:3px;font-family:var(--mn);font-size:6px;color:var(--dm);padding:2px 6px;border-top:1px solid var(--bd);flex-shrink:0}
 .leg .bar{flex:1;height:5px;border-radius:2px}
-.vb{font-family:var(--mn);font-size:7px;color:var(--dm);border:1px solid var(--bd);padding:2px 5px;border-radius:2px;cursor:pointer;user-select:none}
+.vb{font-family:var(--mn);font-size:7px;color:var(--dm);border:1px solid var(--bd);padding:2px 5px;border-radius:2px;cursor:pointer;user-select:none;background:transparent}
 .vb:hover{color:var(--bl);border-color:var(--bl)}
 .vb.dm.on{color:var(--ac);border-color:var(--ac)}
 .cd-mc{display:flex;gap:4px;align-items:center;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0}
@@ -85,11 +85,11 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <div class="cd">
 <h2>Comparador de Sesiones</h2>
 <div class="ct">
-<div class="cg"><label>Base</label><select id="sB"><option value="">--</option></select><button class="vb" style="margin-top:3px;font-size:8px;padding:2px 7px" onclick="dlMsq('sB')" title="Download Base session EEPROM as MSQ">&#11015; MSQ</button></div>
+<div class="cg"><div style="display:flex;align-items:center;gap:5px"><label>Base</label><span class="vb" onclick="dlMsq('sB')" title="Download Base session EEPROM as MSQ" style="font-size:7px;padding:1px 4px">&#11015; msq</span></div><select id="sB"><option value="">--</option></select></div>
 <div style="display:flex;align-items:flex-end;padding-bottom:4px">
 <span class="vb" onclick="swapSessions()" style="font-size:14px;padding:4px 8px" title="Intercambiar Base &#x2194; Mod">&#x21C4;</span>
 </div>
-<div class="cg"><label>Modificada</label><select id="sM"><option value="">--</option></select><button class="vb" style="margin-top:3px;font-size:8px;padding:2px 7px" onclick="dlMsq('sM')" title="Download Mod session EEPROM as MSQ">&#11015; MSQ</button></div>
+<div class="cg"><div style="display:flex;align-items:center;gap:5px"><label>Modificada</label><span class="vb" onclick="dlMsq('sM')" title="Download Mod session EEPROM as MSQ" style="font-size:7px;padding:1px 4px">&#11015; msq</span></div><select id="sM"><option value="">--</option></select></div>
 </div>
 <div id="st">Cargando sesiones...</div>
 </div>
