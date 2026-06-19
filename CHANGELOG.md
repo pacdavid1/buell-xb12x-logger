@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.158] — 2026-06-18
+### Added
+- BL-3DV-03: staged cells now highlighted in MOD 3D view. Faces adjacent to any
+  staged cell get an orange stroke (rgba 245,166,35) at 1.5px instead of the default
+  white 0.5px ghost stroke. Each face stores its grid (i,j) coords; at draw time the
+  STAGE[cur] lookup checks all 4 corners of the quad. BASE 3D and DELTA 3D unaffected.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.157] — 2026-06-18
 ### Fixed
 - MSQ download buttons in tuner.html were `<button>` elements with class `.vb`,

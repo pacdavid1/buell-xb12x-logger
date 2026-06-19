@@ -384,9 +384,10 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
     var nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx;
     var nl=Math.sqrt(nx*nx+ny*ny+nz*nz)||1;
     var lam=Math.abs((nx*-0.35+ny*-0.55+nz*0.76)/nl);
-    faces.push({p:[p0,p1,p2,p3],z:dz,v:av,sh:0.55+0.45*lam});
+    faces.push({p:[p0,p1,p2,p3],z:dz,v:av,sh:0.55+0.45*lam,i:i,j:j});
   }
   faces.sort(function(a,b){return a.z-b.z});
+  var stagd=(cid==='c3m'&&STAGE[cur])?STAGE[cur]:{};
   for(var f=0;f<faces.length;f++){
     var fc=faces[f];
     ctx.beginPath();ctx.moveTo(fc.p[0][0],fc.p[0][1]);
@@ -394,7 +395,11 @@ function drawSurf(cid,data,rpm,lod,mode,legId){
     ctx.closePath();
     var nm=(fc.v-zN)/(zX-zN);
     ctx.fillStyle=shadeRGBA(mode==='delta'?dcol(fc.v):heat(nm),fc.sh);
-    ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;ctx.stroke();
+    ctx.fill();
+    var isStagedFace=stagd[fc.i+','+fc.j]!==undefined||stagd[fc.i+','+(fc.j+1)]!==undefined||stagd[(fc.i+1)+','+fc.j]!==undefined||stagd[(fc.i+1)+','+(fc.j+1)]!==undefined;
+    if(isStagedFace){ctx.strokeStyle='rgba(245,166,35,0.9)';ctx.lineWidth=1.5;}
+    else{ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=0.5;}
+    ctx.stroke();
   }
     var o3=pr(0,0,zN),x3=pr(Cl-1,0,zN),y3=pr(0,0,zX),z3=pr(0,R-1,zN);
   ctx.lineWidth=2;
