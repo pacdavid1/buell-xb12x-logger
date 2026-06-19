@@ -336,6 +336,34 @@ Before applying ANY freebuff proposal (code fix, architecture, research finding)
 3. If a file needs user decision: keep it, flag to user, wait
 4. Never skip an inbox file - every file is there for a reason
 
+## INST block standard
+
+Any `.md` file in this project may carry processing instructions in an
+`INST/INST_END` block at the top (first 20 lines). Always read it before
+acting on the file content.
+
+Format:
+```
+<!-- INST
+purpose: what this file is
+action:  what to do with it
+delete:  when to delete (if ever)
+INST_END -->
+```
+
+### Audit files from freebuff
+
+When an inbox file has `action: audit`:
+1. Validate each finding against live code on the Pi
+2. If finding is a false positive: note it, no CHANGELOG needed
+3. If finding is a real issue: fix it, add CHANGELOG entry, commit
+4. Delete the file after all findings are resolved either way
+
+### BACKLOG files are plans, not instructions
+
+`BACKLOG*.md` files never carry INST blocks — they are action items.
+Read them as task lists, not as processing directives.
+
 ## Git branch policy
 
 Check `git branch` before the first commit of every session.

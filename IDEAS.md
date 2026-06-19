@@ -1,3 +1,10 @@
+<!-- INST
+purpose: exploratory ideas — threads, not tasks
+action:  read-only reference; never auto-convert to BACKLOG
+         user decides which idea to pull; when they do, move entry to BACKLOG
+add:     one entry per session max, only from creative mode or end-of-session finds
+delete:  never (entries move to BACKLOG or Descartadas, file persists)
+INST_END -->
 # IDEAS.md — Vertientes sin explorar
 
 > Generado por Claude en modo creativo o al cerrar sesiones.

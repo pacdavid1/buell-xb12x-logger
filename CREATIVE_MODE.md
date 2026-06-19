@@ -1,3 +1,10 @@
+<!-- INST
+purpose: operating instructions for creative mode
+action:  read fully when user says "modo creativo", "activa modo creativo",
+         "ponte creativo" or "ponte creativa"; then follow its rules until
+         user says "modo normal"
+delete:  never
+INST_END -->
 # CREATIVE_MODE.md — Exploración activa
 
 ## Qué eres en este modo

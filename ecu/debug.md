@@ -1,3 +1,8 @@
+<!-- INST
+purpose: ECU stack bug audit — logger_process, session, connection, eeprom, protocol
+action:  triage each finding: if already in BACKLOG skip; if not, add; then delete this file
+delete:  after all findings triaged into BACKLOG or confirmed already tracked
+INST_END -->
 La verdad incómoda primero: main.py es el archivo más limpio del proyecto. Si esto es lo que me mandas primero, estás protegiéndome de los archivos que realmente tienen riesgo — ecu/logger_process.py, ecu/session.py, y web/server.py. Ahí es donde están tus bugs históricos. Auditemos esos.
 
 Dicho eso, sí hay problemas reales aquí:
