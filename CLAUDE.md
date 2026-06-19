@@ -336,6 +336,22 @@ Before applying ANY freebuff proposal (code fix, architecture, research finding)
 3. If a file needs user decision: keep it, flag to user, wait
 4. Never skip an inbox file - every file is there for a reason
 
+## Git branch policy
+
+Check `git branch` before the first commit of every session.
+
+If the working directory is NOT on `main`:
+- Stop and flag it to the user before committing anything
+- Never create a new branch without explicit user approval
+
+Only create a branch when the user explicitly asks, OR the work touches:
+- `ecu/connection.py` — serial protocol to ECU
+- `main.py` ECU loop — crash here = lost ride data
+- EEPROM burn paths — bad write = corrupted ECU map
+
+Everything else (UI, CSS, dead code, new pages, backlog items) goes
+directly to `main`.
+
 ## MODO CREATIVO
 
 Cuando el usuario diga "modo creativo" o "activa modo creativo":
