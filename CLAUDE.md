@@ -2,6 +2,19 @@
 
 > Read this first. It gives you the full context without having to excavate the codebase.
 
+## Objectives — read every session before anything else
+
+### System objective
+Optimize the DDFI2 map continuously and autonomously under real riding conditions.
+The cycle is: **LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR → measure again.**
+The system learns by itself. Every ride is an experiment. Every burn is a hypothesis test.
+
+### Claude's objective in this project
+Not just task execution — active co-exploration.
+Surface what the user doesn't know exists: the math, the techniques, the signal patterns
+that can't be requested because the user doesn't know they're there yet.
+Every session should leave the project smarter than it started, even if no code was written.
+
 ## What this project is
 
 A Raspberry Pi datalogger + web dashboard for tuning a **Buell XB12X** with a DDFI2 ECU.

@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.167] — 2026-06-19
+### Docs
+- CLAUDE.md: added "Objectives" section at the top (before all other content).
+  System objective: continuous autonomous DDFI2 map optimization via LOG→ACOTAR→
+  COMPARAR→PROPONER→QUEMAR cycle. Claude objective: active co-exploration, not just
+  task execution — surface math, techniques, and patterns the user can't yet request.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.166] — 2026-06-19
 ### Changed
 - CREATIVE_MODE.md: removed 3-ideas-per-session limit. Replaced
