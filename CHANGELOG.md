@@ -21,6 +21,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.166] — 2026-06-19
+### Changed
+- CREATIVE_MODE.md: removed 3-ideas-per-session limit. Replaced
+  "if already in IDEAS.md → skip" with "enrich the existing entry instead
+  of creating a duplicate."
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.165] — 2026-06-19
 ### Docs
 - IDEAS.md: 3 new GPS creative-mode ideas (IDEA-019/020/021).

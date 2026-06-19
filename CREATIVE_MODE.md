@@ -38,9 +38,9 @@ Tu trabajo es encontrar lo que el usuario no sabe que existe.
 
 - No tocar código en modo creativo
 - No modificar BACKLOG.md — solo IDEAS.md
-- No proponer más de 3 ideas por sesión
 - Si una idea requiere datos que no existen aún → anotarlo
-- Si una idea ya está en IDEAS.md → no repetir, buscar otra
+- Si una idea ya está en IDEAS.md → enriquecerla con nueva perspectiva,
+  no duplicarla. Editar la entrada existente, no crear una nueva.
 
 ## Qué buscar específicamente
 
