@@ -14,14 +14,6 @@
 
 ## A — Maquillaje del 3D del Tuner (BASE / DELTA / MOD)
 
-### BL-3DV-01 — Sombreado Lambert (iluminación por cara) ✅ HECHO v2.7.118
-**Priority:** HIGH — el de mayor impacto visual por menor esfuerzo
-Hoy cada quad se pinta plano solo por valor (heat). Sin luz, las formas
-se aplastan. Fix barato: calcular la normal de cada cara (producto cruz
-de dos aristas ya proyectadas en 3D antes de proyectar), dot con una
-dirección de luz fija, y multiplicar el color por 0.55–1.0. El relieve
-de la superficie "salta" inmediatamente. Cero dependencias.
-
 ### BL-3DV-02 — Hover picking en el 3D (leer celda con el mouse)
 **Priority:** HIGH — convierte el 3D de adorno a herramienta
 Hoy el hover solo funciona en la tabla HTML. Propuesta:
@@ -87,67 +79,6 @@ El subtab VE solo tiene la tabla heatmap 2D. Propuesta:
 ---
 
 ## C — Graf: grupos predeterminados para tuning
-
-### BL-GRAF-01 — Presets de señales (un click = vista de análisis) ✅ HECHO v2.7.119
-**Priority:** HIGH — esfuerzo bajo, ya existe toda la infraestructura
-El Graf ya soporta señales configurables por chart con persistencia.
-Falta: un dropdown "Preset" que escriba chartCfgs completo de un golpe
-(sin pisar el custom del usuario: el preset "Custom" guarda lo suyo).
-
-Presets propuestos (señales de ALL_SIGNALS existentes):
-
-**MEZCLA / PW (modo OL)** — la moto corre Open Loop sin wideband:
-EGO_Corr y AFV son SIEMPRE 100 (ruido) → el análisis de mezcla real es
-por PW físico, no por correcciones:
-  1. RPM
-  2. TPS_pct + fl_wot + fl_accel + fl_decel
-  3. pw1 + pw2
-  4. veCurr1_RAW + veCurr2_RAW
-  5. VS_KPH + Gear
-
-**AFR / CLOSED LOOP** — ⛔ POSPUESTO hasta instalar wideband
-(regla del proyecto: nada que dependa de EGO_Corr/AFV en OL).
-Cuando exista WB: EGO_Corr + AFV + fl_closed_loop + fl_rich + fl_learn
-+ O2_ADC + fl_o2_active.
-
-**TRANSITORIOS / ACELERACIÓN** — enriquecimiento al abrir gas
-  1. TPS_pct + fl_accel + fl_wot
-  2. Accel_Corr + WUE
-  3. RPM
-  4. pw1 + pw2
-  5. VS_KPH + Gear
-
-**TÉRMICO / WARMUP** — comportamiento frío→caliente
-  1. CLT + MAT
-  2. WUE + AFV
-  3. RPM
-  4. pw1
-  5. Fan_Duty_Pct + fl_hot + do_fan
-
-**CHISPA** — avance vs carga
-  1. RPM
-  2. TPS_pct
-  3. spark1 + spark2
-  4. VS_KPH + Gear
-  5. fl_decel + fl_fuel_cut
-
-**ELÉCTRICO / SALUD** — regulador, sensores, sistema
-  1. Batt_V
-  2. RPM
-  3. cpu_pct + cpu_temp + mem_pct
-  4. TPS_V + O2_ADC
-  5. buf_in + ttl_pct
-
-**AMBIENTE / BARO** (si las cols baro_hPa/gps_alt_m están en SIGNALS;
-  si no, agregarlas primero — ya van en el CSV desde v2.7.x)
-  1. RPM
-  2. pw1 + pw1_norm (comparar crudo vs normalizado)
-  3. baro_hPa + gps_alt_m
-  4. CLT + MAT + baro_temp_c
-  5. VS_KPH
-
-Implementación: const PRESETS = {nombre: [[keys chart1],...[keys chart6]]};
-al elegir → chartCfgs = preset, saveChartCfgs(), rebuild. ~40 líneas.
 
 ### BL-GRAF-02 — Indicador de preset activo + volver a Custom
 **Priority:** LOW
