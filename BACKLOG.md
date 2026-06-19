@@ -1462,3 +1462,44 @@ Mezcla dos responsabilidades distintas en el mismo grupo:
 
 ### Criterio de éxito
 Community 1 se parte en dos comunidades con cohesión > 0.20 cada una.
+
+---
+
+## GPS — Pipeline de calidad
+
+### BL-GPS-01 — Persistir campos GPS Fase 1 en CSV
+**Priority:** HIGH — sin esto los campos de Fase 1 son en-memoria únicamente
+**Archivos:** ecu/protocol.py (CSV_COLUMNS list), ecu/logger_process.py
+
+Los campos añadidos en v2.7.160 (gps_epx, gps_epy, gps_epv, gps_mode, gps_stale)
+solo existen en `GPSFix.as_dict()` y en el IPC live. NO están en protocol.py
+CSV_COLUMNS, por lo que **nunca se graban en los archivos ride_*.csv**.
+
+Consecuencias:
+- IDEA-001 (Kalman VSS+GPS) nunca tendrá epx/epy históricos para pesos
+- IDEA-015 (GPS quality score) no puede computarse post-session
+- BL-BUG-02 (VSS auto-calibration) perdería contexto de calidad de fix
+
+**Implementación:**
+- protocol.py: añadir a CSV_COLUMNS: `gps_epx`, `gps_epy`, `gps_epv`, `gps_mode`, `gps_stale`
+- logger_process.py: ya extrae as_dict() completo — verificar que los nuevos
+  campos se pasen a la fila CSV sin cambios adicionales
+- Sesiones antiguas no tendrán estos campos (normal — sf(r.get('gps_epx', '')) = 0.0)
+
+**Esfuerzo:** Muy bajo (~5 líneas). **Riesgo:** Mínimo — solo añade columnas al final.
+
+### BL-GPS-02 — Validar e integrar GPS Fase 2 (freebuff inbox)
+**Priority:** MEDIUM
+**Archivo inbox:** inbox/changelog_gps_fase2.md (versión incorrecta: v2.7.156 ya ocupada)
+
+Freebuff implementó en el Pi directamente (sin pasar por git):
+- `GPSConfig` class con stale_timeout, turn_rate_threshold, min_snr configurables
+- SNR promedio de satélites usados → `gps_snr_avg` en as_dict()
+- Heading rate of change → `gps_heading_rate` y `gps_turning` en as_dict()
+
+Pendiente:
+- [ ] Verificar que el código actual en Pi implementa lo que dice el inbox
+- [ ] Revisar que gps_snr_avg y gps_heading_rate son correctos matemáticamente
+- [ ] Añadir gps_snr_avg y gps_heading_rate a CSV_COLUMNS (mismo gap que BL-GPS-01)
+- [ ] Corregir versión (no v2.7.156) y hacer commit + push + pull en Pi
+- [ ] Eliminar inbox/changelog_gps_fase2.md después del commit

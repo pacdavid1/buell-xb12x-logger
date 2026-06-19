@@ -96,6 +96,29 @@ distintos no son comparables — HMM los clasifica automáticamente
 **Aplica a:** Normalización cross-session — clasificar rides por perfil antes de comparar
 **Por qué importa:** El CellTracker ya acumula tiempo por celda. Ese vector es una huella del estilo. Dos sesiones con mapas diferentes pero estilos diferentes no son directamente comparables. Similar a IDEA-003 (HMM) pero más simple — usa datos ya calculados.
 
+### IDEA-014 — gps_turning como filtro de calidad en eventos F7
+**Señal:** gps_heading_rate (Fase 2 GPS) — tasa de cambio de rumbo en deg/s durante el evento
+**Técnica:** Filtrar eventos F7 donde el pre-event window incluye gps_turning=True
+**Aplica a:** f7.py event detection — el detector actual asume que la moto va recto
+**Por qué importa:** Un evento WOT en curva mezcla carga lateral con carga longitudinal.
+La curva PW en curva no es comparable con PW en recta aunque RPM/TPS sean iguales.
+Hoy se clasifican igual. Si gps_heading_rate > 15 deg/s durante el pre-event, el
+evento debería marcarse como `quality: TURNING` y excluirse del promedio cross-session.
+**Dato clave:** Require Fase 2 GPS (gps_heading_rate). Sin GPS, no se puede implementar.
+**Impacto esperado:** Reduce ruido en comparaciones cross-session de eventos con motos
+que toman curvas rápido antes del WOT (típico en calles de ciudad).
+
+### IDEA-015 — GPS quality score compuesto como gate único para todo análisis
+**Señal:** gps_mode + gps_epx + gps_snr_avg + gps_stale (Fase 1 + Fase 2 GPS)
+**Técnica:** Score 0–1: `(mode==3)*0.4 + (epx<8)*0.3 + (snr_avg>30)*0.2 + (!stale)*0.1`
+**Aplica a:** Cualquier análisis que consuma GPS: Sessions VS alt classification,
+F7 event quality, VDYNO track mapping, BL-BUG-02 VSS calibration
+**Por qué importa:** Hoy cada consumidor de GPS tiene su propio criterio ad-hoc:
+launch.py usa `gps_valid`, BL-BUG-02 propone `hdop < 2.0`, Sessions VS usa `gps_valid`.
+Un score único evita que se implemente n veces con distintos umbrales.
+Threshold sugerido: `gps_quality >= 0.6` para análisis de precisión, `>= 0.4` para logging.
+**Requiere:** Fase 1 (epx) + Fase 2 (snr_avg) ambas en CSV — ver BL-GPS-01 en BACKLOG.
+
 ## Descartadas
 
 ## Convertidas a BACKLOG

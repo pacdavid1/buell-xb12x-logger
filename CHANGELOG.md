@@ -21,6 +21,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.161] — 2026-06-19
+### Docs
+- IDEAS.md: added IDEA-014 (gps_turning as F7 event quality filter — turning events
+  contaminate cross-session PW comparisons) and IDEA-015 (GPS quality composite
+  score 0-1 from mode+epx+snr+stale as single gate for all GPS consumers).
+- BACKLOG.md: added GPS section with BL-GPS-01 (persist Fase 1 fields to CSV —
+  epx/epy/mode/stale are in-memory only, never written to ride_*.csv) and
+  BL-GPS-02 (validate and integrate GPS Fase 2 from freebuff inbox, including
+  version conflict fix).
+### AI
+- Claude Sonnet 4.6, Anthropic (creative mode)
+
 ## [v2.7.160] — 2026-06-19
 ### Added
 - gps/reader.py: GPSFix now captures fix precision (epx, epy, epv) and gpsd mode
