@@ -920,19 +920,6 @@ battery shutdown, baro normalization, VE heatmap editing, MSQ export, F7 pipelin
 Use readme_annotated.md (freebuff output) as draft template when implementing.
 
 
-### Código muerto Python (confirmado — 0 referencias en todo el codebase)
-- [ ] Eliminar  — ecu/eeprom_params.py (función de compat nunca llamada)
-- [ ] Eliminar  — ecu/session.py (nunca referenciada)
-- [ ] Eliminar  — ecu/session.py (nunca llamada)
-- [ ] Eliminar  — network/manager.py (nunca llamada)
-- [ ] Eliminar  — ecu/connection.py (nunca llamada)
-- [ ] Quitar imports muertos en main.py: , 
-
-### Archivos huérfanos (existen pero nadie los importa)
-- [ ] Eliminar  — script de actualización obsoleto
-- [ ] Eliminar  — patch para ddfi2_logger.py que ya no existe
-- [ ] Eliminar o documentar , , 
-
 ### Sesiones huérfanas (sin rides)
 - [ ] Endpoint o script de limpieza: borrar sesiones sin rides y sin eeprom_backup_*.bin
   Solo conservar sesiones que tienen al menos 1 ride o son la sesión activa

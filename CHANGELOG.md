@@ -21,6 +21,21 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.149] — 2026-06-18
+### Removed
+- `decode_params_dict()` from `ecu/eeprom_params.py` — compat wrapper (returns
+  `decode_params` result keyed by name) with zero callers anywhere in the codebase.
+  Freebuff dead-code audit flagged it; exhaustive grep confirmed 0 references.
+- Dead-code and orphan-file sections from BACKLOG.md — function names were blank
+  (backtick rendering bug). After full investigation: only `decode_params_dict`
+  was genuinely dead; all other flagged functions have internal callers; orphan
+  scripts were already removed in v2.7.62.
+### Changed
+- `ecu/eeprom_params.py`: added DEV NOTE header, translated Spanish docstrings
+  to English.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.148] — 2026-06-14
 ### Note
 - Carries the actual GRAF2 type-required code + backlog docs that were missing from the
