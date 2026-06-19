@@ -21,6 +21,24 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.162] — 2026-06-19
+### Added
+- gps/reader.py GPS Fase 2 (freebuff/Buffy — version corrected from v2.7.156):
+- GPSConfig class (stale_timeout=5.0s, turn_rate_threshold=30 deg/s, min_snr=0)
+  with as_dict() and runtime set_config(**kwargs).
+- SNR tracking: average signal strength of used satellites from SKY messages,
+  exposed as gps_snr_avg. Optional validity gate: if min_snr>0 and snr<min_snr,
+  fix marked invalid (default disabled — min_snr=0).
+- Heading rate of change (deg/s) with 0-360 wrap handling. Rate >= threshold
+  sets gps_turning=True. Exposed as gps_heading_rate and gps_turning in as_dict().
+- stale detection now uses config.stale_timeout instead of hardcoded 5.0s.
+### Fixed
+- gps/reader.py: SKY handler had duplicated SNR logic in both uSat and fallback
+  branches. Extracted to _snr_from_sat_list() helper — single path, same result.
+### AI
+- DeepSeek V4 Flash, Codebuff (Buffy) — GPS Fase 2 implementation
+- Claude Sonnet 4.6, Anthropic — validation, DRY fix, version correction
+
 ## [v2.7.161] — 2026-06-19
 ### Docs
 - IDEAS.md: added IDEA-014 (gps_turning as F7 event quality filter — turning events
