@@ -21,6 +21,22 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.160] — 2026-06-19
+### Added
+- gps/reader.py: GPSFix now captures fix precision (epx, epy, epv) and gpsd mode
+  (0=no fix, 2=2D, 3=3D). New fields exposed via as_dict() as gps_epx, gps_epy,
+  gps_epv, gps_mode. mode is stored inside the lock so stale_ts and valid update
+  atomically with the fix. Precision fields cleared to None when fix is lost.
+- gps/reader.py: stale fix detection — gps_stale=True when no valid fix has been
+  received (stale_ts==0) or last fix is older than 5s.
+  Written by freebuff (DeepSeek V4 Flash / Codebuff). Version corrected: freebuff
+  proposed v2.7.155 (already taken by BL-UX-04); recorded here as v2.7.160.
+  Claimed bug fix (epx←msg['epy']) was a false positive — old code had no epx/epy
+  at all; freebuff added new code and mislabeled it as a fix.
+### AI
+- DeepSeek V4 Flash, Codebuff (Buffy) — GPS changes
+- Claude Sonnet 4.6, Anthropic — version correction, changelog audit
+
 ## [v2.7.159] — 2026-06-19
 ### Added
 - BL-UX-03 (Sessions VS): environmental stats row per session. `load_csv` now

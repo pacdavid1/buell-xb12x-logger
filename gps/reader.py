@@ -4,16 +4,31 @@ logger = logging.getLogger("GPS")
 GPSD_HOST = "127.0.0.1"
 GPSD_PORT = 2947
 class GPSFix:
-    __slots__ = ("lat","lon","alt_m","speed_kmh","heading","satellites","timestamp_utc","valid")
+    __slots__ = ("lat","lon","alt_m","speed_kmh","heading","satellites","timestamp_utc","valid","epx","epy","epv","mode","stale_ts")
     def __init__(self):
         self.lat=None;self.lon=None;self.alt_m=None;self.speed_kmh=None
         self.heading=None;self.satellites=0;self.timestamp_utc=None;self.valid=False
+        self.epx=None;self.epy=None;self.epv=None;self.mode=0;self.stale_ts=0.0
     def as_dict(self):
-        return {"gps_lat":round(self.lat,6) if self.lat is not None else None,"gps_lon":round(self.lon,6) if self.lon is not None else None,"gps_alt_m":round(self.alt_m,1) if self.alt_m is not None else None,"gps_speed_kmh":round(self.speed_kmh,1) if self.speed_kmh is not None else None,"gps_heading":round(self.heading,1) if self.heading is not None else None,"gps_satellites":self.satellites,"gps_valid":self.valid}
+        d={"gps_lat":round(self.lat,6) if self.lat is not None else None,
+           "gps_lon":round(self.lon,6) if self.lon is not None else None,
+           "gps_alt_m":round(self.alt_m,1) if self.alt_m is not None else None,
+           "gps_speed_kmh":round(self.speed_kmh,1) if self.speed_kmh is not None else None,
+           "gps_heading":round(self.heading,1) if self.heading is not None else None,
+           "gps_satellites":self.satellites,
+           "gps_valid":self.valid,
+           "gps_mode":self.mode}
+        if self.epx is not None: d["gps_epx"]=round(self.epx,2)
+        if self.epy is not None: d["gps_epy"]=round(self.epy,2)
+        if self.epv is not None: d["gps_epv"]=round(self.epv,2)
+        d["gps_stale"]=True if self.stale_ts<=0 else time.time()-self.stale_ts>5.0
+        return d
 class GPSReader:
     def __init__(self,host=GPSD_HOST,port=GPSD_PORT):
         self.host=host;self.port=port;self._lock=threading.Lock();self._fix=GPSFix()
-        self._stop=threading.Event();self._thread=threading.Thread(target=self._run,name="GPSReader",daemon=True);self.running=False
+        self._stop=threading.Event()
+        self._thread=threading.Thread(target=self._run,name="GPSReader",daemon=True)
+        self.running=False
     def start(self):
         self._stop.clear();self._thread.start();self.running=True
         logger.info(f"GPS reader iniciado via gpsd {self.host}:{self.port}")
@@ -41,8 +56,9 @@ class GPSReader:
                     except Exception as e: logger.debug(f"gpsd parse: {e}"); continue
                     cls=msg.get('class')
                     if cls=='TPV':
-                        valid=msg.get('mode',0)>=2
                         with self._lock:
+                            self._fix.mode=msg.get('mode',0)
+                            valid=self._fix.mode>=2
                             self._fix.valid=valid
                             if valid:
                                 if 'lat' in msg: self._fix.lat=msg['lat']
@@ -53,7 +69,13 @@ class GPSReader:
                                 self._fix.speed_kmh=round(spd*3.6,1) if spd else 0.0
                                 if 'track' in msg: self._fix.heading=msg['track']
                                 if 'time' in msg: self._fix.timestamp_utc=msg['time']
-                            else: self._fix.speed_kmh=0.0
+                                if 'epx' in msg: self._fix.epx=msg['epx']
+                                if 'epy' in msg: self._fix.epy=msg['epy']
+                                if 'epv' in msg: self._fix.epv=msg['epv']
+                                self._fix.stale_ts=time.time()
+                            else:
+                                self._fix.speed_kmh=0.0
+                                self._fix.epx=None;self._fix.epy=None;self._fix.epv=None
                     elif cls=='SKY':
                         usat=msg.get('uSat')
                         if usat is not None:
@@ -65,4 +87,5 @@ class GPSReader:
                                 with self._lock: self._fix.satellites=sats
                 sock.close()
             except Exception as e:
-                logger.warning(f"GPS gpsd error: {e} — reintentando en 3s");time.sleep(3)
+                logger.warning(f"GPS gpsd error: {e} --- reintentando en 3s")
+                time.sleep(3)
