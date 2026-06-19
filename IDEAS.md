@@ -140,6 +140,51 @@ Threshold sugerido: `gps_quality >= 0.6` para análisis de precisión, `>= 0.4` 
 **Por qué importa:** En ciudad con tráfico el umbral de 8.0 da falsos positivos. En carretera da falsos negativos. Adaptativo resuelve ambos.
 **Dato concreto:** dtps = 8.0 significa apertura de 8% en ~50ms. Funciona para un estilo de manejo específico solamente.
 
+### IDEA-019 — Climb rate: vertical power loss silently corrupting VDYNO
+**Señal:** `climb` field in gpsd TPV messages — vertical speed in m/s (currently ignored by reader.py)
+**Técnica:** Add gravitational component to _seg_physics():
+`F_gravity = mass_kg * 9.81 * sin(arctan(climb_ms / vss_ms))`
+Add to F before computing P_w. On downhill pulls, subtract it.
+**Aplica a:** vdyno.py::_seg_physics() — the flat-road assumption is baked in and never questioned
+**Por qué importa:** At 80 km/h climbing at 3 m/s, slope ≈ 7.6°. For 250 kg bike+rider,
+F_gravity ≈ 320 N. That's ~7% phantom power inflation on uphill WOT pulls.
+Downhill pulls are deflated by the same amount. Cross-session comparison where
+one pull was uphill and the other downhill can produce a fake ~14% power difference.
+**Dato concreto:** `climb` is already sent by gpsd in the TPV message — it's a 1-line
+addition to reader.py to capture it. Then 1 line in protocol.py for CSV, and the
+correction formula in vdyno.py. J1349 + climb together = truly normalized VDYNO.
+**Requiere:** Add `climb` to GPSFix, CSV_COLUMNS, and _seg_physics().
+
+### IDEA-020 — HDOP from SKY messages: the quality metric gpsd already computes for us
+**Señal:** `hdop`, `vdop`, `pdop` fields in gpsd SKY messages — currently we ignore all of them
+**Técnica:** Log hdop to CSV. Use as primary quality gate: HDOP < 1.5 = excellent,
+< 2.5 = good, > 4 = unreliable. Replace or anchor the ad-hoc epx check in IDEA-015.
+**Aplica a:** GPS quality score (IDEA-015), VDYNO track mapping, Sessions VS alt classification
+**Por qué importa:** HDOP is a single, universally understood number that encodes satellite
+geometry (not just count). epx is device-specific and hardware-calibrated. HDOP < 2
+is the SAE standard threshold for "usable" GPS. Using HDOP means the quality gate
+speaks a language that any GPS reference book validates.
+**Dato concreto:** SKY message already arrives — we parse it for satellite count and SNR
+but skip hdop entirely. It's a 2-line addition to reader.py and 1 column in protocol.py.
+Combining hdop + snr_avg gives the most informative quality pair possible from a passive receiver.
+**Requiere:** Add `hdop` to GPSFix and CSV_COLUMNS. Update IDEA-015 score formula.
+
+### IDEA-021 — GPS idle disconnect: stop burning CPU when the bike is parked
+**Señal:** GPSReader holds `?WATCH={"enable":true}` 24/7, even when no ride is recording
+**Técnica:** Integrate with session lifecycle — on ride_stop, send `?WATCH={"enable":false}`;
+on ride_start, send `?WATCH={"enable":true, "json":true}`. gpsd drops polling rate
+and stops forwarding JSON to unregistered clients, reducing CPU wake-ups.
+**Aplica a:** main.py or ecu/session.py — wherever ride start/stop events fire
+**Por qué importa:** Pi Zero 2W has 1 ARM core at 1 GHz. The GPS thread runs a readline()
+loop that wakes the CPU on every gpsd message (~1 Hz). When parked with the logger on but
+not recording, this is pure waste. The GPS still keeps its fix (gpsd stays running),
+so reconnecting on ride start recovers a fix in <1s (warm start — the "faster satellite
+detection" the user observed is this same mechanism). This is likely what freebuff
+described as "low consumption when inactive."
+**Requiere:** Add pause()/resume() methods to GPSReader. Wire to session start/stop.
+No hardware changes — pure software. Risk: if ride detection fires before GPS resumes,
+first 1-2 seconds of GPS data could be missing. Mitigate with resume() in ride_arm().
+
 ## Descartadas
 
 ## Convertidas a BACKLOG

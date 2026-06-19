@@ -21,6 +21,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.165] — 2026-06-19
+### Docs
+- IDEAS.md: 3 new GPS creative-mode ideas (IDEA-019/020/021).
+  IDEA-019: climb rate from GPSFix to correct VDYNO vertical power error (~7% per
+  8° slope, currently silently inflates/deflates uphill vs downhill WOT pulls).
+  IDEA-020: HDOP from SKY messages as primary GPS quality gate (universally standard,
+  already computed by gpsd, ignored today — 2-line addition to reader.py).
+  IDEA-021: GPS idle WATCH disconnect — send ?WATCH=false when no ride is active to
+  stop CPU wake-ups on Pi Zero 2W; warm start recovers fix in <1s (explains faster
+  satellite detection observed post-Fase 2).
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.164] — 2026-06-19
 ### Added
 - ecu/protocol.py: 5 new GPS fields added to CSV_COLUMNS — gps_mode, gps_epx,
