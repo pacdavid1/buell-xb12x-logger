@@ -21,6 +21,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.172] — 2026-06-19
+### Fixed
+- BL-MAP-01: GPS map track never loaded — loadMapTrack checked d.ok but /gps_track never sets that field; removed the check
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.171] — 2026-06-19
 ### Fixed
 - web/static/graf2.js: GRAF2 floating cursor readout stretches full width when cursor

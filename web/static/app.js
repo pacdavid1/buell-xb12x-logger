@@ -55,10 +55,10 @@ let _cobertMode = 'seconds';
 let _cobertData = null;
 // Polling interval handles — must be declared: reading an undeclared
 // global throws ReferenceError (broke viewSelectedRides tab switch).
-var _liveInterval = null;
-var _freezeInterval = null;
-var _cobertInterval = null;
-var _fuelInterval = null;
+let _liveInterval = null;
+let _freezeInterval = null;
+let _cobertInterval = null;
+let _fuelInterval = null;
 
 // ── Configurable widgets ─────────────────────────────────────────────────
 // Widget A: tap the RPM big-card to cycle.
@@ -1337,6 +1337,35 @@ let _noteCtx={session:'',ride_num:0};
 // ── GPS MAP ─────────────────────────────────────────────────────────
 let _mapInstance = null;
 let _trackLayer = null;
+let _replayMarker = null;
+let _replayCircle = null;
+let _heatLayer = null;
+let _heatEnabled = false;
+let _mapStyleIdx = 0;
+let _lastTrackPoints = null;
+let _lastTrackLatLngs = null;
+
+// Track replay state
+let _trackAnim = {
+  running: false,
+  raf: null,
+  idx: 0,
+  lastTs: 0,
+  speed: 1,
+  points: null,
+  latlngs: null,
+  progress: 0,
+};
+
+// Map style presets
+const _MAP_STYLES = [
+  { name:'Dark', url:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attr:'© OSM' },
+  { name:'Satellite', url:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attr:'© Esri' },
+  { name:'Terrain', url:'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attr:'© OSM' },
+  { name:'Light', url:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attr:'© OSM' },
+];
+
+let _altMode = 'both'; // 'alt', 'spd', 'both'
 
 // Distance in km between two consecutive GPS points (equirectangular
 // approximation — 1 deg of lon shrinks by cos(lat))
@@ -1348,9 +1377,6 @@ function gpsKm(a, b){
 }
 
 // ── GPS TRACK 3D (BL-M3D-01/02/03) ──────────────────────────────────
-// Rotating 3D view of the GPS track: x/z = local meters, y = altitude
-// (auto vertical exaggeration). Auto-rotates 360 deg every 30 s; pauses on
-// pointer interaction and resumes after 4 s idle.
 const TRACK3D_TURN_S = 30;
 const TRACK3D_IDLE_RESUME_MS = 4000;
 const TRACK3D_MAX_POINTS = 900;
@@ -1375,7 +1401,6 @@ function initTrack3D(points){
               (lat0 - p.lat) * 110540]);
     spd.push(p.spd || 0);
   }
-  // Auto vertical exaggeration: altitude range ~15% of horizontal span
   let spanX = 0, spanZ = 0, maxY = 0;
   for(const q of pts){
     spanX = Math.max(spanX, Math.abs(q[0]));
@@ -1384,7 +1409,6 @@ function initTrack3D(points){
   }
   const span = Math.max(spanX, spanZ) * 2 || 1;
   const vexag = (hasAlt && maxY > 0) ? Math.max(1, (span * 0.15) / maxY) : 1;
-  // Center vertically so the bounding sphere stays stable while rotating
   const yMid = (maxY * vexag) / 2;
   let radius = 1;
   for(const q of pts){
@@ -1451,13 +1475,11 @@ function drawTrack3D(canvas){
   ctx.fillStyle = '#0a0a0b'; ctx.fillRect(0, 0, W, H);
   const cy = Math.cos(_t3.ang), sy = Math.sin(_t3.ang);
   const cp = Math.cos(_t3.tilt), sp = Math.sin(_t3.tilt);
-  // Stable framing: scale from the bounding sphere, not per-frame bbox
   const s = ((Math.min(W, H) / 2 - 20) / _t3.radius) * _t3.zoom;
   const P = q => {
     const x1 = q[0] * cy + q[2] * sy, z1 = -q[0] * sy + q[2] * cy;
     return [W / 2 + x1 * s, H / 2 - (q[1] * cp - z1 * sp) * s];
   };
-  // Floor shadow (track projected on the base plane)
   ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 2;
   ctx.beginPath();
   for(let i = 0; i < _t3.pts.length; i++){
@@ -1465,14 +1487,12 @@ function drawTrack3D(canvas){
     if(i === 0) ctx.moveTo(v[0], v[1]); else ctx.lineTo(v[0], v[1]);
   }
   ctx.stroke();
-  // Track line colored by speed
   ctx.lineWidth = 2.5; ctx.lineCap = 'round';
   for(let i = 0; i < _t3.pts.length - 1; i++){
     const va = P(_t3.pts[i]), vb = P(_t3.pts[i + 1]);
     ctx.strokeStyle = getGradientColor(_t3.spd[i]);
     ctx.beginPath(); ctx.moveTo(va[0], va[1]); ctx.lineTo(vb[0], vb[1]); ctx.stroke();
   }
-  // Start / end markers (same colors as the 2D map)
   const v0 = P(_t3.pts[0]), v1 = P(_t3.pts[_t3.pts.length - 1]);
   ctx.fillStyle = '#00ff88'; ctx.beginPath(); ctx.arc(v0[0], v0[1], 5, 0, 7); ctx.fill();
   ctx.fillStyle = '#ff4444'; ctx.beginPath(); ctx.arc(v1[0], v1[1], 5, 0, 7); ctx.fill();
@@ -1482,8 +1502,175 @@ function drawTrack3D(canvas){
   }
 }
 
+// ── TRACK REPLAY ─────────────────────────────────────────────────
+function toggleTrackReplay(){
+  if(!_trackAnim.points || _trackAnim.points.length < 2) return;
+  const btn = $id('mapPlayBtn');
+  if(_trackAnim.running){
+    _trackAnim.running = false;
+    if(_trackAnim.raf) { cancelAnimationFrame(_trackAnim.raf); _trackAnim.raf = null; }
+    btn.textContent = '▶';
+    btn.classList.remove('glow');
+    // Remove replay marker
+    if(_replayMarker) { _mapInstance.removeLayer(_replayMarker); _replayMarker = null; }
+    if(_replayCircle) { _mapInstance.removeLayer(_replayCircle); _replayCircle = null; }
+    $id('altCursorLine').style.display = 'none';
+    $id('mapCursorPanel').style.display = 'none';
+  } else {
+    _trackAnim.running = true;
+    _trackAnim.idx = 0;
+    _trackAnim.lastTs = 0;
+    btn.textContent = '⏸';
+    btn.classList.add('glow');
+    _trackAnim.raf = requestAnimationFrame(trackReplayLoop);
+  }
+}
+
+function setTrackSpeed(s){
+  _trackAnim.speed = s;
+  document.querySelectorAll('.map-toolbar .btn[id^="mapSpd"]').forEach(b => b.classList.remove('on'));
+  const btn = $id('mapSpd'+s);
+  if(btn) btn.classList.add('on');
+  $id('mapSpeedLabel').textContent = s+'×';
+  // If replay is running, show current
+  if(!_trackAnim.running && _trackAnim.points){
+    showReplayFrame(_trackAnim.idx);
+  }
+}
+
+function trackReplayLoop(ts){
+  if(!_trackAnim.running) return;
+  _trackAnim.raf = requestAnimationFrame(trackReplayLoop);
+  const points = _trackAnim.points;
+  if(!points || points.length < 2) return;
+  const pane = $id('pane-map');
+  if(!pane || !pane.classList.contains('active')){ _trackAnim.running = false; return; }
+  if(_trackAnim.lastTs === 0){ _trackAnim.lastTs = ts; return; }
+  const dt = Math.min(0.1, (ts - _trackAnim.lastTs) / 1000) * _trackAnim.speed;
+  _trackAnim.lastTs = ts;
+  // Advance index — assume ~2Hz GPS data, so ~500ms per step
+  const step = Math.max(1, Math.round(dt * 2));
+  _trackAnim.idx = Math.min(_trackAnim.idx + step, points.length - 1);
+  _trackAnim.progress = _trackAnim.idx / (points.length - 1);
+  showReplayFrame(_trackAnim.idx);
+  if(_trackAnim.idx >= points.length - 1){
+    // Looping — restart
+    _trackAnim.idx = 0;
+  }
+}
+
+function showReplayFrame(idx){
+  const points = _trackAnim.points;
+  const latlngs = _trackAnim.latlngs;
+  if(!points || !latlngs || idx >= points.length) return;
+  const p = points[idx];
+  const ll = latlngs[idx];
+  // Map marker
+  if(!_replayMarker){
+    _replayCircle = L.circleMarker(ll, {
+      radius: 8, color: '#fff', fillColor: getGradientColor(p.spd),
+      fillOpacity: 1, weight: 2, opacity: 1
+    }).addTo(_mapInstance);
+    _replayMarker = L.circleMarker(ll, {
+      radius: 14, color: 'rgba(255,255,255,0.2)', fillColor: 'transparent',
+      fillOpacity: 0, weight: 2
+    }).addTo(_mapInstance);
+  } else {
+    _replayCircle.setLatLng(ll);
+    _replayCircle.setStyle({ fillColor: getGradientColor(p.spd) });
+    _replayMarker.setLatLng(ll);
+  }
+  // Alt chart cursor
+  const cursor = $id('altCursorLine');
+  const chart = window._altChart;
+  if(cursor && chart){
+    const meta = chart.getDatasetMeta(0);
+    if(meta && meta.data && meta.data[idx]){
+      const x = meta.data[idx].x;
+      cursor.style.display = 'block';
+      cursor.style.left = x + 'px';
+    }
+  }
+  // Data panel (if visible)
+  const panel = $id('mapCursorPanel');
+  if(panel && panel.style.display !== 'none'){
+    $id('cpDist').textContent = p.dist_km != null ? p.dist_km.toFixed(2)+' km' : '--';
+    $id('cpAlt').textContent = p.alt != null ? p.alt.toFixed(1)+' m' : '--';
+    $id('cpSpd').textContent = p.spd != null ? p.spd.toFixed(1)+' km/h' : '--';
+  }
+}
+
+// ── MAP STYLE ────────────────────────────────────────────────────
+function cycleMapStyle(){
+  if(!_mapInstance) return;
+  _mapStyleIdx = (_mapStyleIdx + 1) % _MAP_STYLES.length;
+  const style = _MAP_STYLES[_mapStyleIdx];
+  // Remove existing tile layers
+  _mapInstance.eachLayer(l => {
+    if(l instanceof L.TileLayer) _mapInstance.removeLayer(l);
+  });
+  L.tileLayer(style.url, { maxZoom: 19, attribution: style.attr }).addTo(_mapInstance);
+  // Re-add track overlay if present
+  if(_trackLayer) _trackLayer.addTo(_mapInstance);
+  if(_replayCircle) _replayCircle.addTo(_mapInstance);
+  if(_replayMarker) _replayMarker.addTo(_mapInstance);
+  const btn = $id('mapStyleBtn');
+  if(btn) btn.title = style.name;
+}
+
+// ── HEATMAP TOGGLE ───────────────────────────────────────────────
+function toggleHeatmap(){
+  if(!_mapInstance || !_lastTrackLatLngs || !_lastTrackPoints) return;
+  _heatEnabled = !_heatEnabled;
+  const btn = $id('mapHeatBtn');
+  if(btn) btn.classList.toggle('on', _heatEnabled);
+  if(_heatEnabled){
+    if(_heatLayer) _mapInstance.removeLayer(_heatLayer);
+    // Build a simple speed heatmap using weighted circles
+    _heatLayer = L.layerGroup();
+    const stride = Math.max(1, Math.floor(_lastTrackPoints.length / 120));
+    for(let i = 0; i < _lastTrackPoints.length; i += stride){
+      const p = _lastTrackPoints[i];
+      const spd = p.spd || 0;
+      const r = 4 + (spd / 200) * 16;
+      const opacity = 0.15 + (spd / 200) * 0.5;
+      L.circleMarker([p.lat, p.lon], {
+        radius: r, color: getGradientColor(spd),
+        fillColor: getGradientColor(spd), fillOpacity: opacity,
+        weight: 0, opacity: 0
+      }).addTo(_heatLayer);
+    }
+    _heatLayer.addTo(_mapInstance);
+  } else {
+    if(_heatLayer) { _mapInstance.removeLayer(_heatLayer); _heatLayer = null; }
+  }
+}
+
+// ── ALT CHART MODE ───────────────────────────────────────────────
+function setAltMode(mode){
+  _altMode = mode;
+  ['alt','spd','both'].forEach(m => {
+    const btn = $id('altMode'+m.charAt(0).toUpperCase()+m.slice(1));
+    if(btn){
+      btn.style.borderColor = m === mode ? 'var(--blue)' : '';
+      btn.style.color = m === mode ? 'var(--blue)' : '';
+    }
+  });
+  if(window._altChart) rebuildAltChart(_lastTrackPoints);
+}
+
+// ── 3D TOGGLE ────────────────────────────────────────────────────
+let _3dVisible = true;
+function toggle3DSection(){
+  _3dVisible = !_3dVisible;
+  const sec = $id('map3dSection');
+  const arrow = $id('map3dArrow');
+  if(sec) sec.style.display = _3dVisible ? 'block' : 'none';
+  if(arrow) arrow.textContent = _3dVisible ? '▾' : '▸';
+}
+
+// ── LOAD MAP PANE ────────────────────────────────────────────────
 async function loadMapPane() {
-  // Populate selector with available rides
   const sel = $id('mapRideSelect');
   if (!sel) return;
   try {
@@ -1500,143 +1687,213 @@ async function loadMapPane() {
   } catch(e) {
     console.error('loadMapPane error', e);
   }
-  // Initialize map if not exists
   if (!_mapInstance) {
     _mapInstance = L.map('mapLeaflet').setView([32.5, -116.9], 13);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      maxZoom: 19,
-      attribution: '© OSM'
+    L.tileLayer(_MAP_STYLES[0].url, {
+      maxZoom: 19, attribution: _MAP_STYLES[0].attr
     }).addTo(_mapInstance);
   }
 }
 
+// ── METRICS ──────────────────────────────────────────────────────
+function calcMetrics(points, duration_s){
+  if(!points || points.length < 2) return;
+  let dist = 0;
+  let maxSpd = 0;
+  let sumSpd = 0;
+  let altMin = Infinity, altMax = -Infinity;
+  let validAlt = 0;
+  for(let i = 0; i < points.length; i++){
+    const p = points[i];
+    if(i > 0) dist += gpsKm(points[i-1], p);
+    const s = p.spd || 0;
+    maxSpd = Math.max(maxSpd, s);
+    sumSpd += s;
+    if(p.alt != null){
+      altMin = Math.min(altMin, p.alt);
+      altMax = Math.max(altMax, p.alt);
+      validAlt++;
+    }
+  }
+  const avgSpd = sumSpd / (points.length || 1);
+  const elevGain = (validAlt > 1 && altMax > altMin) ? (altMax - altMin).toFixed(0) : 0;
+  const durMin = duration_s ? (duration_s / 60).toFixed(1) : (dist / (avgSpd || 1) * 60).toFixed(1);
+  $id('mDist').innerHTML = dist.toFixed(2) + ' <span class="mm-unit">km</span>';
+  $id('mMaxSpd').innerHTML = maxSpd.toFixed(1) + ' <span class="mm-unit">km/h</span>';
+  $id('mAvgSpd').innerHTML = avgSpd.toFixed(1) + ' <span class="mm-unit">km/h</span>';
+  $id('mElev').innerHTML = elevGain + ' <span class="mm-unit">m</span>';
+  $id('mDuration').innerHTML = durMin + ' <span class="mm-unit">min</span>';
+  // GPS fix info — use SNR avg if available
+  const snrVals = points.map(p => p.snr_avg).filter(v => v != null && v > 0);
+  const avgSnr = snrVals.length ? (snrVals.reduce((a,b)=>a+b,0)/snrVals.length).toFixed(0) : '--';
+  $id('mFixInfo').innerHTML = points.length + ' pts · SNR ' + avgSnr;
+}
+
+// ── BUILD ALT CHART (reusable) ───────────────────────────────────
+function rebuildAltChart(points){
+  if(!points || points.length < 2 || !$id('altitudeChart')) return;
+  if(window._altChart) { window._altChart.destroy(); window._altChart = null; }
+  let distAcc = 0;
+  const altLabels = [], altData = [], altColors = [];
+  const spdData = [], spdColors = [];
+  const idxMap = []; // maps chart index back to points index
+  for(let i = 0; i < points.length; i++){
+    if(i > 0) distAcc += gpsKm(points[i-1], points[i]);
+    points[i].dist_km = distAcc;
+    const hasAlt = points[i].alt !== null && points[i].alt !== undefined;
+    const hasSpd = points[i].spd != null;
+    if(_altMode === 'both' || (_altMode === 'alt' && hasAlt) || (_altMode === 'spd' && hasSpd)){
+      idxMap.push(i);
+      altLabels.push(distAcc.toFixed(2));
+      altData.push(hasAlt ? points[i].alt : null);
+      altColors.push(getGradientColor(points[i].spd || 0));
+      spdData.push(points[i].spd || 0);
+      spdColors.push(getGradientColor(points[i].spd || 0));
+    }
+  }
+  const datasets = [];
+  if(_altMode === 'alt' || _altMode === 'both'){
+    datasets.push({
+      label: 'Altitud (m)', data: altData, borderColor: altColors,
+      borderWidth: 1.5, pointRadius: 0, tension: 0.3,
+      fill: { target: 'origin', above: 'rgba(0,100,255,0.08)' },
+      segment: { borderColor: ctx => altColors[ctx.p0DataIndex] || '#fff' },
+      yAxisID: 'y',
+    });
+  }
+  if(_altMode === 'spd' || _altMode === 'both'){
+    datasets.push({
+      label: 'Velocidad (km/h)', data: spdData, borderColor: spdColors,
+      borderWidth: 2.5, pointRadius: 0, tension: 0.2,
+      segment: { borderColor: ctx => spdColors[ctx.p0DataIndex] || '#fff' },
+      yAxisID: 'y1',
+    });
+  }
+  const canvas = $id('altitudeChart');
+  window._altChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels: altLabels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true, mode: 'index', intersect: false,
+          callbacks: {
+            label: function(ctx) {
+              if(ctx.dataset.label === 'Altitud (m)') return 'Alt: ' + (ctx.parsed.y != null ? ctx.parsed.y.toFixed(1) : '--') + 'm';
+              return 'Vel: ' + ctx.parsed.y.toFixed(1) + ' km/h';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#666', font: { size: 8 }, maxTicksLimit: 8 }, grid: { color: '#1e1e24' }, title: { display: true, text: 'Distancia (km)', color: '#666', font: { size: 8 } } },
+        y: { ticks: { color: '#aaa', font: { size: 8 } }, grid: { color: '#1e1e24' }, title: { display: true, text: 'Altitud (m)', color: '#666', font: { size: 8 } } },
+        y1: { position: 'right', ticks: { color: '#4af', font: { size: 8 }, callback: v => v + ' km/h' }, grid: { display: false }, title: { display: true, text: 'Velocidad (km/h)', color: '#4af', font: { size: 8 } } },
+      },
+      onClick: function(e, items){
+        // Click on chart -> show cursor on map
+        if(items && items.length > 0){
+          const idx = items[0].dataIndex;
+          const origIdx = idxMap[idx];
+          if(origIdx != null){
+            showReplayFrame(origIdx);
+            $id('mapCursorPanel').style.display = 'block';
+            const cp = _lastTrackPoints[origIdx];
+            $id('cpDist').textContent = cp.dist_km != null ? cp.dist_km.toFixed(2)+' km' : '--';
+            $id('cpAlt').textContent = cp.alt != null ? cp.alt.toFixed(1)+' m' : '--';
+            $id('cpSpd').textContent = cp.spd != null ? cp.spd.toFixed(1)+' km/h' : '--';
+          }
+        }
+      }
+    }
+  });
+  // Store idxMap for cursor sync
+  window._altIdxMap = idxMap;
+  // Bind hover sync
+  canvas.onmousemove = function(e){
+    if(!window._altChart || !_lastTrackLatLngs) return;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const meta = window._altChart.getDatasetMeta(0);
+    if(!meta || !meta.data) return;
+    // Find closest data point
+    let closest = null, minDist = Infinity;
+    for(let i = 0; i < meta.data.length; i++){
+      const d = Math.abs(meta.data[i].x - x);
+      if(d < minDist){ minDist = d; closest = i; }
+    }
+    if(closest != null){
+      const origIdx = (window._altIdxMap || [])[closest];
+      if(origIdx != null && _lastTrackPoints[origIdx]){
+        showReplayFrame(origIdx);
+        $id('mapCursorPanel').style.display = 'block';
+        const q = _lastTrackPoints[origIdx];
+        $id('cpDist').textContent = q.dist_km != null ? q.dist_km.toFixed(2)+' km' : '--';
+        $id('cpAlt').textContent = q.alt != null ? q.alt.toFixed(1)+' m' : '--';
+        $id('cpSpd').textContent = q.spd != null ? q.spd.toFixed(1)+' km/h' : '--';
+      }
+    }
+  };
+  canvas.onmouseleave = function(){
+    // Only hide cursor panel if replay not running
+    if(!_trackAnim.running){
+      $id('altCursorLine').style.display = 'none';
+      $id('mapCursorPanel').style.display = 'none';
+    }
+  };
+}
+
+// ── LOAD MAP TRACK ───────────────────────────────────────────────
 async function loadMapTrack() {
   const sel = $id('mapRideSelect');
   const info = $id('mapInfo');
   if (!sel || !sel.value) { if(info) info.textContent = 'Selecciona un ride'; return; }
   const {session, ride} = JSON.parse(sel.value);
+  // Stop any running replay
+  if(_trackAnim.running) toggleTrackReplay();
   if(info) info.textContent = 'Cargando...';
   try {
     const _gt = await fetch(`/gps_track?session=${session}&ride=${ride}&t=${Date.now()}`); if(!_gt.ok) throw new Error('HTTP '+_gt.status); const d = await _gt.json();
-    if (!d.ok || !d.points || d.points.length === 0) {
+    if (!d.points || d.points.length === 0) {
       if(info) info.textContent = 'Sin datos GPS en este ride';
       return;
     }
-    // Remove previous track (segments + markers live in one layer group)
-    if (_trackLayer) { _trackLayer.clearLayers(); }
+    // Remove previous overlays
+    if(_heatLayer) { _mapInstance.removeLayer(_heatLayer); _heatLayer = null; _heatEnabled = false; $id('mapHeatBtn')?.classList.remove('on'); }
+    if(_replayCircle) { _mapInstance.removeLayer(_replayCircle); _replayCircle = null; }
+    if(_replayMarker) { _mapInstance.removeLayer(_replayMarker); _replayMarker = null; }
+    if(_trackLayer) { _trackLayer.clearLayers(); }
     else { _trackLayer = L.layerGroup().addTo(_mapInstance); }
+    _lastTrackPoints = d.points;
     const latlngs = d.points.map(p => [p.lat, p.lon]);
-    // Color by speed
-    function getSpeedColor(spd) {
-      if (spd <=  20) return '#0000FF'; // Blue
-      if (spd <=  60) return '#00FF00'; // Green
-      if (spd <= 120) return '#FFFF00'; // Yellow
-      if (spd <= 160) return '#FF0000'; // Red
-      return '#FF00FF';                 // Magenta 160+
-    }
-    for (let i = 0; i < latlngs.length - 1; i++) {
+    _lastTrackLatLngs = latlngs;
+    // Draw track
+    for(let i = 0; i < latlngs.length - 1; i++){
       L.polyline([latlngs[i], latlngs[i+1]], {
         color: getGradientColor(d.points[i].spd), weight: 4, opacity: 0.85
       }).addTo(_trackLayer);
     }
-    // Start and end marker
+    // Start and end markers
     L.circleMarker(latlngs[0], {radius:7, color:'#00ff88', fillColor:'#00ff88', fillOpacity:1}).addTo(_trackLayer).bindPopup('Inicio');
     L.circleMarker(latlngs[latlngs.length-1], {radius:7, color:'#ff4444', fillColor:'#ff4444', fillOpacity:1}).addTo(_trackLayer).bindPopup('Fin');
     _mapInstance.fitBounds(latlngs);
     initTrack3D(d.points);
+    // Init replay state
+    _trackAnim.points = d.points;
+    _trackAnim.latlngs = latlngs;
+    _trackAnim.idx = 0;
+    _trackAnim.progress = 0;
+    $id('mapPlayBtn').disabled = false;
+    // Calc metrics
+    calcMetrics(d.points, d.duration_s);
+    // Build alt chart
+    rebuildAltChart(d.points);
+    // Info
     const maxSpd2 = Math.max(...d.points.map(p=>p.spd)).toFixed(1);
     const dist = d.points.reduce((acc,p,i)=> i===0 ? 0 : acc + gpsKm(d.points[i-1], p), 0).toFixed(2);
     if(info) info.textContent = `${d.count} puntos · Vel max ${maxSpd2} km/h · ~${dist} km`;
-    // ── Perfil de altitud ──────────────────────────────────────────
-    const altCanvas = $id('altitudeChart');
-    if (altCanvas) {
-      if (window._altChart) { window._altChart.destroy(); window._altChart = null; }
-      // Calculate cumulative distance
-      let distAcc = 0;
-      const altLabels = [];
-      const altData = [];
-      const altColors = [];
-      const spdData = [];
-      const spdColors = [];
-      for (let i = 0; i < d.points.length; i++) {
-        if (i > 0) {
-          distAcc += gpsKm(d.points[i-1], d.points[i]);
-        }
-        if (d.points[i].alt !== null && d.points[i].alt !== undefined) {
-          altLabels.push(distAcc.toFixed(2));
-          altData.push(d.points[i].alt);
-          altColors.push(getSpeedColor(d.points[i].spd));
-          spdData.push(d.points[i].spd);
-          spdColors.push(getGradientColor(d.points[i].spd));
-        }
-      }
-      window._altChart = new Chart(altCanvas, {
-        type: 'line',
-        data: {
-          labels: altLabels,
-          datasets: [{
-            label: 'Altitud (m)',
-            data: altData,
-            borderColor: altColors,
-            borderWidth: 1.5,
-            pointRadius: 0,
-            tension: 0.3,
-            fill: {
-              target: 'origin',
-              above: 'rgba(0,100,255,0.08)'
-            },
-            segment: {
-              borderColor: ctx => altColors[ctx.p0DataIndex] || '#fff'
-            }
-          },
-          {
-            label: 'Velocidad (km/h)',
-            data: spdData,
-            borderColor: spdColors,
-            borderWidth: 2.5,
-            pointRadius: 0,
-            tension: 0.2,
-            segment: {
-              borderColor: ctx => spdColors[ctx.p0DataIndex] || '#fff'
-            },
-            yAxisID: 'y1'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(ctx) { return ctx.dataset.label === "Altitud (m)" ? "Alt: " + ctx.parsed.y.toFixed(1) + "m" : "Vel: " + ctx.parsed.y.toFixed(1) + " km/h"; }
-              }
-            }
-          },
-          scales: {
-            x: {
-              ticks: { color: '#666', font: { size: 8 }, maxTicksLimit: 8 },
-              grid: { color: '#1e1e24' },
-              title: { display: true, text: 'Distancia (km)', color: '#666', font: { size: 8 } }
-            },
-            y: {
-              ticks: { color: '#aaa', font: { size: 8 } },
-              grid: { color: '#1e1e24' },
-              title: { display: true, text: 'Altitud (m)', color: '#666', font: { size: 8 } }
-            },
-            y1: {
-              position: 'right',
-              ticks: { color: '#4af', font: { size: 8 },
-                callback: function(value) { return value + ' km/h'; }
-              },
-              grid: { display: false },
-              title: { display: true, text: 'Velocidad (km/h)', color: '#4af', font: { size: 8 } }
-            }
-          }
-        }
-      });
-    }
   } catch(e) {
     if(info) info.textContent = 'Error: ' + e;
   }
