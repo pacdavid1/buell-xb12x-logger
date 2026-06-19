@@ -119,6 +119,27 @@ Un score único evita que se implemente n veces con distintos umbrales.
 Threshold sugerido: `gps_quality >= 0.6` para análisis de precisión, `>= 0.4` para logging.
 **Requiere:** Fase 1 (epx) + Fase 2 (snr_avg) ambas en CSV — ver BL-GPS-01 en BACKLOG.
 
+### IDEA-016 — Intervalo de confianza bootstrap para VDYNO
+**Señal:** Múltiples pulls WOT en una misma sesión (datos existentes, no se agrupan estadísticamente)
+**Técnica:** Bootstrap no paramétrico — remuestrear los pulls WOT, calcular potencia media por bin RPM con IC 95%
+**Aplica a:** vdyno.py::compare_sessions() — el veredicto actual es "mapa A da más potencia que B" sin decir qué tan seguro es
+**Por qué importa:** Sin intervalo de confianza, no sabes si una diferencia de 2 HP es real o es ruido.
+**Dato concreto:** Si una sesión tiene 8 pulls WOT y otra tiene 6, bootstrap con 1000 remuestreos da distribución de la diferencia. Hoy no se hace.
+
+### IDEA-017 — Corrección por densidad de aire (SAE J1349)
+**Señal:** IAT + baro_hPa — ambas en el CSV, nunca usadas en VDYNO
+**Técnica:** Factor SAE J1349 — potencia corregida = potencia medida * (29.23 / baro_inHg) * sqrt((IAT_F + 460) / 537)
+**Aplica a:** vdyno.py::_seg_physics() — normalizar potencia a condiciones estándar
+**Por qué importa:** Un día frío vs uno caliente cambia la densidad del aire ~10%. Corregir elimina ese ruido.
+**Dato concreto:** IAT y baro_hPa ya están en el CSV por fila. Solo hay que aplicarlos.
+
+### IDEA-018 — Umbral adaptativo de detección de launch
+**Señal:** dtps histórico por sesión vs umbral fijo de 8.0
+**Técnica:** Media móvil + 2-sigma del dtps en ventana de 1s antes del evento
+**Aplica a:** launch.py::detect_launches() — reemplazar min_dtps=8.0 fijo por uno dinámico
+**Por qué importa:** En ciudad con tráfico el umbral de 8.0 da falsos positivos. En carretera da falsos negativos. Adaptativo resuelve ambos.
+**Dato concreto:** dtps = 8.0 significa apertura de 8% en ~50ms. Funciona para un estilo de manejo específico solamente.
+
 ## Descartadas
 
 ## Convertidas a BACKLOG

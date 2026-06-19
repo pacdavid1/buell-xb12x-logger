@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.163] — 2026-06-19
+### Docs
+- IDEAS.md: merged IDEA-016/017/018 from freebuff (Buffy). IDEA-016: bootstrap
+  confidence interval for VDYNO compare_sessions(). IDEA-017: SAE J1349 air
+  density correction for VDYNO (IAT + baro already in CSV). IDEA-018: adaptive
+  launch detection threshold (rolling 2-sigma vs hardcoded dtps=8.0).
+  GPS Fase 1+2 BACKLOG items from freebuff stash discarded — already covered by
+  BL-GPS-01/02 (v2.7.161) and implemented in v2.7.160/162.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.162] — 2026-06-19
 ### Added
 - gps/reader.py GPS Fase 2 (freebuff/Buffy — version corrected from v2.7.156):
