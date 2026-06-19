@@ -21,6 +21,24 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.156] — 2026-06-18
+### Fixed
+- BL-GRAF-05: GRAF2 ⚙ gear button moved to left side of block header so it is
+  always visible regardless of how many signal chips are present. Removed from
+  block-btns, placed before block-title with flex-shrink:0 (graf2.js).
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.155] — 2026-06-18
+### Fixed
+- BL-UX-04: Session Events n=1 cluster curves rendered at lineWidth 0.8 instead
+  of full weight. Root cause: _compute_cluster_stats returns early for len<2, so
+  pw_avg/rpm_avg/etc are absent. Frontend now falls back to mb[0] curves when
+  solo=true, giving n=1 clusters the same visual weight as multi-sample ones.
+  Pre-event zone (drawPre) and main curve (drawAvg) both get the fallback.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.154] — 2026-06-18
 ### Fixed
 - app.js: all four polling interval handles (_liveInterval, _freezeInterval,

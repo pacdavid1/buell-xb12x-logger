@@ -512,14 +512,16 @@ function drawChart(c){
     ctx.fillText(typeof arr[N-1]==='number'?arr[N-1].toFixed(arr[N-1]>100?0:1):'', xBreak+4, yEnd+3);
     ctx.globalAlpha=1;
   }
+  // n=1 clusters: _compute_cluster_stats returns early, no avg fields — fall back to the single member's curve
+  var solo = mb.length===1 ? mb[0] : null;
   if(hasPW)
-    drawPre(st.pre_pw_avg, ypL, '#e8420a', 2.0);
-  if(active.rpm&&st.pre_rpm_avg&&oScales.rpm)
-    drawPre(st.pre_rpm_avg, function(v){return ypR('rpm',v);}, '#ffc832', 1.5);
-  if(active.vss&&st.pre_vss_avg&&oScales.vss)
-    drawPre(st.pre_vss_avg, function(v){return ypR('vss',v);}, '#b464ff', 1.5);
-  if(active.tps&&st.pre_tps_avg&&oScales.tps)
-    drawPre(st.pre_tps_avg, function(v){return ypR('tps',v);}, '#50c8c8', 1.5);
+    drawPre(st.pre_pw_avg||(solo&&solo.pre_pw_curve), ypL, '#e8420a', 2.0);
+  if(active.rpm&&oScales.rpm)
+    drawPre(st.pre_rpm_avg||(solo&&solo.pre_rpm_curve), function(v){return ypR('rpm',v);}, '#ffc832', 1.5);
+  if(active.vss&&oScales.vss)
+    drawPre(st.pre_vss_avg||(solo&&solo.pre_vss_curve), function(v){return ypR('vss',v);}, '#b464ff', 1.5);
+  if(active.tps&&oScales.tps)
+    drawPre(st.pre_tps_avg||(solo&&solo.pre_tps_curve), function(v){return ypR('tps',v);}, '#50c8c8', 1.5);
 
   if(active.pw&&st.pw_avg&&st.pw_std&&st.confidence){
     for(var i=0;i<EVT_PTS-1;i++){
@@ -582,12 +584,12 @@ function drawChart(c){
   PW_KEYS.forEach(function(k){
     if(!active[k]) return;
     var m=METRICS[k];
-    drawAvg(st[m.avg],ypL,m.color,m.width,m.dash);
+    drawAvg(st[m.avg]||(solo&&solo[m.key]),ypL,m.color,m.width,m.dash);
   });
   OTHER_KEYS.forEach(function(k){
     if(!active[k]||!oScales[k]) return;
     var m=METRICS[k];
-    drawAvg(st[m.avg],function(v){return ypR(k,v);},m.color,m.width,m.dash);
+    drawAvg(st[m.avg]||(solo&&solo[m.key]),function(v){return ypR(k,v);},m.color,m.width,m.dash);
   });
 }
 

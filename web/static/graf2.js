@@ -516,10 +516,10 @@
       el.className = 'block'; el.dataset.id = block.id; el.draggable = false;
       el.innerHTML =
         `<div class="block-head" draggable="true">
+           <button class="iconbtn" data-act="cfg" title="signals" style="flex-shrink:0">⚙</button>
            <span class="block-title">BLOCK</span>
            <div class="block-chips"></div>
            <div class="block-btns">
-             <button class="iconbtn" data-act="cfg" title="signals">⚙</button>
              <button class="iconbtn" data-act="del" title="delete block">✕</button>
            </div>
          </div>
