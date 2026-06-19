@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.152] — 2026-06-18
+### Added
+- BL-GRAF-04: floating cursor data readout in GRAF2. A `#cur-readout` panel
+  (fixed-position, dark, monospace) shows timestamp + all signal values at
+  the cursor position across all blocks. Dodges left ↔ right based on mouse X
+  with 80 px hysteresis so it never overlaps the cursor. Hides automatically
+  when the cursor leaves the chart area. `transition: .12s` on left/right for
+  smooth hop (`graf2.html`, `graf2.js`).
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.151] — 2026-06-18
 ### Added
 - BL-3DV-10: persist 3D camera state in `localStorage` (`buell_cam_3d`). YAW/PIT/ROL
