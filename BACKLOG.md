@@ -100,16 +100,9 @@ Al comparar sesión A vs sesión B no se puede ver si hubo diferencia de altitud
 - El usuario debe poder ver: "sesión A: 870 hPa / 2200m vs sesión B: 1010 hPa / 200m"
   para entender por qué los PW normalizados difieren
 
-- [ ] web/sessions_vs.html: stats row por sesión con avg baro_hPa, temp_amb, humidity, gps_alt
-- [ ] web/session_events.html: stats ambientales por cluster
+- [x] web/sessions_vs.html: stats row per session — done v2.7.159
+- [ ] web/session_events.html: env stats per cluster (BL-UX-05)
 
-### BL-UX-04 — Session Events: curva de muestra única se ve como línea delgada
-**Priority:** MEDIUM
-**Pages:** Session Events (session_events.html)
-
-Cuando un cluster tiene n=1 evento, la curva se renderiza como línea muy delgada
-(no tiene área de desviación std). Debe verse igual que clusters multi-muestra:
-misma curva promedio, sin área sombreada si n=1 pero con el mismo grosor de línea.
 
 ### BL-UX-05 — Session Events: agregar stats ambientales por evento
 **Priority:** MEDIUM

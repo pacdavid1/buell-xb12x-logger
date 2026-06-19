@@ -21,6 +21,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.169] — 2026-06-19
+### Fixed
+- web/templates/session_events.html: BL-UX-04 — n=1 cluster curves rendered as thin
+  line instead of full-width average line. Two root causes: (1) cached events have
+  pw_curve stripped to save space — added fallback to pw1_curve when pw_curve is
+  missing; (2) showEvt individual renders (lineWidth=0.8) were firing for n=1 and
+  painting over the avg — skip individual renders when mb.length===1.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.168] — 2026-06-19
 ### Changed
 - CLAUDE.md: objectives section refined — "session" → "conversation" to avoid

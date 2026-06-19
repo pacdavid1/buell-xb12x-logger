@@ -535,7 +535,7 @@ function drawChart(c){
     }
   }
 
-  if(showEvt){
+  if(showEvt && mb.length > 1){
     mb.forEach(function(m,idx){
       var col=evColor(idx,mb.length,0.28);
       function drawPreEv(arr,yFn){
@@ -584,7 +584,8 @@ function drawChart(c){
   PW_KEYS.forEach(function(k){
     if(!active[k]) return;
     var m=METRICS[k];
-    drawAvg(st[m.avg]||(solo&&solo[m.key]),ypL,m.color,m.width,m.dash);
+    var curve=st[m.avg]||(solo&&(solo[m.key]||(k==='pw'&&solo.pw1_curve)));
+    drawAvg(curve,ypL,m.color,m.width,m.dash);
   });
   OTHER_KEYS.forEach(function(k){
     if(!active[k]||!oScales[k]) return;
