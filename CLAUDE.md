@@ -354,7 +354,7 @@ directly to `main`.
 
 ## MODO CREATIVO
 
-Cuando el usuario diga "modo creativo" o "activa modo creativo":
+Cuando el usuario diga "modo creativo", "activa modo creativo", "ponte creativo" o "ponte creativa":
 1. Leer CREATIVE_MODE.md para instrucciones completas
 2. Leer IDEAS.md para ver qué ya se exploró
 3. Operar según esas instrucciones hasta que el usuario
