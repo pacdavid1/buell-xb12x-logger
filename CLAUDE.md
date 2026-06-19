@@ -336,3 +336,16 @@ Before applying ANY freebuff proposal (code fix, architecture, research finding)
 3. If a file needs user decision: keep it, flag to user, wait
 4. Never skip an inbox file - every file is there for a reason
 
+## MODO CREATIVO
+
+Cuando el usuario diga "modo creativo" o "activa modo creativo":
+1. Leer CREATIVE_MODE.md para instrucciones completas
+2. Leer IDEAS.md para ver qué ya se exploró
+3. Operar según esas instrucciones hasta que el usuario
+   diga "modo normal"
+
+Al cerrar cualquier sesión de código (después del commit):
+- Si Claude encuentra algo mientras trabaja que aplica
+  a IDEAS.md — agregarlo sin que el usuario lo pida
+- Una entrada por sesión máximo — no interrumpir el trabajo
+

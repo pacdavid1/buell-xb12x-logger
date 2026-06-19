@@ -18,6 +18,8 @@
   let _dragId = null;       // block id being dragged
   let READOUT = {};         // blockId -> { u, seriesKeys, valSpans } for the unified legend
   let _yFit = false;        // false = Y fixed to full-ride range; true = Y auto-fits the visible window
+  let _curX = 0;            // last known mouse clientX, for the floating readout dodge logic
+  let _rdLeft = false;      // floating readout side: false=right, true=left
 
   // update the live values shown in each block's chips at the cursor position
   function updateReadout(blockId) {
@@ -30,6 +32,31 @@
         : isFlag(key) ? (raw > 0 ? '1' : '0')
           : (Math.abs(raw) >= 100 ? raw.toFixed(0) : raw.toFixed(2));
     }
+    updateFloatingReadout(r.u);
+  }
+
+  // floating readout panel: shows all cursor values, dodges left/right based on mouse position
+  function updateFloatingReadout(u) {
+    const el = $('cur-readout'); if (!el) return;
+    const idx = u.cursor.idx;
+    if (idx == null || !DATA) { el.style.display = 'none'; return; }
+    const t = DATA.x[idx];
+    let html = '<div class="cr-t">' + (t != null ? t.toFixed(2) + 's' : '--') + '</div>';
+    const seen = new Set();
+    for (const bid in READOUT) {
+      const r = READOUT[bid];
+      for (const si in r.valSpans) {
+        const k = r.seriesKeys[+si - 1]; if (seen.has(k)) continue; seen.add(k);
+        const raw = DATA.cols[k] ? DATA.cols[k][idx] : null;
+        const v = raw == null ? '--' : isFlag(k) ? (raw > 0 ? '1' : '0') : (Math.abs(raw) >= 100 ? raw.toFixed(0) : raw.toFixed(2));
+        html += '<div class="cr-r"><span class="cr-d" style="background:' + colorOf(k) + '"></span><span class="cr-k">' + k + '</span><span class="cr-v">' + v + '</span></div>';
+      }
+    }
+    el.innerHTML = html; el.style.display = 'block';
+    const mid = window.innerWidth / 2, H = 80;
+    if (!_rdLeft && _curX < mid - H) _rdLeft = true;
+    else if (_rdLeft && _curX > mid + H) _rdLeft = false;
+    el.style.left = _rdLeft ? '8px' : ''; el.style.right = _rdLeft ? '' : '8px';
   }
 
   // ── annotations (region markers persisted on the Pi, consumed by F7 later) ──
@@ -713,6 +740,7 @@
     $('pickerApply').onclick = () => { save(); renderBlocks(); closePicker(); };
     $('pickerModal').onclick = (e) => { if (e.target.id === 'pickerModal') { save(); renderBlocks(); closePicker(); } };
     window.addEventListener('resize', () => { for (const id in PLOTS) { const b = BLOCKS.find((x) => x.id === id); const wrap = document.querySelector(`.block[data-id="${id}"] .uwrap`); if (b && wrap) PLOTS[id].setSize({ width: wrap.clientWidth, height: b.height }); } });
+    document.addEventListener('mousemove', (e) => { _curX = e.clientX; });
 
     loadRideList();
   }

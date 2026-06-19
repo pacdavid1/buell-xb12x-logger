@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
+# DEV NOTE: All code, comments, and variable names must be in English.
 """
-ecu/eeprom_params.py — Parser de parámetros EEPROM desde XMLs de EcmSpy.
+ecu/eeprom_params.py — EEPROM parameter parser from EcmSpy XMLs.
 
-Lee ecu_defs/*.xml según la versión real de la ECU resuelta vía files.xml
-y decodifica todos los parámetros type=Value del blob EEPROM.
-
-Este archivo fue reemplazado completamente para evitar edición manual.
+Reads ecu_defs/*.xml based on the real ECU version resolved via files.xml
+and decodes all type=Value parameters from the EEPROM blob.
 """
 
 import xml.etree.ElementTree as ET
@@ -21,9 +20,7 @@ HEADER_OFFSET = 0  # offsets XML son directos al blob
 
 
 def _find_xml_fallback(version_string):
-    """
-    Fallback heurístico antiguo (se mantiene solo como respaldo).
-    """
+    """Heuristic fallback for XML lookup when version resolution fails."""
     token = version_string.strip().split()[0]
     prefix = ''.join(c for c in token if c.isalpha())
     candidates = [
@@ -119,10 +116,3 @@ def decode_params(blob, version_string):
 
     logger.info(f"Decoded {len(results)} params from {xml_path.name}")
     return results
-
-
-def decode_params_dict(blob, version_string):
-    """
-    Igual que decode_params pero indexado por nombre.
-    """
-    return {p['name']: p for p in decode_params(blob, version_string)}

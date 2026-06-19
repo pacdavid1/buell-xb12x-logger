@@ -16,25 +16,23 @@ Visor de telemetría profesional (uPlot), página **separada** del Dashboard vie
 - **Se usa en el trackpad de una laptop** (no pantalla táctil): gestos por eventos `wheel`
   (ctrlKey=zoom, deltaX=pan tiempo, deltaY=scroll de página).
 
-## Estado actual — HECHO (v2.7.140 → v2.7.143, branch work/session-20260612, SIN pushear)
+## Estado actual — HECHO (v2.7.140 → v2.7.148, en main)
 
 - v2.7.140: uPlot; zoom+cursor sincronizado entre bloques; sombreado de flags; carriles de flags; leyenda unificada.
 - v2.7.141: carriles manuales — toggle `≡` en el chip manda cualquier señal analógica a su propio carril apilado (~20%, `LANE_FRAC`).
 - v2.7.142: anotaciones Fase 1 (botón 🔖 Mark, span de 2 clicks + nota, bandas azules, persistidas en `sessions/<sesion>/ride_*_annotations.json`) + toggle de eje Y (`Y: full` fijo al rango del ride [default] / `Y: fit` auto a lo visible).
 - v2.7.143: editar/borrar anotación (click en una banda fuera de modo marca → editar/borrar; `POST /annotations` actualiza por id).
+- v2.7.145: FASE 2.1 — selector `launch` / `diagnostic` / `note` en el modal; `type` persistido y validado server-side; bandas coloreadas por tipo (launch=azul, diagnostic=gris, note=verde); anotaciones sin `type` renderizan como launch.
+- v2.7.148: `type` ahora REQUERIDO (antes default `launch`); modal bloquea guardar sin tipo seleccionado con aviso inline; backend rechaza POST sin tipo válido con HTTP 400; anotaciones legacy sin tipo renderizan en ámbar para reclasificar.
 
 Backend anotaciones (`web/handlers/rides.py`): `GET /annotations?ride=<f>` y `POST /annotations`
-(add / update-by-id / `action:delete`). JSON por ride: `{ride, annotations:[{id,t0_s,t1_s,note,created_utc}]}`.
+(add / update-by-id / `action:delete`). JSON por ride: `{ride, annotations:[{id,t0_s,t1_s,note,type,created_utc}]}`.
 
 ---
 
-## FASE 2 — EMPEZAR AQUÍ (acordada con el usuario)
+## FASE 2 — SIGUIENTE (2.2 pendiente)
 
-### 2.1 Campo `type` en las anotaciones
-- Agregar al modal de marca un selector **`launch` / `diagnostic` / `note`** (default `launch`).
-- Persistir `type` en el JSON de la anotación (frontend lo manda en el POST; backend ya guarda lo que llega — añadir `type` al objeto).
-- Dibujar color/etiqueta según tipo (opcional: launch=azul, diagnostic=gris).
-- Motivo: solo las `launch` deben entrar a F7; las `diagnostic` (gaps de señal, evento del fan) son anotaciones puras.
+### 2.1 Campo `type` en las anotaciones — ✅ DONE (v2.7.145 + v2.7.148)
 
 ### 2.2 F7 consume las marcas — OPCIÓN B (elegida): "juntas pero no revueltas"
 Objetivo del usuario: que el tramo marcado se procese **de pe a pa por F7**, pero **sin

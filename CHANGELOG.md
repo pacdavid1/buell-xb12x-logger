@@ -21,6 +21,59 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.153] — 2026-06-18
+### Changed
+- BL-M3D-01: increased 3D GPS track canvas height in Mapa tab from 38dvh to
+  70dvh. The pane already scrolls (overflow-y:auto on .content); this makes the
+  canvas big enough to actually see and interact with the track. Canvas
+  auto-resizes via getBoundingClientRect() on every draw frame — no JS changes
+  needed.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.152] — 2026-06-18
+### Added
+- BL-GRAF-04: floating cursor data readout in GRAF2. A `#cur-readout` panel
+  (fixed-position, dark, monospace) shows timestamp + all signal values at
+  the cursor position across all blocks. Dodges left ↔ right based on mouse X
+  with 80 px hysteresis so it never overlaps the cursor. Hides automatically
+  when the cursor leaves the chart area. `transition: .12s` on left/right for
+  smooth hop (`graf2.html`, `graf2.js`).
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.151] — 2026-06-18
+### Added
+- BL-3DV-10: persist 3D camera state in `localStorage` (`buell_cam_3d`). YAW/PIT/ROL
+  angles, ALT scale, and ZOOM survive page reload. Saved on every `applyAngles()` call
+  and on mouse-wheel zoom; loaded automatically in `init3D()` startup.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.150] — 2026-06-18
+### Added
+- BL-3DV-07: PNG snapshot button in 3D control bar (`tuner.html`). Clicking PNG
+  stitches all three canvases (BASE / DELTA / MOD) into one wide image with labels,
+  triggers a `canvas.toBlob()` download named
+  `3D_{MAP}_{SESSION}_{DATE}.png`. No server round-trip.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.149] — 2026-06-18
+### Removed
+- `decode_params_dict()` from `ecu/eeprom_params.py` — compat wrapper (returns
+  `decode_params` result keyed by name) with zero callers anywhere in the codebase.
+  Freebuff dead-code audit flagged it; exhaustive grep confirmed 0 references.
+- Dead-code and orphan-file sections from BACKLOG.md — function names were blank
+  (backtick rendering bug). After full investigation: only `decode_params_dict`
+  was genuinely dead; all other flagged functions have internal callers; orphan
+  scripts were already removed in v2.7.62.
+### Changed
+- `ecu/eeprom_params.py`: added DEV NOTE header, translated Spanish docstrings
+  to English.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.148] — 2026-06-14
 ### Note
 - Carries the actual GRAF2 type-required code + backlog docs that were missing from the

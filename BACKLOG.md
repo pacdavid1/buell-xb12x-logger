@@ -120,15 +120,6 @@ Mostrar como fila de stats debajo del gráfico o como tooltip al hover.
 Permite ver: "este evento WOT fue cuesta arriba a 2100m y 28°C" —
 contexto crítico para entender por qué el PW fue mayor o menor.
 
-### BL-UX-06 — Dashboard: labels a la izquierda, rotados 90°, números más grandes
-**Priority:** MEDIUM
-**Pages:** Dashboard (index.html)
-
-Actualmente: label del parámetro en la parte superior del contenedor, número abajo.
-Cambio: label a la izquierda del contenedor, rotado 90° (texto vertical), número ocupa
-todo el ancho restante → números visiblemente más grandes desde la moto.
-Afecta el layout CSS de los contenedores de cada variable en index.html.
-
 
 ---
 
@@ -445,7 +436,6 @@ This is incremental — only add to files you touch, never as a bulk pass on unt
 - [ ] **#11 — Reconnect race condition** (`main.py:ecu_loop`): `ECU_RETRY_INTERVAL=5s` but serial port takes 1-2s to release. Retry fails because port is still busy. Add jitter or port availability check.
 
 ### 📋 Planned Features
-- [ ] **Version tracking per ride** — Store `logger_version` in ride_summary.json at ride close, show in UI, correlate error rates with code versions.
 - [ ] **GLM-5.1 API integration** — "AI Analyze" button in errorlog visualizer that sends ride data to Zhipu AI's GLM-5.1 for pattern analysis.
 
 ### Priority High (Confirmed Bugs)
@@ -892,21 +882,6 @@ Implementation plan:
 - Freebuff task: grep eeprom.py + existing eeprom_decoded.json samples for odometer fields
 
 
-### BL-FUEL-18 — Reserve color state on ~KM widget
-**Priority:** MEDIUM
-**Depends on:** `level_L` being tracked (requires at least one fill-up registered)
-
-Reserve threshold confirmed from Buell XB12X service manual:
-- **Reserve activates at 3.1L remaining** (already set as `RESERVE_L = 3.1` in fuel_tracker.py)
-- Tank total: 16.7L (XB12X Ulysses — larger than other XB12 models which use 14.5L)
-
-When `level_L <= 3.1`, the ~KM widget (grid widget B) and widget A ~KM mode
-should enter a distinct "reserve" visual state — distinct from the normal <30km red:
-- Color: amber/orange (`#e67e22`) — signals reserve, not just low km
-- Optional: slow blink at 1Hz (CSS animation, no JS timer)
-- The fuel bar in all page headers should also enter reserve color state
-- Secondary trigger option: ECU reserve signal bit if found via FASE 8.1 (DIn bitmask)
-  — would allow reserve detection without needing a prior fill-up
 
 ### BL-FUEL-19 — L/100km historical trend
 **Priority:** LOW
@@ -944,19 +919,6 @@ Key gaps: WiFi/Hotspot management, error log viz, gear detection, GPS, system he
 battery shutdown, baro normalization, VE heatmap editing, MSQ export, F7 pipeline.
 Use readme_annotated.md (freebuff output) as draft template when implementing.
 
-
-### Código muerto Python (confirmado — 0 referencias en todo el codebase)
-- [ ] Eliminar  — ecu/eeprom_params.py (función de compat nunca llamada)
-- [ ] Eliminar  — ecu/session.py (nunca referenciada)
-- [ ] Eliminar  — ecu/session.py (nunca llamada)
-- [ ] Eliminar  — network/manager.py (nunca llamada)
-- [ ] Eliminar  — ecu/connection.py (nunca llamada)
-- [ ] Quitar imports muertos en main.py: , 
-
-### Archivos huérfanos (existen pero nadie los importa)
-- [ ] Eliminar  — script de actualización obsoleto
-- [ ] Eliminar  — patch para ddfi2_logger.py que ya no existe
-- [ ] Eliminar o documentar , , 
 
 ### Sesiones huérfanas (sin rides)
 - [ ] Endpoint o script de limpieza: borrar sesiones sin rides y sin eeprom_backup_*.bin
@@ -1147,11 +1109,6 @@ No necesita learning cycle manual.
   Archivo: web/proposal.py linea ~192
   Estimado: 10min
 
-## Prioridad: HECHA (v2.7.25) - Verificada por freebuff
-- [x] pw1/pw2 raw preserved in load_csv() - BUG FIXED
-  Commit 2b87e4f. pw1 ahora es RAW, pw1_norm agregado, CACHE_VERSION bump a 7.
-  detect_launches() usa pw1 raw correctamente.
-  Archivos: launch.py, vs_engine.py, CHANGELOG.md
 ---
 
 # Backlog: Knowledge Graph de Mapas — Diseño (freebuff task 028)
@@ -1466,13 +1423,6 @@ Note: zone-aware boundaries depend on FASE 6.1 zone fusion being implemented fir
 - [ ] Dashboard baro columns (avg_baro, baro_valid_pct)
 
 
-### BL-LOGGER-01 — Grabar humidity_pct y gps_alt_m en el CSV
-**Priority:** MEDIUM
-**File:** main.py o el logger de CSV
-
-humidity_pct del sensor AHT20 no está siendo grabada en el CSV.
-gps_alt_m del GPS sí está en el CSV pero gps_valid=True casi nunca coincide con eventos F7.
-Verificar que ambas columnas se graben correctamente y con la frecuencia adecuada.
 
 
 ### BL-BUG-02 — VSS auto-calibration via GPS comparison

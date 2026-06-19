@@ -179,35 +179,6 @@ angle per corner. Riding insight, not tuning.
 
 ---
 
-## BL-DI-10 — Dead code audit (COMPLETED) — 2026-06-12
-**Tags:** cleanup, refactor
-**Status:** [DONE] — verified 2026-06-12 by freebuff
-
-### Result
-Manual call-graph analysis of all 125 named functions in app.js
-across all 6 HTML templates. Found: **1 truly dead function**.
-
-### Verified alive
-- revertToSession — alive (onclick in dynamic button line 2816)
-- closeRide — alive (button in HTML)
-- doConnect, doForget, prefillWifi — alive (WiFi pane dynamic onclicks)
-- initGraphPane — alive (called from tuner.html)
-- saveChartCfgs — alive (passed as callback to openChartCfg)
-- tempColor, confColor, pctColor — alive (render helpers)
-- doRestartLogger, doShutdown, gitPull — alive (system pane buttons)
-- All 34 previously-marked-as-suspicious: VERIFIED ALIVE
-
-### Dead function: saveObj() (line 1144)
-- POSTs objectives JSON to /obj endpoint
-- Never called from HTML or other JS
-- Pair function loadObj() IS called (line 47 in showTab)
-- Missing UI button to trigger save
-- **Resolved v2.7.129 (2026-06-13):** dead saveObj() removed from app.js by Claude
-
-### Python handlers
-All _handle_* functions properly routed in server.py — 0 orphan handlers.
-
-
 ---
 
 ## BL-DI-11 — GPS/VSS ratio as tire wear and pressure gauge (HIGH)

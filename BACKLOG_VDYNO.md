@@ -68,12 +68,6 @@ instrumento DIFERENCIAL, igual que toda la filosofía Sessions VS.
 
 ## FASE V3 — Veredicto de quemada (cierra el ciclo)
 
-### BL-VD-04 — Burn ledger
-**Priority:** HIGH (el eslabón que falta del norte)
-- Al quemar: registrar snapshot del diff (celdas tocadas, mapa origen →
-  mapa destino, fecha, sesión) en burns.json — los map_id ya existen
-  (29 mapas únicos detectados en 22 sesiones)
-- Costo: ~0, es solo registrar lo que ya pasa en el BURN
 
 ### BL-VD-05 — Veredicto automático post-ride
 **Priority:** HIGH
