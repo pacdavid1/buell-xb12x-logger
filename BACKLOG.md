@@ -47,6 +47,26 @@ killed and restarted the logger mid-request. Cached pairs respond fine.
 Fix ideas: stream CSV parsing in _compare_sessions (chunked rows instead of
 full-file lists), or precompute VS cache in background after each session close.
 
+### BL-GRAF-03 — GRAF2: remove floating cursor readout, inline values in lane headers
+**Priority:** MEDIUM
+**Pages:** GRAF2 (graf2.html)
+
+**Bug:** `#cur-readout` floating panel stretches full width across the screen.
+CSS is `position:fixed; right:8px; top:70px` but renders spanning left-to-right.
+
+**Proposed fix (user decision):** Remove the floating window entirely.
+Display cursor values inline in each lane's header row — the header already has
+space for signal name + current value at cursor position. Each lane shows its own
+value; no need for a centralized panel. If the user wants to compare two signals,
+they can create a lane that holds both and read them side by side.
+
+**Implementation sketch:**
+- Delete `#cur-readout` div and its CSS block
+- On uPlot cursor move, for each lane update a `<span class="lane-cur-val">` in
+  that lane's header with the current value formatted to the signal's precision
+- When cursor leaves the chart area, clear all lane-cur-val spans
+- No cross-lane aggregation needed — each lane owns its readout
+
 ### BL-UX-07 — Dashboard Graf: gráficas configurables con multi-señal overlay
 **Priority:** MEDIUM
 **Pages:** Dashboard (index.html — subtab Graf)

@@ -21,6 +21,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.170] — 2026-06-19
+### Docs
+- BACKLOG.md: added BL-GRAF-03 — remove GRAF2 floating cursor readout (#cur-readout
+  stretches full width, bug confirmed). Replace with inline cursor values in each lane
+  header so each chart shows its own current value without a centralized panel.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.169] — 2026-06-19
 ### Fixed
 - web/templates/session_events.html: BL-UX-04 — n=1 cluster curves rendered as thin
