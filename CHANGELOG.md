@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.154] — 2026-06-18
+### Fixed
+- app.js: all four polling interval handles (_liveInterval, _freezeInterval,
+  _cobertInterval, _fuelInterval) changed from `let` to `var` for consistent
+  global scope. Freebuff audit had changed only _fuelInterval; this completes
+  the fix across all four.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.153] — 2026-06-18
 ### Changed
 - BL-M3D-01: increased 3D GPS track canvas height in Mapa tab from 38dvh to
