@@ -21,6 +21,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.153] — 2026-06-18
+### Changed
+- BL-M3D-01: increased 3D GPS track canvas height in Mapa tab from 38dvh to
+  70dvh. The pane already scrolls (overflow-y:auto on .content); this makes the
+  canvas big enough to actually see and interact with the track. Canvas
+  auto-resizes via getBoundingClientRect() on every draw frame — no JS changes
+  needed.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.152] — 2026-06-18
 ### Added
 - BL-GRAF-04: floating cursor data readout in GRAF2. A `#cur-readout` panel
