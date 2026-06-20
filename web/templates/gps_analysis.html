@@ -65,6 +65,8 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',Consolas,mono
     <button class="btn on" id="btnGPS" onclick="toggleSeries(0)" style="border-color:#3d9eff;color:#3d9eff">GPS</button>
     <button class="btn on" id="btnVSS" onclick="toggleSeries(1)" style="border-color:#f5a623;color:#f5a623">VSS</button>
     <button class="btn on" id="btnDelta" onclick="toggleSeries(2)" style="border-color:#888;color:#888">Δ</button>
+    <button class="btn" id="btnYFit" onclick="toggleYFit()" title="Y auto-fit to visible range">Y⇕</button>
+    <button class="btn" onclick="resetZoom()" title="Reset zoom (double-click chart)">⟳</button>
   </div>
   <div id="chart" style="width:100%;height:100%"></div>
 </div>
@@ -95,7 +97,7 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',Consolas,mono
 <script>
 'use strict';
 // ── constants ────────────────────────────────────────────────────
-const T3_MAX_PTS = 1200, T3_TURN_S = 18, T3_IDLE_MS = 3000;
+const T3_MAX_PTS = 1200, T3_TURN_S = 30, T3_IDLE_MS = 3000;
 const MAP_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
 const MAP_ATTR = '&copy; OpenStreetMap contributors &copy; CARTO';
 
@@ -243,26 +245,34 @@ function drawStripCursor(idx) {
 }
 
 // ── uPlot speed chart ─────────────────────────────────────────────
+let _delta = [];
+let _yFit = false;
+let _xFull = [0, 1];  // full x range for reset
+
 function buildChart() {
   const wrap = document.getElementById('chart');
   if (_uplot) { _uplot.destroy(); _uplot = null; }
-  const n = DATA.times.length;
-  const delta = DATA.vs_kph.map((v, i) => (v || 0) - (DATA.gps_speed[i] || 0));
+  _delta = DATA.vs_kph.map((v, i) => (v || 0) - (DATA.gps_speed[i] || 0));
+  _xFull = [DATA.times[0], DATA.times[DATA.times.length - 1]];
+  const spdMax = Math.max(20, ...DATA.gps_speed.filter(Boolean), ...DATA.vs_kph.filter(Boolean));
   const udata = [
     new Float64Array(DATA.times),
     new Float64Array(DATA.gps_speed.map(v => v == null ? NaN : v)),
     new Float64Array(DATA.vs_kph.map(v => v == null ? NaN : v)),
-    new Float64Array(delta),
+    new Float64Array(_delta),
   ];
   const opts = {
     width: wrap.clientWidth,
     height: wrap.clientHeight - 4,
-    cursor: { sync: { key: 'gps_chart' }, drag: { x: true } },
+    cursor: { sync: { key: 'gps_chart' }, drag: { x: true, y: false, dist: 12 } },
+    select: { show: true },
     legend: { show: false },
     scales: {
       x: { time: false },
-      y: { range: [0, Math.max(20, ...DATA.gps_speed.filter(Boolean), ...DATA.vs_kph.filter(Boolean)) * 1.05] },
-      yd: { range: (u, mn, mx) => [Math.min(-5, mn), Math.max(5, mx)] },
+      y: { range: _yFit
+        ? (u, mn, mx) => [Math.min(0, mn), mx * 1.05]
+        : [0, spdMax * 1.05] },
+      yd: { range: (u, mn, mx) => [Math.min(-5, mn * 1.1), Math.max(5, mx * 1.1)] },
     },
     axes: [
       { stroke: '#55555e', ticks: { stroke: '#1e1e28' }, grid: { stroke: '#1e1e28' }, font: '9px monospace',
@@ -290,21 +300,42 @@ function buildChart() {
         if (idx == null || !DATA) return;
         syncCursorToMaps(idx);
         drawStripCursor(idx);
-        updateLegendText(idx, delta);
+        updateLegendText(idx);
       }],
-      setSize: [u => { /* resize handled by ResizeObserver */ }],
+      setSelect: [u => {
+        if (u.select.width > 0) {
+          const xMin = u.posToVal(u.select.left, 'x');
+          const xMax = u.posToVal(u.select.left + u.select.width, 'x');
+          u.setScale('x', { min: xMin, max: xMax });
+          u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+        }
+      }],
     },
   };
   _uplot = new uPlot(opts, udata, wrap);
+  // double-click anywhere on chart to reset zoom
+  wrap.addEventListener('dblclick', resetZoom);
 }
 
-function updateLegendText(idx, delta) {
+function updateLegendText(idx) {
   const gspd = DATA.gps_speed[idx] != null ? DATA.gps_speed[idx].toFixed(1) : '--';
   const vspd = DATA.vs_kph[idx] != null ? DATA.vs_kph[idx].toFixed(1) : '--';
-  const dv = delta[idx] != null ? ((delta[idx] > 0 ? '+' : '') + delta[idx].toFixed(1)) : '--';
+  const dv = _delta[idx] != null ? ((_delta[idx] > 0 ? '+' : '') + _delta[idx].toFixed(1)) : '--';
   const t = DATA.times[idx] != null ? DATA.times[idx].toFixed(1) + 's' : '';
+  const fix = DATA.valid[idx] === 3 ? '3D' : DATA.valid[idx] === 2 ? '2D' : 'NO FIX';
   document.getElementById('chartTitle').textContent =
-    t + '  GPS ' + gspd + ' · VSS ' + vspd + ' · Δ ' + dv + ' km/h';
+    t + '  GPS ' + gspd + ' · VSS ' + vspd + ' · Δ ' + dv + ' km/h · ' + fix;
+}
+
+function resetZoom() {
+  if (!_uplot || !DATA) return;
+  _uplot.setScale('x', { min: _xFull[0], max: _xFull[1] });
+}
+
+function toggleYFit() {
+  _yFit = !_yFit;
+  document.getElementById('btnYFit').classList.toggle('on', _yFit);
+  if (DATA) buildChart();
 }
 
 function toggleSeries(idx) {
@@ -384,7 +415,7 @@ function bind3D(canvas) {
   canvas.addEventListener('wheel', e => {
     if (!_t3) return;
     e.preventDefault();
-    _t3.zoom = Math.min(4, Math.max(0.3, _t3.zoom * (e.deltaY < 0 ? 1.1 : 0.91)));
+    _t3.zoom = Math.min(10, Math.max(0.1, _t3.zoom * (e.deltaY < 0 ? 1.12 : 0.89)));
     _t3.lastTouch = performance.now();
   }, { passive: false });
 }

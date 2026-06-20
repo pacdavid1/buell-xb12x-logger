@@ -21,6 +21,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.174] — 2026-06-19
+### Changed
+- GPS Analysis: 3D rotation 18s->30s per revolution, zoom range extended to 0.1-10x
+- GPS Analysis chart: drag-zoom on X axis (select range), double-click or button to reset,
+  Y auto-fit toggle, GPS fix mode shown in cursor readout (3D/2D/NO FIX)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.173] — 2026-06-19
 ### Added
 - GPS Analysis page (/gps_analysis): side-by-side 2D Leaflet + 3D canvas, uPlot speed chart
