@@ -21,6 +21,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.184] -- 2026-06-20
+### Changed
+- ecu/eeprom.py (BL-ECM-01 Phase B1): decode_eeprom_maps() now delegates to
+  ecm_defs.decode_maps() (XML-driven, multi-firmware). Backward-compatible:
+  all callers omitting version get BUEIB310 default; output byte-identical
+  (validated 12/12 golden BUEIB bins). Removed dead code: BUEIB_PARAMS dict
+  and decode_eeprom_params() (replaced by ecu.eeprom_params since v2.x).
+  encode_eeprom_maps() unchanged (Phase C).
+- IDEAS.md: added IDEA-027 (ghost lap — two rides synchronized by GPS distance,
+  not time; telemetry overlay on shared distance axis for map-vs-map comparison)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.183] -- 2026-06-20
 ### Changed
 - IDEAS.md: added IDEA-022 through IDEA-026 from creative backlog review

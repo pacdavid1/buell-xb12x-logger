@@ -262,6 +262,35 @@ to update engine health baseline" in its mission list — same infrastructure, d
 **Requiere:** GPS Fase 1 in CSV (BL-GPS-01, not yet persisted). VDYNO (BL-VD-01).
 Meaningful after ≥5 qualifying rides on the same segment.
 
+### IDEA-027 — Ghost lap: two rides synchronized by distance, not time
+**Señal:** gps_lat/gps_lon per CSV row + user-marked start point + full telemetry (RPM, PW, VS_KPH, etc.)
+**Técnica:** Ghost lap / telemetry overlay — standard in motorsport (MoTeC, AiM, Racelogic).
+The critical insight is synchronization by cumulative GPS distance from a user-defined start
+point, NOT by timestamp. At meter 250, both rides are at the same physical location regardless
+of when they arrived. A shared distance-axis cursor advances both rides simultaneously, showing:
+- Two ghost markers on the Leaflet map (one per ride, same-position-in-route at any cursor position)
+- Dual telemetry overlay on the chart: RPM, PW, VS_KPH vs distance for both rides
+- Time delta at each distance point (how many seconds one ride leads the other)
+The user marks the start point on the GPS Analysis map (click → "Set lap start here").
+Distance = cumulative haversine sum from that point forward.
+**Aplica a:** Three use cases, same implementation:
+1. **Lap comparison** — same route, different sessions/maps: which lap was faster and why?
+2. **Drag strip** — same 400m segment, two runs: winner + telemetry diff (did I shift earlier? more PW?)
+3. **Pull comparison** — 300m segment where you always WOT: IDEA-026's engine wear baseline
+**Por qué importa:** Sessions VS already tells you which map has better average dpw per cell.
+Ghost lap tells you the WHY at a specific moment in a specific place. You see exactly where
+one ride pulls ahead and what RPM/TPS/PW was different at that meter. The story goes from
+"Map A produced better pulls overall" to "Map A was 0.4s faster through the uphill and
+the RPM at meter 180 was 400 higher — that's where it diverged." Unmissable for tuning.
+**Dato clave:** The time-sync temptation is wrong. If you sync by wall-clock offset, within
+30 seconds the two ghost markers are physically far apart (different speeds, traffic stops).
+Distance-sync keeps them at the same road location always. This is the non-obvious part that
+separates working implementations from broken ones.
+**Requiere:** GPS Fase 1 in CSV (BL-GPS-01, not yet persisted — gps_lat/gps_lon/gps_speed_kmh).
+Start-point picker UI in GPS Analysis map (Leaflet click handler, stores lat/lon + row index).
+Haversine distance accumulation (already used elsewhere in the codebase). Dual-trace renderer
+on the existing uPlot or canvas chart in GPS Analysis. No new data collection needed beyond GPS Fase 1.
+
 ## Descartadas
 
 ## Convertidas a BACKLOG
