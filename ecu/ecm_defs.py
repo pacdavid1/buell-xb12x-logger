@@ -111,3 +111,42 @@ def decode_maps(blob, version_string):
         elif d["type"] == "Map" and d["name"] in MAP_KEYS:
             maps[MAP_KEYS[d["name"]]] = _decode_map(blob, d)
     return {"axes": axes, **maps}
+
+
+# EEPROM page tables: (page_nr, absolute_start, length).
+# Derived from ECU firmware protocol paging — NOT derivable from XML offsets alone.
+# BUEIB page structure confirmed on live hardware (XB12X, DDFI-2).
+_BUEIB_PAGES: list[tuple[int, int, int]] = [
+    (1,    0, 256),
+    (2,  256, 256),
+    (3,  512, 158),
+    (4,  670, 256),
+    (5,  926, 256),
+    (6, 1182,  24),
+]
+
+_PAGES_BY_FIRMWARE: dict[str, list[tuple[int, int, int]]] = {
+    "BUEIB": _BUEIB_PAGES,
+}
+
+
+def get_eeprom_pages(version_string: str) -> list[tuple[int, int, int]]:
+    """Return (page_nr, start, length) tuples covering the full EEPROM.
+
+    Falls back to sequential 256-byte pages for unrecognized firmware.
+    Sequential pages are safe for reads; burns on unknown firmware should
+    be avoided until the page structure is confirmed on real hardware.
+    """
+    ecu = resolve_ecu(version_string)
+    dbfile = (ecu or {}).get("dbfile", "")
+    if dbfile in _PAGES_BY_FIRMWARE:
+        return _PAGES_BY_FIRMWARE[dbfile]
+    xml_p = _xml_path(version_string)
+    total = _min_blob_size(_entries(xml_p)) if xml_p and xml_p.exists() else 1206
+    pages, nr, start = [], 1, 0
+    while start < total:
+        length = min(256, total - start)
+        pages.append((nr, start, length))
+        nr += 1
+        start += length
+    return pages

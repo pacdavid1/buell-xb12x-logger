@@ -637,10 +637,10 @@ class SessionManager:
                             elif afv<80 or afv>120: inv="AFV"
                             elif fl_decel: inv="decel"
                             elif fl_cut: inv="fuel_cut"
-                        ri = max(0, min(bisect.bisect_right(RPM_BINS, rpm)-1, len(RPM_BINS)-2))
-                        li = max(0, min(bisect.bisect_right(LOAD_BINS, load)-1, len(LOAD_BINS)-2))
-                        r0,r1 = RPM_BINS[ri],RPM_BINS[ri+1]
-                        l0,l1 = LOAD_BINS[li],LOAD_BINS[li+1]
+                        ri = max(0, min(bisect.bisect_right(self._rpm_bins, rpm)-1, len(self._rpm_bins)-2))
+                        li = max(0, min(bisect.bisect_right(self._load_bins, load)-1, len(self._load_bins)-2))
+                        r0,r1 = self._rpm_bins[ri],self._rpm_bins[ri+1]
+                        l0,l1 = self._load_bins[li],self._load_bins[li+1]
                         tr = (rpm-r0)/(r1-r0) if r1!=r0 else 0.0
                         tl = (load-l0)/(l1-l0) if l1!=l0 else 0.0
                         for key,weight in [(f"{r0}_{l0}",(1-tr)*(1-tl)),(f"{r0}_{l1}",(1-tr)*tl),(f"{r1}_{l0}",tr*(1-tl)),(f"{r1}_{l1}",tr*tl)]:
@@ -671,12 +671,12 @@ class SessionManager:
             with open(tmp,"w") as f: json.dump(meta,f,indent=2)
             tmp.replace(meta_file)
 
-def cell_key(rpm, load):
-    ri = bisect.bisect_right(RPM_BINS, rpm) - 1
-    li = bisect.bisect_right(LOAD_BINS, load) - 1
-    ri = max(0, min(ri, len(RPM_BINS) - 1))
-    li = max(0, min(li, len(LOAD_BINS) - 1))
-    return f"{RPM_BINS[ri]}_{LOAD_BINS[li]}"
+def _cell_key(rpm, load, rpm_bins, load_bins):
+    ri = bisect.bisect_right(rpm_bins, rpm) - 1
+    li = bisect.bisect_right(load_bins, load) - 1
+    ri = max(0, min(ri, len(rpm_bins) - 1))
+    li = max(0, min(li, len(load_bins) - 1))
+    return f"{rpm_bins[ri]}_{load_bins[li]}"
 
 
 class CellTracker:
@@ -781,7 +781,7 @@ class CellTracker:
         tps_delta = abs(tps - self._last_tps) if self._last_tps is not None else 0
         flavor    = self._classify_flavor(data, tps, tps_delta)
         valid, inv_reason = self._is_valid(data, tps)
-        primary_key = cell_key(rpm, load)
+        primary_key = _cell_key(rpm, load, self._rpm_bins, self._load_bins)
         neighbors   = self._bilinear_weights(rpm, load)
         with self._lock:
             self.active = primary_key

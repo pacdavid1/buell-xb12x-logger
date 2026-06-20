@@ -22,6 +22,7 @@ import threading
 from typing import Any
 
 from ecu.protocol import decode_rt_packet, RT_RESPONSE_SIZE, SOH
+from ecu.ecm_defs import get_eeprom_pages
 
 # ── Protocolo DDFI2 ──────────────────────────────────────────
 SOH: int      = 0x01
@@ -33,21 +34,11 @@ DROID_ID: int  = 0x00
 STOCK_ECM_ID: int = 0x42
 CMD_GET: int   = 0x52
 CMD_SET: int   = 0x57  # confirmed 2026-05-31: write EEPROM page
-RT_RESPONSE_SIZE: int = 107
 
 PDU_VERSION = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x56, 0x03, 0xE8])
 # PDU_RT_DATA importado localmente — no está en protocol.py
 PDU_RT_DATA = bytes([0x01, 0x00, 0x42, 0x02, 0xFF, 0x02, 0x43, 0x03, 0xFD])
 
-# (page_nr, start, length)
-BUEIB_PAGES: list[tuple[int, int, int]] = [
-    (1,    0, 256),
-    (2,  256, 256),
-    (3,  512, 158),
-    (4,  670, 256),
-    (5,  926, 256),
-    (6, 1182,  24),
-]
 
 
 def build_pdu(payload_bytes: bytes) -> bytes:
@@ -66,6 +57,11 @@ class DDFI2Connection:
         self.last_dirty_byte: str | None = None
         self.logger = logging.getLogger("DDFI2")
         self._lock = threading.RLock()
+        self._ecu_version: str = "BUEIB"
+
+    def set_ecu_version(self, version_string: str) -> None:
+        """Store ECU firmware version so EEPROM page layout is correct."""
+        self._ecu_version = version_string or "BUEIB"
 
     def connect(self) -> None:
         deadline = time.monotonic() + 15.0
@@ -256,10 +252,12 @@ class DDFI2Connection:
             return None
 
     def read_full_eeprom(self) -> bytes | None:
-        """Lee las 6 páginas del BUEIB/DDFI-2 → 1206 bytes."""
-        eeprom = bytearray(1206)
+        """Read all EEPROM pages for the connected firmware → byte blob."""
+        pages = get_eeprom_pages(self._ecu_version)
+        total_size = sum(ln for _, _, ln in pages)
+        eeprom = bytearray(total_size)
         try:
-            for page_nr, start, length in BUEIB_PAGES:
+            for page_nr, start, length in pages:
                 i = 0
                 while i < length:
                     chunk = min(16, length - i)
@@ -270,7 +268,7 @@ class DDFI2Connection:
                     eeprom[start + i: start + i + len(data)] = data
                     i += chunk
                 self.logger.debug(f"EEPROM page {page_nr} leida ({length} bytes)")
-            self.logger.info("EEPROM leida completa (1206 bytes)")
+            self.logger.info(f"EEPROM read complete ({total_size} bytes)")
             return bytes(eeprom)
         except Exception as e:
             self.logger.error(f"read_full_eeprom: {e}")
@@ -310,9 +308,11 @@ class DDFI2Connection:
 
         Returns dict: {written, verified, diffs_found, errors}
         """
-        if len(proposed) != 1206:
+        pages = get_eeprom_pages(self._ecu_version)
+        total_size = sum(ln for _, _, ln in pages)
+        if len(proposed) != total_size:
             return {'written': 0, 'verified': False, 'diffs_found': 0,
-                    'errors': [f'proposed length {len(proposed)} != 1206']}
+                    'errors': [f'proposed length {len(proposed)} != {total_size}']}
 
         # Read current EEPROM before any write
         current = self.read_full_eeprom()
@@ -333,7 +333,7 @@ class DDFI2Connection:
 
         # Map absolute offset → (page_nr, page_offset)
         def abs_to_page(abs_off):
-            for pnr, start, length in BUEIB_PAGES:
+            for pnr, start, length in pages:
                 if start <= abs_off < start + length:
                     return pnr, abs_off - start
             return None, None

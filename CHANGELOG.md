@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.195] - 2026-06-20
+### Changed
+- ecu/ecm_defs.py: added get_eeprom_pages(version_string) — EEPROM page table moved here from connection.py. BUEIB confirmed on live hardware; unknown firmware falls back to sequential 256-byte pages
+- ecu/connection.py: removed hardcoded BUEIB_PAGES and duplicate RT_RESPONSE_SIZE=107. DDFI2Connection now stores _ecu_version (default "BUEIB") and exposes set_ecu_version(). read_full_eeprom() and write_full_eeprom() derive page layout and total size dynamically
+- ecu/logger_process.py: call ecu.set_ecu_version() after get_version() on initial connect and hard reconnect
+- ecu/session.py: _rebuild_summary() now uses self._rpm_bins/self._load_bins instead of module globals. cell_key() renamed to _cell_key(rpm, load, rpm_bins, load_bins) with explicit bins params; call site uses self._rpm_bins/self._load_bins
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.194] - 2026-06-20
 ### Fixed
 - CLAUDE.md: restored "How to edit files on the Pi" rule body (code examples were stripped by shell backtick expansion in previous session)

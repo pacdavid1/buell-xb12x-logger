@@ -187,6 +187,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                 ecu.connect()
                 ecu_version = ecu.get_version()
                 if ecu_version:
+                    ecu.set_ecu_version(ecu_version)
                     log.info(f"ECU: {ecu_version}")
                     blob = _load_eeprom(ecu, sessions_dir, log)
                     session.open_session(ecu_version, blob)
@@ -280,6 +281,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                     if ver:
                         log.info("ECU back after hard reconnect")
                         ecu_version = ver
+                        ecu.set_ecu_version(ver)
                         consecutive_errors = 0
                         ecu_lost_since = None
                         last_lost_interval = -1
