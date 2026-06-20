@@ -66,7 +66,17 @@ def resolve_ecu(version_string):
         if e.get("name") == token:
             return e
 
-    # 2) Match por prefijo alfabético (BUEIB310 → BUEIB)
+    # 2) Match por prefijo más largo (BUE2D242 → BUE2D; BUEIB310 → BUEIB)
+    best = None
+    for e in _ECM_TABLE:
+        name = e.get("name", "")
+        if name and token.startswith(name):
+            if best is None or len(name) > len(best.get("name", "")):
+                best = e
+    if best:
+        return best
+
+    # 3) Fallback alpha-only (BUEIB310 → BUEIB) para firmwares sin dígitos
     alpha = ''.join(c for c in token if c.isalpha())
     for e in _ECM_TABLE:
         if e.get("name") == alpha:

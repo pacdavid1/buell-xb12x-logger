@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.197] - 2026-06-20
+### Fixed
+- ecu/version_resolver.py: resolve_ecu() now uses longest-prefix match before alpha-only fallback. Real ECU version strings like 'BUE2D242' now resolve to 'BUE2D' (was returning None because alpha-strip turned '2' in 'BUE2D242' into 'BUED' which had no match)
+### Validated
+- decode_eeprom_maps(xpr_bytes, 'BUE2D242') produces fuel_front 16x20, spark_front 10x14 from real BUE2D (1125CR) hardware XPR dump. Axes match EcmSpy MSQ byte-exact (20 RPM bins [400..10700], 16 TPS bins [7..255])
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
 ## [v2.7.196] - 2026-06-20
 ### Changed
 - ecu/eeprom.py: encode_eeprom_maps() now XML-driven — offsets, dimensions, and scale come from ecm_defs._entries() for the given firmware version (was hardcoded to BUEIB 870/1038/670/770). Burn guard: unknown firmware returns eeprom_bytes unchanged, nothing written. encode(decode(blob)) validated byte-identical in safe zone across 12 BUEIB sessions
