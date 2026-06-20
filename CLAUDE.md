@@ -89,14 +89,18 @@ before the return. It's in the backlog.
 
 ## ECU logic — CRITICAL: read before writing any fuel/spark logic
 
-### Alpha-N fueling (not Speed Density)
+### Alpha-N fueling (not Speed Density) — DDFI2 only
 The DDFI2 runs **Alpha-N**: fuel is calculated from **TPS position + RPM only**.
 There is NO MAP sensor. The ECU does NOT compute air density from manifold pressure.
 
-**Consequences — do NOT assume Speed Density behavior:**
+**DDFI3 (1125CR) is different — Speed Density**: it has a MAP sensor and baro enters
+the fuel equation. Any baro normalization logic belongs in DDFI3-specific code only,
+gated behind a firmware family check.
+
+**Consequences for DDFI2 — do NOT assume Speed Density behavior:**
 - Barometric pressure does NOT directly enter the fuel equation
-- Do NOT normalize PW by (1013/baro) as if it were Speed Density
-- PW differences between sessions reflect MAP calibration differences, not baro offsets
+- Do NOT normalize PW by (1013/baro) for DDFI2 — it is not Speed Density
+- PW differences between sessions reflect map calibration differences, not baro offsets
 - We measure with physics: PW is what the injector actually did, TPS is what the rider did
 
 ### Sensor configuration — OL mode (CRITICAL context)
@@ -140,6 +144,13 @@ Sessions VS (dpw/ddvss) →  cell-level compare    →  which map is more effici
 - tuning_report becomes useful: cell-level EGO trend = map correction signal
 - Integrate as third input to unified proposal (don't replace F7 + VS, add to it)
 
+**Why no wideband yet — strategic decision, not a limitation:**
+We are deliberately building and validating the data pipeline (F7 events + Sessions VS)
+using what the ECU already gives us: PW, TPS, RPM, VSS, CLT, baro.
+The pipeline must work and be trusted before adding a new signal source.
+WB will arrive as a *validation layer* on top of a proven pipeline —
+not as a crutch that the system depends on from day one.
+
 **Rule: do NOT build any feature that depends on EGO_Corr or AFV
 until the WB sensor is installed and validated.**
 
@@ -157,12 +168,21 @@ until the WB sensor is installed and validated.**
 New tabs are only justified when the workflow is genuinely different.
 A new view mode or button within an existing tab is almost always better.
 
+## Where to work — CRITICAL
+
+**All code changes go directly on the Pi (`/home/pi/buell`) via SSH.**
+The Pi is the source of truth. The Windows clone is read-only reference.
+Never make changes in the Windows clone and push to GitHub — that breaks the live
+system and creates sync conflicts with other agents (freebuff).
+
 ## Commit workflow (mandatory order)
 
 1. Update CHANGELOG.md with the new version entry
 2. git add ALL changed files INCLUDING CHANGELOG.md in the same command
 3. git commit — code + changelog go in the same commit, never separate
-4. Never commit code without a CHANGELOG entry in the same commit
+4. git push — mandatory after every commit, no exceptions
+   Without push: Pi and GitHub diverge, no remote backup, version in logger freezes
+5. Never commit code without a CHANGELOG entry in the same commit
 
 ### CHANGELOG format — CRITICAL
 
@@ -282,12 +302,10 @@ No API key needed for code-only updates.
 
 ## Priority backlog items
 
-1. **Baro normalization** — fix dpw_eff in `_compare_sessions`: pw_norm = pw * (1013.25/baro)
-2. FASE 6 — unified map proposal: F7 + Sessions VS delta -> EEPROM proposal
-3. Backlog 7.8 — Sessions Launch consumes F7 clusters instead of detect_launches
-4. Backlog 7.7 — all-sessions F7 event comparison, rank maps by acceleration win rate
-5. FASE 5.1 — editable VE heatmap cells + burn from browser
-6. FASE 6 — map proposal from Sessions VS delta → VE overlay
+1. FASE 6 — unified map proposal: F7 + Sessions VS delta -> EEPROM proposal
+2. Backlog 7.8 — Sessions Launch consumes F7 clusters instead of detect_launches
+3. Backlog 7.7 — all-sessions F7 event comparison, rank maps by acceleration win rate
+4. FASE 5.1 — editable VE heatmap cells + burn from browser
 
 ## Freebuff - inbox protocol
 

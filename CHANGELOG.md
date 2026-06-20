@@ -21,6 +21,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.193] - 2026-06-20
+### Changed
+- CLAUDE.md: added "Where to work" rule — Pi is source of truth, all changes via SSH; Windows clone is read-only
+- CLAUDE.md: commit workflow now includes mandatory git push after every commit
+- CLAUDE.md: Alpha-N section clarified as DDFI2-only; added note that DDFI3 (1125CR) is Speed Density — baro normalization belongs in DDFI3-specific code only
+- CLAUDE.md: WB sensor section expanded with strategic rationale — building F7+VS pipeline first, WB arrives as validation layer on proven system
+- CLAUDE.md: removed baro normalization from priority backlog (not a working rule; DDFI3-specific concern)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.191] - 2026-06-20
 ### Added
 - ecu/rt_defs.py: parse ecu_defs/rtdata.xml at import time to build RT_VARIABLES per DDFI family. load_rt_vars('DDFI-2') returns (dict, 107); load_rt_vars('DDFI-3') returns (dict, 135). lru_cache — parsed once per family. Mirrors ecm_defs.py pattern for EEPROM maps
