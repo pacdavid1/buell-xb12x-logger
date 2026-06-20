@@ -174,6 +174,9 @@ class BuellLogger:
         self.web.eeprom_params = decode_params(blob, ecu_version)
         self.web.bike_serial   = int.from_bytes(blob[12:14], 'little')
         self.web.ecu_identity  = resolve_ecu(ecu_version) or {}
+        axes = self.web.eeprom_maps.get('axes', {})
+        if axes.get('fuel_rpm') and axes.get('fuel_load'):
+            self.tracker.set_bins(axes['fuel_rpm'], axes['fuel_load'])
 
     # ── IPC helpers ───────────────────────────────────────────────────────────
 

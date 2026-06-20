@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.188] - 2026-06-20
+### Changed
+- ecu/session.py: CellTracker now stores rpm_bins/load_bins as instance vars (default = BUEIB310 protocol globals). New set_bins(rpm_bins, load_bins) method updates the grid at runtime. _bilinear_weights uses self._rpm_bins/self._load_bins instead of module globals
+- main.py: _update_web_ecu_state calls tracker.set_bins() with axes from decoded EEPROM after every EEPROM read — CellTracker grid now matches the actual ECU fuel map axes
+- ecu/logger_process.py: same set_bins() call at ECU connect and post-burn; imported decode_eeprom_maps
+- Backward-compatible: if set_bins() is never called, BUEIB310 defaults apply
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.187] - 2026-06-20
 ### Added
 - BACKLOG.md: BL-ECM-02 — multi-bike DDFI3 support (1125CR). Architecture decision: one integrated software, firmware-aware layers. Documents what BL-ECM-01 already covers, what needs new work, and the live logging blocker (no ADX for DDFI3)

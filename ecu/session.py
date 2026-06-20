@@ -680,15 +680,23 @@ def cell_key(rpm, load):
 
 
 class CellTracker:
-    """Acumula tiempo y EGO promedio por celda del mapa VE 13x12.
-    También acumula campos de calidad para análisis de tuning:
-    CLT, WUE, AFV promedios; segundos válidos vs totales."""
+    """Accumulates time and EGO average per VE map cell.
+    Bins are sourced from the decoded EEPROM axes (set_bins) so the grid
+    matches the actual ECU fuel map for any firmware. Defaults to BUEIB310."""
     def __init__(self):
         self.cells  = {}
         self.active = None
         self._lock  = threading.Lock()
         self._dt    = 1.0 / 8.0
-        self._last_tps = None  # Para delta TPS
+        self._last_tps = None
+        self._rpm_bins  = list(RPM_BINS)
+        self._load_bins = list(LOAD_BINS)
+
+    def set_bins(self, rpm_bins: list, load_bins: list) -> None:
+        """Update grid bins from decoded EEPROM axes. Call after EEPROM read."""
+        with self._lock:
+            self._rpm_bins  = list(rpm_bins)
+            self._load_bins = list(load_bins)
 
     def reset(self):
         with self._lock:
@@ -729,10 +737,10 @@ class CellTracker:
     def _bilinear_weights(self, rpm, load):
         """Distribuye un sample entre los 4 vecinos del mapa VE con pesos bilineales.
         Consistente con la interpolacion que usa el ECU al aplicar el mapa."""
-        ri = max(0, min(bisect.bisect_right(RPM_BINS, rpm) - 1, len(RPM_BINS) - 2))
-        li = max(0, min(bisect.bisect_right(LOAD_BINS, load) - 1, len(LOAD_BINS) - 2))
-        r0, r1 = RPM_BINS[ri], RPM_BINS[ri + 1]
-        l0, l1 = LOAD_BINS[li], LOAD_BINS[li + 1]
+        ri = max(0, min(bisect.bisect_right(self._rpm_bins, rpm) - 1, len(self._rpm_bins) - 2))
+        li = max(0, min(bisect.bisect_right(self._load_bins, load) - 1, len(self._load_bins) - 2))
+        r0, r1 = self._rpm_bins[ri], self._rpm_bins[ri + 1]
+        l0, l1 = self._load_bins[li], self._load_bins[li + 1]
         tr = (rpm  - r0) / (r1 - r0) if r1 != r0 else 0.0
         tl = (load - l0) / (l1 - l0) if l1 != l0 else 0.0
         return [

@@ -28,6 +28,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ecu.connection import DDFI2Connection
+from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 from ecu.protocol import (load_vss_calibration, save_vss_calibration,
                           update_vss_calibration, vss_changed_significantly)
 from ecu.session import CellTracker, RideErrorLog, SessionManager
@@ -192,6 +193,9 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                     time.sleep(SESSION_OPEN_DELAY)
                     session.save_eeprom(blob)
                     _publish_ecu_init(ipc_dir, ecu_version, session)
+                    _axes = _decode_eeprom_maps(blob, ecu_version).get('axes', {})
+                    if _axes.get('fuel_rpm') and _axes.get('fuel_load'):
+                        tracker.set_bins(_axes['fuel_rpm'], _axes['fuel_load'])
                     log.info(f"Session: {session.current_checksum}")
                     consecutive_errors = 0
                     ecu_lost_since = None
@@ -226,6 +230,9 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                     session.open_session(ecu_version or 'post-burn', proposed)
                     session.save_eeprom(proposed)
                     _publish_ecu_init(ipc_dir, ecu_version or 'post-burn', session)
+                    _axes = _decode_eeprom_maps(proposed, ecu_version or '').get('axes', {})
+                    if _axes.get('fuel_rpm') and _axes.get('fuel_load'):
+                        tracker.set_bins(_axes['fuel_rpm'], _axes['fuel_load'])
                 log.info(f"Burn req_id={req_id}: verified={result.get('verified')}")
             except Exception as e:
                 log.warning(f"Burn error: {e}")
