@@ -21,11 +21,77 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.181] --- 2026-06-19
+### Changed
+- GPS Analysis replay: pre-render quality strip to offscreen canvas (_stripCache); drawStripCursor is now O(1) per frame instead of O(n)
+- GPS Analysis replay: cache uPlot overlay BoundingClientRect at replay start instead of per-frame layout reflow
+- GPS Analysis replay: 2D map follows cursor when it leaves visible bounds (animate: false to avoid competing rAF loop)
+- GPS Analysis 3D: batch track segments by color before stroking — reduces ctx.stroke() calls from ~1200 to ~20-40 per frame
+- GPS Analysis replay: fix absolute clock timing (was broken for data gaps — cursor would freeze indefinitely)
+- GPS Analysis replay: skip data gaps larger than 1s instead of waiting through them at real-time speed
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.180] --- 2026-06-19
+### Changed
+- GPS Analysis 3D: dblclick now also sets the clicked point as the rotation pivot
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.179] --- 2026-06-19
+### Added
+- GPS Analysis 3D: dblclick on 3D canvas finds the nearest track point to the click
+  position and marks it — updates 2D marker, quality strip cursor, legend text, and
+  moves the chart cursor to that time position
+- GPS Analysis 3D: dataIdxMap stored in _t3 to map decimated 3D pts back to DATA indices
+### Changed
+- GPS Analysis 3D: dblclick no longer resets view (was reset, now is mark-point);
+  canvas hint updated accordingly
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.178] --- 2026-06-19
+### Fixed
+- GPS Analysis 3D: vertical exaggeration capped at 4x (was uncapped — a 5km ride with 50m
+  elevation gain produced 15x exaggeration making gentle hills look like mountains)
+- GPS Analysis 3D: zoom extended to 50x (was 10x)
+- GPS Analysis 3D: zoom level and alt exaggeration factor shown in top-right corner of canvas
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.177] --- 2026-06-19
+### Added
+- GPS Analysis: 3D pause button (3D pause) stops auto-rotation
+- GPS Analysis: pivot rotation — pause 3D, click chart to set pivot point (purple crosshair),
+  3D then rotates around that geographic point instead of the track center
+- GPS Analysis: dblclick on 3D canvas also clears pivot; unpause clears pivot
+- GPS Analysis: contextual hint in 3D canvas changes based on pause/pivot state
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.176] --- 2026-06-19
+### Fixed
+- GPS Analysis: added GPS ANALYSIS header label in toolbar
+- GPS Analysis: 3D pan changed from Shift+drag to Ctrl+drag; controls hint shown at canvas bottom
+- GPS Analysis: replay now drives uPlot chart cursor (synthetic mousemove on over element)
+- GPS Analysis: chart setCursor hook skips update during replay (prevents hover interference)
+- GPS Analysis: 3D camera follows cursor point during replay without modifying manual pan state
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+## [v2.7.175] --- 2026-06-19
+### Changed
+- GPS Analysis: 3D pan via Shift+drag to translate view; double-click 3D canvas resets position, angle, and zoom
+- GPS Analysis: replay button (1x/4x/10x speed) advances marker through 2D+3D+strip in real time
+- GPS Analysis chart: 2-finger touch pan slides X axis when zoomed; removed redundant Y-fit button
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.174] — 2026-06-19
 ### Changed
-- GPS Analysis: 3D rotation 18s->30s per revolution, zoom range extended to 0.1-10x
-- GPS Analysis chart: drag-zoom on X axis (select range), double-click or button to reset,
-  Y auto-fit toggle, GPS fix mode shown in cursor readout (3D/2D/NO FIX)
+- GPS Analysis: 3D rotation 18s→30s per revolution, zoom range extended to 0.1–10×
+- GPS Analysis chart: drag-zoom on X axis (select range), double-click or ⟳ button to reset,
+  Y⇕ toggle for auto-fit visible range, GPS fix mode shown in cursor readout
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
