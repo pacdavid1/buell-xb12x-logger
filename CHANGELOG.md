@@ -21,6 +21,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.189] - 2026-06-20
+### Added
+- ecu_defs/rtdata.xml: EcmSpy RT parameter definitions for DDFI2 (90 params) and DDFI3 (126 params, 135-byte frame). Unblocks live logging for 1125CR — same PDU framing, only RT_VARIABLES dict + frame size differ
+### Changed
+- BACKLOG.md: BL-ECM-02 blocker resolved — rtdata.xml found, DDFI3 live logging path documented
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.188] - 2026-06-20
 ### Changed
 - ecu/session.py: CellTracker now stores rpm_bins/load_bins as instance vars (default = BUEIB310 protocol globals). New set_bins(rpm_bins, load_bins) method updates the grid at runtime. _bilinear_weights uses self._rpm_bins/self._load_bins instead of module globals

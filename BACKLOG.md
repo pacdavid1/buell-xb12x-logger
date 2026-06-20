@@ -49,8 +49,13 @@ XB usa DDFI2 (Alpha-N, TPS+RPM). 1125CR usa DDFI3 (Speed-Density, MAP+TPS).
 - Live logging (BLOQUEADO): protocolo serial de DDFI3 desconocido, no tenemos archivos ADX
   para el 1125CR. Sin ADX no hay live logging, sin live logging no hay sesiones ni tuning.
 
-**Bloqueador crítico:** ADX files para 1125CR (TunerPro RT format que define el protocolo
-serial en tiempo real). Freebuff task 070 investiga disponibilidad y alternativas.
+**Bloqueador resuelto (2026-06-20):** `ecu_defs/rtdata.xml` (EcmSpy local) contiene
+definiciones RT completas: 81 parámetros compartidos ('DDFI'), 90 exclusivos DDFI-2,
+126 exclusivos DDFI-3. Frame DDFI-3 = 135 bytes (vs 107 de DDFI-2). Primeros 27 bytes
+idénticos — mismo PDU framing. Solo cambia RT_VARIABLES dict + RT_RESPONSE_SIZE.
+DDFI-3 agrega: MAP Front/Rear @46/48, AFR @106/109, Fuel Pressure @126, Gear @100 directo,
+IAC @119/120, Load Front @7, AFV Front @128, EGO Front @130.
+**Próximo paso:** parsear rtdata.xml → generar RT_VARIABLES_DDFI3 en protocol.py.
 
 **Orden de ejecución sugerido:**
 1. Completar BL-ECM-01 (B3→B4→C) — da EEPROM read/burn multi-firmware
