@@ -21,6 +21,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.196] - 2026-06-20
+### Changed
+- ecu/eeprom.py: encode_eeprom_maps() now XML-driven — offsets, dimensions, and scale come from ecm_defs._entries() for the given firmware version (was hardcoded to BUEIB 870/1038/670/770). Burn guard: unknown firmware returns eeprom_bytes unchanged, nothing written. encode(decode(blob)) validated byte-identical in safe zone across 12 BUEIB sessions
+- web/handlers/eeprom.py: pass _session_version(eeprom_path) to encode_eeprom_maps() so the correct firmware XML is used during burn
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.195] - 2026-06-20
 ### Changed
 - ecu/ecm_defs.py: added get_eeprom_pages(version_string) — EEPROM page table moved here from connection.py. BUEIB confirmed on live hardware; unknown firmware falls back to sequential 256-byte pages

@@ -2,8 +2,8 @@
 # DEV NOTE: All code, comments, and variable names must be in English.
 """ecu/eeprom.py — EEPROM decode/encode for DDFI2.
 
-decode_eeprom_maps() delegates to ecm_defs (XML-driven, multi-firmware ready).
-encode_eeprom_maps() remains BUEIB-hardcoded until Phase C adds the burn guard.
+Both decode_eeprom_maps() and encode_eeprom_maps() are XML-driven via ecm_defs.
+Unknown firmware versions fall back safely: decode returns {}, encode returns bytes unchanged.
 """
 
 import logging
@@ -48,33 +48,40 @@ def decode_eeprom_maps(eeprom_bytes, version=None):
     return decode_maps(eeprom_bytes, version or "BUEIB310")
 
 
-def encode_eeprom_maps(eeprom_bytes, maps):
+def encode_eeprom_maps(eeprom_bytes: bytes, maps: dict,
+                       version: str | None = None) -> bytes:
     """Apply decoded map tables back into EEPROM bytes.
-    Inverse of decode_eeprom_maps(). Only modifies safe zone (670-1205).
-    Returns modified copy of eeprom_bytes as bytes.
+
+    Inverse of decode_eeprom_maps(). Offsets, dimensions, and scales come
+    from the XML for the given firmware version — no hardcoded BUEIB values.
+    If the XML cannot be found for the version, returns eeprom_bytes unchanged
+    (burn guard: unknown firmware → no write).
+
     maps keys: fuel_front, fuel_rear, spark_front, spark_rear (all optional).
-    Phase C will make offsets/safe_zone firmware-aware with a burn guard.
     """
+    from ecu.ecm_defs import _entries, _xml_path, MAP_KEYS
+    xml_p = _xml_path(version or "BUEIB310")
+    if not xml_p or not xml_p.exists():
+        _log.warning("encode_eeprom_maps: no XML for version %r — not encoding", version)
+        return bytes(eeprom_bytes)
+    key_to_entry = {MAP_KEYS[e['name']]: e
+                    for e in _entries(xml_p) if e['name'] in MAP_KEYS}
     result = bytearray(eeprom_bytes)
-
-    def write_fuel_map(off, rows, cols, table):
-        # table[r][c] ascending RPM; EEPROM stores descending with (cols+1) stride
+    for map_key, table in maps.items():
+        if not table:
+            continue
+        d = key_to_entry.get(map_key)
+        if d is None:
+            continue
+        off   = d['offset']
+        rows  = d['rows']
+        cols  = d['cols']
+        scale = d['scale']
+        stride = d['size'] // rows if rows else cols
         for r in range(min(rows, len(table))):
             row_desc = list(reversed(table[r]))
-            row_off = off + r * (cols + 1)
+            row_off  = off + r * stride
             for c in range(min(cols, len(row_desc))):
-                result[row_off + c] = max(0, min(255, int(round(row_desc[c]))))
-            # separator byte at row_off + cols is NOT touched
-
-    def write_spark_map(off, rows, cols, table):
-        # table[r][c] ascending RPM, values in degrees; raw = val * 4
-        for r in range(min(rows, len(table))):
-            row_desc = list(reversed(table[r]))
-            for c in range(min(cols, len(row_desc))):
-                result[off + r * cols + c] = max(0, min(255, int(round(row_desc[c] * 4))))
-
-    if maps.get('fuel_front'):  write_fuel_map(870,  12, 13, maps['fuel_front'])
-    if maps.get('fuel_rear'):   write_fuel_map(1038, 12, 13, maps['fuel_rear'])
-    if maps.get('spark_front'): write_spark_map(670, 10, 10, maps['spark_front'])
-    if maps.get('spark_rear'):  write_spark_map(770, 10, 10, maps['spark_rear'])
+                raw = round(row_desc[c] / scale) if scale else int(row_desc[c])
+                result[row_off + c] = max(0, min(255, raw))
     return bytes(result)

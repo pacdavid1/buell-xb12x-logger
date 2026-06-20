@@ -244,7 +244,7 @@ class EepromHandlerMixin:
                     if mk not in maps:
                         maps[mk] = [row[:] for row in current_maps[mk]]
                     maps[mk][ri][ci] = val
-            proposed = encode_eeprom_maps(current_bin, maps)
+            proposed = encode_eeprom_maps(current_bin, maps, _session_version(eeprom_path))
         except Exception as e:
             self._json({'error': 'encode failed: ' + str(e)})
             return
