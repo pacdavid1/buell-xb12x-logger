@@ -94,6 +94,7 @@ class DashboardHandler(
             '/tuner/sessions': self._handle_tuner_sessions,
             '/tuner/maps': self._handle_tuner_maps,
             '/tuner/merge': self._handle_tuner_merge,
+            '/tuner/maps/file': self._handle_tuner_maps_file,
             '/sessions_vs': self._handle_sessions_vs,
             '/sessions_vs/compare': self._handle_sessions_vs_compare,
             '/sessions_vs/download': self._handle_sessions_vs_download,

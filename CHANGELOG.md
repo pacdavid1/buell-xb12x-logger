@@ -21,6 +21,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.198] - 2026-06-20
+### Added
+- web/handlers/tuner.py: _handle_tuner_maps_file() - GET /tuner/maps/file?path=<file>&version=<ver> decodes any .xpr or .bin from /tmp/ or the buell data dir. Auto-detects firmware version from filename stem if not specified. Returns same JSON as /tuner/maps
+- web/server.py: registered /tuner/maps/file route
+- web/templates/tuner.html: XPR FILE panel with path input, firmware dropdown, Load as Base/Mod buttons. Clicking Load sets mB or mM and renders immediately (auto-fills both slots if only one loaded so render works)
+### Added (pending)
+- BACKLOG.md: BL-ECM-03 revert EEPROM version guard - revert writes raw bytes bypassing encode; needs version match check before burn
+### Context
+- Multi-firmware insight: DDFI-2 XMLs all share 12x13 fuel dims but different offsets (BUEIB=870 BUEGB=862 BUECB=802). DDFI-3 all share 16x20. encode_eeprom_maps already supports cross-version burn by value (decode with source XML encode with dest XML). Only revert path uses raw bytes
+### AI
+- Claude Sonnet 4.6, Anthropic
+
+
 ## [v2.7.197] - 2026-06-20
 ### Fixed
 - ecu/version_resolver.py: resolve_ecu() now uses longest-prefix match before alpha-only fallback. Real ECU version strings like 'BUE2D242' now resolve to 'BUE2D' (was returning None because alpha-strip turned '2' in 'BUE2D242' into 'BUED' which had no match)

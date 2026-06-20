@@ -64,6 +64,44 @@ class TunerHandlerMixin:
         except Exception as e:
             self._json({'error': f'map read failed: {e}'})
 
+    def _handle_tuner_maps_file(self, path=None):
+        """Load and decode maps from an arbitrary .xpr or .bin file on the Pi filesystem."""
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        file_path = params.get('path', [''])[0]
+        version = params.get('version', [''])[0] or None
+
+        buell_dir = str(self.server_instance.buell_dir)
+        allowed = ('/tmp/', buell_dir + '/', '/home/pi/')
+        if not any(file_path.startswith(a) for a in allowed):
+            self._json({'error': 'path not in allowed directories'}, 403)
+            return
+
+        fp = Path(file_path)
+        if not fp.exists():
+            self._json({'error': 'file not found: ' + file_path}, 404)
+            return
+
+        if version is None:
+            stem = fp.stem.upper()
+            for candidate in ('BUE3D', 'BUE2D', 'BUE1D', 'BUEZD', 'BUEYD', 'BUEWD', 'BUEOD',
+                              'BUEIB', 'B2RIB', 'BUEGB', 'BUECB', 'BUEGC', 'BUEKA', 'BUEIA'):
+                if candidate in stem:
+                    version = candidate
+                    break
+            if version is None:
+                version = 'BUEIB'
+
+        try:
+            blob = fp.read_bytes()
+            result = _decode_eeprom_maps(blob, version)
+            if result is None:
+                self._json({'error': 'decode failed for version ' + version}, 500)
+                return
+            result['_source'] = {'path': file_path, 'version': version, 'size': len(blob)}
+            self._json(result)
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
+
     def _handle_tuner_merge(self, path=None):
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         sa = params.get('a', [''])[0]

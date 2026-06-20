@@ -1552,3 +1552,59 @@ Pendiente:
 - [ ] Añadir gps_snr_avg y gps_heading_rate a CSV_COLUMNS (mismo gap que BL-GPS-01)
 - [ ] Corregir versión (no v2.7.156) y hacer commit + push + pull en Pi
 - [ ] Eliminar inbox/changelog_gps_fase2.md después del commit
+
+## [BL-ECM-03] — Revert EEPROM version guard
+**Prioridad:** CRÍTICA — seguridad de quema
+
+### Problema
+ escribe bytes RAW de una sesión previa sin validar que la versión
+del ECU donador coincide con el ECU actualmente conectado. Si BUEIB (offset 870) se revierte
+a un ECU BUECB (offset 802), el mapa de combustible queda corrompido silenciosamente.
+
+### Solución
+1. Leer versión live del ECU:  → 
+2. Leer versión del target session:  → 
+3. Resolver ambas con  → comparar 
+4a. Si  coincide → proceder normal (mismo XML = mismos offsets)
+4b. Si mismo gen (ej. ambos DDFI-2, mismas dims 12×13) → decode con XML donador + re-encode con XML destino (opción segura)
+4c. Si distinta generación (DDFI-2 vs DDFI-3, dims distintas) → BLOQUEAR con error claro
+5. El burn normal ya es seguro (usa  con XML correcto)
+
+### Cross-version burn (feature relacionado)
+Caso: mapa de BUEIB a BUECB. Como dims coinciden (12×13), el transfer por valor ya funciona:
+ → maps dict → 
+Esto es exactamente lo que hace el burn normal. Solo el revert usa bytes raw.
+
+### Archivos a modificar
+- :  líneas 132-191
+- Agregar helper  que lee 
+
+## [BL-ECM-03] — Revert EEPROM version guard
+**Prioridad:** CRITICA — seguridad de quema
+
+### Problema
+_handle_eeprom_revert escribe bytes RAW de una sesion previa sin validar que la version
+del ECU donador coincide con el ECU actualmente conectado. Si BUEIB (offset 870) se revierte
+a un ECU BUECB (offset 802), el mapa de combustible queda corrompido silenciosamente.
+
+### Solucion
+1. Leer version live del ECU: /tmp/buell/ecu_init.json -> version
+2. Leer version del target session: sessions/<id>/session_metadata.json -> version_string
+3. Resolver ambas con resolve_ecu() -> comparar dbfile
+4a. Si dbfile coincide -> proceder normal (mismo XML = mismos offsets)
+4b. Si mismo gen (ej. ambos DDFI-2, dims 12x13) -> decode con XML donador + re-encode con XML destino
+4c. Si distinta generacion (DDFI-2 vs DDFI-3, dims distintas) -> BLOQUEAR con error claro
+
+### Cross-version burn safe path
+decode(source_blob, source_version) -> maps dict -> encode_eeprom_maps(dest_blob, maps, dest_version)
+Funciona cuando rows x cols coinciden. El burn normal ya hace esto. Solo revert usa bytes raw.
+
+### Archivos a modificar
+- web/handlers/eeprom.py: _handle_eeprom_revert() lineas 132-191
+- Agregar helper _live_ecu_version(ipc_dir) que lee ecu_init.json
+- Helper: misma generacion = mismo (rows, cols) en fuel_front segun XML
+
+### Contexto: offsets por version (fuel_front)
+DDFI-2: BUEIB/B2RIB=870, BUEGB=862, BUECB=802, dims=12x13
+DDFI-1: BUEIA=744, BUEKA=760, BUEGC=788, dims=12x13
+DDFI-3: BUEOD/BUEWD/BUEYD=1816, BUE1D/BUEZD=2072, BUE2D=2328, BUE3D=2408, dims=16x20
