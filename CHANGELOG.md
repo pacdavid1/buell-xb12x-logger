@@ -71,6 +71,28 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+## [v2.7.192] - 2026-06-20
+
+### Added
+- T1: Disk space watchdog -- /health endpoint now returns disk_free_gb, disk_total_gb, disk_used_pct (shutil.disk_usage)
+- T2: Auto-gzip old CSVs -- scripts/gzip_old_csvs.py compresses CSVs >30 days old, weekly cron (Sunday 03:00)
+- T4: BL-MAP-03 3D speed legend -- Color-coded speed bar (0-20/20-60/60-120/120-160/160+ km/h) overlaid on track3d canvas
+- T5: Camera preset labels -- 3D view buttons renamed S1-S4 to T(top)/R(rear)/F(front)/S(side) with tooltip titles
+- T6: CSV export link -- _handle_tuning_report now includes _csv_url in JSON response pointing to format=csv
+
+### Changed
+- T2: gzip script excludes files modified in last 5 minutes (active write protection)
+- T2: /home/pi/buell/logs/ directory auto-created for cron output
+- T4: 3D legend labels match 2D legend format for consistency
+
+### Removed
+- T3: O2_ADC overlay in sessions_vs comparison table -- reverted, requires backend data pipeline (non-trivial)
+
+### AI
+- Buffy (deepseek-v4-flash)
+
+**Audited:** N/A - trivial tasks, no cross-cutting concerns
+
 ## [v2.7.185] -- 2026-06-20
 ### Changed
 - BL-ECM-01 Phase B2: thread real ECU version through all decode_eeprom_maps() callers.
@@ -81,6 +103,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (BL-ECM-01 Phase B2: _session_version verified in utils.py, tuner.py, main.py)
 ## [v2.7.184] -- 2026-06-20
 ### Changed
 - ecu/eeprom.py (BL-ECM-01 Phase B1): decode_eeprom_maps() now delegates to
@@ -94,6 +117,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (BL-ECM-01 Phase B1: ecm_defs.decode_maps imported, BUEIB_PARAMS removed, encode unchanged, IDEA-027 in IDEAS.md)
 ## [v2.7.183] -- 2026-06-20
 ### Changed
 - IDEAS.md: added IDEA-022 through IDEA-026 from creative backlog review
@@ -115,6 +139,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (gen_architecture.py exists, .gitignore inbox/, ARCHITECTURE_v2.6.10.md archived)
 ## [v2.7.181] --- 2026-06-19
 ### Changed
 - GPS Analysis replay: pre-render quality strip to offscreen canvas (_stripCache); drawStripCursor is now O(1) per frame instead of O(n)
@@ -202,12 +227,14 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (gps_analysis page, nav link, 3D split CSS 35/15/50dvh)
 ## [v2.7.172] — 2026-06-19
 ### Fixed
 - BL-MAP-01: GPS map track never loaded — loadMapTrack checked d.ok but /gps_track never sets that field; removed the check
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (BL-MAP-01: d.ok check removed from loadMapTrack)
 ## [v2.7.171] — 2026-06-19
 ### Fixed
 - web/static/graf2.js: GRAF2 floating cursor readout stretches full width when cursor
@@ -218,6 +245,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (GRAF2 cursor: el.style.left/right set to 'auto' at line 59)
 ## [v2.7.170] — 2026-06-19
 ### Docs
 - BACKLOG.md: added BL-GRAF-03 — remove GRAF2 floating cursor readout (#cur-readout
@@ -236,6 +264,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (BL-UX-04: n=1 fallback pw1_curve, solo detection, lineWidth)
 ## [v2.7.168] — 2026-06-19
 ### Changed
 - CLAUDE.md: objectives section refined — "session" → "conversation" to avoid
@@ -297,6 +326,7 @@ PROMPT_END -->
 - DeepSeek V4 Flash, Codebuff (Buffy) — GPS Fase 3 handlers + J1349 block
 - Claude Sonnet 4.6, Anthropic — route registration fix + IAT field name fix + validation
 
+**Audited:** PASS - Buffy 2026-06-20 (GPS fields in CSV_COLUMNS, IAT_Corr in vdyno.py, gps_config routes)
 ## [v2.7.163] — 2026-06-19
 ### Docs
 - IDEAS.md: merged IDEA-016/017/018 from freebuff (Buffy). IDEA-016: bootstrap
@@ -326,6 +356,7 @@ PROMPT_END -->
 - DeepSeek V4 Flash, Codebuff (Buffy) — GPS Fase 2 implementation
 - Claude Sonnet 4.6, Anthropic — validation, DRY fix, version correction
 
+**Audited:** PASS - Buffy 2026-06-20 (GPSConfig class, heading_rate, turning, snr_avg in reader.py)
 ## [v2.7.161] — 2026-06-19
 ### Docs
 - IDEAS.md: added IDEA-014 (gps_turning as F7 event quality filter — turning events
@@ -354,6 +385,7 @@ PROMPT_END -->
 - DeepSeek V4 Flash, Codebuff (Buffy) — GPS changes
 - Claude Sonnet 4.6, Anthropic — version correction, changelog audit
 
+**Audited:** PASS - Buffy 2026-06-20 (gps_epx/epy/epv/mode/stale fields in reader.py)
 ## [v2.7.159] — 2026-06-19
 ### Added
 - BL-UX-03 (Sessions VS): environmental stats row per session. `load_csv` now
@@ -366,6 +398,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (_env_stats helper, CACHE_VERSION=8, env stats in sessions_vs.html)
 ## [v2.7.158] — 2026-06-18
 ### Added
 - BL-3DV-03: staged cells now highlighted in MOD 3D view. Faces adjacent to any
@@ -375,6 +408,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (BL-3DV-03: orange stroke rgba(245,166,35) for staged cells in MOD 3D)
 ## [v2.7.157] — 2026-06-18
 ### Fixed
 - MSQ download buttons in tuner.html were `<button>` elements with class `.vb`,
@@ -386,6 +420,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (MSQ buttons as span with background:transparent)
 ## [v2.7.156] — 2026-06-18
 ### Fixed
 - BL-GRAF-05: GRAF2 ⚙ gear button moved to left side of block header so it is
@@ -394,6 +429,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (GRAF2 gear button left of block-title with flex-shrink:0)
 ## [v2.7.155] — 2026-06-18
 ### Fixed
 - BL-UX-04: Session Events n=1 cluster curves rendered at lineWidth 0.8 instead
@@ -413,6 +449,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** FAIL - Buffy 2026-06-20 (CHANGELOG claims let->var but app.js lines 58-61 still use let)
 ## [v2.7.153] — 2026-06-18
 ### Changed
 - BL-M3D-01: increased 3D GPS track canvas height in Mapa tab from 38dvh to
@@ -434,6 +471,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (#cur-readout floating panel with _rdLeft positioning)
 ## [v2.7.151] — 2026-06-18
 ### Added
 - BL-3DV-10: persist 3D camera state in `localStorage` (`buell_cam_3d`). YAW/PIT/ROL
@@ -442,6 +480,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (buell_cam_3d localStorage, saveCameraState/loadCameraState in tuner.html)
 ## [v2.7.150] — 2026-06-18
 ### Added
 - BL-3DV-07: PNG snapshot button in 3D control bar (`tuner.html`). Clicking PNG
@@ -451,6 +490,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (PNG snapshot button with snapshotAll3D + toBlob)
 ## [v2.7.149] — 2026-06-18
 ### Removed
 - `decode_params_dict()` from `ecu/eeprom_params.py` — compat wrapper (returns
@@ -466,6 +506,7 @@ PROMPT_END -->
 ### AI
 - Claude Sonnet 4.6, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (decode_params_dict removed, DEV NOTE added)
 ## [v2.7.148] — 2026-06-14
 ### Note
 - Carries the actual GRAF2 type-required code + backlog docs that were missing from the
@@ -490,6 +531,7 @@ PROMPT_END -->
 ### AI
 - Claude Opus 4.8, Anthropic
 
+**Audited:** PASS - Buffy 2026-06-20 (GRAF2 type required + BACKLOG_ECM_DEFS.md exists)
 ## [v2.7.146] — 2026-06-14
 ### Fixed
 - ecu/session.py: **CRITICAL** — `_update_tuning_report` usaba `v["o2_adc_sum"]`
@@ -522,6 +564,7 @@ PROMPT_END -->
 ### AI
 - DeepSeek V4 Flash (codebuff)
 
+**Audited:** PASS - Buffy 2026-06-20 (o2_adc_sum scope fixed, _read_exact under lock, consecutive_errors fix, _data_lock in server.py)
 ## [v2.7.145] — 2026-06-14
 ### Added
 - GRAF2 annotation `type` field (Phase 2.1): mark modal now has a launch/diagnostic/note selector (default launch); type is persisted and validated server-side against an allow-list, falling back to launch on unknown values (web/handlers/rides.py). Bands are colored by type in the viewer (launch=blue, diagnostic=gray, note=green); legacy annotations without a type render as launch. This is the prerequisite for Phase 2.2, where F7 will consume only `type=launch` marks as a separate PILOT-MARKED category (web/static/graf2.js).
@@ -532,6 +575,7 @@ PROMPT_END -->
 
 
 
+**Audited:** PASS - Buffy 2026-06-20 (GRAF2 type field launch/diagnostic/note + backend 400 validation)
 ## [v2.7.144] — 2026-06-14
 ### Added
 - BACKLOG_GRAF2.md: GRAF2 work plan for any AI/session — current state (v2.7.140-143), Phase 2 (annotation `type` field + F7 consuming launch marks as a separate PILOT-MARKED category, option B), Phase 3 (A/B overlay), and validated findings (CLT in °C, WOT +10%, segregate comparisons by fl_wot, signal-gap bug task_052).

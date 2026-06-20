@@ -64,7 +64,7 @@ Un ride largo puede tener decenas de miles de puntos GPS:
 
 ## Bugs/mejoras del subtab Mapa encontrados durante el análisis
 
-### BL-MAP-03 — Leyenda de colores de velocidad
+### ~~BL-MAP-03~~ ✅ (v2.7.186) — Leyenda de colores de velocidad
 **Priority:** LOW
 Barrita de leyenda (azul→verde→amarillo→rojo→magenta con sus rangos km/h)
 visible en el mapa 2D y el 3D. Hoy el código de colores es implícito.

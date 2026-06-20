@@ -66,6 +66,7 @@ class RidesHandlerMixin:
             self.end_headers()
             self.wfile.write(body)
             return
+        report["_csv_url"] = f"/tuning_report?session={session}&format=csv"
         self._json(report)
 
     def _handle_coverage_targets(self, path=None):
@@ -336,4 +337,5 @@ class RidesHandlerMixin:
             self.end_headers()
             self.wfile.write(body)
             return
+        report["_csv_url"] = f"/tuning_report?session={session}&format=csv"
         self._json(report)

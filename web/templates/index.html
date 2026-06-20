@@ -842,6 +842,13 @@ table.veg td:active{filter:brightness(1.6)}
     <span id="map3dArrow">▾</span>
   </div>
   <div id="map3dSection" style="background:var(--bg);height:calc(50dvh);padding:4px">
+<div style="position:absolute;top:8px;left:8px;z-index:99;background:rgba(0,0,0,0.8);border-radius:4px;padding:2px 6px;font-size:9px;font-family:monospace;display:flex;align-items:center;gap:3px;pointer-events:none">
+<span style="color:#0000FF">█</span><span>0-20</span>
+<span style="color:#00FF00">█</span><span>20-60</span>
+<span style="color:#FFFF00">█</span><span>60-120</span>
+<span style="color:#FF0000">█</span><span>120-160</span>
+<span style="color:#FF00FF">█</span><span>160+ km/h</span>
+</div>
     <canvas id="track3d" style="width:100%;height:100%;display:block;touch-action:none;cursor:grab"></canvas>
   </div>
 </div>

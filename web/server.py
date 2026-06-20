@@ -229,10 +229,15 @@ class DashboardHandler(
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
+        import shutil
+        du = shutil.disk_usage("/")
         self.wfile.write(json.dumps({
             "status": "ok",
             "version": _get_version(),
-            "uptime_s": int(__import__("time").time() - 1741370800)
+            "uptime_s": int(__import__("time").time() - 1741370800),
+            "disk_free_gb": round(du.free / 1073741824, 1),
+            "disk_total_gb": round(du.total / 1073741824, 1),
+            "disk_used_pct": round(100 - du.free / du.total * 100, 1)
         }).encode())
 
     def _handle_static(self, path=None):

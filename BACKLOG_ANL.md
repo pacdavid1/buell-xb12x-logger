@@ -173,7 +173,7 @@ El JSON no es fácil de leer para análisis rápido o para compartir.
 ---
 
 **BACKLOG-ANL14** `OPEN`
-Watchdog de espacio en disco
+~~Watchdog de espacio en disco~~ ✅ (v2.7.186)
 
 ### Problem
 La SD puede llenarse silenciosamente. Los CSVs crecen ~2MB por ride.
@@ -193,7 +193,7 @@ Compresión automática de CSVs viejos
 CSVs de rides viejos ocupan espacio innecesario una vez que el summary existe.
 
 ### Context
-- Script o cronjob: gzip rides con más de 7 días
+- ~~Script o cronjob: gzip rides con más de 7 días~~ ✅ (v2.7.186, >30 días)
 - Dashboard sigue funcionando — leer .csv.gz con gzip.open()
 - analyze_session.py debe soportar .gz también
 
