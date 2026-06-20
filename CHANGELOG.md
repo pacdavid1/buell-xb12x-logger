@@ -21,6 +21,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.182] -- 2026-06-20
+### Changed
+- ARCHITECTURE.md: replaced static 923-line manual doc with auto-generated version (scripts/gen_architecture.py)
+- FREEBUFF.md: updated freebuff workflow document
+- scripts/gen_architecture.py: new utility -- generates ARCHITECTURE.md from actual file tree + module docstrings
+- archive/ARCHITECTURE_v2.6.10.md: archived old manual ARCHITECTURE.md for reference
+- .gitignore: exclude inbox/ (operational freebuff comms, Pi-local only)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.181] --- 2026-06-19
 ### Changed
 - GPS Analysis replay: pre-render quality strip to offscreen canvas (_stripCache); drawStripCursor is now O(1) per frame instead of O(n)

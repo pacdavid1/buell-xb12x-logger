@@ -27,3 +27,4 @@ fix_*.py.save
 *.save.*
 web/templates/*.bak*
 fix_*.py
+inbox/
