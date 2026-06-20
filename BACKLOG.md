@@ -1608,3 +1608,28 @@ Funciona cuando rows x cols coinciden. El burn normal ya hace esto. Solo revert 
 DDFI-2: BUEIB/B2RIB=870, BUEGB=862, BUECB=802, dims=12x13
 DDFI-1: BUEIA=744, BUEKA=760, BUEGC=788, dims=12x13
 DDFI-3: BUEOD/BUEWD/BUEYD=1816, BUE1D/BUEZD=2072, BUE2D=2328, BUE3D=2408, dims=16x20
+
+
+## [BL-ECM-04] — Fix SERIAL_RX_BYTES stat counter for DDFI-3
+**Prioridad:** LOW — cosmética, no afecta datos
+
+### Problema
+`ecu/logger_process.py` line 44: `SERIAL_RX_BYTES = 107` es un módulo-constant fijo.
+Se usa solo para el contador de bps del dashboard (live stats). Cuando la Pi conecta a la
+1125CR (DDFI-3, 135 bytes/frame), el contador muestra ~79% del ancho de banda real.
+Las lecturas reales ya usan `self._rt_frame_size` dinámicamente — esto es puramente visual.
+
+### Solución
+Cambiar de constante fija a lectura dinámica desde el IPC:
+- Opción A (simple): leer `ecu_init.json` al conectar y actualizar una variable local `_rx_bytes`
+- Opción B (limpia): pasar `ecu._rt_frame_size` al stat loop via IPC o variable compartida
+
+Recomendación: Opción A. Después del bloque "Connect ECU" (línea ~196), asignar:
+```python
+SERIAL_RX_BYTES = ecu._rt_frame_size  # actualizar stat local post-connect
+```
+Esto funciona porque el stat loop corre en el mismo proceso/thread.
+
+### Archivo a modificar
+- `ecu/logger_process.py`: línea 44 (eliminar constante), línea ~196 (asignar post-connect),
+  línea ~284 (asignar post-reconnect)
