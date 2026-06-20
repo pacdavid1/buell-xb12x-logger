@@ -185,6 +185,83 @@ described as "low consumption when inactive."
 No hardware changes — pure software. Risk: if ride detection fires before GPS resumes,
 first 1-2 seconds of GPS data could be missing. Mitigate with resume() in ride_arm().
 
+### IDEA-022 — Stator failure early warning via fan load impulse
+**Señal:** do_fan (0→1 edges, hundreds per session) + Batt_V (logged every sample at 4.6 Hz)
+**Técnica:** Detect each do_fan 0→1 transition. Measure Batt_V droop: steady-state before
+vs nadir in the first 2-3 seconds after. Match by RPM bucket (charging output varies by RPM).
+Track droop magnitude across rides chronologically. Rising droop at fixed RPM = stator/regulator
+source impedance increasing = approaching failure.
+**Aplica a:** Predictive maintenance — XB12X stator is the #1 known failure mode.
+Kills alternator, kills battery, strands rider. This data is already being logged.
+**Por qué importa:** The fan creates a free impedance test at a known current step (~10A)
+hundreds of times per session. Across 70+ rides that's longitudinal impedance spectroscopy
+with zero new hardware. A dying stator shows rising droop weeks before voltage warnings appear.
+**Dato clave:** IDEA-004 also uses Batt_V + do_fan but for VDYNO consistency (WOT window).
+This uses the fan STARTUP transient — different extraction window, different signal. Complement.
+**Requiere:** Post-ride job similar to f7.py. No new hardware. numpy already on Pi.
+
+### IDEA-023 — Map evolution as trajectory in 312-dimensional fuel space
+**Señal:** fuel_front (12×13=156 values) + fuel_rear (12×13=156 values) = 312-float vector per map
+**Técnica:** Each EEPROM map = point in R^312. Sequence of burns = trajectory through that space.
+Key question: is the trajectory CONVERGING (contracting toward a point = found it) or OSCILLATING
+(cycling = chasing noise)? Cosine similarity between consecutive maps quantifies direction.
+PCA to 2D makes the trajectory visual.
+**Aplica a:** Meta-level tuning insight — beyond per-burn verdicts, tells whether the tuning
+PROCESS is working. Also powers maps_knowledge.db nearest-neighbor search (BACKLOG.md).
+**Por qué importa:** Each burn gives BETTER/WORSE/GRAY. But you never see the arc.
+"Your last 6 burns are converging toward this region" is actionable.
+"They're cycling" is a signal to change strategy, not keep burning.
+**Requiere:** maps_knowledge.db (BACKLOG.md) as foundation. numpy cosine similarity is enough
+— no PCA needed for distance. Visualization optional.
+
+### IDEA-024 — cc_per_ms calibration drift as injector wear indicator
+**Señal:** cc_per_ms per fill-up cycle (auto-calibrated by FASE 8 BL-FUEL-12) + pw2/pw1 ratio
+**Técnica:** The calibration constant converges toward a stable value across cycles.
+Systematic drift upward over 10+ cycles = injector flow decreasing (clog/wear),
+corrected for pressure (stable at 49-51 PSI) and ethanol changes (octane field).
+The residual trend is injector health. pw2/pw1 at matched conditions diagnoses which cylinder.
+**Aplica a:** Predictive maintenance — clogged injector = lean cell, invisible in OL without WB.
+Heat-cycled air-cooled Buell = aggressive environment for injector tips.
+**Por qué importa:** The calibration loop runs anyway for fuel level accuracy.
+The injector wear signal is FREE — it's the byproduct of a loop already planned.
+Today BL-FUEL-12 flags individual discrepancies but doesn't track the TREND.
+Trend > 1.03/cycle for 5+ cycles = schedule injector cleaning. One insight, ~10 lines.
+**Dato clave:** If cc_per_ms drifts but pw2/pw1 stays stable → fuel pump pressure drop.
+If pw2/pw1 shifts → one injector specifically. Same data, different diagnosis.
+**Requiere:** FASE 8 running + ≥5 fill-up cycles for trend to exceed noise floor.
+
+### IDEA-025 — Weather as natural lambda sweep without a wideband
+**Señal:** baro_hPa + baro_temp_c (air density per sample) + F7 WOT events (acceleration curves)
+**Técnica:** DDFI2 Alpha-N has no KBaro — fuel doesn't compensate for density.
+Dense day (cold, low alt) → engine gets more oxygen at same TPS → mixture goes LEAN.
+If acceleration is better than the density gain predicts, the cell is rich of best power.
+If worse, it's already lean. Cross F7 events by density quartile to classify per cell.
+**Aplica a:** F7 analysis — enrich per-cell verdicts with a lean/rich tag from physics,
+no wideband required. Feeds into FASE 6 proposals as a third signal.
+**Por qué importa:** 70+ rides of varying density already on disk = natural experiment.
+Weather was doing lambda sweeps every time the rider climbed or descended elevation.
+Even a rough "this cell is probably rich" removes ambiguity in the proposal.
+**Dato clave:** Check density histogram first. If 95% of rides are within ±1% density,
+spread is too small. gps_alt_m is the best proxy — a 1000m altitude difference = ~12% density drop.
+**Requiere:** ρ = baro_hPa / (287.058 × (baro_temp_c + 273.15)) per sample.
+Group F7 events by density quartile. No new data collection.
+
+### IDEA-026 — Engine wear isolated via repeated GPS segments
+**Señal:** GPS coordinates + VDYNO power per segment + map checksum (same map = control variable)
+**Técnica:** Find rides where: same GPS corridor (within ~50m), same density conditions (±2%),
+same map checksum. Across rides meeting all three conditions, any downward VDYNO power trend
+= engine wear, not tuning. Map is the control variable; time is the independent variable.
+**Aplica a:** VDYNO long-term — beyond single-burn comparisons, tracks mechanical health
+over the life of the project. Separates "map effect" from "ring/valve wear."
+**Por qué importa:** Every comparison controls for conditions but not engine health.
+After 10,000+ km the engine is different. Isolating wear requires the same experiment
+repeated under the same conditions — GPS segments + density matching makes this possible
+with data already being collected.
+**Dato clave:** BL-VD-06 (instructor de evidencia) could include "ride this segment again
+to update engine health baseline" in its mission list — same infrastructure, dual use.
+**Requiere:** GPS Fase 1 in CSV (BL-GPS-01, not yet persisted). VDYNO (BL-VD-01).
+Meaningful after ≥5 qualifying rides on the same segment.
+
 ## Descartadas
 
 ## Convertidas a BACKLOG

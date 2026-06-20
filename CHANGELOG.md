@@ -21,6 +21,17 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.183] -- 2026-06-20
+### Changed
+- IDEAS.md: added IDEA-022 through IDEA-026 from creative backlog review
+  IDEA-022: stator failure early warning via fan load impulse (Batt_V droop trend)
+  IDEA-023: map evolution as trajectory in 312-dim fuel space (converging vs oscillating)
+  IDEA-024: cc_per_ms calibration drift as injector wear indicator
+  IDEA-025: weather as natural lambda sweep without wideband (density × acceleration)
+  IDEA-026: engine wear isolated via repeated GPS segments (map as control variable)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.182] -- 2026-06-20
 ### Changed
 - ARCHITECTURE.md: replaced static 923-line manual doc with auto-generated version (scripts/gen_architecture.py)
