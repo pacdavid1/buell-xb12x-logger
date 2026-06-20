@@ -23,6 +23,8 @@ from typing import Any
 
 from ecu.protocol import decode_rt_packet, RT_RESPONSE_SIZE, SOH
 from ecu.ecm_defs import get_eeprom_pages
+from ecu.rt_defs import load_rt_vars
+from ecu.version_resolver import resolve_ecu
 
 # ── Protocolo DDFI2 ──────────────────────────────────────────
 SOH: int      = 0x01
@@ -58,10 +60,14 @@ class DDFI2Connection:
         self.logger = logging.getLogger("DDFI2")
         self._lock = threading.RLock()
         self._ecu_version: str = "BUEIB"
+        self._rt_vars, self._rt_frame_size = load_rt_vars("DDFI-2")
 
     def set_ecu_version(self, version_string: str) -> None:
-        """Store ECU firmware version so EEPROM page layout is correct."""
+        """Store ECU firmware version so EEPROM page layout and RT frame size are correct."""
         self._ecu_version = version_string or "BUEIB"
+        ecu_info = resolve_ecu(self._ecu_version)
+        ddfi = ecu_info.get("ddfi", "DDFI-2") if ecu_info else "DDFI-2"
+        self._rt_vars, self._rt_frame_size = load_rt_vars(ddfi)
 
     def connect(self) -> None:
         deadline = time.monotonic() + 15.0
@@ -227,10 +233,10 @@ class DDFI2Connection:
                     recovered = self._flush_and_retry_soh()
                     if not recovered:
                         return None
-                raw = bytes([SOH]) + self._read_exact(RT_RESPONSE_SIZE - 1, 0.3)
+                raw = bytes([SOH]) + self._read_exact(self._rt_frame_size - 1, 0.3)
             else:
-                raw = first + self._read_exact(RT_RESPONSE_SIZE - 1, 0.3)
-            return decode_rt_packet(raw)
+                raw = first + self._read_exact(self._rt_frame_size - 1, 0.3)
+            return decode_rt_packet(raw, rt_vars=self._rt_vars, frame_size=self._rt_frame_size)
         except TimeoutError:
             return None
         except Exception as e:

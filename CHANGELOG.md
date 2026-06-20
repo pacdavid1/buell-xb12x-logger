@@ -21,6 +21,15 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.199] - 2026-06-20
+### Changed
+- ecu/protocol.py: decode_rt_packet() now accepts optional rt_vars dict and frame_size int; defaults to module-level DDFI-2 constants for backward compat
+- ecu/connection.py: DDFI2Connection stores self._rt_vars + self._rt_frame_size; set_ecu_version() resolves ddfi family via resolve_ecu() and calls load_rt_vars() to update both; get_rt() reads self._rt_frame_size bytes and passes self._rt_vars to decode_rt_packet()
+### Result
+- BL-ECM-02: native DDFI-3 RT frame support (135 bytes / 121 vars) — connecting Pi to 1125CR (BUE2D242) now reads full DDFI-3 frame automatically; no XPR workaround needed
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.198] - 2026-06-20
 ### Added
 - web/handlers/tuner.py: _handle_tuner_maps_file() - GET /tuner/maps/file?path=<file>&version=<ver> decodes any .xpr or .bin from /tmp/ or the buell data dir. Auto-detects firmware version from filename stem if not specified. Returns same JSON as /tuner/maps

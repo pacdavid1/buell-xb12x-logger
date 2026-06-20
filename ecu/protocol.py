@@ -258,10 +258,14 @@ def vss_changed_significantly() -> bool:
     return _vss_calibrator.changed_significantly()
 
 
-def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any] | None:
-    """Convierte frame RT raw (107 bytes) → dict de parámetros ECU.
-    Retorna None si el frame es inválido o el checksum no coincide."""
-    if len(raw_bytes) < RT_RESPONSE_SIZE:
+def decode_rt_packet(raw_bytes: bytes,
+                     rt_vars: dict | None = None,
+                     frame_size: int | None = None) -> dict[str, Any] | None:
+    """Decode raw RT frame to parameter dict.
+    rt_vars/frame_size default to module-level DDFI-2 constants."""
+    _vars = rt_vars if rt_vars is not None else RT_VARIABLES
+    _size = frame_size if frame_size is not None else RT_RESPONSE_SIZE
+    if len(raw_bytes) < _size:
         return None
     if raw_bytes[0] != SOH or raw_bytes[4] != EOH or raw_bytes[5] != SOT:
         return None
@@ -274,7 +278,7 @@ def decode_rt_packet(raw_bytes: bytes) -> dict[str, Any] | None:
         return None
 
     result = {}
-    for name, (offset, nbytes, scale, val_offset) in RT_VARIABLES.items():
+    for name, (offset, nbytes, scale, val_offset) in _vars.items():
         if offset + nbytes > len(raw_bytes):
             result[name] = None
             continue
