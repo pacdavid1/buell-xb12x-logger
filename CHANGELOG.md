@@ -21,6 +21,18 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.191] - 2026-06-20
+### Added
+- ecu/rt_defs.py: parse ecu_defs/rtdata.xml at import time to build RT_VARIABLES per DDFI family. load_rt_vars('DDFI-2') returns (dict, 107); load_rt_vars('DDFI-3') returns (dict, 135). lru_cache — parsed once per family. Mirrors ecm_defs.py pattern for EEPROM maps
+### Changed
+- ecu/protocol.py: removed 57-line hardcoded RT_VARIABLES dict; RT_VARIABLES and RT_RESPONSE_SIZE now loaded from rt_defs.load_rt_vars('DDFI-2') at module level — single source of truth in rtdata.xml
+### Fixed
+- CDiag4 was decoded from offset 71 (wrong — that byte is RDiag0/Recent Errors, secret). Correct offset per XML is 101
+- HDiag4 was decoded from offset 79 (wrong — that byte is unknown-79). Correct offset per XML is 103
+- Unk63 (offset 63, 1B) is the barometric pressure sensor ADC (EcmSpy name: "Baro ADC") — legacy key name preserved for caller compatibility
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.190] - 2026-06-20
 ### Added
 - mypy.ini: permissive mypy config (Python 3.11, ignore_missing_imports, no strict)
