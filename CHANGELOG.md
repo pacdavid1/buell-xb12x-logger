@@ -21,6 +21,19 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.173] — 2026-06-19
+### Added
+- GPS Analysis page (/gps_analysis): side-by-side 2D Leaflet + 3D canvas, uPlot speed chart
+  comparing GPS speed vs VS_KPH, GPS fix quality strip, spin event markers, cursor sync,
+  and stats (GPS dist, VSS dist, max spin delta, artifact count)
+- Spin detection: marks on 2D map where VS_KPH - GPS_speed > 8 km/h (rear wheel spin during WOT)
+- GPS artifact detection: flags events where GPS > VSS by >12 km/h while fix is active
+- Nav link GPS Analysis added to all page hamburger menus
+### Changed
+- Map tab: 2D 35dvh / chart 15dvh / 3D 50dvh (Option C — less vertical scroll, bigger 3D)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.172] — 2026-06-19
 ### Fixed
 - BL-MAP-01: GPS map track never loaded — loadMapTrack checked d.ok but /gps_track never sets that field; removed the check

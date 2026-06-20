@@ -126,6 +126,8 @@ class DashboardHandler(
             '/gps_track': self._handle_gps_track,
             '/gps_config': self._handle_gps_config,
             '/gps_config_update': self._handle_gps_config_update,
+            '/gps_analysis': self._handle_gps_analysis,
+            '/gps_analysis_data': self._handle_gps_analysis_data,
             '/ride_note': self._handle_ride_note,
             '/annotations': self._handle_annotations,
             '/session_events': self._handle_session_events,

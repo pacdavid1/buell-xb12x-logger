@@ -296,6 +296,7 @@ table.veg td:active{filter:brightness(1.6)}
         <a href="/tuner" target="_blank">Tuner</a>
         <a href="/errorlog/viz" target="_blank">Errors</a>
         <a href="/launch_power" target="_blank">Launch Power</a>
+        <a href="/gps_analysis" target="_blank">GPS Analysis</a>
         <a href="/fuel" target="_blank">Fuel</a>
         <div style="border-top:1px solid var(--border);margin:4px 0"></div>
         <a href="#" class="nav-tab active" data-tab="ride" onclick="showTab('ride');trackUsage('tab_ride')">Ride</a>
@@ -727,34 +728,120 @@ table.veg td:active{filter:brightness(1.6)}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<style>
+/* ── Map pane enhancements ─────────────────────── */
+.map-toolbar{display:flex;gap:4px;padding:6px 8px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.map-toolbar select{flex:1;min-width:120px;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:4px 6px;border-radius:2px}
+.map-toolbar .btn{padding:4px 8px;font-size:9px;white-space:nowrap}
+.map-toolbar .btn.on{border-color:var(--accent2);color:var(--accent2);background:rgba(245,166,35,.1)}
+.map-toolbar .btn.glow{box-shadow:0 0 6px rgba(232,66,10,.5)}
+.map-metrics{display:flex;gap:2px;padding:3px 8px;background:var(--bg);overflow-x:auto}
+.map-metric{flex:1;min-width:60px;background:var(--panel);border:1px solid var(--border);padding:4px 6px;text-align:center;border-top:2px solid var(--border)}
+.map-metric .mm-label{font-size:7px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);white-space:nowrap}
+.map-metric .mm-val{font-size:16px;font-weight:900;line-height:1.2;font-family:var(--mono)}
+.map-metric .mm-unit{font-size:8px;color:var(--dim);font-family:var(--mono)}
+.map-legend-bar{display:flex;gap:2px;padding:3px 8px;background:var(--panel);border-bottom:1px solid var(--border);align-items:center;font-family:var(--mono);font-size:8px;color:var(--dim)}
+.map-legend-bar .leg-item{display:flex;align-items:center;gap:3px}
+.map-legend-bar .leg-swatch{width:10px;height:10px;border-radius:1px;flex-shrink:0}
+.map-alt-header{background:var(--panel);border-top:1px solid var(--border);padding:3px 8px 1px;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:8px;color:var(--dim)}
+.map-alt-header .alt-ctrls{display:flex;gap:4px}
+.map-alt-header .alt-ctrls .btn{font-size:7px;padding:1px 5px}
+.map-cursor-panel{position:fixed;right:10px;top:120px;width:130px;background:rgba(10,10,10,.92);border:1px solid #333;padding:8px;font-family:var(--mono);z-index:1000;border-radius:4px;display:none}
+.map-cursor-panel .cp-line{display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px}
+.map-cursor-panel .cp-label{color:#666}
+.map-cursor-panel .cp-val{color:#fff;font-weight:700}
+.map-3d-toggle{background:var(--panel);border-top:1px solid var(--border);padding:3px 8px;font-family:var(--mono);font-size:8px;color:var(--dim);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.map-3d-toggle:hover{color:#aaa}
+</style>
+
 <div class="pane content" id="pane-map" style="padding:0">
-  <div style="padding:8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center">
-    <select id="mapRideSelect" style="flex:1;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:4px">
+  <!-- Toolbar -->
+  <div class="map-toolbar">
+    <select id="mapRideSelect">
       <option value="">-- Selecciona un ride --</option>
     </select>
-    <button class="btn" style="padding:4px 10px;font-size:10px" onclick="loadMapTrack()">Ver</button>
+    <button class="btn" onclick="loadMapTrack()" style="border-color:var(--blue);color:var(--blue)">Ver</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+    <button class="btn" id="mapPlayBtn" onclick="toggleTrackReplay()" disabled style="font-size:12px;padding:2px 8px" title="Reproducir track">▶</button>
+    <span style="font-family:var(--mono);font-size:8px;color:var(--dim)" id="mapSpeedLabel">1×</span>
+    <button class="btn" onclick="setTrackSpeed(1)" id="mapSpd1" style="font-size:8px;padding:2px 4px">1×</button>
+    <button class="btn" onclick="setTrackSpeed(2)" id="mapSpd2" style="font-size:8px;padding:2px 4px">2×</button>
+    <button class="btn" onclick="setTrackSpeed(4)" id="mapSpd4" style="font-size:8px;padding:2px 4px">4×</button>
+    <button class="btn" onclick="setTrackSpeed(8)" id="mapSpd8" style="font-size:8px;padding:2px 4px">8×</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+    <button class="btn" id="mapStyleBtn" onclick="cycleMapStyle()" style="font-size:8px;padding:2px 6px" title="Cambiar estilo de mapa">🌍</button>
+    <button class="btn" id="mapHeatBtn" onclick="toggleHeatmap()" style="font-size:8px;padding:2px 6px" title="Heatmap de velocidad">🔥</button>
   </div>
-  <div id="mapInfo" style="padding:4px 8px;font-family:var(--mono);font-size:9px;color:var(--dim);background:var(--panel);border-bottom:1px solid var(--border)">
-    Sin datos GPS
+
+  <!-- Metric cards -->
+  <div class="map-metrics" id="mapMetrics">
+    <div class="map-metric" style="border-top-color:#4af">
+      <div class="mm-label">Distancia</div>
+      <div class="mm-val" style="color:#4af" id="mDist">-- <span class="mm-unit">km</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#ff4444">
+      <div class="mm-label">Vel. Max</div>
+      <div class="mm-val" style="color:#ff4444" id="mMaxSpd">-- <span class="mm-unit">km/h</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#2ecc71">
+      <div class="mm-label">Vel. Media</div>
+      <div class="mm-val" style="color:#2ecc71" id="mAvgSpd">-- <span class="mm-unit">km/h</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#f5a623">
+      <div class="mm-label">Desnivel</div>
+      <div class="mm-val" style="color:#f5a623" id="mElev">-- <span class="mm-unit">m</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#a8f">
+      <div class="mm-label">Duración</div>
+      <div class="mm-val" style="color:#a8f" id="mDuration">-- <span class="mm-unit">min</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#ff0">
+      <div class="mm-label">GPS Fix</div>
+      <div class="mm-val" style="color:#ff0;font-size:12px" id="mFixInfo">--</div>
+    </div>
   </div>
-  <div style="padding:4px 8px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:center;font-family:var(--mono);font-size:9px">
-    <span style="color:#0000FF">■</span> 0-20
-    <span style="color:#00FF00">■</span> 20-60
-    <span style="color:#FFFF00">■</span> 60-120
-    <span style="color:#FF0000">■</span> 120-160
-    <span style="color:#FF00FF">■</span> 160+ km/h
+
+  <!-- Info bar + legend -->
+  <div class="map-legend-bar">
+    <span id="mapInfo" style="flex:1;font-size:9px">Sin datos GPS</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#0000FF"></span>0-20</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#00FF00"></span>20-60</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#FFFF00"></span>60-120</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#FF0000"></span>120-160</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#FF00FF"></span>160+</span>
   </div>
-  <div id="mapLeaflet" style="height:calc(60dvh);width:100%"></div>
-  <div style="background:var(--panel);border-top:1px solid var(--border);padding:4px 8px 2px;font-family:var(--mono);font-size:9px;color:var(--dim)">
-    Perfil de altitud · color = velocidad
+
+  <!-- Map -->
+  <div id="mapLeaflet" style="height:calc(35dvh);width:100%"></div>
+
+  <!-- Altitude header with controls -->
+  <div class="map-alt-header">
+    <span>Perfil de altitud · color = velocidad</span>
+    <div class="alt-ctrls">
+      <button class="btn" id="altModeAlt" onclick="setAltMode('alt')" style="border-color:var(--blue);color:var(--blue)">Alt</button>
+      <button class="btn" id="altModeSpd" onclick="setAltMode('spd')">Spd</button>
+      <button class="btn" id="altModeBoth" onclick="setAltMode('both')">Both</button>
+    </div>
   </div>
-  <div style="background:var(--bg);height:calc(30dvh);padding:4px">
-    <canvas id="altitudeChart"></canvas>
+  <div style="background:var(--bg);height:calc(15dvh);padding:4px;position:relative">
+    <canvas id="altitudeChart" style="cursor:crosshair"></canvas>
+    <!-- Cursor vertical line (synced to map) -->
+    <div id="altCursorLine" style="position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.4);pointer-events:none;display:none"></div>
   </div>
-  <div style="background:var(--panel);border-top:1px solid var(--border);padding:4px 8px 2px;font-family:var(--mono);font-size:9px;color:var(--dim)">
-    3D track &middot; color = speed &middot; drag to rotate &middot; wheel = zoom &middot; auto-rotates when idle
+
+  <!-- Cursor data panel (overlay, shown when hovering alt chart) -->
+  <div class="map-cursor-panel" id="mapCursorPanel">
+    <div class="cp-line"><span class="cp-label">Dist</span><span class="cp-val" id="cpDist">--</span></div>
+    <div class="cp-line"><span class="cp-label">Alt</span><span class="cp-val" id="cpAlt">--</span></div>
+    <div class="cp-line"><span class="cp-label">Vel</span><span class="cp-val" id="cpSpd">--</span></div>
   </div>
-  <div style="background:var(--bg);height:calc(70dvh);padding:4px">
+
+  <!-- 3D track toggle + canvas -->
+  <div class="map-3d-toggle" onclick="toggle3DSection()">
+    <span>3D track · color = speed · drag to rotate · wheel = zoom</span>
+    <span id="map3dArrow">▾</span>
+  </div>
+  <div id="map3dSection" style="background:var(--bg);height:calc(50dvh);padding:4px">
     <canvas id="track3d" style="width:100%;height:100%;display:block;touch-action:none;cursor:grab"></canvas>
   </div>
 </div>
