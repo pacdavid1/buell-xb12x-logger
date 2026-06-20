@@ -11,6 +11,7 @@ import sys as _sys
 _sys.path.insert(0, '/home/pi/buell')
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 from web.launch import _compare_sessions
+from web.utils import _session_version
 
 
 def _maps_differ(a,b):
@@ -32,8 +33,8 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
     ep_b=buell_dir/'sessions'/sb/'eeprom.bin'
     if not ep_a.exists() or not ep_b.exists():
         return {'error':'eeprom no encontrada','attributable':False}
-    mA=_decode_eeprom_maps(ep_a.read_bytes())
-    mB=_decode_eeprom_maps(ep_b.read_bytes())
+    mA=_decode_eeprom_maps(ep_a.read_bytes(), _session_version(ep_a))
+    mB=_decode_eeprom_maps(ep_b.read_bytes(), _session_version(ep_b))
     FK=['fuel_front','fuel_rear']
     SK=['spark_front','spark_rear']
     fc=[k for k in FK if k in mA and k in mB and _maps_differ(mA[k],mB[k])]

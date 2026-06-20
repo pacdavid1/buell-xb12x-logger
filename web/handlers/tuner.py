@@ -5,7 +5,7 @@ import urllib.parse
 from pathlib import Path
 
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
-from web.utils import _get_version
+from web.utils import _get_version, _session_version
 from web.vs_engine import _merge_maps
 
 _TEMPLATES = Path(__file__).resolve().parent.parent / 'templates'
@@ -60,7 +60,7 @@ class TunerHandlerMixin:
             self._json({'error': 'eeprom.bin not found'}, 404)
             return
         try:
-            self._json(_decode_eeprom_maps(blob_path.read_bytes()))
+            self._json(_decode_eeprom_maps(blob_path.read_bytes(), _session_version(blob_path)))
         except Exception as e:
             self._json({'error': f'map read failed: {e}'})
 

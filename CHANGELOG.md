@@ -21,6 +21,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.185] -- 2026-06-20
+### Changed
+- BL-ECM-01 Phase B2: thread real ECU version through all decode_eeprom_maps() callers.
+  Added web/utils._session_version(bin_path) helper (reads session_metadata.json).
+  Updated: main.py (live path uses ecu_version from serial), handlers/tuner.py,
+  handlers/eeprom.py (5 call sites), vs_engine.py (2 call sites).
+  Removed dead import in server.py. All 12/12 golden bins pass regression harness.
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.184] -- 2026-06-20
 ### Changed
 - ecu/eeprom.py (BL-ECM-01 Phase B1): decode_eeprom_maps() now delegates to

@@ -19,7 +19,6 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 import sys as _sys
 _sys.path.insert(0, '/home/pi/buell')
-from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 from ecu.eeprom_params import decode_params as _decode_eeprom_params
 import datetime
 

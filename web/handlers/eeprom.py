@@ -8,6 +8,7 @@ from pathlib import Path
 
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 from ecu.eeprom_params import decode_params as _decode_eeprom_params
+from web.utils import _session_version
 from web.vs_engine import _eeprom_to_msq
 
 
@@ -82,7 +83,7 @@ class EepromHandlerMixin:
                 return
         elif bin_path.exists():
             try:
-                eeprom_maps = _decode_eeprom_maps(bin_path.read_bytes())
+                eeprom_maps = _decode_eeprom_maps(bin_path.read_bytes(), _session_version(bin_path))
             except Exception as e:
                 self._json({'error': 'could not decode eeprom.bin: ' + str(e)})
                 return
@@ -225,7 +226,7 @@ class EepromHandlerMixin:
                 if len(changes) > 20:
                     self._json({'error': 'too many changes: ' + str(len(changes)) + ' (max 20 per burn)'})
                     return
-                current_maps = _decode_eeprom_maps(current_bin)
+                current_maps = _decode_eeprom_maps(current_bin, _session_version(eeprom_path))
                 for ch in changes:
                     mk  = ch.get('map')
                     ri  = int(ch.get('ri', 0))
@@ -290,7 +291,8 @@ class EepromHandlerMixin:
             from web.burn_ledger import build_entry, record_burn
             entry = build_entry(
                 current_bin, proposed,
-                _decode_eeprom_maps(current_bin), _decode_eeprom_maps(proposed),
+                _decode_eeprom_maps(current_bin, _session_version(eeprom_path)),
+                _decode_eeprom_maps(proposed, _session_version(eeprom_path)),
                 source_session=str(cs) if cs else eeprom_path.parent.name,
                 verified=bool(result.get('verified')),
                 backup_name=backup_path.name)
@@ -349,7 +351,7 @@ class EepromHandlerMixin:
             ses_path = self.server_instance.buell_dir / 'sessions' / req_session / 'eeprom.bin'
             if ses_path.exists():
                 try:
-                    maps = _decode_eeprom_maps(ses_path.read_bytes())
+                    maps = _decode_eeprom_maps(ses_path.read_bytes(), _session_version(ses_path))
                     if maps and maps.get('fuel_front'):
                         self._json(maps)
                         return
@@ -363,7 +365,7 @@ class EepromHandlerMixin:
                     (self.server_instance.buell_dir / 'sessions').glob('*/eeprom.bin'),
                     key=lambda p: p.stat().st_mtime)
                 if bins:
-                    maps = _decode_eeprom_maps(bins[-1].read_bytes())
+                    maps = _decode_eeprom_maps(bins[-1].read_bytes(), _session_version(bins[-1]))
             except Exception as e:
                 maps = {'error': str(e)}
         self._json(maps)

@@ -170,7 +170,7 @@ class BuellLogger:
 
     def _update_web_ecu_state(self, blob: bytes, ecu_version: str):
         """Reload EEPROM maps into web server state."""
-        self.web.eeprom_maps   = decode_eeprom_maps(blob)
+        self.web.eeprom_maps   = decode_eeprom_maps(blob, ecu_version)
         self.web.eeprom_params = decode_params(blob, ecu_version)
         self.web.bike_serial   = int.from_bytes(blob[12:14], 'little')
         self.web.ecu_identity  = resolve_ecu(ecu_version) or {}
