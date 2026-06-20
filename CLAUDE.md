@@ -216,6 +216,15 @@ with open(path, 'w') as f: f.write(content)
 
 ## Coding standards (mandatory)
 
+## How to edit files on the Pi — avoid fix_*.py scripts
+
+Prefer direct edits over intermediate scripts:
+- Single line change: ssh + sed -i in-place
+- Full file rewrite: ssh + cat with a heredoc
+- Multi-line logic: compact python3 -c inline over SSH
+- Last resort: write to /tmp/script.py, run once, delete immediately
+- Never commit fix_*.py or patch scripts
+
 ## Type hints (mandatory when touching Python files)
 
 When modifying any Python function, add return type hints to every function you touch.

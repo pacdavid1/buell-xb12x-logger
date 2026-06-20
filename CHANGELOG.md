@@ -21,6 +21,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.194] - 2026-06-20
+### Fixed
+- CLAUDE.md: restored "How to edit files on the Pi" rule body (code examples were stripped by shell backtick expansion in previous session)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.193] - 2026-06-20
 ### Changed
 - CLAUDE.md: added "Where to work" rule — Pi is source of truth, all changes via SSH; Windows clone is read-only
