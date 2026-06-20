@@ -21,6 +21,14 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.186] - 2026-06-20
+### Changed
+- ecu/ecm_defs.py: replace hardcoded 1206 size guard with dynamic min_size derived from max(offset+size) across all XML entries — BUE1D (1125CR) requires 2904 bytes and now passes cleanly
+- ecu/eeprom.py: remove BUEIB-specific fuel load axis check (blob[632:644] all non-zero) from _validate_eeprom — offset 632 is unrelated in other firmwares; _validate_eeprom now uses only firmware-independent fields (serial/year/config at offsets 8-13)
+- Golden bin validation: 12/12 BUEIB sessions still pass byte-identical
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.185] -- 2026-06-20
 ### Changed
 - BL-ECM-01 Phase B2: thread real ECU version through all decode_eeprom_maps() callers.

@@ -13,7 +13,7 @@ _log = logging.getLogger(__name__)
 
 def _validate_eeprom(eeprom_bytes):
     """Sanity-check EEPROM bytes. Returns True if data looks valid.
-    Offsets verified against BUEIB.xml 2026-05-31."""
+    Checks use firmware-independent offsets (serial/year/config at 8-13)."""
     if not eeprom_bytes or len(eeprom_bytes) < 600:
         return False
     try:
@@ -26,9 +26,6 @@ def _validate_eeprom(eeprom_bytes):
             return False
         # System Configuration (offset 8): non-zero for a programmed ECU
         if eeprom_bytes[8] == 0:
-            return False
-        # Fuel map load axes (offset 632, 12 bins): all non-zero
-        if any(eeprom_bytes[632 + i] == 0 for i in range(12)):
             return False
         return True
     except (IndexError, TypeError):

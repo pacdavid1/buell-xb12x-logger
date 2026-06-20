@@ -87,15 +87,25 @@ def _decode_map(blob, d):
     return table
 
 
+def _min_blob_size(entries):
+    """Minimum valid blob size = highest (offset + size) across all entries."""
+    if not entries:
+        return 0
+    return max(d["offset"] + d["size"] for d in entries)
+
+
 def decode_maps(blob, version_string):
     """Return legacy-compatible {axes:{...}, fuel_front, fuel_rear, spark_*}."""
-    if not blob or len(blob) < 1206:   # TODO Phase B: derive size from defs
+    if not blob:
         return {}
     xml_path = _xml_path(version_string)
     if not xml_path or not xml_path.exists():
         return {}
+    entries = _entries(xml_path)
+    if len(blob) < _min_blob_size(entries):
+        return {}
     axes, maps = {}, {}
-    for d in _entries(xml_path):
+    for d in entries:
         if d["type"] == "Axis" and d["name"] in AXIS_KEYS:
             axes[AXIS_KEYS[d["name"]]] = _decode_axis(blob, d)
         elif d["type"] == "Map" and d["name"] in MAP_KEYS:
