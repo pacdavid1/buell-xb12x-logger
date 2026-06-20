@@ -196,6 +196,14 @@ with open(path, 'w') as f: f.write(content)
 
 ## Coding standards (mandatory)
 
+## Type hints (mandatory when touching Python files)
+
+When modifying any Python function, add return type hints to every function you touch.
+Run file-by-file only — never `mypy .` on the whole project (Pi RAM).
+```bash
+python3 -m mypy ecu/connection.py  # example: check one file
+```
+
 ## ENGLISH ONLY — NON-NEGOTIABLE (read this first)
 
 **ALL code is in English. No exceptions. Ever.**

@@ -21,6 +21,13 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.190] - 2026-06-20
+### Added
+- mypy.ini: permissive mypy config (Python 3.11, ignore_missing_imports, no strict)
+- CLAUDE.md: type hints rule — add return types to every Python function touched
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.189] - 2026-06-20
 ### Added
 - ecu_defs/rtdata.xml: EcmSpy RT parameter definitions for DDFI2 (90 params) and DDFI3 (126 params, 135-byte frame). Unblocks live logging for 1125CR — same PDU framing, only RT_VARIABLES dict + frame size differ
