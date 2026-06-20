@@ -21,6 +21,12 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.187] - 2026-06-20
+### Added
+- BACKLOG.md: BL-ECM-02 — multi-bike DDFI3 support (1125CR). Architecture decision: one integrated software, firmware-aware layers. Documents what BL-ECM-01 already covers, what needs new work, and the live logging blocker (no ADX for DDFI3)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.186] - 2026-06-20
 ### Changed
 - ecu/ecm_defs.py: replace hardcoded 1206 size guard with dynamic min_size derived from max(offset+size) across all XML entries — BUE1D (1125CR) requires 2904 bytes and now passes cleanly

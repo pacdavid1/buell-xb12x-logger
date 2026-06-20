@@ -27,6 +27,37 @@ guardados con bins BUEIB. Tablas de los 14 firmwares, inventario de hardcodeos
 plan por fases están en BACKLOG_ECM_DEFS.md. Prompt de análisis de arquitectura para un
 arquitecto IA en inbox/prompt_para_claude.md.
 
+### BL-ECM-02 — Multi-bike DDFI3 support (1125CR, un Pi por moto)
+**Priority:** 🟡 MEDIA — depende de BL-ECM-01 completado
+**Decisión arquitectural (2026-06-20):** UN solo software integrado, capas firmware-aware.
+No dos codebases separados. El refactor XML-driven de BL-ECM-01 ya es la base correcta.
+
+**Contexto:** el usuario tiene 3 motos (2× XB + 1× 1125CR), cada una con su propio Pi.
+XB usa DDFI2 (Alpha-N, TPS+RPM). 1125CR usa DDFI3 (Speed-Density, MAP+TPS).
+
+**Lo que ya funciona para DDFI3 (sin código nuevo):**
+- EEPROM read: BL-ECM-01 XML-driven cubre los 7 firmwares 1125CR automáticamente
+- Map display: tuner.html ya es dinámico en dims (16×20 se muestra solo)
+- EEPROM burn: Phase C de BL-ECM-01 agrega burn guard con safe_zone por firmware
+
+**Lo que necesita trabajo nuevo:**
+- 2nd Fuel Map (8×12): no está en MAP_KEYS — UI no lo muestra ni lo quema
+- MAP-to-Load / TP-to-Load tables: concepto nuevo, no existe en XB — necesita UI propia
+- Fuel pressure setpoint maps, IAC position maps: hardware que XB no tiene
+- Sessions VS / F7: lógica asume Alpha-N (TPS=load directo); con Speed-Density el "Load Axis"
+  es calculado (MAP+TPS), las bins no son comparables entre familias de ECU
+- Live logging (BLOQUEADO): protocolo serial de DDFI3 desconocido, no tenemos archivos ADX
+  para el 1125CR. Sin ADX no hay live logging, sin live logging no hay sesiones ni tuning.
+
+**Bloqueador crítico:** ADX files para 1125CR (TunerPro RT format que define el protocolo
+serial en tiempo real). Freebuff task 070 investiga disponibilidad y alternativas.
+
+**Orden de ejecución sugerido:**
+1. Completar BL-ECM-01 (B3→B4→C) — da EEPROM read/burn multi-firmware
+2. Resolver el ADX para DDFI3 (investigación) — desbloquea live logging
+3. BL-ECM-02 propiamente: extender sessions VS + F7 para Speed-Density
+4. UI para 2nd Fuel Map y tablas MAP-sensor
+
 ### BL-DX-01 — Auto-bump de versión en README/architecture al commitear
 **Priority:** LOW
 
