@@ -9,7 +9,7 @@
 <style>
 :root{--bg:#0d0d0d;--panel:#1a1a1a;--border:#2a2a2a;--accent:#e8420a;--green:#2ecc71;--yellow:#f1c40f;--orange:#e67e22;--red:#e74c3c;--blue:#3d9eff;--dim:#666;--text:#e0e0e0;--mono:'JetBrains Mono',monospace}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 .hdr{background:var(--panel);border-bottom:2px solid var(--accent);padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
 .hdr-title{font-size:16px;font-weight:900;letter-spacing:.06em}
 .nav-menu{position:relative;flex-shrink:0}
@@ -20,7 +20,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:1
 .nav-menu-drop a{display:block;font-family:var(--mono);font-size:15px;color:var(--dim);text-decoration:none;padding:10px 14px;border-radius:2px}
 .nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
 .nav-menu-drop a.active{color:var(--accent);background:rgba(255,255,255,.06)}
-.content{padding:12px;max-width:520px;margin:0 auto}
+.content{padding:12px;max-width:520px;margin:0 auto;flex:1;overflow-y:auto}
 .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:10px}
 .section-title{font-size:15px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
 .trip-row{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
@@ -124,6 +124,7 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 .onboard-step b{color:var(--text);min-width:14px}
 .onboard-note{font-size:11px;color:var(--dim);margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
 </style>
+  <link rel="stylesheet" href="/static/header.css">
 </head>
 <body>
 <div class="hdr">
