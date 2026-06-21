@@ -7,6 +7,7 @@ import urllib.parse
 from pathlib import Path
 
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
+from ecu.eeprom import decode_eeprom_maps_full as _decode_eeprom_maps_full
 from ecu.eeprom_params import decode_params as _decode_eeprom_params
 from ecu.version_resolver import resolve_ecu as _resolve_ecu
 from web.utils import _session_version
@@ -244,23 +245,26 @@ class EepromHandlerMixin:
                 if len(changes) > 20:
                     self._json({'error': 'too many changes: ' + str(len(changes)) + ' (max 20 per burn)'})
                     return
-                current_maps = _decode_eeprom_maps(current_bin, _session_version(eeprom_path))
+                full = _decode_eeprom_maps_full(current_bin, _session_version(eeprom_path))
+                current_maps = full.get('maps', {})
                 for ch in changes:
                     mk  = ch.get('map')
                     ri  = int(ch.get('ri', 0))
                     ci  = int(ch.get('ci', 0))
                     val = float(ch.get('val', 0))
-                    if mk not in current_maps or not isinstance(current_maps[mk], list):
+                    entry = current_maps.get(mk)
+                    if not entry or not isinstance(entry.get('data'), list):
                         continue
-                    if ri >= len(current_maps[mk]) or ci >= len(current_maps[mk][ri]):
+                    data = entry['data']
+                    if ri >= len(data) or ci >= len(data[ri]):
                         continue
-                    orig = current_maps[mk][ri][ci]
+                    orig = data[ri][ci]
                     if orig > 0 and abs(val - orig) > orig * 0.15:
                         self._json({'error': 'cell [' + str(ri) + ',' + str(ci) + '] exceeds +-15%: '
                                     + str(round(orig, 1)) + ' to ' + str(round(val, 1))})
                         return
                     if mk not in maps:
-                        maps[mk] = [row[:] for row in current_maps[mk]]
+                        maps[mk] = [row[:] for row in data]
                     maps[mk][ri][ci] = val
             proposed = encode_eeprom_maps(current_bin, maps, _session_version(eeprom_path))
         except Exception as e:

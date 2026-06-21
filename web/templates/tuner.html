@@ -104,10 +104,6 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
   <button class="mc-go" id="mcDl" onclick="downloadMerge()" disabled style="background:var(--bl)">JSON</button>
 </div>
 <div class="tabs" id="tabs">
-<button class="tab on" data-m="fuel_front">FUEL FRONT</button>
-<button class="tab" data-m="fuel_rear">FUEL REAR</button>
-<button class="tab" data-m="spark_front">SPARK FRONT</button>
-<button class="tab" data-m="spark_rear">SPARK REAR</button>
 </div>
 <div class="ps"><div style="display:flex;gap:4px;padding:2px 4px;flex-shrink:0;align-items:center"><button id="burnBtn" onclick="burnStaged()" disabled style="font-family:var(--mn);font-size:8px;font-weight:700;padding:2px 10px;background:#c0392b;color:#fff;border:none;border-radius:2px;cursor:pointer;letter-spacing:.06em;opacity:.4">BURN</button><button id="resetBtn" onclick="resetStaged()" disabled style="font-family:var(--mn);font-size:8px;padding:2px 8px;background:var(--p);color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer;opacity:.4">RESET</button><span id="stageSt" style="font-family:var(--mn);font-size:8px;color:var(--dm)"></span></div><div class="pi" id="pw"></div></div>
 <div class="c3bar" style="display:flex;gap:8px;align-items:center;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0">
@@ -146,7 +142,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 </div>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
-var mB=null,mM=null,mMerge=null,mergeMode='BALANCE',cur='fuel_front';
+var mB=null,mM=null,mMerge=null,mergeMode='BALANCE',cur='';
 var STAGE={},MAX_STAGE_CELLS=20;
 
 function dlMsq(selId) {
@@ -164,8 +160,7 @@ function dlMsq(selId) {
     });
   }).catch(function(e){ alert('Download error: ' + e.message); });
 }
-var AX={fuel_front:['fuel_rpm','fuel_load'],fuel_rear:['fuel_rpm','fuel_load'],spark_front:['spark_rpm','spark_load'],spark_rear:['spark_rpm','spark_load']};
-var SC={fuel_front:0.50,fuel_rear:0.50,spark_front:0.30,spark_rear:0.30,delta:0.08};
+var SC={fuel_map_front:0.50,fuel_map_rear:0.50,timing_table_front:0.30,timing_table_rear:0.30,'2nd_fuel_map_front':0.50,'2nd_fuel_map_rear':0.50,delta:0.08};
 var CAM={zoom:1};
 var CAM_STORE_KEY='buell_cam_3d';
 function saveCameraState(){try{localStorage.setItem(CAM_STORE_KEY,JSON.stringify({tps:document.getElementById('inTps').value,rpm:document.getElementById('inRpm').value,val:document.getElementById('inVal').value,zoom:document.getElementById('inZoom').value,cam:document.getElementById('inCam').value}));}catch(e){}}
@@ -207,24 +202,25 @@ function setMergeMode(m){mergeMode=m;var all=document.querySelectorAll('.mc-m');
 async function init(){
   try{
     var r=await fetch('/tuner/sessions');if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
-    if(!d.sessions||!d.sessions.length){st('No hay sesiones con mapas');return}
+    if(!d.sessions||!d.sessions.length){st('No sessions with maps found');return}
   var o='<option value="">--</option>';
     for(var i=0;i<d.sessions.length;i++){var s=d.sessions[i];var sm=s.samples>=1000?(s.samples/1000).toFixed(1)+'k':s.samples;o+='<option value="'+s.id+'">'+s.id+' (S'+(s.serial||'?')+') '+s.created+' '+s.rides+'r·'+sm+'</option>'}
     document.getElementById('sB').innerHTML=o;document.getElementById('sM').innerHTML=o;
-    st(d.sessions.length+' sesiones validas');
+    st(d.sessions.length+' sessions available');
   }catch(e){st('Error: '+e.message)}
 }
 function st(t){document.getElementById('st').textContent=t}
 async function load(t){
   var id=document.getElementById(t==='base'?'sB':'sM').value;if(!id)return;
-  st('Cargando '+id+'...');
+  st('Loading '+id+'...');
   try{
     var r=await fetch('/tuner/maps?session='+id);if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
-    if(!d||!d.fuel_front){st('Error: '+(d&&d.error||'sin mapa'));return}
+    if(!d||!d.maps){st('Error: '+(d&&d.error||'no maps'));return}
     if(t==='base')mB=d;else mM=d;mMerge=null;
+    if(mB&&(!cur||!mB.maps[cur])){var ks=Object.keys(mB.maps);cur=ks[0]||'';var tb=document.getElementById('tabs');tb.innerHTML=ks.map(function(k){return'<button class="tab'+(k===cur?' on':'')+'' data-m=\"'+k+'\">'+mB.maps[k].label+'</button>';}).join('');}
     document.getElementById('mcGo').disabled=!(mB&&mM);
     render();
-  }catch(e){st('Error al cargar')}
+  }catch(e){st('Error loading')}
 }
 
 function heatRGB(t){
@@ -239,11 +235,14 @@ function heatRGB(t){
 
 function render(){
   if(!mB||!mM)return;
-  var mk=cur,ak=AX[mk],bD=mB[mk],mD=mM[mk];
-  if(!bD||!mD){document.getElementById('pw').innerHTML='<p style="padding:16px;color:#555">Mapa no disponible</p>';return}
-  var rpm=mB.axes[ak[0]],lod=mB.axes[ak[1]];
+  var mk=cur;
+  var bMap=(mB.maps||{})[mk],mMap=(mM.maps||{})[mk];
+  var bD=bMap?bMap.data:null,mD=mMap?mMap.data:null;
+  if(!bD||!mD){document.getElementById('pw').innerHTML='<p style="padding:16px;color:#555">Map not available</p>';return}
+  var xk=bMap.xaxis,yk=bMap.yaxis;
+  var rpm=xk&&mB.axes[xk]?mB.axes[xk].data:[],lod=yk&&mB.axes[yk]?mB.axes[yk].data:[];
   var rows=lod.length,cols=rpm.length;
-  if(bD.length!==mD.length){st('Dimensiones diferentes');return}
+  if(bD.length!==mD.length||(bD[0]&&mD[0]&&bD[0].length!==mD[0].length)){st('Different map dimensions');return}
   var mx=0;
   for(var i=0;i<rows;i++)for(var j=0;j<cols;j++){var v=Math.abs(mD[i][j]-bD[i][j]);if(v>mx)mx=v}
 
@@ -282,7 +281,7 @@ function render(){
     '<div class="tw">'+dtbl()+'</div>'+
     '<div class="tw tm">'+tbl(mD,'MOD')+'</div>'+
     mhtml;
-  st(mk.toUpperCase().replace('_',' ')+' \u2014 Delta max: '+mx.toFixed(1));
+  st(mk.toUpperCase().replace(/_/g,' ')+' \u2014 Delta max: '+mx.toFixed(1));
   drawAll();
 }
 
@@ -314,9 +313,12 @@ document.addEventListener('touchend',function(){for(var k in C3)C3[k].drag=false
 
 function drawAll(){
   if(!mB||!mM)return;
-  var mk=cur,ak=AX[mk],bD=mB[mk],mD=mM[mk];
+  var mk=cur;
+  var bMap=(mB.maps||{})[mk],mMap=(mM.maps||{})[mk];
+  if(!bMap||!mMap)return;
+  var bD=bMap.data,mD=mMap.data;
   if(!bD||!mD)return;
-  var rpm=mB.axes[ak[0]],lod=mB.axes[ak[1]];
+  var rpm=bMap.xaxis&&mB.axes[bMap.xaxis]?mB.axes[bMap.xaxis].data:[],lod=bMap.yaxis&&mB.axes[bMap.yaxis]?mB.axes[bMap.yaxis].data:[];
   var dd=[];for(var i=0;i<bD.length;i++){dd[i]=[];for(var j=0;j<bD[0].length;j++)dd[i][j]=mD[i][j]-bD[i][j]}
   drawSurf('c3b',bD,rpm,lod,'heat','lb');
   drawDelta('c3d',bD,mD,rpm,lod,'ld');
@@ -427,7 +429,7 @@ document.getElementById('pw').addEventListener('mouseover',function(e){
   var td=e.target.closest('td');if(!td||!td.dataset.rpm)return;
   st('RPM: '+td.dataset.rpm+'  TPS: '+td.dataset.tps+'  VAL: '+td.dataset.val);
 });
-document.getElementById('pw').addEventListener('mouseleave',function(){render&&mB&&mM?st(cur.toUpperCase().replace('_',' ')+' — hover una celda'):null});
+document.getElementById('pw').addEventListener('mouseleave',function(){render&&mB&&mM?st(cur.toUpperCase().replace(/_/g,' ')+' — hover a cell'):null});
 function drawDelta(cid,bD,mD,rpm,lod,legId){
   var el=document.getElementById(cid);if(!el||!bD||!mD)return;
   var ctx=el.getContext('2d'),key='delta';

@@ -12,6 +12,7 @@ cols = dense format. Multi-firmware support comes for free once validated.
 """
 
 import struct
+import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -32,6 +33,10 @@ AXIS_KEYS = {
     "Fuel Map Load Axis": "fuel_load",
     "Fuel Map RPM Axis": "fuel_rpm",
 }
+
+
+def _norm(name: str) -> str:
+    return re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')
 
 
 def _xml_path(version_string):
@@ -59,6 +64,9 @@ def _entries(xml_path):
             "rows": num(e, "rows", "0", int),
             "cols": num(e, "cols", "0", int),
             "scale": num(e, "scale", "1", float),
+            "xaxis": e.findtext(f"{p}xaxis", "") or "",
+            "yaxis": e.findtext(f"{p}yaxis", "") or "",
+            "units": e.findtext(f"{p}units", "") or "",
         })
     return out
 
@@ -111,6 +119,45 @@ def decode_maps(blob, version_string):
         elif d["type"] == "Map" and d["name"] in MAP_KEYS:
             maps[MAP_KEYS[d["name"]]] = _decode_map(blob, d)
     return {"axes": axes, **maps}
+
+
+def decode_maps_full(blob: bytes, version_string: str) -> dict:
+    """Return all maps and axes from XML as XML-driven nested dict.
+
+    Format: {maps: {norm_key: {label, data, rows, cols, xaxis, yaxis, units}},
+             axes: {norm_key: {label, data, units}}}
+    """
+    if not blob:
+        return {"maps": {}, "axes": {}}
+    xml_path = _xml_path(version_string)
+    if not xml_path or not xml_path.exists():
+        return {"maps": {}, "axes": {}}
+    entries = _entries(xml_path)
+    if len(blob) < _min_blob_size(entries):
+        return {"maps": {}, "axes": {}}
+    axes_out = {}
+    for d in entries:
+        if d["type"] == "Axis":
+            key = _norm(d["name"])
+            axes_out[key] = {
+                "label": d["name"],
+                "data": _decode_axis(blob, d),
+                "units": d["units"],
+            }
+    maps_out = {}
+    for d in entries:
+        if d["type"] == "Map":
+            key = _norm(d["name"])
+            maps_out[key] = {
+                "label": d["name"],
+                "data": _decode_map(blob, d),
+                "rows": d["rows"],
+                "cols": d["cols"],
+                "xaxis": _norm(d["xaxis"]) if d["xaxis"] else None,
+                "yaxis": _norm(d["yaxis"]) if d["yaxis"] else None,
+                "units": d["units"],
+            }
+    return {"maps": maps_out, "axes": axes_out}
 
 
 # EEPROM page tables: (page_nr, absolute_start, length).

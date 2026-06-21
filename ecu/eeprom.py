@@ -48,6 +48,14 @@ def decode_eeprom_maps(eeprom_bytes, version=None):
     return decode_maps(eeprom_bytes, version or "BUEIB310")
 
 
+
+def decode_eeprom_maps_full(eeprom_bytes, version=None):
+    """Return all maps and axes from XML — XML-driven, no hardcoded keys."""
+    if not _validate_eeprom(eeprom_bytes):
+        return {"maps": {}, "axes": {}}
+    from ecu.ecm_defs import decode_maps_full
+    return decode_maps_full(eeprom_bytes, version or "BUEIB310")
+
 def encode_eeprom_maps(eeprom_bytes: bytes, maps: dict,
                        version: str | None = None) -> bytes:
     """Apply decoded map tables back into EEPROM bytes.
@@ -64,8 +72,12 @@ def encode_eeprom_maps(eeprom_bytes: bytes, maps: dict,
     if not xml_p or not xml_p.exists():
         _log.warning("encode_eeprom_maps: no XML for version %r — not encoding", version)
         return bytes(eeprom_bytes)
-    key_to_entry = {MAP_KEYS[e['name']]: e
-                    for e in _entries(xml_p) if e['name'] in MAP_KEYS}
+    from ecu.ecm_defs import _norm
+    key_to_entry = {}
+    for e in _entries(xml_p):
+        if e['name'] in MAP_KEYS:
+            key_to_entry[MAP_KEYS[e['name']]] = e   # legacy keys
+        key_to_entry[_norm(e['name'])] = e          # new XML-driven keys
     result = bytearray(eeprom_bytes)
     for map_key, table in maps.items():
         if not table:

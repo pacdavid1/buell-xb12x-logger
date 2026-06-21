@@ -20,6 +20,24 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.208] - 2026-06-20
+### Feature
+- Tuner page now XML-driven: all maps and axes read from ECU XML definition,
+  no hardcoded keys. DDFI-2 shows 6 maps, DDFI-3 shows 21 maps automatically.
+- ecu/ecm_defs.py: added _norm(), decode_maps_full() returning all Map/Axis entries
+  with normalized keys, explicit xaxis/yaxis references from XML <xaxis>/<yaxis> tags.
+- ecu/eeprom.py: added decode_eeprom_maps_full(); encode_eeprom_maps() now accepts
+  both legacy keys (fuel_front) and new XML-driven keys (fuel_map_front).
+- web/handlers/tuner.py: /tuner/maps now returns full XML-driven format.
+- web/handlers/eeprom.py: burn handler uses decode_eeprom_maps_full() for
+  cell validation; supports burning any map by normalized key.
+- web/templates/tuner.html: tabs generated dynamically from API response;
+  removed hardcoded AX dict and 4 tab buttons; fixed Spanish UI strings.
+
+### AI
+- Claude Sonnet 4.6
+
+
 ## [v2.7.207] - 2026-06-20
 ### Fix
 - Sessions VS: block comparison when DDFI families differ (DDFI-2 vs DDFI-3).
