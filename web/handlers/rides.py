@@ -66,6 +66,8 @@ class RidesHandlerMixin:
             self.end_headers()
             self.wfile.write(body)
             return
+        sess = self.server_instance.session
+        session = sess.current_checksum if sess and sess.current_checksum else ""
         report["_csv_url"] = f"/tuning_report?session={session}&format=csv"
         self._json(report)
 

@@ -20,6 +20,28 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.205] - 2026-06-20
+### Fix
+- Dashboard black screen on hotspot (no internet): Chart.js, PapaParse, Leaflet JS+CSS
+  were loaded from external CDNs. Synchronous `<script>` tags block JS execution while
+  waiting for a TCP connection that never completes on an offline AP.
+  Fix: downloaded all 4 files to `/web/static/` and changed `index.html` to serve them
+  locally via `/static/`. Google Fonts remains CDN-only (CSS link, non-blocking, optional).
+
+### AI
+- Claude Sonnet 4.6
+
+
+## [v2.7.204] - 2026-06-20
+### Fix
+- `_handle_coverage_json` in `web/handlers/rides.py`: bare `session` NameError crashed
+  every `/coverage.json` request, causing dashboard black screen on hotspot and home WiFi.
+  Fix: read `self.server_instance.session.current_checksum` before building `_csv_url`.
+
+### AI
+- Claude Sonnet 4.6
+
+
 ## [v2.7.203] - 2026-06-21
 ### Feature
 - F7 Phase 2.2 (Option B): pilot-marked launch events from GRAF2 annotations
