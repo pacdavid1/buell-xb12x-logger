@@ -204,7 +204,15 @@ async function compare(){
     var r=await fetch('/sessions_vs/compare?a='+a+'&b='+b);
     if(!r.ok)throw Error('HTTP '+r.status);
     _data=await r.json();
-    if(_data.error){st('Error: '+_data.error);document.getElementById('btnCmp').disabled=false;return}
+    if(_data.error){
+      if(_data.map_mismatch){
+        st('⚠️ Map mismatch: '+_data.ddfi_a+' vs '+_data.ddfi_b+' — incompatible fuel map dimensions. Compare sessions from the same ECU family.');
+      } else {
+        st('Error: '+_data.error);
+      }
+      document.getElementById('btnCmp').disabled=false;
+      return;
+    }
     render();
     fetchDyno(a, b);
   }catch(e){st('Error: '+e.message)}

@@ -12,6 +12,7 @@ _sys.path.insert(0, '/home/pi/buell')
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 from web.launch import _compare_sessions
 from web.utils import _session_version
+from ecu.version_resolver import resolve_ecu as _resolve_ecu
 
 
 def _maps_differ(a,b):
@@ -181,6 +182,19 @@ def _compare_sessions_cached(buell_dir, sa, sb):
             with open(mp) as f: return json.load(f)
         return {}
     ma, mb = _meta(sa), _meta(sb)
+    # Block comparison when fuel map dimensions differ (DDFI-2 vs DDFI-3)
+    _va = ma.get("version_string", "")
+    _vb = mb.get("version_string", "")
+    _ia = _resolve_ecu(_va) if _va else None
+    _ib = _resolve_ecu(_vb) if _vb else None
+    _da = _ia.get("ddfi") if _ia else None
+    _db = _ib.get("ddfi") if _ib else None
+    if _da and _db and _da != _db:
+        _na = _va.split()[0] if _va else "?"
+        _nb = _vb.split()[0] if _vb else "?"
+        return {"error": f"Map mismatch: {_da} ({_na}) vs {_db} ({_nb}) — incompatible fuel map dimensions",
+                "map_mismatch": True, "ddfi_a": _da, "ddfi_b": _db,
+                "same_bike": False, "common": 0, "cells": [], "delta": []}
     fname = f"sessions_vs_v{CACHE_VERSION}_{sa}-{_fmtk(ma.get('total_samples',0))}_{sb}-{_fmtk(mb.get('total_samples',0))}.json"
     cache_dir = buell_dir / 'sessions' / '_cache'
     cache_file = cache_dir / fname

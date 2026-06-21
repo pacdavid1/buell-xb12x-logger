@@ -20,6 +20,18 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.207] - 2026-06-20
+### Fix
+- Sessions VS: block comparison when DDFI families differ (DDFI-2 vs DDFI-3).
+  Previously showed empty table with common:0 and no explanation.
+  Now returns error with map_mismatch flag; UI shows explicit ⚠️ message.
+  Comparison of different bikes with the same firmware is still allowed.
+  Changes: web/vs_engine.py (import + guard), web/templates/sessions_vs.html (UI).
+
+### AI
+- Claude Sonnet 4.6
+
+
 ## [v2.7.206] - 2026-06-20
 ### Fix
 - `CellTracker.snapshot()` in `ecu/session.py`: KeyError 'count' when cells were
