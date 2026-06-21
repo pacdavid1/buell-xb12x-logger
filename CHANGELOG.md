@@ -20,6 +20,19 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.201] - 2026-06-21
+### Fix
+- BL-ECM-03: `_handle_eeprom_revert` now validates EEPROM layout before burn
+- Version guard reads donor session `version_string` from `session_metadata.json`,
+  resolves DDFI tier via `resolve_ecu()`, and compares against live `ecu_identity['ddfi']`
+- Blocks revert with clear error if donor DDFI != live ECU DDFI (e.g. DDFI-2 donor vs DDFI-3 ECU)
+- Guard skipped only when version info is unavailable on either side (fails open, not closed)
+- Added `from ecu.version_resolver import resolve_ecu as _resolve_ecu` to `web/handlers/eeprom.py`
+
+### AI
+- Claude Sonnet 4.6
+
+
 
 ## [v2.7.200] - 2026-06-20
 ### Infrastructure

@@ -8,6 +8,7 @@ from pathlib import Path
 
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 from ecu.eeprom_params import decode_params as _decode_eeprom_params
+from ecu.version_resolver import resolve_ecu as _resolve_ecu
 from web.utils import _session_version
 from web.vs_engine import _eeprom_to_msq
 
@@ -146,6 +147,23 @@ class EepromHandlerMixin:
             self._json({'error': 'eeprom.bin not found for session ' + target_id})
             return
         proposed = target_path.read_bytes()
+        # Version guard: donor EEPROM layout must match live ECU (DDFI tier)
+        live_identity = getattr(self.server_instance, 'ecu_identity', {}) or {}
+        live_ddfi = live_identity.get('ddfi')
+        if live_ddfi:
+            donor_ver = _session_version(target_path)
+            if donor_ver and donor_ver not in ('cached', 'unknown'):
+                donor_info = _resolve_ecu(donor_ver)
+                donor_ddfi = donor_info.get('ddfi') if donor_info else None
+                if donor_ddfi and donor_ddfi != live_ddfi:
+                    live_name = live_identity.get('name', 'unknown')
+                    donor_name = donor_ver.split()[0]
+                    self._json({'error': (
+                        'EEPROM layout mismatch: donor is ' + donor_ddfi + ' (' + donor_name + '), '
+                        'live ECU is ' + live_ddfi + ' (' + live_name + ')'
+                        ' — revert blocked to prevent ECU corruption'
+                    )})
+                    return
         cs = getattr(self.server_instance.session, 'current_checksum', None)
         if cs:
             backup_dir = buell_dir / 'sessions' / cs
