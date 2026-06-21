@@ -20,6 +20,23 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.206] - 2026-06-20
+### Fix
+- `CellTracker.snapshot()` in `ecu/session.py`: KeyError 'count' when cells were
+  populated via IPC `set_snapshot()` (subprocess architecture). The subprocess writes
+  cells.json in output format (ego_avg, confidence...) but snapshot() expected raw
+  internal format (count, ego_sum...). Fix: passthrough cells already in output format.
+  Result: live.json no longer crashes while engine is running on DDFI-3.
+- `web/templates/tuner.html`: XPR FILE firmware selector now defaults to
+  auto-detect instead of hardcoded BUEIB.
+### Validated
+- First DDFI-3 (1125CR, BUE2D242) live session: A295AD, 2 rides recorded,
+  summary + tuning_report generated. RPM/ride_active/ecu_connected all correct.
+
+### AI
+- Claude Sonnet 4.6
+
+
 ## [v2.7.205] - 2026-06-20
 ### Fix
 - Dashboard black screen on hotspot (no internet): Chart.js, PapaParse, Leaflet JS+CSS

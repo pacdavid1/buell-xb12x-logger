@@ -827,6 +827,9 @@ class CellTracker:
         with self._lock:
             snap = {}
             for k, v in self.cells.items():
+                if "count" not in v:
+                    snap[k] = dict(v)
+                    continue
                 n     = v["count"]
                 vn    = v["valid_count"]
                 avg   = round(v["ego_sum"]       / n,  1) if n  else 100.0
