@@ -3537,3 +3537,65 @@ function downloadMsq(session) {
     return r.blob().then(function(b){ _dlFile(URL.createObjectURL(b), fname); });
   }).catch(function(e){ alert('Download error: ' + e.message); });
 }
+
+// ── Tailscale toggle ──
+function toggleTailscale() {
+  var btn = $id("tsToggle");
+  var dot = $id("tsDot");
+  var ip = $id("tsIp");
+  var wasActive = btn.textContent.includes("Apagar");
+  btn.textContent = "...";
+  btn.disabled = true;
+  var action = wasActive ? "stop" : "start";
+  fetch("/tailscale", {
+    method: "POST",
+    body: JSON.stringify({action: action}),
+    headers: {"Content-Type": "application/json"}
+  }).then(function(r){ return r.json() }).then(function(d){
+    btn.disabled = false;
+    if (d.ok) {
+      var active = d.active;
+      if (active) {
+        btn.textContent = "⏻ Apagar";
+        btn.style.color = "var(--red)";
+        dot.className = "pill-dot on";
+        ip.textContent = d.ip || "";
+      } else {
+        btn.textContent = "▶ Prender";
+        btn.style.color = "var(--green)";
+        dot.className = "pill-dot off";
+        ip.textContent = "";
+      }
+    } else {
+      btn.textContent = "⚠ Error";
+    }
+  })["catch"](function(){
+    btn.textContent = "⚠ Error";
+    btn.disabled = false;
+  });
+}
+function fetchTailscaleStatus() {
+  var btn = $id("tsToggle");
+  var dot = $id("tsDot");
+  var ip = $id("tsIp");
+  fetch("/tailscale", {
+    method: "POST",
+    body: JSON.stringify({action: "status"}),
+    headers: {"Content-Type": "application/json"}
+  }).then(function(r){ return r.json() }).then(function(d){
+    if (d.ok && d.active) {
+      btn.textContent = "⏻ Apagar";
+      btn.style.color = "var(--red)";
+      dot.className = "pill-dot on";
+      ip.textContent = d.ip || "";
+    } else {
+      btn.textContent = "▶ Prender";
+      btn.style.color = "var(--green)";
+      dot.className = "pill-dot off";
+      ip.textContent = "";
+    }
+  });
+}
+
+// Initial tailscale status
+setTimeout(function(){ try{fetchTailscaleStatus()}catch(e){} }, 1500);

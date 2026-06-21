@@ -193,6 +193,7 @@ class DashboardHandler(
             '/close_ride': self._handle_post_close_ride,
             '/restart_logger': self._handle_post_restart_logger,
             '/reboot_pi': self._handle_post_reboot_pi,
+            '/tailscale': self._handle_post_tailscale,
             '/ride/launch_event': self._handle_ride_launch_event,
             '/coverage/targets': self._handle_coverage_targets,
             '/eeprom/burn':       self._handle_eeprom_burn,

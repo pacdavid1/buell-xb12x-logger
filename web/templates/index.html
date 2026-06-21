@@ -28,7 +28,8 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospa
 /* HEADER */
 .hdr{background:var(--panel);border-bottom:2px solid var(--accent);
      padding:4px 10px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
-.hdr-row{display:flex;align-items:center;gap:8px;width:100%}
+.hdr-logo{display:flex;align-items:center;justify-content:space-between;width:100%}
+.hdr-row{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;width:100%}
 .nav-menu{position:relative;flex-shrink:0}
 .nav-menu-btn{font-size:18px;color:var(--dim);cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:2px;background:none;font-family:var(--mono);letter-spacing:0}
 .nav-menu-btn:hover{color:var(--blue);border-color:var(--blue)}
@@ -44,13 +45,11 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospa
 .hdr-stats{display:flex;gap:0;flex:1;overflow:hidden}
 .hdr-comms{display:flex;gap:0;flex:1;overflow:hidden}
 .hs-sm{display:flex;flex-direction:row;align-items:center;padding:1px 6px 1px 2px;gap:2px;
-    border-right:1px solid var(--border);width:60px;height:33px;flex-shrink:0;box-sizing:border-box}
+    width:auto;height:33px;flex-shrink:1;box-sizing:border-box}
 .hs-sm:last-child{border-right:none}
 .hs-sm .hs-label,.hs .hs-label{font-family:var(--mono);color:var(--dim);letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;flex-shrink:0;line-height:1}
 .hs-sm .hs-val{font-size:20px;font-weight:700;line-height:1;flex:1;text-align:left}
-.hs{width:60px;height:33px;display:flex;flex-direction:row;align-items:center;gap:2px;padding:1px 6px 1px 2px;box-sizing:border-box;
-    border-right:1px solid var(--border);flex-shrink:0;overflow:hidden}
-.hs:last-child{border-right:none}
+.hs{width:auto;height:33px;display:flex;flex-direction:row;align-items:center;gap:2px;padding:1px 6px 1px 2px;box-sizing:border-box;border:1px solid var(--bd);border-radius:3px;flex:1;overflow:hidden}
 .hs-val{font-size:24px;font-weight:900;line-height:1;flex:1;text-align:left}
 .ac{color:var(--accent)} .gn{color:var(--green)} .bl{color:var(--blue)}
 .wh{color:#fff}          .yw{color:var(--accent2)}
@@ -284,7 +283,7 @@ table.veg td:active{filter:brightness(1.6)}
 
 <!-- HEADER -->
 <div class="hdr" id="hdrMain">
-  <div class="hdr-row" id="hdrLogoRow" style="justify-content:space-between">
+  <div class="hdr-logo" id="hdrLogoRow" style="justify-content:space-between">
     <div id="hdrLogo" style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em;display:flex;align-items:center;gap:8px">BUELL LOGGER<span id="hdrVersion" style="font-weight:400;color:#7df;font-size:11px">--LOGGER_VERSION--</span><span id="freezeIndicator" style="font-size:10px;font-weight:700;color:#2ecc71;margin-left:6px">OK</span><div id="hPill" class="pill-dot off" style="margin-left:6px"></div></div>
     <div class="nav-menu" id="navMenu">
       <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
@@ -338,40 +337,40 @@ table.veg td:active{filter:brightness(1.6)}
 
 <!-- PANE RIDE -->
 <div class="pane active content" id="pane-ride" style="user-select:none;-webkit-user-select:none">
-  <!-- Row 1: bike params -->
-  <div class="hdr-row" id="hdrRowBike">
-    <div class="hdr-stats">
-      <div class="hs"><span class="hs-label">EGO</span><div class="hs-val gn" id="hEGO">--</div></div>
-      <div class="hs"><span class="hs-label">MAT</span><div class="hs-val bl" id="hMAT">--</div></div>
-      <div class="hs"><span class="hs-label">BAT</span><div class="hs-val yw" id="hBatt">--</div></div>
-      <div class="hs"><span class="hs-label">GER</span><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
-      <div class="hs"><span class="hs-label">RID</span><div class="hs-val wh" id="hRide">--</div></div>
-      <div class="hs"><span class="hs-label">SER</span><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
-    </div>
+  <!-- Row 1: slots 1-4 -->
+  <div class="hdr-row" id="hdrRow1">
+    <div class="hs" data-slot="1"><span class="hs-label">EGO</span><div class="hs-val gn" id="hEGO">--</div></div>
+    <div class="hs" data-slot="2"><span class="hs-label">MAT</span><div class="hs-val bl" id="hMAT">--</div></div>
+    <div class="hs" data-slot="3"><span class="hs-label">BAT</span><div class="hs-val yw" id="hBatt">--</div></div>
+    <div class="hs" data-slot="4"><span class="hs-label">GEAR</span><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
   </div>
-  <!-- Row 2: serial communication -->
-  <div class="hdr-row" id="hdrRowSerial">
-    <div class="hdr-comms">
-      <div class="hs-sm"><div class="hs-label">TTL</div><div class="hs-val gn" id="hTTL">--</div></div>
-      <div class="hs-sm"><div class="hs-label">BPS</div><div class="hs-val" id="hBPS" style="color:#888">--</div></div>
-      <div class="hs-sm"><div class="hs-label">BUF</div><div class="hs-val gn" id="hBuf">--</div></div>
-      <div class="hs-sm"><div class="hs-label">MEM</div><div class="hs-val gn" id="hMem">--</div></div>
-      <div class="hs-sm"><div class="hs-label">CPU</div><div class="hs-val gn" id="hCpu">--</div></div>
-      <div class="hs-sm"><div class="hs-label">TMP</div><div class="hs-val gn" id="hTemp">--</div></div>
-    </div>
+  <!-- Row 2: slots 5-8 -->
+  <div class="hdr-row" id="hdrRow2">
+    <div class="hs" data-slot="5"><span class="hs-label">RIDE</span><div class="hs-val wh" id="hRide">--</div></div>
+    <div class="hs" data-slot="6"><span class="hs-label">SER</span><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
+    <div class="hs" data-slot="7"><span class="hs-label">TTL</span><div class="hs-val gn" id="hTTL">--</div></div>
+    <div class="hs" data-slot="8"><span class="hs-label">BPS</span><div class="hs-val" id="hBPS" style="color:#888">--</div></div>
   </div>
-  <!-- Row 3: system -->
-  <div class="hdr-row" id="hdrRowSensor">
-    <div class="hdr-comms">
-      
-      <div class="hs-sm"><div class="hs-label">SAT</div><div class="hs-val gn" id="hSat">--</div></div>
-      <div class="hs-sm"><div class="hs-label">BAR</div><div class="hs-val gn" id="hBaro">--</div></div>
-      <div class="hs-sm"><div class="hs-label">AMB</div><div class="hs-val gn" id="hBaroTemp">--</div></div>
-            <div class="hs-sm"><div class="hs-label">HUM%</div><div class="hs-val gn" id="hHum">--</div></div>
-            <div class="hs-sm"><div class="hs-label">BAT</div><div class="hs-val gn" id="hBatPct"><span id="hBatPctVal">--</span><span id="hBatChg" style="font-size:11px;display:none;margin-left:2px">⚡</span></div></div>
-            <div class="hs-sm"><div class="hs-label">VLT</div><div class="hs-val gn" id="hBatV">--</div></div>
-
-    </div>
+  <!-- Row 3: slots 9-12 -->
+  <div class="hdr-row" id="hdrRow3">
+    <div class="hs" data-slot="9"><span class="hs-label">BUF</span><div class="hs-val gn" id="hBuf">--</div></div>
+    <div class="hs" data-slot="10"><span class="hs-label">MEM</span><div class="hs-val gn" id="hMem">--</div></div>
+    <div class="hs" data-slot="11"><span class="hs-label">CPU</span><div class="hs-val gn" id="hCpu">--</div></div>
+    <div class="hs" data-slot="12"><span class="hs-label">TMP</span><div class="hs-val gn" id="hTemp">--</div></div>
+  </div>
+  <!-- Row 4: slots 13-16 -->
+  <div class="hdr-row" id="hdrRow4">
+    <div class="hs" data-slot="13"><span class="hs-label">SAT</span><div class="hs-val gn" id="hSat">--</div></div>
+    <div class="hs" data-slot="14"><span class="hs-label">BAR</span><div class="hs-val gn" id="hBaro">--</div></div>
+    <div class="hs" data-slot="15"><span class="hs-label">AMB</span><div class="hs-val gn" id="hBaroTemp">--</div></div>
+    <div class="hs" data-slot="16"><span class="hs-label">HUM%</span><div class="hs-val gn" id="hHum">--</div></div>
+  </div>
+  <!-- Row 5: slots 17-20 -->
+  <div class="hdr-row" id="hdrRow5">
+    <div class="hs" data-slot="17"><span class="hs-label">BAT</span><div class="hs-val gn" id="hBatPct"><span id="hBatPctVal">--</span><span id="hBatChg" style="font-size:11px;display:none;margin-left:2px">⚡</span></div></div>
+    <div class="hs" data-slot="18"><span class="hs-label">VLT</span><div class="hs-val gn" id="hBatV">--</div></div>
+    <div class="hs" data-slot="19"><span class="hs-label">KG</span><div class="hs-val" id="hKg">--</div></div>
+    <div class="hs" data-slot="20"><span class="hs-label">GAS</span><div class="hs-val" id="hGas">--</div></div>
   </div>
   <div class="big-display" id="bigDisplay">
     <div class="big-card hot" id="cardCHT">
@@ -715,10 +714,18 @@ table.veg td:active{filter:brightness(1.6)}
     <button class="btn g" style="width:100%;padding:10px" onclick="doAddWifi()">
       Conectar y guardar
     </button>
+    </div>
+  <!-- Tailscale VPN -->
+  <div style="margin-top:8px;padding:6px;border:1px solid var(--bd);border-radius:4px;background:var(--panel)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <span style="font-family:var(--mn);font-size:11px;color:var(--txt)">🔒 Tailscale VPN</span>
+      <span id="tsDot" class="pill-dot off"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button class="btn" id="tsToggle" onclick="toggleTailscale()" style="flex:1;padding:6px;font-size:11px">▶ Prender</button>
+      <span id="tsIp" style="font-family:var(--mn);font-size:9px;color:var(--dim)"></span>
+    </div>
   </div>
-</div>
-
-
 
 <link rel="stylesheet" href="/static/leaflet.css"/>
 <script src="/static/leaflet.js"></script>
