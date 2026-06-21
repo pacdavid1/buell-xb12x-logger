@@ -857,7 +857,7 @@ async function loadBurnLedger(){
 async function loadMaps(sessionId){
   loadBurnLedger();
   const status = $id('veMapStatus');
-  if(status) status.textContent = 'Leyendo EEPROM...';
+  if(status) status.textContent = 'Reading EEPROM...';
   try{
     let url = '/maps?t='+Date.now();
     if(sessionId) url += '&session=' + encodeURIComponent(sessionId);
@@ -868,14 +868,21 @@ async function loadMaps(sessionId){
       if(status) status.textContent = 'Error: '+_mapsData.error;
       return;
     }
-    if(!_mapsData || !_mapsData.fuel_front){
-      if(status) status.textContent = 'Sin mapas — conecta la ECU primero';
+    if(!_mapsData || !_mapsData.maps){
+      if(status) status.textContent = 'No maps — connect ECU first';
       return;
     }
     _mapsSession = sessionId || null;
-    if(status) status.textContent = 'Mapas leídos del EEPROM ✓';
-    $id('mapLegend').style.display='block';
-    showMap(_activeMap);
+    if(status) status.textContent = 'Maps loaded from EEPROM ✓';
+    const mkeys = Object.keys(_mapsData.maps);
+    const btnCont = $id('mapBtnContainer');
+    if(btnCont){
+      btnCont.innerHTML = mkeys.map(function(k){
+        return '<button class="btn" data-mk="'+k+'" onclick="showMap(\'' +k+ '\')" style="font-size:9px;padding:4px 8px">'+_mapsData.maps[k].label+'</button>';
+      }).join('');
+    }
+    const activeKey = (_activeMap && _mapsData.maps[_activeMap]) ? _activeMap : (mkeys[0]||'');
+    if(activeKey) showMap(activeKey);
   }catch(e){
     if(status) status.textContent = 'Error: '+e;
   }
@@ -991,7 +998,7 @@ function burnStaged(){
         _staged = {};
         updateEditToolbar();
         const veStatus = document.getElementById('veMapStatus');
-        if(veStatus) veStatus.textContent = 'Actualizando mapa...';
+        if(veStatus) veStatus.textContent = 'Updating map...';
         setTimeout(function(){ loadMaps(_mapsSession); }, 1500);
       }
       loadBurnLedger();
@@ -1006,93 +1013,90 @@ function burnStaged(){
 function showMap(which){
   _activeMap = which;
   if(!_mapsData) return;
-  const axes  = _mapsData.axes || {};
-  const table = _mapsData[which];
-  if(!table){ return; }
+  var mapsObj  = _mapsData.maps || {};
+  var mapEntry = mapsObj[which];
+  if(!mapEntry) return;
+  var axes     = _mapsData.axes || {};
+  var table    = mapEntry.data;
+  if(!table) return;
+  var xk       = mapEntry.xaxis;
+  var yk       = mapEntry.yaxis;
+  var rawXAxis = (xk && axes[xk]) ? axes[xk].data : [];
+  var yAxis    = (yk && axes[yk]) ? axes[yk].data  : [];
+  var label    = mapEntry.label;
+  var unit     = mapEntry.units || '';
+  var decimals = (unit && unit.toLowerCase().indexOf('egree') >= 0) ? 1 : 0;
+  var cellUnit = decimals ? '°' : '';
+  var xkUnits  = (xk && axes[xk]) ? (axes[xk].units || '') : '';
+  var ykUnits  = (yk && axes[yk]) ? (axes[yk].units || '') : '';
 
-  // Axes by map type
-  const isFuel  = which.startsWith('fuel');
-  const unit    = isFuel ? '' : '°';
-  const label   = {'fuel_front':'Fuel Front (VE)','fuel_rear':'Fuel Rear (VE)',
-                   'spark_front':'Spark Advance Front (°)','spark_rear':'Spark Advance Rear (°)'}[which];
-  const rawXAxis = isFuel ? (axes.fuel_rpm  || []) : (axes.spark_rpm  || []);
-  const yAxis    = isFuel ? (axes.fuel_load || []) : (axes.spark_load || []);
+  var legEl = $id('mapLegend');
+  if(legEl){
+    var xLbl = (xk && axes[xk]) ? axes[xk].label : (xk||'X');
+    var yLbl = (yk && axes[yk]) ? axes[yk].label : (yk||'Y');
+    legEl.innerHTML =
+      '<span style="display:inline-block;width:12px;height:12px;background:#1a3a6a;margin-right:4px;vertical-align:middle"></span>low · '
+      +'<span style="display:inline-block;width:12px;height:12px;background:#c85000;margin-right:4px;margin-left:8px;vertical-align:middle"></span>high · '
+      +'X = '+xLbl+' · Y = '+yLbl;
+    legEl.style.display = 'block';
+  }
 
-  // RPM axis is already in ascending order (0..8000) — use directly
-  const sortedRPM   = rawXAxis;
-  const sortedTable = table;
-
-  // Min/max for heatmap (ignore structural zeros for color scale)
-  const allVals = sortedTable.flat().filter(v=>v>0);
-  const vMin = allVals.length ? Math.min(...allVals) : 0;
-  const vMax = allVals.length ? Math.max(...allVals) : 1;
-
-  // Highlight active button
-  ['FuelF','FuelR','SpkF','SpkR'].forEach(k=>{
-    const btn = document.getElementById('mapBtn'+k);
-    if(btn) btn.style.borderColor = '';
-  });
-  const btnMap = {'fuel_front':'FuelF','fuel_rear':'FuelR','spark_front':'SpkF','spark_rear':'SpkR'};
-  const activeBtn = document.getElementById('mapBtn'+btnMap[which]);
+  document.querySelectorAll('[data-mk]').forEach(function(b){ b.style.borderColor = ''; });
+  var activeBtn = document.querySelector('[data-mk="'+which+'"]');
   if(activeBtn) activeBtn.style.borderColor = 'var(--accent2)';
 
-  // Build HTML table
-  const cellW = 40, cellH = 22;
-  let html = `<div style="font-family:var(--mono);font-size:9px;color:#aaa;margin-bottom:6px">${label}</div>`;
-  html += '<table style="border-collapse:collapse;font-family:monospace;font-size:9px">';
+  var sortedTable = table;
+  var allVals = sortedTable.reduce(function(acc,row){return acc.concat(row.filter(function(v){return v>0;}));}, []);
+  var vMin = allVals.length ? Math.min.apply(null,allVals) : 0;
+  var vMax = allVals.length ? Math.max.apply(null,allVals) : 1;
+  var sortedRPM = rawXAxis;
 
-  // Header row — actual RPM
-  html += '<tr><td style="padding:2px 4px;color:var(--dim);font-size:8px">TPS↓ RPM→</td>';
-  for(const rpm of sortedRPM){
-    const rpmLabel = rpm>=1000 ? (rpm/1000).toFixed(1)+'k' : rpm;
-    html += `<td style="padding:2px 3px;color:var(--dim);font-size:8px;text-align:center;
-             min-width:${cellW}px">${rpmLabel}</td>`;
+  var cellW = 40, cellH = 22;
+  var html = '<div style="font-family:var(--mono);font-size:9px;color:#aaa;margin-bottom:6px">'+label+'</div>';
+  html += '<table style="border-collapse:collapse;font-family:monospace;font-size:9px">';
+  html += '<tr><td style="padding:2px 4px;color:var(--dim);font-size:8px">Y↓ X→</td>';
+  for(var hx=0; hx<sortedRPM.length; hx++){
+    var xv = sortedRPM[hx];
+    var xLabelH = (xkUnits==='RPM'&&xv>=1000) ? (xv/1000).toFixed(1)+'k' : xv;
+    html += '<td style="padding:2px 3px;color:var(--dim);font-size:8px;text-align:center;min-width:'+cellW+'px">'+xLabelH+'</td>';
   }
   html += '</tr>';
 
-  // Rows — iterate top to bottom (high load at top)
-  const yReversed    = [...yAxis].reverse();
-  const tableReversed= [...sortedTable].reverse();
-  for(let ri=0; ri<tableReversed.length; ri++){
-    const row     = tableReversed[ri];
-    const loadVal = yReversed[ri] !== undefined ? yReversed[ri] : ri;
-    html += '<tr>';
-    html += `<td style="padding:2px 4px;color:var(--dim);font-size:8px;white-space:nowrap">${loadVal}%</td>`;
-    for(let ci=0; ci<row.length; ci++){
-      const val = row[ci];
-      if(val === null){
-        html += `<td style="background:#1a1a22;color:#333;padding:1px 2px;text-align:center;
-                 min-width:${cellW}px;height:${cellH}px;border:1px solid rgba(255,255,255,0.04);
-                 font-size:7px" title="sin datos">·</td>`;
+  var yReversed     = yAxis.slice().reverse();
+  var tableReversed = sortedTable.slice().reverse();
+  for(var ri=0; ri<tableReversed.length; ri++){
+    var row    = tableReversed[ri];
+    var rawY   = yReversed[ri] !== undefined ? yReversed[ri] : ri;
+    var rowLbl = (ykUnits.toLowerCase().indexOf('load')>=0) ? rawY+'%' :
+                 (ykUnits.toLowerCase().indexOf('egree')>=0) ? rawY+'°' : String(rawY);
+    html += '<tr><td style="padding:2px 4px;color:var(--dim);font-size:8px;white-space:nowrap">'+rowLbl+'</td>';
+    for(var ci=0; ci<row.length; ci++){
+      var val      = row[ci];
+      var origRi   = sortedTable.length - 1 - ri;
+      var stageKey = origRi + '_' + ci;
+      var stageMap = _staged[which] && _staged[which][stageKey];
+      var dispVal  = stageMap ? stageMap.val : val;
+      var isStaged = !!stageMap;
+      if(val === null || val === undefined){
+        html += '<td style="background:#1a1a22;color:#333;padding:1px 2px;text-align:center;min-width:'+cellW+'px;height:'+cellH+'px;border:1px solid rgba(255,255,255,0.04);font-size:7px" title="no data">·</td>';
       } else {
-        // Check if this cell is staged (use orig row index = numRows-1-ri)
-        const origRi = sortedTable.length - 1 - ri;
-        const stageKey = origRi + '_' + ci;
-        const stageMap = _staged[which] && _staged[which][stageKey];
-        const dispVal  = stageMap ? stageMap.val : val;
-        const isStaged = !!stageMap;
-        const t  = (dispVal - vMin) / (vMax - vMin || 1);
-        const bg = isStaged ? 'rgba(245,166,35,0.55)' : heatColor(t);
-        const fg = isStaged ? '#000' : (t > 0.55 ? '#000' : '#fff');
-        const border = isStaged ? '2px solid #f5a623' : '1px solid rgba(255,255,255,0.06)';
-        const cursor = _editMode ? 'cursor:pointer' : '';
-        const clickH = _editMode
-          ? `onclick="editCell('${which}',${origRi},${ci},${val},this)"`
-          : '';
-        const sub = isStaged ? `<div style="font-size:6px;opacity:0.7">${val.toFixed(isFuel?0:1)}</div>` : '';
-        html += `<td ${clickH} style="background:${bg};color:${fg};padding:1px 2px;text-align:center;
-                 min-width:${cellW}px;height:${cellH}px;border:${border};${cursor};position:relative">
-                 ${dispVal.toFixed(isFuel?0:1)}${unit}${sub}</td>`;
+        var t      = (dispVal - vMin) / (vMax - vMin || 1);
+        var bg     = isStaged ? 'rgba(245,166,35,0.55)' : heatColor(t);
+        var fg     = isStaged ? '#000' : (t > 0.55 ? '#000' : '#fff');
+        var border = isStaged ? '2px solid #f5a623' : '1px solid rgba(255,255,255,0.06)';
+        var cursor = _editMode ? 'cursor:pointer' : '';
+        var clickA = _editMode ? 'onclick="editCell(\''+which+'\','+origRi+','+ci+','+val+',this)"' : '';
+        var sub    = isStaged ? '<div style="font-size:6px;opacity:0.7">'+val.toFixed(decimals)+'</div>' : '';
+        html += '<td '+clickA+' style="background:'+bg+';color:'+fg+';padding:1px 2px;text-align:center;min-width:'+cellW+'px;height:'+cellH+'px;border:'+border+';'+cursor+';position:relative">'+dispVal.toFixed(decimals)+cellUnit+sub+'</td>';
       }
     }
     html += '</tr>';
   }
   html += '</table>';
 
-  const container = $id('mapContainer');
+  var container = $id('mapContainer');
   if(container) container.innerHTML = html;
 }
-
 function tempColor(c){
   // Linear interpolation blue→white→red by °C
   // Buell XB range: 90°C normal, >225°C alert, >235°C critical
@@ -3320,7 +3324,7 @@ async function revertToSession(sessionId){
     const d = await r.json();
     if(d.error){ alert('Revert failed: ' + d.error); loadEepromSessions(); return; }
     const veStatus = document.getElementById('veMapStatus');
-    if(veStatus) veStatus.textContent = 'Actualizando mapa...';
+    if(veStatus) veStatus.textContent = 'Updating map...';
     alert('Revert complete!\nWritten: ' + d.written + ' bytes\nVerified: ' + (d.verified ? 'OK' : 'FAILED') + '\nRestored to: ' + d.reverted_to);
     setTimeout(function(){ loadMaps(_mapsSession); loadEepromSessions(); }, 1500);
   } catch(e){ alert('Network error: ' + e.message); loadEepromSessions(); }
@@ -3329,13 +3333,13 @@ async function revertToSession(sessionId){
 async function loadEepromParams(){
   const container = $id('eepromParamsTable');
   if(!container) return;
-  container.textContent = 'Cargando...';
+  container.textContent = 'Loading...';
   try {
     const resp = await fetch('/eeprom');
     const data = await resp.json();
-    if(!data || data.error){ container.textContent = data?.error || 'Sin datos - Conecta la ECU'; return; }
+    if(!data || data.error){ container.textContent = data?.error || 'No data — connect ECU'; return; }
     const params = Object.values(data);
-    if(!params.length){ container.textContent = 'Sin datos'; return; }
+    if(!params.length){ container.textContent = 'No data'; return; }
     // Group by category using remark as fallback
     const groups = {};
     for(const p of params){

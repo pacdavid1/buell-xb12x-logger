@@ -92,7 +92,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 </div>
 <div class="cg"><div style="display:flex;align-items:center;gap:5px"><label>Modificada</label><span class="vb" onclick="dlMsq('sM')" title="Download Mod session EEPROM as MSQ" style="font-size:7px;padding:1px 4px">&#11015; msq</span></div><select id="sM"><option value="">--</option></select></div>
 </div>
-<div id="st">Cargando sesiones...</div>
+<div id="st">Loading sessions...</div>
 <div class="cd" style="margin-top:6px;padding:6px 10px"><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span style="font-family:var(--mn);font-size:7px;color:var(--a2);letter-spacing:.08em;font-weight:700">XPR FILE</span><input type="text" id="xprPath" placeholder="/tmp/bue2d.xpr" style="flex:1;min-width:200px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:3px 5px;border-radius:2px"><select id="xprVer" style="background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:3px;border-radius:2px"><option value="">--- auto-detect ---</option><option value="BUEIB">BUEIB DDFI-2 XB</option><option value="B2RIB">B2RIB DDFI-2 XB</option><option value="BUECB">BUECB DDFI-2</option><option value="BUEGB">BUEGB DDFI-2</option><option value="BUE2D">BUE2D DDFI-3 1125</option><option value="BUE1D">BUE1D DDFI-3 1125</option><option value="BUE3D">BUE3D DDFI-3 1125</option><option value="BUEOD">BUEOD DDFI-3</option><option value="BUEWD">BUEWD DDFI-3</option></select><span class="vb" onclick="loadFile('base')">&#8594; Base</span><span class="vb" onclick="loadFile('mod')">&#8594; Mod</span></div></div>
 </div>
 <div class="cd-mc">
@@ -599,14 +599,14 @@ async function loadMerge(){
   if(!mB||!mM)return;
   var a=document.getElementById('sB').value,b=document.getElementById('sM').value;
   if(!a||!b)return;
-  st('Calculando merge '+mergeMode+'...');
+  st('Calculating merge '+mergeMode+'...');
   document.getElementById('mcGo').disabled=true;
   try{
     var r=await fetch('/tuner/merge?a='+a+'&b='+b+'&mode='+mergeMode);if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
     if(d.error){st('Merge: '+d.error);mMerge=null;render();return}
     mMerge=d;
     document.getElementById('mcDl').disabled=false;
-    var warn=d.attributable?'':'⚠ NO ATRIBUIBLE: cambiaron fuel Y spark';
+    var warn=d.attributable?'':'⚠ not attributable: both fuel and spark changed';
     st('Merge OK: '+d.changed.join(', ')+' | '+d.cells_with_data+' celdas'+(warn?' '+warn:''));
     render();
   }catch(e){st('Error: '+e.message)}
@@ -617,7 +617,7 @@ function swapSessions(){
   document.getElementById('sB').value=mv;document.getElementById('sM').value=bv;
   if(mB&&mM)render();
 }
-async function loadFile(t){var p=document.getElementById('xprPath').value.trim();var v=document.getElementById('xprVer').value;if(!p)return;st('Cargando archivo '+p+'...');try{var url='/tuner/maps/file?path='+encodeURIComponent(p);if(v)url+='&version='+encodeURIComponent(v);var r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);var d=await r.json();if(!d||!d.fuel_front){st('Error: '+(d&&d.error||'sin mapa'));return}var src=d._source||{};if(t==='base'){mB=d;if(!mM)mM=d;}else{mM=d;if(!mB)mB=d;}document.getElementById('mcGo').disabled=!(mB&&mM);st('Cargado: '+(src.version||v)+' '+p.split('/').pop()+'  ('+Math.round((src.size||0)/1024)+'KB)');if(mB&&mM)render();}catch(e){st('Error cargando archivo: '+e.message)}}
+async function loadFile(t){var p=document.getElementById('xprPath').value.trim();var v=document.getElementById('xprVer').value;if(!p)return;st('Loading file '+p+'...');try{var url='/tuner/maps/file?path='+encodeURIComponent(p);if(v)url+='&version='+encodeURIComponent(v);var r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);var d=await r.json();if(!d||!d.maps){st('Error: '+(d&&d.error||'no maps'));return}var src=d._source||{};if(t==='base'){mB=d;if(!mM)mM=d;}else{mM=d;if(!mB)mB=d;}mMerge=null;if(mB&&(!cur||!mB.maps[cur])){var ks=Object.keys(mB.maps);cur=ks[0]||'';var tb=document.getElementById('tabs');tb.innerHTML=ks.map(function(k){return'<button class="tab'+(k===cur?' on':'')+' data-m="'+k+'">'+mB.maps[k].label+'</button>';}).join('');}document.getElementById('mcGo').disabled=!(mB&&mM);st('Loaded: '+(src.version||v)+' '+p.split('/').pop()+'  ('+Math.round((src.size||0)/1024)+'KB)');if(mB&&mM)render();}catch(e){st('Error loading file: '+e.message)}}
 document.getElementById('sB').onchange=function(){load('base')};
 document.getElementById('sM').onchange=function(){load('mod')};
 document.getElementById('tabs').onclick=function(e){
@@ -654,7 +654,7 @@ function applyAngles(){
 
 init();init3D();loadCameraState();
 function downloadMerge(){
-  if(!mMerge){st('No hay merge');return}
+  if(!mMerge){st('No merge data');return}
   var blob=new Blob([JSON.stringify(mMerge,null,2)],{type:'application/json'});
   var a=document.createElement('a');
   a.href=URL.createObjectURL(blob);

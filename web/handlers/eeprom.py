@@ -369,28 +369,26 @@ class EepromHandlerMixin:
     def _handle_maps(self, path=None):
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         req_session = params.get('session', [''])[0]
+        bins = []
         if req_session:
             ses_path = self.server_instance.buell_dir / 'sessions' / req_session / 'eeprom.bin'
             if ses_path.exists():
-                try:
-                    maps = _decode_eeprom_maps(ses_path.read_bytes(), _session_version(ses_path))
-                    if maps and maps.get('fuel_front'):
-                        self._json(maps)
-                        return
-                except Exception as e:
-                    self._json({'error': str(e)}, 500)
-                    return
-        maps = self.server_instance.eeprom_maps
-        if not maps or not maps.get('fuel_front'):
+                bins = [ses_path]
+        if not bins:
             try:
                 bins = sorted(
                     (self.server_instance.buell_dir / 'sessions').glob('*/eeprom.bin'),
                     key=lambda p: p.stat().st_mtime)
-                if bins:
-                    maps = _decode_eeprom_maps(bins[-1].read_bytes(), _session_version(bins[-1]))
-            except Exception as e:
-                maps = {'error': str(e)}
-        self._json(maps)
+            except Exception:
+                bins = []
+        if not bins:
+            self._json({'maps': {}, 'axes': {}})
+            return
+        try:
+            result = _decode_eeprom_maps_full(bins[-1].read_bytes(), _session_version(bins[-1]))
+            self._json(result)
+        except Exception as e:
+            self._json({'error': str(e)}, 500)
 
     def _handle_eeprom(self, path=None):
         params = self.server_instance.eeprom_params

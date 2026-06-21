@@ -543,15 +543,10 @@ table.veg td:active{filter:brightness(1.6)}
     <button class="btn" id="btnEditMode" style="font-size:9px;padding:4px 8px" onclick="toggleEditMode()">&#9998; Edit</button>
   </div>
   <div id="veMapStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
-       margin-bottom:8px;min-height:12px">Conecta la ECU para cargar los mapas</div>
+       margin-bottom:8px;min-height:12px">Connect ECU to load maps</div>
 
-  <!-- Map selector -->
-  <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-    <button class="btn" id="mapBtnFuelF" onclick="showMap('fuel_front')" style="font-size:9px;padding:4px 8px">Fuel Front</button>
-    <button class="btn" id="mapBtnFuelR" onclick="showMap('fuel_rear')"  style="font-size:9px;padding:4px 8px">Fuel Rear</button>
-    <button class="btn" id="mapBtnSpkF" onclick="showMap('spark_front')" style="font-size:9px;padding:4px 8px">Spark Front</button>
-    <button class="btn" id="mapBtnSpkR" onclick="showMap('spark_rear')"  style="font-size:9px;padding:4px 8px">Spark Rear</button>
-  </div>
+  <!-- Map selector — populated dynamically by loadMaps() -->
+  <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="mapBtnContainer"></div>
 
   <!-- Edit toolbar -->
   <div id="editToolbar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:3px;margin-bottom:8px;font-family:var(--mono);font-size:9px">
@@ -565,15 +560,15 @@ table.veg td:active{filter:brightness(1.6)}
   <!-- Map table -->
   <div id="mapContainer" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
     <div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:20px">
-      Conecta la ECU · los mapas se leen del EEPROM al arrancar
+      Connect ECU · maps are read from EEPROM on startup
     </div>
   </div>
 
   <!-- Legend -->
   <div id="mapLegend" style="display:none;margin-top:10px;font-family:var(--mono);font-size:8px;color:var(--dim)">
-    <span style="display:inline-block;width:12px;height:12px;background:#1a3a6a;margin-right:4px;vertical-align:middle"></span>bajo ·
-    <span style="display:inline-block;width:12px;height:12px;background:#c85000;margin-right:4px;margin-left:8px;vertical-align:middle"></span>alto ·
-    Eje X = RPM · Eje Y = TPS (Load)
+    <span style="display:inline-block;width:12px;height:12px;background:#1a3a6a;margin-right:4px;vertical-align:middle"></span>low ·
+    <span style="display:inline-block;width:12px;height:12px;background:#c85000;margin-right:4px;margin-left:8px;vertical-align:middle"></span>high ·
+    X = RPM · Y = Load
   </div>
 
   <!-- Burn ledger (VDYNO V0) — lineage of every EEPROM burn -->
@@ -604,11 +599,11 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
 <!-- PARAMETROS EEPROM -->
   <div class="cfg-section">
-    <div class="cfg-title">Parametros EEPROM
+    <div class="cfg-title">EEPROM Parameters
       <button class="btn" style="font-size:9px;padding:3px 8px;float:right" onclick="loadEepromParams()">Refrescar</button>
     </div>
     <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
-      173 parametros leidos desde la ECU - Solo lectura por ahora
+      Read-only parameters from ECU EEPROM
 
   <!-- Revert EEPROM section -->
   <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
@@ -617,7 +612,7 @@ table.veg td:active{filter:brightness(1.6)}
       <button class="btn" style="font-size:9px;padding:3px 8px" onclick="loadEepromSessions()">&#8635; Refresh</button>
     </div>
     <div id="revertSessionsList" style="font-family:var(--mono);font-size:9px;color:var(--dim);max-height:200px;overflow-y:auto">
-      Cargando sesiones...
+      Loading sessions...
     </div>
   </div>
 <div id="eepromParamsTable" style="margin-top:8px; max-height:50vh; overflow-y:auto; padding-right:4px;"></div>

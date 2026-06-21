@@ -20,6 +20,22 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.209] - 2026-06-20
+### Feature
+- Dashboard (/): EEPROM map viewer now XML-driven. /maps endpoint returns full
+  decode_maps_full() format ({maps: {norm_key: {label,data,rows,cols,xaxis,yaxis,units}},
+  axes: {norm_key: {label,data,units}}}). Map tabs generated dynamically for all 21
+  DDFI-3 maps (vs 4 hardcoded). Legend and header updated dynamically per selected map.
+- tuner.html: Fixed loadFile() (was checking d.fuel_front — broken); now checks d.maps
+  and generates tabs dynamically. Matches load() behavior.
+- app.js: showMap() reads from new nested format; supports any map/axis combination.
+  Legend shows actual axis labels from XML. All Spanish strings converted to English.
+- handlers/eeprom.py: _handle_maps() uses decode_eeprom_maps_full() (not old 4-map
+  decode_eeprom_maps()). Falls back to latest session bin if no session param given.
+- index.html/app.js: Remaining Spanish status/error strings converted to English.
+
+### AI
+- Claude Sonnet 4.6 (claude-sonnet-4-6) via Claude Code
 ## [v2.7.208] - 2026-06-20
 ### Feature
 - Tuner page now XML-driven: all maps and axes read from ECU XML definition,
