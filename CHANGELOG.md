@@ -20,6 +20,17 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.202] - 2026-06-21
+### Fix
+- BL-ECM-04: `SERIAL_RX_BYTES = 107` was hardcoded — serial stats bps/rx display was wrong for DDFI-3
+- Introduced local `_rx_bytes = SERIAL_RX_BYTES` in `run()` (default 107, DDFI-2)
+- Updated to `ecu._rt_frame_size` after each `set_ecu_version()` call: initial connect and hard reconnect
+- Stats `bps`, `rx` fields now reflect actual 135-byte frames when connected to DDFI-3 ECU
+
+### AI
+- Claude Sonnet 4.6
+
+
 ## [v2.7.201] - 2026-06-21
 ### Fix
 - BL-ECM-03: `_handle_eeprom_revert` now validates EEPROM layout before burn

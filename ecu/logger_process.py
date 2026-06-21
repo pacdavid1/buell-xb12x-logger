@@ -155,6 +155,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
     _serial_bytes     = 0
     _serial_window    = time.monotonic()
     _serial_stats: dict = {}
+    _rx_bytes         = SERIAL_RX_BYTES
 
     while _running:
         t0 = time.monotonic()
@@ -188,6 +189,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                 ecu_version = ecu.get_version()
                 if ecu_version:
                     ecu.set_ecu_version(ecu_version)
+                    _rx_bytes = ecu._rt_frame_size
                     log.info(f"ECU: {ecu_version}")
                     blob = _load_eeprom(ecu, sessions_dir, log)
                     session.open_session(ecu_version, blob)
@@ -282,6 +284,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                         log.info("ECU back after hard reconnect")
                         ecu_version = ver
                         ecu.set_ecu_version(ver)
+                        _rx_bytes = ecu._rt_frame_size
                         consecutive_errors = 0
                         ecu_lost_since = None
                         last_lost_interval = -1
@@ -394,7 +397,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
             rpm_zero_since = None
 
         # Serial stats (1 Hz)
-        _serial_bytes += SERIAL_TX_BYTES + SERIAL_RX_BYTES
+        _serial_bytes += SERIAL_TX_BYTES + _rx_bytes
         _now_s = time.monotonic()
         if _now_s - _serial_window >= 1.0:
             bps = _serial_bytes
@@ -403,7 +406,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                 'bps': bps,
                 'pct': round(min(bps / MAX_SERIAL_BPS * 100, 100.0), 1),
                 'tx': SERIAL_TX_BYTES * 8,
-                'rx': SERIAL_RX_BYTES * 8,
+                'rx': _rx_bytes * 8,
                 'buf_in': in_w,
                 'buf_pct': round(in_w / 384.0 * 100, 1),
             }
