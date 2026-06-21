@@ -21,6 +21,16 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+## [v2.7.200] - 2026-06-20
+### Infrastructure
+- Tailscale installed (v1.98.4) — Pi accessible from any network at 100.78.186.123
+- Web dashboard: http://100.78.186.123:8080 from any device on the Tailscale network
+- tailscaled enabled as systemd service (auto-starts on boot)
+- dpkg database /var/lib/dpkg/ initialized (was missing — all apt installs were failing silently)
+- Tailscale account: pacdavid1@gmail.com
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.199] - 2026-06-20
 ### Changed
 - ecu/protocol.py: decode_rt_packet() now accepts optional rt_vars dict and frame_size int; defaults to module-level DDFI-2 constants for backward compat
@@ -4302,3 +4312,4 @@ Result: 5 charts instead of 7, more information per chart, less scrolling.
   Current latest version: check ## [v2.7.XX] at the top.
   To read latest: head -50 /home/pi/buell/CHANGELOG.md
 -->
+
