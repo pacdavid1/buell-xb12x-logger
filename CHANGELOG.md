@@ -20,6 +20,23 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.203] - 2026-06-21
+### Feature
+- F7 Phase 2.2 (Option B): pilot-marked launch events from GRAF2 annotations
+- New `_f7_events_from_annotations()` in `web/f7.py`: reads `ride_*_annotations.json`,
+  filters `type == "launch"`, extracts rows in [t0_s, t1_s], builds event dicts with the
+  same shape as `_f7_detect_events` output (bucket_a, pw_curve, tps_curve_norm, etc.)
+- Bucket A from [t0_s - 3s, t0_s) pre-window rows; extra fields: `annotation_id`, `annotation_note`
+- Pilot events pass through same `_f7_cluster()` + `_f7_temporal_stats()` pipeline
+- Result has separate `pilot_clusters` list (cluster_id `P{i:03d}`, cluster_type `pilot-marked`)
+  — NOT mixed with auto `clusters`. "Las vemos juntas pero no revueltas."
+- `_f7_load_session_clusters()` staleness check now includes annotation file mtimes
+- Added `_F7_PRE_N = 10` module-level constant; bumped `_F7_EVENTS_V` 6 -> 7 (invalidates caches)
+
+### AI
+- Claude Sonnet 4.6
+
+
 ## [v2.7.202] - 2026-06-21
 ### Fix
 - BL-ECM-04: `SERIAL_RX_BYTES = 107` was hardcoded — serial stats bps/rx display was wrong for DDFI-3

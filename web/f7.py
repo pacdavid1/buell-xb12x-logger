@@ -13,7 +13,8 @@ from pathlib import Path
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
 _F7_THRESH  = 0.85  # default DTW threshold
-_F7_EVENTS_V = 6     # bump when event struct fields change
+_F7_EVENTS_V = 7
+_F7_PRE_N       = 10    # pre-break context resample points     # bump when event struct fields change
 
 
 def _f7_resample(series, n=_F7_N):
@@ -570,6 +571,140 @@ def _f7_match_cross_session(clusters_a, clusters_b, threshold=0.85):
     return matches
 
 
+
+def _f7_events_from_annotations(sdir, csv_path_map, load_csv_rows_fn):
+    """Build F7 events from 'launch' type annotations (F7 Phase 2.2).
+
+    Reads ride_*_annotations.json from sdir, filters annotations where
+    type == 'launch', extracts CSV rows in [t0_s, t1_s], and builds
+    event dicts with the same shape as _f7_detect_events output.
+    Bucket A comes from rows in [t0_s - 3s, t0_s).
+    Extra fields: annotation_id, annotation_note.
+    """
+    _PRE_S = 3.0
+    events = []
+
+    for ann_file in sorted(sdir.glob('ride_*_annotations.json')):
+        try:
+            data = json.loads(ann_file.read_text())
+        except Exception:
+            continue
+
+        launch_anns = [a for a in data.get('annotations', []) if a.get('type') == 'launch']
+        if not launch_anns:
+            continue
+
+        ride_stem = ann_file.stem.replace('_annotations', '')
+        csv_path  = csv_path_map.get(ride_stem)
+        if csv_path is None or not csv_path.exists():
+            continue
+
+        rows = load_csv_rows_fn(csv_path)
+        if not rows:
+            continue
+
+        for ann in launch_anns:
+            t0  = ann.get('t0_s', 0)
+            t1  = ann.get('t1_s', 0)
+            if t1 <= t0:
+                continue
+
+            phase_b = [r for r in rows if t0 <= r['t'] <= t1]
+            if len(phase_b) < 4:
+                continue
+
+            pre_win = [r for r in rows if t0 - _PRE_S <= r['t'] < t0]
+            if not pre_win:
+                pre_win = phase_b[:min(5, len(phase_b))]
+
+            pw_s  = [(r['pw1'] + r.get('pw2', r['pw1'])) / 2 for r in phase_b]
+            pw1_s = [r['pw1'] for r in phase_b]
+            pw2_s = [r.get('pw2', r['pw1']) for r in phase_b]
+            tps_s = [r['tps'] for r in phase_b]
+            rpm_s = [r['rpm'] for r in phase_b]
+            vss_s = [r['spd'] for r in phase_b]
+            dur   = phase_b[-1]['t'] - phase_b[0]['t']
+
+            _gd_pre = [r['gear_detected'] for r in pre_win if r.get('gear_detected', 0) > 0]
+            gear = (max(set(_gd_pre), key=_gd_pre.count) if _gd_pre
+                    else int(round(sum(r.get('gear', 0) for r in pre_win) / len(pre_win))))
+
+            bucket_a = {
+                'gear':    gear,
+                'rpm_avg': round(sum(r['rpm'] for r in pre_win) / len(pre_win), 0),
+                'tps_avg': round(sum(r['tps'] for r in pre_win) / len(pre_win), 1),
+                'vss_avg': round(sum(r['spd'] for r in pre_win) / len(pre_win), 1),
+                'clt_avg': round(sum(r['clt'] for r in pre_win) / len(pre_win), 1),
+            }
+
+            _tail_tps = [r['tps'] for r in pre_win[-3:]]
+            _full_tps = _tail_tps + tps_s
+            _mx = max(_full_tps) if max(_full_tps) > 0 else 1.0
+            tps_curve_norm = _f7_resample([v / _mx for v in _full_tps])
+
+            _gw = [r for r in pre_win if r.get('gps_valid') and r.get('gps_alt', 0) != 0]
+            if len(_gw) >= 4:
+                _alt_d = _gw[-1]['gps_alt'] - _gw[0]['gps_alt']
+                _t_sp  = _gw[-1]['t'] - _gw[0]['t']
+                _vavg  = sum(r['spd'] for r in _gw) / len(_gw)
+                _dist  = _vavg * _t_sp * 1000 / 3600
+                gps_slope = round(_alt_d / _dist * 100, 2) if _dist > 5 else 0.0
+            else:
+                gps_slope = 0.0
+
+            _baro  = [r['baro']      for r in pre_win if r.get('baro',      0) > 0]
+            _temp  = [r['temp_amb']  for r in pre_win if r.get('temp_amb',  0) != 0]
+            _clt   = [r['clt']       for r in pre_win if r.get('clt',       0) > 0]
+            _mat   = [r['mat']       for r in pre_win if r.get('mat',       0) > 0]
+            _spark = [r['spark']     for r in pre_win if r.get('spark',     0) > 0]
+            _iat   = [r['iat_corr']  for r in pre_win if r.get('iat_corr',  0) > 0]
+            _hum   = [r['humidity']  for r in pre_win if r.get('humidity',  0) > 0]
+            _alt   = [r['gps_alt']   for r in pre_win
+                      if r.get('gps_valid') and r.get('gps_alt', 0) != 0]
+
+            def _pre_rs(vals):
+                return _f7_resample(vals, _F7_PRE_N) if vals else [0.0] * _F7_PRE_N
+
+            events.append({
+                'event_type':      'accel',
+                'break_t':         round(t0, 2),
+                'duration':        round(dur, 2),
+                'n_raw':           len(phase_b),
+                'bucket_a':        bucket_a,
+                'pw_curve':        _f7_resample(pw_s),
+                'pw1_curve':       _f7_resample(pw1_s),
+                'pw2_curve':       _f7_resample(pw2_s),
+                'rpm_curve':       _f7_resample(rpm_s),
+                'vss_curve':       _f7_resample(vss_s),
+                'tps_curve':       _f7_resample(tps_s),
+                'tps_curve_norm':  tps_curve_norm,
+                'pre_pw_curve':    _pre_rs([(r['pw1']+r.get('pw2',r['pw1']))/2 for r in pre_win]),
+                'pre_rpm_curve':   _pre_rs([r['rpm'] for r in pre_win]),
+                'pre_vss_curve':   _pre_rs([r['spd'] for r in pre_win]),
+                'pre_tps_curve':   _pre_rs([r['tps'] for r in pre_win]),
+                'pw_start':        round(pw_s[0], 2),
+                'pw_peak':         round(max(pw_s), 2),
+                'pw_delta':        round(max(pw_s) - pw_s[0], 2),
+                'tps_start':       round(tps_s[0], 1),
+                'tps_peak':        round(max(tps_s), 1),
+                'vss_delta':       round(vss_s[-1] - vss_s[0], 1),
+                'very_short':      dur < 0.5,
+                'gps_slope':       gps_slope,
+                'baro_hpa':        round(sum(_baro)/len(_baro), 1)  if _baro  else None,
+                'temp_amb_c':      round(sum(_temp)/len(_temp), 1)  if _temp  else None,
+                'clt_avg':         round(sum(_clt)/len(_clt),   1)  if _clt   else None,
+                'mat_avg':         round(sum(_mat)/len(_mat),   1)  if _mat   else None,
+                'spark_avg':       round(sum(_spark)/len(_spark),2) if _spark else None,
+                'iat_corr_avg':    round(sum(_iat)/len(_iat),   1)  if _iat   else None,
+                'humidity_avg':    round(sum(_hum)/len(_hum),   1)  if _hum   else None,
+                'gps_alt_avg':     round(sum(_alt)/len(_alt),   1)  if _alt   else None,
+                'gear_detected':   gear,
+                'ride_file':       ride_stem,
+                'annotation_id':   ann['id'],
+                'annotation_note': ann.get('note', ''),
+            })
+    return events
+
 def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
     """
     Load or compute clusters for a session.
@@ -646,12 +781,16 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
             ef.write_text(json.dumps(evs, separators=(',', ':')))
         event_files.append(ef)
 
+    csv_path_map = {cp.stem: cp for cp in csv_files}
+
     # --- Step 2: check cluster cache staleness ---
     thr_tag = str(threshold).replace('.', '_')
     cluster_file = sdir / f'session_f7clusters_{thr_tag}.json'
+    ann_files = list(sdir.glob('ride_*_annotations.json'))
     stale = (
         not cluster_file.exists() or
-        any(ef.stat().st_mtime > cluster_file.stat().st_mtime for ef in event_files)
+        any(ef.stat().st_mtime > cluster_file.stat().st_mtime for ef in event_files) or
+        any(af.stat().st_mtime > cluster_file.stat().st_mtime for af in ann_files)
     )
 
     if not stale:
@@ -686,16 +825,27 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
     for c in clusters:
         _f7_temporal_stats(c)
 
+    # --- Step 4: pilot-marked events from 'launch' annotations ---
+    pilot_events = _f7_events_from_annotations(sdir, csv_path_map, _load_csv_rows)
+    _pilot_cls = _f7_cluster(pilot_events, threshold=threshold)
+    for i, c in enumerate(_pilot_cls):
+        c['cluster_id']   = f'P{i+1:03d}'
+        c['cluster_type'] = 'pilot-marked'
+    for c in _pilot_cls:
+        _f7_temporal_stats(c)
+
     result = {
-        'session_id':  session_id,
-        'events_v':    _F7_EVENTS_V,
-        'n_events':    len(all_events),
-        'n_accel':     len(_accel_evs),
-        'n_decel':     len(_decel_evs),
-        'n_clusters':  len(clusters),
-        'n_rides':     len(event_files),
-        'threshold':   threshold,
-        'clusters':    clusters,
+        'session_id':     session_id,
+        'events_v':       _F7_EVENTS_V,
+        'n_events':       len(all_events),
+        'n_accel':        len(_accel_evs),
+        'n_decel':        len(_decel_evs),
+        'n_clusters':     len(clusters),
+        'n_pilot':        len(pilot_events),
+        'n_rides':        len(event_files),
+        'threshold':      threshold,
+        'clusters':       clusters,
+        'pilot_clusters': _pilot_cls,
     }
     cluster_file.write_text(json.dumps(result, separators=(',', ':')))
     return result
