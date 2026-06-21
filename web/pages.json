@@ -1,0 +1,86 @@
+{
+  "nav": [
+    {
+      "path": "/",
+      "title": "Dashboard",
+      "file": "index.html"
+    },
+    {
+      "path": "/session_events",
+      "title": "Session Events",
+      "file": "session_events.html"
+    },
+    {
+      "path": "/sessions_vs",
+      "title": "Sessions VS",
+      "file": "sessions_vs.html"
+    },
+    {
+      "path": "/sessions_launch",
+      "title": "Launch",
+      "file": "sessions_launch.html"
+    },
+    {
+      "path": "/tuner",
+      "title": "Tuner",
+      "file": "tuner.html"
+    },
+    {
+      "path": "/fuel",
+      "title": "Fuel",
+      "file": "fuel.html"
+    },
+    {
+      "path": "/errorlog/viz",
+      "title": "Errors",
+      "file": "errorlog_viz.html"
+    },
+    {
+      "path": "/gps_analysis",
+      "title": "GPS Analysis",
+      "file": "gps_analysis.html"
+    },
+    {
+      "path": "/launch_power",
+      "title": "Launch Power",
+      "file": "launch_power.html"
+    },
+    {
+      "path": "/graf2",
+      "title": "Graf2",
+      "file": "graf2.html"
+    }
+  ],
+  "tabs": {
+    "index.html": [
+      {
+        "label": "Ride",
+        "js": "showTab('ride');trackUsage('tab_ride')"
+      },
+      {
+        "label": "Sesiones",
+        "js": "showTab('rides');trackUsage('tab_sesiones')"
+      },
+      {
+        "label": "Graf",
+        "js": "showTab('graph');trackUsage('tab_graph')"
+      },
+      {
+        "label": "VE",
+        "js": "showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()"
+      },
+      {
+        "label": "Config",
+        "js": "showTab('cfg');trackUsage('tab_config')"
+      },
+      {
+        "label": "Redes",
+        "js": "showTab('net');loadNetPane();trackUsage('tab_redes')"
+      },
+      {
+        "label": "Mapa",
+        "js": "showTab('map');loadMapPane();trackUsage('tab_map')"
+      }
+    ]
+  }
+}
