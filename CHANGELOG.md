@@ -7,29 +7,7 @@
   INSTRUCTIONS FOR AI ASSISTANTS:
   1. All changelog entries MUST be written in English.
   2. Each new entry follows this format:
-       ## [v2.7.210] -- 2026-06-20
-
-### Changed
-- Ride dashboard: restructured from 3 rows x 6 to 5 rows x 4 auto-sizing stat grid
-  .hdr-row converted from display:flex to display:grid;grid-template-columns:repeat(4,1fr) for responsive 25% width chips
-- Header logo row separated into its own .hdr-logo CSS class to prevent grid interference with flex layout
-- Added .hdr-group CSS classes for logical stat groupings (SYS/SEN/MOTO/RIDE)
-- Tailscale toggle button added in Redes panel with systemctl start/stop/status via NOPASSWD sudoers
-
-### Added
-- Dashboard: 20 data-slot containers (5 rows × 4) numbered 1-20 for future stat reordering
-- Tailscale VPN control: toggle button + status indicator + IP display in Redes pane
-- /tailscale POST endpoint in server with _handle_post_tailscale handler
-- Passwordless sudo rule for pi user to control tailscaled service
-- tailscale toggle/status JS functions in app.js with auto-status on load
-
-### Removed
-- Old .hdr-stats/.hdr-comms wrapper divs (stats are direct children of .hdr-row)
-- Fixed 60px width constraint on stat chips (now auto grid)
-- Vertical label rotation on stat chips (horizontal labels)
-
-### AI
-- DeepSeek V4 Flash
+       
 ## [vX.Y.Z] — YYYY-MM-DD
   3. The ### AI section is MANDATORY for every new entry.
      If multiple AIs contributed, list each one.
@@ -43,6 +21,30 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+
+## [v2.7.210] -- 2026-06-20
+
+### Changed
+- Ride dashboard: restructured from 3 rows x 6 to 5 rows x 4 auto-sizing stat grid
+  .hdr-row converted from display:flex to display:grid;grid-template-columns:repeat(4,1fr)
+- Header logo row separated into .hdr-logo CSS class to prevent grid interference with flex
+- Tailscale toggle button in Redes panel with systemctl start/stop/status via NOPASSWD sudoers
+
+### Added
+- Dashboard: 20 data-slot containers (5 rows x 4) numbered 1-20
+- Tailscale VPN control: toggle + status indicator + IP display in Redes pane
+- /tailscale POST endpoint with _handle_post_tailscale handler
+- Passwordless sudo rule for pi user to control tailscaled service
+- tailscale JS toggle/status functions in app.js
+
+### Removed
+- Old .hdr-stats/.hdr-comms wrapper divs (direct children .hdr-row)
+- Fixed 60px width constraint on stat chips (now auto grid 1fr 1fr 1fr 1fr)
+- Vertical label rotation on stat chips (horizontal 10px labels)
+
+### AI
+- DeepSeek V4 Flash
+
 ## [v2.7.209] - 2026-06-20
 ### Feature
 - Dashboard (/): EEPROM map viewer now XML-driven. /maps endpoint returns full
