@@ -21,6 +21,18 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.211] -- 2026-06-21
+
+### Changed
+- fuel.html: header restructured to single-line layout with .hdr-logo wrapper
+- fuel.html: body now uses flexbox layout (display:flex;flex-direction:column;height:100dvh)
+- fuel.html: scrollbar hidden on .content while preserving scroll functionality
+- fuel.html: "HOW TO ACTIVATE FUEL TRACKING" instructions now collapsible (starts collapsed)
+- fuel.html: fixed duplicate "v" in version display (v--LOGGER_VERSION-- → --LOGGER_VERSION--)
+
+### AI
+- Claude Sonnet 4.6 (DeepSeek-v4-flash)
+
 
 ## [v2.7.210] -- 2026-06-20
 

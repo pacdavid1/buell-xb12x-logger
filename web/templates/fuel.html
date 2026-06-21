@@ -20,7 +20,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);height:100dv
 .nav-menu-drop a{display:block;font-family:var(--mono);font-size:15px;color:var(--dim);text-decoration:none;padding:10px 14px;border-radius:2px}
 .nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
 .nav-menu-drop a.active{color:var(--accent);background:rgba(255,255,255,.06)}
-.content{padding:12px;max-width:520px;margin:0 auto;flex:1;overflow-y:auto}
+.content{padding:12px;max-width:520px;margin:0 auto;flex:1;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
+.content::-webkit-scrollbar{display:none}
 .section{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:10px}
 .section-title{font-size:15px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
 .trip-row{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
@@ -119,17 +120,22 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
 .onboard{background:rgba(61,158,255,.07);border:1px solid rgba(61,158,255,.3);
   border-radius:4px;padding:12px 14px;margin-bottom:10px;display:none}
 .onboard.show{display:block}
-.onboard-title{font-size:13px;font-weight:700;color:#7df;letter-spacing:.12em;margin-bottom:8px}
+.onboard-title{font-size:13px;font-weight:700;color:#7df;letter-spacing:.12em;margin-bottom:8px;cursor:pointer;-webkit-user-select:none;user-select:none}
+.onboard-title .arrow{display:inline-block;transition:transform .2s;font-size:11px;color:var(--accent);margin-right:4px}
+.onboard.collapsed .onboard-title .arrow{transform:rotate(90deg)}
 .onboard-step{font-size:13px;color:var(--dim);padding:4px 0;display:flex;gap:8px}
 .onboard-step b{color:var(--text);min-width:14px}
 .onboard-note{font-size:11px;color:var(--dim);margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
+.onboard.collapsed .onboard-step,
+.onboard.collapsed .onboard-note{display:none}
 </style>
   <link rel="stylesheet" href="/static/header.css">
 </head>
 <body>
-<div class="hdr">
-  <div class="hdr-title">FUEL TRACKER <span style="font-weight:400;color:#7df;font-size:13px">v--LOGGER_VERSION--</span></div>
-  <div class="nav-menu" id="navMenu">
+<div class="hdr" id="hdrMain">
+  <div class="hdr-logo" id="hdrLogoRow" style="justify-content:space-between">
+    <div class="hdr-title">FUEL TRACKER <span style="font-weight:400;color:#7df;font-size:13px">--LOGGER_VERSION--</span></div>
+    <div class="nav-menu" id="navMenu">
     <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">&#9776;</button>
     <div class="nav-menu-drop" id="navDrop">
       <a href="/">Dashboard</a>
@@ -143,10 +149,12 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
     </div>
   </div>
 </div>
+  </div>
+</div>
 <div class="content">
 
-  <div class="onboard" id="onboardBanner">
-    <div class="onboard-title">HOW TO ACTIVATE FUEL TRACKING</div>
+  <div class="onboard collapsed" id="onboardBanner">
+    <div class="onboard-title"><span class="arrow">▼</span> HOW TO ACTIVATE FUEL TRACKING</div>
     <div class="onboard-step"><b>1.</b><span>When the <b style="color:var(--accent)">reserve light</b> turns on, press <b>ACTIVATE RESERVE</b> below</span></div>
     <div class="onboard-step"><b>2.</b><span>Ride normally — the logger counts km and fuel pulse width</span></div>
     <div class="onboard-step"><b>3.</b><span>Fill up, enter liters, check <b>FULL TANK RESET</b>, press <b>SAVE FILL-UP</b></span></div>
@@ -243,6 +251,9 @@ async function loadStatus(){
     renderHistory(d.refuels || []);
     const noData = !d.refuels || d.refuels.length === 0;
     document.getElementById('onboardBanner').classList.toggle('show', noData);
+    document.querySelector('#onboardBanner > .onboard-title').onclick = function(e){
+      document.getElementById('onboardBanner').classList.toggle('collapsed');
+    };
   }catch(e){ console.warn(e); }
 }
 
