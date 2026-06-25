@@ -21,6 +21,13 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.216] -- 2026-06-24
+### Changed
+- tuner.html: removed XPR FILE section (HTML block + loadFile function) — XPR loading moves to dedicated page BL-XPR-01; code preserved in git history
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.215] -- 2026-06-24
 ### Changed
 - BACKLOG.md: added BL-XPR-01 — dedicated XPR/Session map editor page (removed XPR section from tuner pending this page)
