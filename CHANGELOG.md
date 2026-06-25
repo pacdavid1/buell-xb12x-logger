@@ -21,6 +21,13 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.214] -- 2026-06-24
+### Fixed
+- tuner.html: tab bar showed all XML maps including 1D maps (startup_enrichment etc.); now filters to 2D maps only (rows>1 && yaxis), defaulting to first fuel map
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.213] -- 2026-06-24
 ### Fixed
 - tuner.html: default map selection skipped 1D maps (startup_enrichment, no yaxis) — now picks first 2D map (fuel_map_front) as default; fixes heatmap showing only RPM axis row with no data rows
