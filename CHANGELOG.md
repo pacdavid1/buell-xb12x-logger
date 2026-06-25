@@ -21,6 +21,13 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.217] -- 2026-06-24
+### Fixed
+- tuner.html: tab order and labels restored to original UX — fuel maps first (FUEL FRONT/REAR), then spark/timing (SPARK FRONT/REAR); removed debug line
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.216] -- 2026-06-24
 ### Changed
 - tuner.html: removed XPR FILE section (HTML block + loadFile function) — XPR loading moves to dedicated page BL-XPR-01; code preserved in git history

@@ -216,7 +216,7 @@ async function load(t){
     var r=await fetch('/tuner/maps?session='+id);if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
     if(!d||!d.maps){st('Error: '+(d&&d.error||'no maps'));return}
     if(t==='base')mB=d;else mM=d;mMerge=null;
-    if(mB&&(!cur||!mB.maps[cur])){var ks=Object.keys(mB.maps);var ks2d=ks.filter(function(k){return mB.maps[k].yaxis&&(mB.maps[k].rows||0)>1;});var def=ks2d.find(function(k){return k.indexOf('fuel')>=0;})||ks2d[0]||ks[0]||'';cur=def;var tb=document.getElementById('tabs');tb.innerHTML=ks2d.map(function(k){return'<button class="tab'+(k===cur?' on':'')+' data-m="'+k+'">'+mB.maps[k].label+'</button>';}).join('');}
+    if(mB&&(!cur||!mB.maps[cur])){var ks=Object.keys(mB.maps);var ks2d=ks.filter(function(k){return mB.maps[k].yaxis&&(mB.maps[k].rows||0)>1;});ks2d.sort(function(a,b){var af=a.indexOf('fuel')>=0,bf=b.indexOf('fuel')>=0;if(af&&!bf)return -1;if(!af&&bf)return 1;return 0;});var def=ks2d.find(function(k){return k.indexOf('fuel')>=0;})||ks2d[0]||ks[0]||'';cur=def;function tabLabel(k){if(k.indexOf('fuel')>=0&&k.indexOf('rear')>=0)return'FUEL REAR';if(k.indexOf('fuel')>=0)return'FUEL FRONT';if(k.indexOf('rear')>=0)return'SPARK REAR';return'SPARK FRONT';}var tb=document.getElementById('tabs');tb.innerHTML=ks2d.map(function(k){return'<button class="tab'+(k===cur?' on':'')+' data-m="'+k+'">'+tabLabel(k)+'</button>';}).join('');}
     document.getElementById('mcGo').disabled=!(mB&&mM);
     render();
   }catch(e){st('Error loading')}
