@@ -1633,3 +1633,37 @@ Esto funciona porque el stat loop corre en el mismo proceso/thread.
 ### Archivo a modificar
 - `ecu/logger_process.py`: línea 44 (eliminar constante), línea ~196 (asignar post-connect),
   línea ~284 (asignar post-reconnect)
+
+### BL-XPR-01 — Dedicated XPR/Session map editor page
+**Priority:** 🟡 MEDIA — depende de BL-ECM-01 Phase C (burn guard por firmware)
+
+**Concepto:** página independiente para cargar, visualizar, editar y quemar un mapa
+desde cualquier fuente — sesión grabada o archivo XPR externo. Caso de uso principal:
+alguien con una Buell manda su XPR, se carga, se analiza, se modifica y se quema
+remotamente o conectando directo a la moto.
+
+**Flujo de la página:**
+1. CARGAR — sesión (dropdown) **o** archivo XPR (path en Pi o upload)
+2. VER — mapa editable tipo VE tab: heatmap con valores reales de EEPROM
+3. MODIFICAR — click-to-edit por celda (ya existe en VE tab y tuner)
+4. QUEMAR — directo a ECU conectada, o exportar XPR modificado para quemar remoto
+
+**Es una fusión de:**
+- VE tab del dashboard (heatmap editable + burn)
+- Tuner (comparación de mapas, tabs por mapa)
+- XPR loader (código actualmente en tuner.html — recuperar de git si se necesita)
+
+**Dependencias:**
+- BL-ECM-01 Phase C obligatorio antes de implementar burn — sin el guard por firmware
+  encode_eeprom_maps() puede corromper EEPROM en una ECU no-BUEIB
+- Definir: ¿con qué se compara el XPR cargado? ¿EEPROM en vivo del Pi? ¿Otra sesión?
+  Esta pregunta debe responderse antes de diseñar la UI
+
+**Código reutilizable (ya existe):**
+- `tuner/maps/file` endpoint en handlers/tuner.py — carga y decodifica XPR
+- Click-to-edit + STAGE + burn en tuner.html (o recuperar de git si se quitó del tuner)
+- `eeprom/burn` endpoint ya existente
+
+**Nota:** el XPR section fue removido de tuner.html en v2.7.215 para eliminar ruido
+en el flujo de comparación de sesiones. El código original está en git (commit anterior
+a v2.7.215).
