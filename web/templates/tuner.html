@@ -217,7 +217,7 @@ async function load(t){
     var r=await fetch('/tuner/maps?session='+id);if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
     if(!d||!d.maps){st('Error: '+(d&&d.error||'no maps'));return}
     if(t==='base')mB=d;else mM=d;mMerge=null;
-    if(mB&&(!cur||!mB.maps[cur])){var ks=Object.keys(mB.maps);cur=ks[0]||'';var tb=document.getElementById('tabs');tb.innerHTML=ks.map(function(k){return'<button class="tab'+(k===cur?' on':'')+'' data-m=\"'+k+'\">'+mB.maps[k].label+'</button>';}).join('');}
+    if(mB&&(!cur||!mB.maps[cur])){var ks=Object.keys(mB.maps);cur=ks[0]||'';var tb=document.getElementById('tabs');tb.innerHTML=ks.map(function(k){return'<button class="tab'+(k===cur?' on':'')+' data-m="'+k+'">'+mB.maps[k].label+'</button>';}).join('');}
     document.getElementById('mcGo').disabled=!(mB&&mM);
     render();
   }catch(e){st('Error loading')}

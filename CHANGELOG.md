@@ -21,6 +21,13 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.212] -- 2026-06-24
+### Fixed
+- tuner.html: SyntaxError in load() — escaped quotes (\") inside single-quoted JS string produced literal backslashes, breaking script parse and preventing session dropdowns from populating on page load
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.211] -- 2026-06-21
 
 ### Changed
