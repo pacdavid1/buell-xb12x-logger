@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.220] — 2026-06-25
+### Fixed
+- tuner.html: tab buttons had mismatched HTML quotes in the class attribute template — class="tab was never closed before data-m=", causing the HTML parser to treat data-m as part of the class value and fuel_map_front/etc. as a standalone attribute without a name; b.dataset.m was always undefined, setting cur=undefined on every tab click which broke render() and triggered the mouseleave TypeError
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.219] — 2026-06-25
 ### Fixed
 - tuner.html: added missing closing brace for render() after its try-catch block
