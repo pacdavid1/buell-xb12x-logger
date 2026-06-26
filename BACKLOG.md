@@ -1667,3 +1667,61 @@ remotamente o conectando directo a la moto.
 **Nota:** el XPR section fue removido de tuner.html en v2.7.215 para eliminar ruido
 en el flujo de comparación de sesiones. El código original está en git (commit anterior
 a v2.7.215).
+
+### BL-TUNER-02 — New tuner page: all maps vertical, table+3D side by side
+**Priority:** 🔴 ALTA — reemplaza tuner.html actual que acumula deuda técnica
+
+**Concepto:** página nueva desde cero. Una sola vista general que muestra TODOS
+los mapas del firmware cargado, apilados verticalmente. Para cada mapa:
+tabla editable a la izquierda, gráfico 3D a la derecha. Edits en la tabla
+se reflejan inmediatamente en el 3D.
+
+**Layout por mapa (una fila por mapa):**
+```
+[ FUEL FRONT          ]  [ 3D surface          ]
+[ tabla editable 12x13]  [ refleja edits live  ]
+-------------------------------------------------
+[ FUEL REAR           ]  [ 3D surface          ]
+[ tabla editable 12x13]  [ refleja edits live  ]
+-------------------------------------------------
+[ SPARK FRONT         ]  [ 3D surface          ]
+[ tabla editable 10x10]  [ refleja edits live  ]
+-------------------------------------------------
+[ SPARK REAR          ]  [ 3D surface          ]
+[ tabla editable 10x10]  [ refleja edits live  ]
+-------------------------------------------------
+... (todos los mapas 2D del firmware)
+```
+
+**Comparación Base vs Mod:**
+- Opción A: mostrar solo UN mapa a la vez (base o mod seleccionable)
+  con delta coloreado sobre las celdas
+- Opción B: dos columnas — tabla BASE izquierda, tabla MOD derecha, 3D centro
+- Decisión pendiente antes de implementar
+
+**Fuente de datos:** siempre desde sesiones grabadas (dropdown).
+XPR va en página separada (BL-XPR-01). No mezclar fuentes en esta página.
+
+**Edición:**
+- Click en celda → input numérico inline (como VE tab actual)
+- Edits se acumulan en STAGE por mapa
+- STAGE se refleja en 3D inmediatamente (celda staged = color diferente en surface)
+- Botón BURN global al final — quema todos los cambios staged de todos los mapas
+
+**Mapas a mostrar:** todos los mapas 2D del response `/tuner/maps?session=ID`
+(rows>1 && yaxis exists). Orden: fuel primero, spark/timing después.
+Para DDFI-2 BUEIB: 4 mapas. Para DDFI-3: los que apliquen según XML.
+La página es agnóstica de firmware — renderiza lo que el backend devuelve.
+
+**Dependencias:**
+- BL-ECM-01 Phase C (burn guard) antes de habilitar BURN en producción
+- `/tuner/maps` endpoint ya funciona y devuelve formato correcto
+- `/eeprom/burn` endpoint ya existe
+- Lógica de STAGE y click-to-edit ya existe en tuner.html — reutilizar
+
+**Por qué página nueva y no arreglar tuner.html:**
+tuner.html acumula 3 capas de refactor (hardcoded -> XML-driven -> fixes),
+tiene deuda de SyntaxErrors introducidos en patches, y el layout de tabs
+horizontales no escala a 16-21 mapas de DDFI-3.
+
+**Ruta:** `/map-editor` o `/tuner2` (decidir antes de implementar)

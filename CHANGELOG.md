@@ -21,6 +21,13 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.218] -- 2026-06-24
+### Changed
+- BACKLOG.md: added BL-TUNER-02 — new tuner page, all maps vertical with table+3D side by side per map
+
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.217] -- 2026-06-24
 ### Fixed
 - tuner.html: tab order and labels restored to original UX — fuel maps first (FUEL FRONT/REAR), then spark/timing (SPARK FRONT/REAR); removed debug line
