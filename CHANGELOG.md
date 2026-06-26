@@ -21,6 +21,15 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.219] — 2026-06-25
+### Fixed
+- tuner.html: added missing closing brace for render() after its try-catch block
+- tuner.html: added missing closing brace for drawAll() after its try-catch block
+- tuner.html: added missing semicolon after tabLabel function expression
+- All three fixes resolve the JS SyntaxError (Unexpected end of input / Unexpected token var) that prevented the tuner page from loading
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.218] -- 2026-06-24
 ### Changed
 - BACKLOG.md: added BL-TUNER-02 — new tuner page, all maps vertical with table+3D side by side per map
