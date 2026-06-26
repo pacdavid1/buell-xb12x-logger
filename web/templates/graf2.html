@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <title>GRAF2 · Buell Telemetry</title>
 <link rel="stylesheet" href="/static/uPlot.min.css">
+  <link rel="stylesheet" href="/static/header.css">
 <style>
   :root{
     --bg:#0a0a0b; --panel:#111114; --panel2:#16161a; --border:#222;
@@ -14,10 +15,11 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mono);font-size:12px}
+  body{display:flex;flex-direction:column;height:100dvh;overflow:hidden}
   a{color:var(--accent);text-decoration:none}
 
   /* ---- top bar ---- */
-  .topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:8px;
+  .topbar{display:flex;align-items:center;gap:8px;
     padding:8px 10px;background:linear-gradient(180deg,#101013,#0d0d10);
     border-bottom:1px solid var(--border);flex-wrap:wrap}
   .brand{color:var(--accent);font-weight:700;letter-spacing:2px;font-size:12px;margin-right:6px}
@@ -32,7 +34,7 @@
   .status{color:var(--dim);font-size:10px;min-width:120px}
 
   /* ---- blocks ---- */
-  #blocks{padding:10px;display:flex;flex-direction:column;gap:10px}
+  #blocks{display:flex;flex-direction:column;gap:10px}
   .block{background:var(--panel);border:1px solid var(--border);border-radius:4px;
     position:relative;overflow:hidden}
   .block.dragover{border-color:var(--accent)}
@@ -67,7 +69,7 @@
   .modal.open{display:flex}
   .picker{background:var(--panel);border:1px solid var(--accent);border-radius:5px;
     width:min(520px,94vw);max-height:84vh;display:flex;flex-direction:column}
-  .picker-head{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid var(--border)}
+  .picker-head{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
   .picker-head .t{color:var(--accent);font-size:11px;letter-spacing:1px;flex:1}
   .search{flex:1}
   .picker-body{overflow-y:auto;padding:6px 10px}
@@ -94,11 +96,35 @@
   .u-legend .u-marker{width:9px!important;height:9px!important}
   /* touch: 2-finger vertical = page scroll; pinch + horizontal captured in JS */
   .uwrap,.uplot,.u-wrap,.u-over{touch-action:pan-y}
+  .content::-webkit-scrollbar{display:none}
 </style>
 </head>
 <body>
-  <div class="topbar">
-    <span class="brand">GRAF2</span><span class="ver">--LOGGER_VERSION--</span>
+  <div class="hdr" id="hdrMain">
+    <div class="hdr-logo" id="hdrLogoRow" style="justify-content:space-between">
+      <div id="hdrLogo">GRAF2 <span>--LOGGER_VERSION--</span> <span class="pill-dot" id="statusDot"></span> <span id="statusLabel">OK</span></div>
+      <div class="nav-menu" id="navMenu">
+      <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
+      <div class="nav-menu-drop" id="navDrop">
+        <a href="/graf2" target="_blank">Graf2 ⚡</a>
+        <a href="/session_events" target="_blank">Session Events</a>
+        <a href="/sessions_vs" target="_blank">Sessions VS</a>
+        <a href="/sessions_launch" target="_blank">Launch</a>
+        <a href="/tuner" target="_blank">Tuner</a>
+    <a href="/map-editor">Map Editor</a>
+        <a href="/errorlog/viz" target="_blank">Errors</a>
+        <a href="/launch_power" target="_blank">Launch Power</a>
+        <a href="/gps_analysis" target="_blank">GPS Analysis</a>
+        <a href="/fuel" target="_blank">Fuel</a>
+        <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+        <a href="/" class="nav-tab">Dashboard</a>
+        <a href="/vdyno" class="nav-tab">Virtual Dyno</a>
+      </div>
+    </div>
+    </div>
+  </div>
+  <div class="content" style="flex:1;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none;padding:10px">
+<div class="topbar">
     <select id="rideSel"><option value="">-- ride --</option></select>
     <button id="loadBtn" class="accent">LOAD</button>
     <button id="addBlock">+ Block</button>
@@ -109,17 +135,16 @@
     <select id="flagShade"><option value="">none</option></select>
     <select id="presetSel"><option value="">preset…</option></select>
     <span id="status" class="status">no ride loaded</span>
-    <nav class="nav">
-      <a href="/">Dashboard</a><a href="/session_events">Events</a>
-      <a href="/sessions_vs">VS</a><a href="/tuner">Tuner</a><a href="/gps_analysis">GPS</a>
-    </nav>
   </div>
 
   <div class="hint">pinch = zoom (all blocks follow) · 2-finger sideways = pan time · 2-finger up/down = scroll page · double-click = reset · drag header = reorder · drag bottom edge = resize height</div>
   <div id="blocks"><div class="empty">Load a ride to start.</div></div>
 
   <!-- signal picker -->
-  <div class="modal" id="pickerModal">
+  
+</div>
+
+<div class="modal" id="pickerModal">
     <div class="picker">
       <div class="picker-head">
         <span class="t" id="pickerTitle">SIGNALS</span>

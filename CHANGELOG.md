@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.222] -- 2026-06-25
+### Changed
+- Added Map Editor link to nav menu in all page templates (index, tuner, session_events, sessions_vs, sessions_launch, graf2, fuel, errorlog_viz)
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.221] -- 2026-06-25
 ### Added
 - New /map-editor page (BL-TUNER-02): all maps stacked vertically, editable table left + 3D surface right
