@@ -115,3 +115,10 @@ class TunerHandlerMixin:
             self._json(_merge_maps(self.server_instance.buell_dir, sa, sb, mode))
         except Exception as e:
             self._json({'error': str(e)}, 500)
+
+    def _handle_map_editor(self, path=None) -> None:
+        try:
+            html = (_TEMPLATES / 'map-editor.html').read_text(encoding='utf-8')
+            self._html(html.replace('--LOGGER_VERSION--', _get_version()))
+        except Exception as e:
+            self._json({'error': str(e)}, 500)

@@ -21,6 +21,23 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.221] -- 2026-06-25
+### Added
+- New /map-editor page (BL-TUNER-02): all maps stacked vertically, editable table left + 3D surface right
+- 3D surface renderer ported from tuner.html — Lambert shading, depth sort, drag-rotate, scroll-zoom per map
+- Bar chart renderer for 1D maps (rows=1) with value labels and color gradient
+- Session dropdown with URL sync (?session=ID) and localStorage font-scale persistence
+- Inline cell edit: click to stage, Enter/Escape to confirm/cancel, max 50 cells
+- Staged cells reflected live in both table (amber) and 3D surface (gold outline on faces)
+- Hover tooltip: shows X axis value, Y axis value, current cell value
+- Per-map staged badge in block header
+- Front maps accented orange, rear maps accented blue
+- Dynamic font scale: CSS variable --fs-base drives all text sizes; slider in header adjusts in real time
+- Timing maps now correctly colored (units: Degree matched to timing range 0-50)
+- /map-editor route added to server.py and TunerHandlerMixin
+### AI
+- Claude Sonnet 4.6, Anthropic
+
 ## [v2.7.220] — 2026-06-25
 ### Fixed
 - tuner.html: tab buttons had mismatched HTML quotes in the class attribute template — class="tab was never closed before data-m=", causing the HTML parser to treat data-m as part of the class value and fuel_map_front/etc. as a standalone attribute without a name; b.dataset.m was always undefined, setting cur=undefined on every tab click which broke render() and triggered the mouseleave TypeError

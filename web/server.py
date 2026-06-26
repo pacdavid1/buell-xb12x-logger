@@ -99,6 +99,7 @@ class DashboardHandler(
             '/sessions_vs/compare': self._handle_sessions_vs_compare,
             '/sessions_vs/download': self._handle_sessions_vs_download,
             '/tuner': self._handle_tuner,
+            '/map-editor': self._handle_map_editor,
             '/graf2': self._handle_graf2,
             '/': self._handle_index,
             '/index.html': self._handle_index,
