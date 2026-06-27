@@ -21,6 +21,26 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.224] -- 2026-06-27
+
+### docs: FASE V4 iterative map optimizer documented in BACKLOG_VDYNO
+
+- Documented two-mode optimization algorithm: Hybrid mode (best-of-N cells
+  from competing maps by measured vdyno HP) and Proposal mode (conservative
+  +/-% experiments when no competing maps exist)
+- Physical-based tuning philosophy: acceleration/vdyno as fitness function,
+  no wideband required, CLT as safety guardrail
+- Cell-to-HP attribution: mapping vdyno bins to active EEPROM map cells
+  during WOT segments (session_cell_scores.json per session)
+- Environmental noise filters: SAE J1349 air density correction, GPS slope
+  compensation, mass correction via fuel_tracker; slope flagged as biggest
+  contaminant (~2 HP per 2% grade at 100 km/h)
+- Noise floor rule: only declare VERDE/ROJO if delta_HP > 2*sigma of
+  same-map ride-to-ride variance; otherwise GRIS/inconclusive
+- Manual override digest: tuner aggressive changes enter the pool and get
+  processed by next hybrid cycle without losing baseline history
+- New backlog items BL-VD-10 through BL-VD-14
+
 ## [v2.7.223] -- 2026-06-27
 
 ### map-editor: UI polish and chart improvements

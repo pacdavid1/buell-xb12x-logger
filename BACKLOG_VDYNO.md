@@ -149,3 +149,150 @@ El usuario decide cargar y quemar. Nada se escribe sin su confirmación
 - Viento no se puede medir → mitigar con múltiples pulls y mediana
 - Pi Zero RAM: cálculo por ride al cerrarlo (no on-demand de sesiones
   completas), cache JSON como f7
+
+---
+
+## FASE V4 — Optimizador Iterativo de Mapas (el norte completo)
+
+> Documentado 2026-06-27 tras análisis de sesiones 47BF04 vs 91B225.
+> La filosofía: optimización sin wideband — el acelerómetro/vdyno es el
+> fitness function. Se mide el resultado real (HP/torque en rueda), no el
+> teórico (AFR). Mismo principio que el tuning pre-electrónica pero con
+> medición objetiva en lugar de feeling del piloto.
+
+---
+
+### Filosofía base
+
+**El wideband da el mejor valor teórico. El mejor valor real viene de las
+iteraciones con aceleración medida.**
+
+Señales físicas disponibles: VSS, GPS, RPM, PW, CLT, MAT, baro, gear.
+Fitness function: HP/torque estimado por vdyno (aceleración real).
+Guardrail de seguridad: CLT — si sube, el mapa se fue de pobre.
+Sin correcciones electrónicas. Sin EGO. Sin narrowband. Solo física.
+
+---
+
+### Los dos modos de operación
+
+#### MODO 1 — Híbrido (cuando existen ≥2 mapas con datos medidos)
+
+Dado un conjunto de sesiones con mapas distintos y curvas vdyno:
+
+1. Para cada celda del mapa (RPM_x, Load_y), identificar qué sesión
+   produjo mayor HP/torque en el bin de RPM correspondiente.
+2. Construir un mapa híbrido tomando el valor ganador celda por celda.
+3. El híbrido es teóricamente mejor que cualquier padre — tomó lo mejor
+   de cada uno. En la práctica puede tener zonas sin datos suficientes
+   (ver umbral de confianza abajo).
+4. Quemar el híbrido → nueva sesión → medir → si el híbrido supera a
+   todos los padres en todas las zonas con datos, pasar a MODO 2.
+
+**Regla de confianza:** si una celda tiene menos de N muestras WOT en
+algún padre, no se cambia esa celda (se hereda del mapa base actual).
+El sistema indica exactamente qué rides faltan para completar la evidencia
+(BL-VD-06).
+
+**El tuner puede aportar:** si el tuner hace un cambio manual agresivo
+(+13% a una zona por intuición), ese resultado entra al pool. El siguiente
+ciclo lo procesa via híbrido — si la zona mejoró, el híbrido lo incorpora;
+si empeoró, lo ignora. El proceso digiere exploraciones humanas sin riesgo
+de perder el historial base.
+
+#### MODO 2 — Propuesta conservadora (cuando ya no hay mapas competidores)
+
+Cuando el mapa actual supera a todos los anteriores en todas las zonas
+con datos confiables:
+
+1. Generar variantes sistemáticas: +3% global, -3% zona baja, +5% zona
+   WOT, etc. Una propuesta por experimento — cambios pequeños y medibles.
+2. Quemar propuesta → nueva sesión → medir vdyno → comparar contra
+   baseline bajo mismas condiciones (ver normalización ambiental abajo).
+3. Si la propuesta gana → nueva baseline → puede volver a MODO 1 si
+   el delta es suficientemente grande para justificar un híbrido.
+4. Si pierde → descartar propuesta, el baseline queda intacto.
+
+**Gradiente implícito:** aunque no hay derivada analítica (no hay WB),
+el sistema construye un gradiente empírico: +3% en zona X dio +1.2 HP,
++3% en zona Y dio -0.8 HP. Eso informa la siguiente propuesta.
+
+---
+
+### Atribución celda → HP (el puente técnico)
+
+Para poder comparar sesiones celda por celda se necesita saber qué celda
+del mapa estaba activa durante cada bin de potencia del vdyno.
+
+Aproximación:
+- Durante WOT a RPM_r: la celda activa es fuel_map[RPM_bucket(RPM_r)][TPS_bucket(alto)]
+- El vdyno bin @ RPM_r da el HP de esa celda en esa sesión
+- Cruzar con agg_cells para saber cuántos segundos WOT tuvo esa celda
+
+Implementación: para cada vdyno bin (RPM_r, HP_med), buscar la celda del
+mapa EEPROM cuyo breakpoint de RPM más se acerca a RPM_r, asumiendo carga
+alta (TPS 60%+). Registrar HP_med, HP_p25, HP_p75 como fitness score de
+esa celda en esa sesión.
+
+---
+
+### Normalización ambiental — filtros de ruido
+
+**Problema:** el mismo mapa puede dar 78 HP un día frío a nivel del mar
+y 73 HP un día caliente a 1500m. Sin normalizar, dos sesiones no son
+comparables directamente.
+
+**Factores a normalizar antes de declarar veredicto:**
+
+| Factor | Fuente | Corrección |
+|--------|--------|------------|
+| Densidad del aire (ρ) | baro_hPa + baro_temp_c + humidity_pct | SAE J1349: P_corr = P_medido × (ρ₀/ρ) |
+| Pendiente (θ) | gps_alt_m derivada vs distancia | m·g·sin(θ)·v se resta de P_rueda |
+| Masa total | moto + piloto + fuel_tracker (litros) | afecta término inercial m·a |
+| Temperatura motor | CLT_avg al inicio del pull | solo comparar pulls con CLT caliente (>80°C) |
+| Viento | no medible directamente | mitigar: mediana de múltiples pulls, misma dirección |
+
+**Regla de ruido (DECISIÓN DE DISEÑO, 2026-06-11 + ampliada 2026-06-27):**
+Medir varianza ride-a-ride DENTRO del mismo mapa (mismo eeprom checksum,
+misma ruta). Ese es el piso de ruido del instrumento. Solo declarar
+VERDE/ROJO si |ΔHP| > 2σ del piso de ruido. Si no, GRIS/inconcluso.
+El veredicto nunca se fuerza.
+
+**Pendiente es el mayor contaminante:** un 2% de pendiente a 100 km/h
+representa ~1.5 kW (~2 HP) de carga adicional. Rides en rutas con perfil
+conocido son más comparables que rutas variables. Documentar la ruta de
+cada sesión para poder filtrar comparaciones de ruta similar.
+
+---
+
+### El loop completo
+
+
+
+---
+
+### Backlog items nuevos de esta fase
+
+**BL-VD-10**  — Atribuidor celda→HP
+Cruzar vdyno bins con breakpoints del mapa EEPROM para obtener HP score
+por celda por sesión. Salida: session_cell_scores.json por sesión.
+
+**BL-VD-11**  — Motor híbrido
+Dado ≥2 session_cell_scores.json, generar mapa híbrido con valor ganador
+por celda (respetando umbral de confianza mínimo). Output: propuesta
+staged en tab VE.
+
+**BL-VD-12**  — Normalización ambiental por pull
+Corregir cada segmento WOT por ρ (SAE J1349) y θ (pendiente GPS) antes
+de calcular HP. Agregar density_altitude al resumen de cada vdyno.json.
+
+**BL-VD-13**  — Piso de ruido empírico
+Calcular varianza ride-a-ride del mismo checksum en la misma ruta.
+Solo declarar veredicto si ΔHP > 2σ. Visible como banda de confianza en
+la gráfica vdyno del verdedicto.
+
+**BL-VD-14**  — Detector de modo (híbrido vs propuesta)
+El sistema determina automáticamente en qué modo está según el burn
+ledger y los session_cell_scores disponibles. Muestra en dashboard:
+MODO HÍBRIDO — 2 mapas disponibles / MODO PROPUESTA — 1 mapa líder.
+
