@@ -12,14 +12,17 @@
   --mn:'JetBrains Mono',monospace;
   --staged:#a07800;--staged-bg:rgba(160,120,0,.18);
 
-  /* ── font scale ── change this one number to resize all text (1 = base) */
+  /* ── font system ──
+     --fs-base : global multiplier (header slider)
+     --px-*    : per-role base size in px (floating Font panel edits these)
+     both compose: final = px * base */
   --fs-base: 1.2;
-  --fs-xs:   calc(6px  * var(--fs-base));   /* axis labels, meta, legend */
-  --fs-sm:   calc(7px  * var(--fs-base));   /* badges, tooltips, 3d labels */
-  --fs-md:   calc(8px  * var(--fs-base));   /* ui controls, burn bar */
-  --fs-cell: calc(9px  * var(--fs-base));   /* table cell values */
-  --fs-lg:   calc(10px * var(--fs-base));   /* toast */
-  --fs-xl:   calc(11px * var(--fs-base));   /* logo, selects */
+  --px-xs: 6;    --fs-xs:   calc(var(--px-xs)   * 1px * var(--fs-base));  /* axis labels, meta */
+  --px-sm: 7;    --fs-sm:   calc(var(--px-sm)   * 1px * var(--fs-base));  /* badges, tooltip, 3D label */
+  --px-md: 8;    --fs-md:   calc(var(--px-md)   * 1px * var(--fs-base));  /* ui controls, burn bar */
+  --px-cell: 9;  --fs-cell: calc(var(--px-cell) * 1px * var(--fs-base));  /* table cells */
+  --px-lg: 10;   --fs-lg:   calc(var(--px-lg)   * 1px * var(--fs-base));  /* toast */
+  --px-xl: 11;   --fs-xl:   calc(var(--px-xl)   * 1px * var(--fs-base));  /* logo, selects */
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;min-height:100dvh;display:flex;flex-direction:column}
@@ -66,6 +69,7 @@ body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;
 .map-block.rear .map-header{border-bottom-color:#1a2535}
 .map-header{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--bd);background:rgba(255,255,255,.02)}
 .map-name{font-family:var(--mn);font-size:var(--fs-cell);font-weight:700;color:var(--ac);letter-spacing:.1em;text-transform:uppercase}
+.map-axes{opacity:.5}
 .map-meta{font-family:var(--mn);font-size:var(--fs-sm);color:var(--dm);letter-spacing:.06em;margin-left:auto}
 .staged-badge{font-family:var(--mn);font-size:var(--fs-sm);color:var(--staged);background:var(--staged-bg);border:1px solid rgba(160,120,0,.35);padding:1px 5px;border-radius:2px;display:none}
 .staged-badge.vis{display:inline-block}
@@ -89,6 +93,25 @@ table.em td input{position:absolute;inset:0;width:100%;height:100%;background:rg
 /* font scale control */
 .fs-ctrl{display:flex;align-items:center;gap:4px}
 .fs-lbl{font-family:var(--mn);font-size:calc(8px * var(--fs-base));color:var(--dm);line-height:1;user-select:none}
+.fp-btn{font-family:var(--mn);font-size:var(--fs-md);color:var(--dm);background:none;border:1px solid var(--bd);border-radius:2px;padding:3px 7px;cursor:pointer;letter-spacing:.04em}
+.fp-btn:hover{color:var(--a2);border-color:var(--a2)}
+.fp-btn.on{color:var(--ac);border-color:var(--ac)}
+
+/* floating font panel */
+.font-panel{position:fixed;top:60px;right:24px;width:230px;background:var(--p);border:1px solid var(--bd);border-radius:5px;z-index:500;display:none;box-shadow:0 8px 28px rgba(0,0,0,.55)}
+.font-panel.open{display:block}
+.fp-head{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--bd);cursor:move;background:rgba(255,255,255,.03);border-radius:5px 5px 0 0;user-select:none}
+.fp-head span{font-family:var(--mn);font-size:var(--fs-md);color:var(--a2);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.fp-x{background:none;border:none;color:var(--dm);font-size:calc(14px * var(--fs-base));cursor:pointer;line-height:1;padding:0 2px}
+.fp-x:hover{color:var(--rd)}
+.fp-body{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.fp-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fp-row label{font-family:var(--mn);font-size:calc(9px * var(--fs-base));color:var(--tx);flex:1}
+.fp-row input{width:54px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:calc(10px * var(--fs-base));padding:3px 5px;border-radius:2px;text-align:center}
+.fp-row input:focus{outline:none;border-color:var(--ac)}
+.fp-foot{display:flex;justify-content:flex-end;padding-top:4px;margin-top:2px;border-top:1px solid var(--bd)}
+.fp-foot button{font-family:var(--mn);font-size:calc(8px * var(--fs-base));color:var(--dm);background:transparent;border:1px solid var(--bd);border-radius:2px;padding:3px 8px;cursor:pointer;letter-spacing:.06em}
+.fp-foot button:hover{color:var(--tx);border-color:var(--dm)}
 
 /* hover tooltip */
 #cellTip{position:fixed;pointer-events:none;z-index:50;display:none;background:var(--p);border:1px solid var(--bd);padding:3px 8px;border-radius:2px;font-family:var(--mn);font-size:var(--fs-md);color:var(--tx);line-height:1.7;white-space:nowrap}
@@ -118,6 +141,7 @@ table.em td input{position:absolute;inset:0;width:100%;height:100%;background:rg
         oninput="setFontScale(this.value)"
         style="width:70px;accent-color:var(--ac);vertical-align:middle;cursor:pointer">
       <span class="fs-lbl" style="font-size:calc(11px * var(--fs-base))">A</span>
+      <button class="fp-btn" id="fpBtn" onclick="toggleFontPanel()" title="Per-font sizes">Aa</button>
     </div>
     <div class="burn-bar">
       <span id="stageCount"></span>
@@ -148,6 +172,17 @@ table.em td input{position:absolute;inset:0;width:100%;height:100%;background:rg
 <div id="cellTip"></div>
 <div id="toast"></div>
 
+<div class="font-panel" id="fontPanel">
+  <div class="fp-head" id="fpHead">
+    <span>Font Sizes</span>
+    <button class="fp-x" onclick="toggleFontPanel(false)">&times;</button>
+  </div>
+  <div class="fp-body" id="fpBody">
+    <!-- rows injected by JS -->
+    <div class="fp-foot"><button onclick="resetFonts()">Reset all</button></div>
+  </div>
+</div>
+
 <script>
 // DEV NOTE: All code, comments, and variable names must be in English.
 
@@ -172,6 +207,27 @@ var MAP_RANGES = {
   timing: { mn: 0, mx: 50  },
   dflt:   { mn: 0, mx: 255 }
 };
+
+// canvas text base size (px) — edited via Font panel "Chart text"
+var CANVAS_FS = 11;
+function cfont(mult) { return (CANVAS_FS * (mult || 1)).toFixed(1) + 'px ' + "'JetBrains Mono', monospace"; }
+
+// HiDPI-aware canvas setup: backing store scaled by devicePixelRatio so
+// nothing is blurry on retina / fractional-scaling displays. Returns ctx;
+// logical (CSS-pixel) dims are stored on cv._lw / cv._lh.
+function setupCanvas(cv) {
+  var dpr = window.devicePixelRatio || 1;
+  var r = cv.getBoundingClientRect();
+  var w = Math.max(10, r.width), h = Math.max(10, r.height);
+  var tw = Math.round(w * dpr), th = Math.round(h * dpr);
+  if (cv.width !== tw || cv.height !== th) { cv.width = tw; cv.height = th; }
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cv._lw = w; cv._lh = h;
+  return ctx;
+}
+
+function redrawAllViz() { Object.keys(MAPS_DATA).forEach(redrawViz); }
 
 // ── session list ─────────────────────────────────────────────────────────────
 async function loadSessions() {
@@ -216,19 +272,7 @@ function renderAll() {
   var keys = Object.keys(MAPS_DATA);
   if (!keys.length) { setMsg('No maps in this session.'); return; }
   keys.forEach(function(k) { main.appendChild(buildMapBlock(k)); });
-  requestAnimationFrame(function() {
-    keys.forEach(function(k) {
-      var cv = document.getElementById('c3-' + k);
-      if (cv) {
-        var r = cv.getBoundingClientRect();
-        cv.width  = r.width  || 400;
-        cv.height = r.height || 220;
-      }
-      var m = MAPS_DATA[k];
-      if (m.rows === 1 || m.cols === 1) drawBar1D(k);
-      else drawSurf3D(k);
-    });
-  });
+  requestAnimationFrame(function() { keys.forEach(redrawViz); });
 }
 
 // ── build one map block ──────────────────────────────────────────────────────
@@ -236,7 +280,7 @@ function buildMapBlock(key) {
   var m = MAPS_DATA[key];
   var xAxis = AXES_DATA[m.xaxis] || { data: [], units: '' };
   var yAxis = AXES_DATA[m.yaxis] || { data: [], units: '' };
-  var range = getRange(m.units);
+  var range = getRange(m.units, m.data);
 
   if (!CAMS[key]) CAMS[key] = { ang: -0.65, tilt: 0.88, drag: false, lx: 0, ly: 0 };
 
@@ -247,8 +291,18 @@ function buildMapBlock(key) {
   // header
   var hdr = document.createElement('div');
   hdr.className = 'map-header';
+  var axisSubtitle = '';
+  if (xAxis.units || yAxis.units) {
+    var parts = [];
+    if (xAxis.units) parts.push('X: ' + xAxis.units);
+    if (yAxis.units) parts.push('Y: ' + yAxis.units);
+    axisSubtitle = '<span class="map-axes">' + escH(parts.join(' · ')) + '</span>';
+  }
+  var axisInline = (xAxis.units || yAxis.units)
+    ? '<span class="map-axes"> · ' + escH([xAxis.units, yAxis.units].filter(Boolean).join(' · ')) + '</span>'
+    : '';
   hdr.innerHTML =
-    '<span class="map-name">' + escH(m.label) + '</span>' +
+    '<span class="map-name">' + escH(m.label) + axisInline + '</span>' +
     '<span class="staged-badge" id="badge-' + key + '"></span>' +
     '<span class="map-meta">' + m.rows + '×' + m.cols + ' · ' + escH(m.units || '') + '</span>';
   block.appendChild(hdr);
@@ -265,11 +319,7 @@ function buildMapBlock(key) {
   // right: 3D surface or bar chart depending on map dimensions
   var c3Wrap = document.createElement('div');
   c3Wrap.className = 'c3-wrap';
-  var c3Label = document.createElement('div');
-  c3Label.className = 'c3-label';
   var is1D = m.rows === 1 || m.cols === 1;
-  c3Label.textContent = is1D ? 'bar chart' : '3D · drag to rotate · scroll to zoom';
-  c3Wrap.appendChild(c3Label);
   var cv = document.createElement('canvas');
   cv.id = 'c3-' + key;
   cv.width = 400; cv.height = 220;
@@ -286,30 +336,42 @@ function buildTable(key, m, xAxis, yAxis, range) {
   var tbl = document.createElement('table');
   tbl.className = 'em';
 
+  // sort column indices by x axis value ascending
+  var xData = xAxis.data || [];
+  var xOrder = xData.map(function(_, i) { return i; });
+  xOrder.sort(function(a, b) { return (xData[a] || 0) - (xData[b] || 0); });
+
+  // sort row indices by y axis value descending (highest at top)
+  var yData = yAxis.data || [];
+  var yOrder = yData.map(function(_, i) { return i; });
+  yOrder.sort(function(a, b) { return (yData[b] || 0) - (yData[a] || 0); });
+  if (!yData.length) { for (var r = m.rows - 1; r >= 0; r--) yOrder[m.rows - 1 - r] = r; }
+
   var thead = tbl.createTHead();
   var hrow = thead.insertRow();
   var corner = document.createElement('th');
   corner.className = 'axis-label';
-  corner.textContent = (yAxis.units || '') + '\\' + (xAxis.units || '');
   hrow.appendChild(corner);
-  (xAxis.data || []).forEach(function(v) {
+  xOrder.forEach(function(ci) {
     var th = document.createElement('th');
     th.className = 'axis-label';
-    th.textContent = v;
+    th.textContent = xData[ci] !== undefined ? xData[ci] : ci;
+    th.style.color = '#ff6666';
     hrow.appendChild(th);
   });
 
   var tbody = tbl.createTBody();
-  for (var ri = m.rows - 1; ri >= 0; ri--) {
+  yOrder.forEach(function(ri) {
     var tr = tbody.insertRow();
     var rowTh = document.createElement('th');
     rowTh.className = 'row-label';
-    rowTh.textContent = yAxis.data && yAxis.data[ri] !== undefined ? yAxis.data[ri] : ri;
+    rowTh.textContent = yData[ri] !== undefined ? yData[ri] : ri;
+    rowTh.style.color = '#55cc55';
     tr.appendChild(rowTh);
-    for (var ci = 0; ci < m.cols; ci++) {
+    xOrder.forEach(function(ci) {
       tr.appendChild(buildCell(key, m, ri, ci, range));
-    }
-  }
+    });
+  });
   return tbl;
 }
 
@@ -376,8 +438,8 @@ function drawSurf3D(key) {
   if (!cv) return;
   var m = MAPS_DATA[key];
   if (!m) return;
-  var ctx = cv.getContext('2d');
-  var W = cv.width, H = cv.height;
+  var ctx = setupCanvas(cv);
+  var W = cv._lw, H = cv._lh;
   if (W < 10 || H < 10) return;
 
   var data = m.data;
@@ -387,7 +449,11 @@ function drawSurf3D(key) {
   var lod = yAxis.data || [];
   var R = m.rows, Cl = m.cols;
 
-  ctx.fillStyle = '#0a0a0b';
+  // subtle vertical gradient background for depth
+  var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#0e0e13');
+  bgGrad.addColorStop(1, '#060608');
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
   var zN = 1e9, zX = -1e9;
@@ -451,6 +517,11 @@ function drawSurf3D(key) {
     return 'rgba(' + Math.round(m[1]*f) + ',' + Math.round(m[2]*f) + ',' + Math.round(m[3]*f) + ',0.9)';
   }
 
+  // floor grid at base plane (z = zN) — grounds the surface, adds depth
+  ctx.strokeStyle = 'rgba(120,150,200,0.07)'; ctx.lineWidth = 0.5;
+  for (var j = 0; j < Cl; j++) { var a = pr(j, 0, zN), b = pr(j, R - 1, zN); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+  for (var i = 0; i < R; i++) { var a = pr(0, i, zN), b = pr(Cl - 1, i, zN); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+
   // build faces with depth sort
   var faces = [];
   for (var i = 0; i < R - 1; i++) {
@@ -461,7 +532,7 @@ function drawSurf3D(key) {
       var v11 = ((STAGE[key] || {})[(i+1) + ',' + (j+1)] !== undefined) ? STAGE[key][(i+1) + ',' + (j+1)] : data[i+1][j+1];
       var p0 = pr(j,   i,   v00), p1 = pr(j+1, i,   v01);
       var p2 = pr(j+1, i+1, v11), p3 = pr(j,   i+1, v10);
-      var av = (v00 + v01 + v11 + v10) / 4;
+      var av = Math.max(v00, v01, v11, v10);
       // floor depth for painter sort
       var dp0 = pr(j,i,zN), dp1 = pr(j+1,i,zN), dp2 = pr(j+1,i+1,zN), dp3 = pr(j,i+1,zN);
       var dz = (dp0[2] + dp1[2] + dp2[2] + dp3[2]) / 4;
@@ -500,13 +571,34 @@ function drawSurf3D(key) {
   ctx.strokeStyle = '#ff3333'; ctx.beginPath(); ctx.moveTo(o3[0],o3[1]); ctx.lineTo(x3[0],x3[1]); ctx.stroke();
   ctx.strokeStyle = '#3399ff'; ctx.beginPath(); ctx.moveTo(o3[0],o3[1]); ctx.lineTo(y3[0],y3[1]); ctx.stroke();
   ctx.strokeStyle = '#33ff33'; ctx.beginPath(); ctx.moveTo(o3[0],o3[1]); ctx.lineTo(z3[0],z3[1]); ctx.stroke();
-  ctx.font = '8px monospace';
-  ctx.fillStyle = '#ff3333'; ctx.fillText(xAxis.units || 'RPM', x3[0]+3, x3[1]+3);
-  ctx.fillStyle = '#3399ff'; ctx.fillText('VAL', y3[0]+3, y3[1]+3);
-  ctx.fillStyle = '#33ff33'; ctx.fillText(yAxis.units || 'TPS', z3[0]+3, z3[1]-5);
-  ctx.font = '7px monospace'; ctx.fillStyle = '#666';
-  for (var j = 0; j < Cl; j += 2) { var pp = pr(j,R-1,zN); ctx.fillText(rpm[j]||j, pp[0]-8, pp[1]+10); }
-  for (var i = 0; i < R;  i += 2) { var pp = pr(0,i,zN);   ctx.fillText(lod[i]||i, pp[0]-24, pp[1]+3); }
+  ctx.font = cfont(1); ctx.lineWidth = 1;
+
+  // X axis label (RPM) — rotated to follow the axis direction on screen
+  var xAngle = Math.atan2(x3[1] - o3[1], x3[0] - o3[0]);
+  ctx.save();
+  ctx.translate(x3[0] + Math.cos(xAngle) * 14, x3[1] + Math.sin(xAngle) * 14);
+  ctx.rotate(xAngle);
+  ctx.fillStyle = '#ff5555'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(xAxis.units || 'RPM', 0, 0);
+  ctx.restore();
+
+  // depth axis label (VAL) — rotated to follow its axis direction
+  var yAngle = Math.atan2(y3[1] - o3[1], y3[0] - o3[0]);
+  ctx.save();
+  ctx.translate(y3[0] + Math.cos(yAngle) * 14, y3[1] + Math.sin(yAngle) * 14);
+  ctx.rotate(yAngle);
+  ctx.fillStyle = '#5599ff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('VAL', 0, 0);
+  ctx.restore();
+
+  // Z axis label (Load/TPS) — vertical, normal upright text
+  ctx.fillStyle = '#55cc55'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText(yAxis.units || 'TPS', z3[0] + 4, z3[1] - 6);
+  ctx.font = cfont(0.82); ctx.fillStyle = '#8a8a90';
+  var rpmS = rpm.slice().sort(function(a,b){return (a||0)-(b||0);});
+  var lodS = lod.slice().sort(function(a,b){return (a||0)-(b||0);});
+  for (var j = 0; j < Cl; j += 2) { var pp = pr(j,R-1,zN); ctx.fillText(rpmS[j]!==undefined?rpmS[j]:j, pp[0]-8, pp[1]+11); }
+  for (var i = 0; i < R;  i += 2) { var pp = pr(0,i,zN);   ctx.fillText(lodS[i]!==undefined?lodS[i]:i, pp[0]-26, pp[1]+3); }
 }
 
 // ── bar chart for 1D maps (rows=1 or cols=1) ────────────────────────────────
@@ -514,9 +606,11 @@ function drawBar1D(key) {
   var cv = document.getElementById('c3-' + key);
   if (!cv) return;
   var m = MAPS_DATA[key];
-  var ctx = cv.getContext('2d');
-  var W = cv.width, H = cv.height;
-  ctx.fillStyle = '#0a0a0b'; ctx.fillRect(0, 0, W, H);
+  var ctx = setupCanvas(cv);
+  var W = cv._lw, H = cv._lh;
+  var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#0e0e13'); bgGrad.addColorStop(1, '#060608');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
 
   // flatten to a 1D array of { label, val }
   var xAxis = AXES_DATA[m.xaxis] || { data: [] };
@@ -542,9 +636,9 @@ function drawBar1D(key) {
   var mx = Math.max.apply(null, items.map(function(x){ return x.val; }));
   if (mx === mn) mx = mn + 1;
 
-  var padL = 36, padR = 12, padT = 16, padB = 30;
+  var padL = 14 + CANVAS_FS * 2.2, padR = 12, padT = 8 + CANVAS_FS, padB = 14 + CANVAS_FS * 1.4;
   var bW = Math.floor((W - padL - padR) / n) - 4;
-  var range = getRange(m.units);
+  var range = getRange(m.units, m.data);
 
   items.forEach(function(item, idx) {
     var t = (item.val - mn) / (mx - mn);
@@ -556,20 +650,20 @@ function drawBar1D(key) {
     ctx.fillRect(x, y, bW, barH);
     if (isStaged) { ctx.strokeStyle = 'rgba(245,166,35,0.9)'; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, bW, barH); }
     // value label on top
-    ctx.font = '7px monospace'; ctx.fillStyle = '#c8c8cc'; ctx.textAlign = 'center';
-    ctx.fillText(item.val.toFixed(0), x + bW / 2, y - 3);
+    ctx.font = cfont(0.92); ctx.fillStyle = '#d8d8dc'; ctx.textAlign = 'center';
+    ctx.fillText(item.val.toFixed(0), x + bW / 2, y - 4);
     // axis label at bottom
-    ctx.fillStyle = '#555';
-    ctx.fillText(item.label, x + bW / 2, H - padB + 11);
+    ctx.font = cfont(0.82); ctx.fillStyle = '#8a8a90';
+    ctx.fillText(item.label, x + bW / 2, H - padB + CANVAS_FS + 2);
   });
 
   // Y axis ticks
-  ctx.textAlign = 'right'; ctx.fillStyle = '#555'; ctx.font = '7px monospace';
+  ctx.textAlign = 'right'; ctx.fillStyle = '#8a8a90'; ctx.font = cfont(0.82);
   [0, 0.5, 1].forEach(function(t) {
     var v = mn + t * (mx - mn);
     var y = H - padB - Math.round(t * (H - padT - padB));
-    ctx.fillText(v.toFixed(0), padL - 4, y + 3);
-    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.5;
+    ctx.fillText(v.toFixed(0), padL - 5, y + 3);
+    ctx.strokeStyle = 'rgba(120,150,200,0.07)'; ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
   });
 }
@@ -588,12 +682,24 @@ function cellBg(val, range) {
   return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
-function getRange(units) {
-  if (!units) return MAP_RANGES.dflt;
+function computeDataRange(data) {
+  var mn = Infinity, mx = -Infinity;
+  (data || []).forEach(function(row) {
+    (Array.isArray(row) ? row : [row]).forEach(function(v) {
+      var n = parseFloat(v); if (!isNaN(n)) { mn = Math.min(mn, n); mx = Math.max(mx, n); }
+    });
+  });
+  if (!isFinite(mn)) return MAP_RANGES.dflt;
+  var span = mx - mn; if (span < 1) { mn -= 1; mx += 1; }
+  return { mn: mn, mx: mx };
+}
+
+function getRange(units, data) {
+  if (!units) return computeDataRange(data);
   var u = units.toLowerCase();
   if (u.indexOf('fuel') >= 0) return MAP_RANGES.fuel;
   if (u.indexOf('timing') >= 0 || u.indexOf('spark') >= 0 || u.indexOf('degree') >= 0) return MAP_RANGES.timing;
-  return MAP_RANGES.dflt;
+  return computeDataRange(data);
 }
 
 // ── inline cell edit ─────────────────────────────────────────────────────────
@@ -707,7 +813,7 @@ async function burnStaged() {
 function resetStaged() {
   STAGE = {}; updateBurnBar();
   Object.keys(MAPS_DATA).forEach(function(key) {
-    var m = MAPS_DATA[key], range = getRange(m.units);
+    var m = MAPS_DATA[key], range = getRange(m.units, m.data);
     var block = document.getElementById('block-' + key);
     if (!block) return;
     block.querySelectorAll('td[data-key]').forEach(function(td) {
@@ -744,19 +850,124 @@ document.addEventListener('click', function(e) {
   if (nm && !nm.contains(e.target)) document.getElementById('navDrop').classList.remove('open');
 });
 
+// ── global font scale (header slider) ────────────────────────────────────────
 function setFontScale(v) {
   document.documentElement.style.setProperty('--fs-base', v);
   try { localStorage.setItem('me_fs', v); } catch(e) {}
 }
-// restore saved scale on load
+
+// ── per-font panel ───────────────────────────────────────────────────────────
+var FONT_VARS = [
+  { v: '--px-xl',   label: 'Logo / selects',      def: 11 },
+  { v: '--px-lg',   label: 'Toast / notifications', def: 10, preview: function(){ toastPreview('Toast preview — ' + document.getElementById('fp---px-lg').value + 'px'); } },
+  { v: '--px-cell', label: 'Table cells',          def: 9  },
+  { v: '--px-md',   label: 'UI / burn bar',        def: 8  },
+  { v: '--px-sm',   label: 'Badges / tooltip',     def: 7  },
+  { v: '--px-xs',   label: 'Axis labels / meta',   def: 6  },
+  { v: 'canvas',    label: 'Chart text (3D/bars)', def: 11 }
+];
+
+var _toastPreviewTimer;
+function toastPreview(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg; el.style.borderColor = 'var(--ac)';
+  el.classList.add('show');
+  clearTimeout(_toastTimer); clearTimeout(_toastPreviewTimer);
+  _toastPreviewTimer = setTimeout(function(){ el.classList.remove('show'); }, 2000);
+}
+
+function applyFont(varName, val) {
+  if (varName === 'canvas') { CANVAS_FS = parseFloat(val) || 11; redrawAllViz(); }
+  else document.documentElement.style.setProperty(varName, val);
+}
+
+function saveFonts() {
+  var obj = {};
+  FONT_VARS.forEach(function(f) {
+    var inp = document.getElementById('fp-' + f.v);
+    if (inp) obj[f.v] = inp.value;
+  });
+  try { localStorage.setItem('me_fonts', JSON.stringify(obj)); } catch(e) {}
+}
+
+function buildFontPanel() {
+  var body = document.getElementById('fpBody');
+  var foot = body.querySelector('.fp-foot');
+  FONT_VARS.forEach(function(f) {
+    var row = document.createElement('div');
+    row.className = 'fp-row';
+    var lbl = document.createElement('label');
+    lbl.textContent = f.label;
+    var inp = document.createElement('input');
+    inp.type = 'number'; inp.min = '3'; inp.max = '48'; inp.step = '0.5';
+    inp.id = 'fp-' + f.v; inp.value = f.def;
+    inp.addEventListener('input', (function(fv, fp) { return function() { applyFont(fv, this.value); saveFonts(); if (fp) fp(); }; })(f.v, f.preview || null));
+    row.appendChild(lbl); row.appendChild(inp);
+    body.insertBefore(row, foot);
+  });
+}
+
+function loadFonts() {
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem('me_fonts') || '{}'); } catch(e) {}
+  FONT_VARS.forEach(function(f) {
+    var val = saved[f.v] !== undefined ? saved[f.v] : f.def;
+    var inp = document.getElementById('fp-' + f.v);
+    if (inp) inp.value = val;
+    applyFont(f.v, val);
+  });
+}
+
+function resetFonts() {
+  FONT_VARS.forEach(function(f) {
+    var inp = document.getElementById('fp-' + f.v);
+    if (inp) inp.value = f.def;
+    applyFont(f.v, f.def);
+  });
+  saveFonts();
+}
+
+function toggleFontPanel(force) {
+  var p = document.getElementById('fontPanel'), b = document.getElementById('fpBtn');
+  var open = (force === undefined) ? !p.classList.contains('open') : force;
+  p.classList.toggle('open', open);
+  b.classList.toggle('on', open);
+}
+
+// draggable panel via its header
 (function() {
-  try {
-    var saved = localStorage.getItem('me_fs');
-    if (saved) { document.getElementById('fsSlider').value = saved; setFontScale(saved); }
-  } catch(e) {}
+  var head = document.getElementById('fpHead'), panel = document.getElementById('fontPanel');
+  var dragging = false, ox = 0, oy = 0;
+  head.addEventListener('mousedown', function(e) {
+    dragging = true;
+    var r = panel.getBoundingClientRect();
+    ox = e.clientX - r.left; oy = e.clientY - r.top;
+    panel.style.right = 'auto'; panel.style.left = r.left + 'px'; panel.style.top = r.top + 'px';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    panel.style.left = (e.clientX - ox) + 'px';
+    panel.style.top  = (e.clientY - oy) + 'px';
+  });
+  document.addEventListener('mouseup', function() { dragging = false; });
 })();
 
-loadSessions();
+// redraw canvases crisply on viewport resize (DPR / size changes)
+var _rzTimer;
+window.addEventListener('resize', function() { clearTimeout(_rzTimer); _rzTimer = setTimeout(redrawAllViz, 150); });
+
+// ── init ─────────────────────────────────────────────────────────────────────
+(function init() {
+  // restore global slider
+  try {
+    var savedScale = localStorage.getItem('me_fs');
+    if (savedScale) { document.getElementById('fsSlider').value = savedScale; setFontScale(savedScale); }
+  } catch(e) {}
+  buildFontPanel();
+  loadFonts();
+  loadSessions();
+})();
 </script>
 </body>
 </html>

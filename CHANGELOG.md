@@ -21,6 +21,20 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.223] -- 2026-06-27
+
+### map-editor: UI polish and chart improvements
+
+- Remove "3D drag to rotate" hint text (intuitive, no label needed)
+- Axis labels in 3D chart now rotate to follow their axis direction on screen
+- 3D tick values sorted ascending on both axes (fixes scrambled ECU axis data)
+- 3D face color uses max of 4 corner values instead of average — spikes now show correct heatmap color vs table
+- Table column headers (X axis) colored red, row headers (Y axis) colored green — matching 3D axis colors
+- Cell heatmap color scale computed from actual data range per map (fixes all-red display on maps like idle air control setpoint 1150-1700 range)
+- Axis unit labels moved out of corner cell into map title header as inline subtitle (cleaner table)
+- Toast font preview: changing font size now triggers a live toast so the effect is visible immediately
+- Floating font panel: toast input now labeled "Toast / notifications"
+
 ## [v2.7.222] -- 2026-06-25
 ### Changed
 - Added Map Editor link to nav menu in all page templates (index, tuner, session_events, sessions_vs, sessions_launch, graf2, fuel, errorlog_viz)
