@@ -16,10 +16,12 @@ Podrias estar quemando un mapa "mejor" que en realidad es fluctuacion estadistic
 Lo que existe: test t de Student sobre las muestras dpw por celda.
 Con N eventos en una celda se puede calcular p-value y confidence interval.
 
-- [ ] Agregar N (numero de eventos) por celda al output de Sessions VS
-- [ ] Calcular confidence interval (95%) por celda -- solo proponer cambios donde CI no cruza 0
-- [ ] UI: mostrar celdas con N bajo como "sin datos suficientes" en lugar de propuesta
-- [ ] Definir N minimo por celda antes de aceptar conclusion (baseline: N >= 5 eventos)
+- [DONE v2.7.230] N por celda (na/nb) -- ya existia en el delta output
+- [DONE v2.7.230] Welch 95% CI por celda (dpw_eff_se/ci_lo/ci_hi/dpw_eff_sig); sig solo si CI no cruza 0
+- [DONE v2.7.230] N minimo por celda -- ya existia (MIN_N=5 en _compare_sessions)
+- [ ] UI: marcar celdas no significativas (dpw_eff_sig=False) como "datos insuficientes" en sessions_vs.html
+- [ ] N efectivo por VISITAS independientes (no samples) -- corrige autocorrelacion que infla N
+      y estrecha el CI artificialmente. Contar entradas separadas a la celda como N real.
 
 Impacto: ALTO -- afecta la confiabilidad de TODAS las propuestas actuales.
 Esfuerzo: BAJO -- los datos ya existen, solo falta el calculo.

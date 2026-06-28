@@ -21,6 +21,36 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.230] -- 2026-06-28
+
+### feat: GAP 1 -- per-cell statistical significance for dpw_eff (Welch CI)
+
+Sessions VS reported dpw_eff per cell with no measure of whether the difference
+was real or noise (wind, temp, traffic, rider variation). You could be burning a
+map that is "better" by pure statistical fluctuation. Now each common cell gets a
+95% Welch confidence interval and a significance flag.
+
+- web/launch.py build_index(): Welford online std for pw_eff per cell (std_pweff),
+  same pattern already used for std_rpm/std_tps
+- web/launch.py delta loop: Welch two-sample CI on dpw_eff
+    se = sqrt(std_a^2/na + std_b^2/nb);  CI = dpw_eff +/- 1.96*se
+    dpw_eff_sig = True only when CI does not cross 0
+  New delta fields: dpw_eff_se, dpw_eff_ci_lo, dpw_eff_ci_hi, dpw_eff_sig
+- web/vs_engine.py: CACHE_VERSION 8 -> 9 (delta schema changed)
+
+Validated on 917900 vs 3311B1: 13/17 cells significant. Cells with more samples
+get a tighter CI (na=38 -> se=0.126) vs sparse cells (na=6 -> se=1.049), exactly
+as expected. The 4 non-significant cells are ones the old code treated as real.
+
+CAVEAT (honest): samples within a cell are autocorrelated (consecutive 10Hz
+rows), so N is optimistic and the CI is narrower than the true independent CI.
+Welch over samples is a real improvement over nothing, but a cell flagged
+significant with few independent visits should still be treated with caution.
+Tracked as a follow-up (effective N from independent visits).
+
+Not yet done: UI does not yet surface dpw_eff_sig (next step -- mark
+non-significant cells as "insufficient data" instead of a proposal).
+
 ## [v2.7.229] -- 2026-06-28
 
 ### fix: three backlog quick wins -- GPS CSV fields, AHT20 init retry, gear neutral detection

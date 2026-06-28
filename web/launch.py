@@ -427,6 +427,7 @@ def _compare_sessions(buell_dir, sa, sb):
             'dalt':0,'dalt_n':0,'slope':0,'slope_n':0,
             # Welford online para std_rpm y std_tps
             'rpm_m':0.0,'rpm_m2':0.0,'tps_m':0.0,'tps_m2':0.0,
+            'pweff_m':0.0,'pweff_m2':0.0,
         })
         fc  = defaultdict(int)
         for r in rows:
@@ -463,6 +464,11 @@ def _compare_sessions(buell_dir, sa, sb):
             delta_tps = r['tps'] - c['tps_m']
             c['tps_m']  += delta_tps / n2
             c['tps_m2'] += delta_tps * (r['tps'] - c['tps_m'])
+            # Welford online std for pw_eff (GAP 1 significance)
+            pweff_i = ((r['pw1_norm']+r['pw2_norm'])/2) * r['afv'] / 100.0
+            delta_pweff = pweff_i - c['pweff_m']
+            c['pweff_m']  += delta_pweff / n2
+            c['pweff_m2'] += delta_pweff * (pweff_i - c['pweff_m'])
         result = {}
         for k,c in idx.items():
             n = c['n']
@@ -486,6 +492,7 @@ def _compare_sessions(buell_dir, sa, sb):
                 'slope': round(c['slope']/c['slope_n'], 4) if c['slope_n']>0 else None,
                 'std_rpm': round((c['rpm_m2']/n)**0.5, 1) if n>1 else 0.0,
                 'std_tps': round((c['tps_m2']/n)**0.5, 2) if n>1 else 0.0,
+                'std_pweff': round((c['pweff_m2']/n)**0.5, 4) if n>1 else 0.0,
             }
         return result, dict(fc)
 
@@ -525,6 +532,14 @@ def _compare_sessions(buell_dir, sa, sb):
     common = keys_a & keys_b
     for k in common:
         a, b = ia[k], ib[k]
+        # GAP 1: Welch two-sample 95% CI on dpw_eff (std_pweff per session).
+        # Significant only when CI does not cross 0. NOTE: optimistic --
+        # samples are autocorrelated, true independent N is lower.
+        _dpweff = b['pw_eff'] - a['pw_eff']
+        _se = (a['std_pweff']**2 / a['n'] + b['std_pweff']**2 / b['n']) ** 0.5
+        _margin = 1.96 * _se
+        _ci_lo, _ci_hi = _dpweff - _margin, _dpweff + _margin
+        _sig = (_ci_lo > 0) or (_ci_hi < 0)
         delta.append({
             'flavor':   a['flavor'],
             'rpm':      f"{a['rpm_lo']}-{a['rpm_hi']}",
@@ -561,6 +576,10 @@ def _compare_sessions(buell_dir, sa, sb):
             'pw_eff_a': a['pw_eff'],
             'pw_eff_b': b['pw_eff'],
             'dpw_eff':  round(b['pw_eff'] - a['pw_eff'], 3),
+            'dpw_eff_se':    round(_se, 4),
+            'dpw_eff_ci_lo': round(_ci_lo, 3),
+            'dpw_eff_ci_hi': round(_ci_hi, 3),
+            'dpw_eff_sig':   _sig,
         })
     delta.sort(key=lambda x: (x['flavor'], -(x['na']+x['nb'])))
 
