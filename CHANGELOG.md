@@ -21,6 +21,23 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.226] -- 2026-06-27
+
+### fix: CW2015 in SLEEP mode -- wake on init, readings now correct
+
+Root cause: CONFIG register 0x0A bit7 (SLEEP) was set, causing VCELL and SOC
+to read 0 while STATUS still responded. Battery IS present (Pi runs on battery
+when AC disconnected). Profile registers 0x10-0x4F were also all zeros.
+
+- cw2015.py: _wake() called in __init__ clears SLEEP bit if set
+- cw2015.py: read_all() re-checks and clears SLEEP bit on each read (power glitch guard)
+- cw2015.py: removed battery_present() VER-based gate (wrong assumption)
+- cw2015.py: read_all() returns bat_charging from CHG_IND bit (STATUS bit4)
+- main.py: removed bat_present field, uses _hw_charging from read_all()
+- main.py: hardware CHG_IND remains primary charging source with voltage-trend fallback
+
+Result: bat_voltage=3.666V, bat_soc=5.1%, bat_charging=True, bat_trend=up
+
 ## [v2.7.225] -- 2026-06-27
 
 ### fix: CW2015 UPS battery reports 0% when no battery present

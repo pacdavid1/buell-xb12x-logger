@@ -360,12 +360,10 @@ class BuellLogger:
                     _bat = self._cw2015.read_all()
                     stats['bat_voltage']  = _bat.get('bat_voltage')
                     stats['bat_soc']      = _bat.get('bat_soc')
-                    stats['bat_present']  = _bat.get('bat_present', False)
                     _hw_charging          = _bat.get('bat_charging')
                 except Exception:
                     stats['bat_voltage']  = None
                     stats['bat_soc']      = None
-                    stats['bat_present']  = False
                     _hw_charging          = None
             else:
                 _hw_charging = None
