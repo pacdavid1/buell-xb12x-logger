@@ -307,9 +307,9 @@ class DashboardHandler(
 
             "ts":              time.time(),
             "logger_version":  _get_version(),
-            "network_mode":    net.current_mode(),
-            "ip":              net.get_ip(),
-            "switch_status":   net.get_switch_status(),
+            "network_mode":    net.current_mode() if net else "offline",
+            "ip":              net.get_ip() if net else "127.0.0.1",
+            "switch_status":   net.get_switch_status() if net else {},
             "ride_active":     self.server_instance.ride_active,
             "waiting":         not self.server_instance.ride_active,
             "ride_num":        self.server_instance.session.current_ride_num if self.server_instance.session else 0,
@@ -404,6 +404,8 @@ class WebServer:
         self.bike_serial      = None
         self.ecu_identity     = {}   # {name, dbfile, ddfi, remark}
         self.cell_tracker     = None
+        self.session          = None  # set by BuellLogger; None in offline/serve_local mode
+        self.gps              = None  # set by BuellLogger; None in offline/serve_local mode
         self._coverage_targets = dict(self.COVERAGE_TARGETS_DEFAULT)
         self._data_lock = threading.RLock()
         self._rides_cache = None          # cache for _get_rides()
