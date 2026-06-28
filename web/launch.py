@@ -359,7 +359,7 @@ def _compare_sessions(buell_dir, sa, sb):
                         'wue':  sf(r.get('WUE', 100)),
                         'ae':   sf(r.get('Accel_Corr', 100)),
                         'gear':          sf(r.get('Gear', 0)),
-                        'gear_detected':  _detect_gear(rpm, sf(r.get('VS_KPH', 0))),
+                        'gear_detected':  _detect_gear(rpm, sf(r.get("VS_KPH", 0)), sf(r.get("di_neutral", 0))),
                         'spd':  sf(r.get('VS_KPH', 0)),
                         'alt':       sf(r.get('gps_alt_m'), None) if r.get('gps_valid','').strip().lower() in ('true','1') else None,
                         'baro_temp': sf(r.get('baro_temp_c', '')),

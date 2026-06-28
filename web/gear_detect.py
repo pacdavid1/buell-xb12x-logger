@@ -13,8 +13,16 @@ MIN_RPM = 1500
 MIN_VSS = 5.0
 
 
-def detect_gear(rpm, vss_kph):
-    """Return detected gear (1-5) or 0 if uncertain (idle, neutral, clutch in)."""
+def detect_gear(rpm, vss_kph, di_neutral=None):
+    """Return detected gear (1-5) or 0 if uncertain (idle, neutral, clutch in).
+
+    di_neutral: optional neutral switch state from the ECU. When set (1), the
+    bike is in neutral and no gear can be reported. This is the physical truth
+    and overrides the ratio heuristic, which cannot tell low-speed 1st gear
+    (clutch slipping) apart from neutral revving -- both produce a high ratio.
+    """
+    if di_neutral:
+        return 0
     if rpm < MIN_RPM or vss_kph < MIN_VSS:
         return 0
     ratio = rpm / vss_kph

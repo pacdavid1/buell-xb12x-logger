@@ -1083,9 +1083,7 @@ Track how avg_l100 evolves over time to correlate tuning changes with fuel effic
 ### BL-BUG-01 — Low priority bugs from freebuff audit (2026-06-07)
 **Priority:** LOW
 
-- AHT20 sensor (sensors/aht20.py): no retry on init failure — if sensor is in transient state post power-up, it fails permanently until process restart. Fix: add 3 retry attempts with 100ms delay in begin().
 - CW2015 (sensors/cw2015.py): does not write MODE register (0x0A) to ensure active mode on init. Fix: write 0x00 to register 0x0A at startup.
-- Gear detect (web/gear_detect.py): returns gear 1 when rpm > 1500 and vss > 5 but bike is in neutral. Fix: return 0 (unknown) when rpm/vss ratio doesn't match any gear range.
 - network/manager.py: multiple threads can launch nmcli simultaneously (no lock on _switch_status). Fix: add threading.Lock around nmcli calls.
 - web/static/app.js: 37 fetch() calls without AbortSignal — requests hang forever if server stops responding. Fix: use AbortController with 10s timeout on all fetch() calls.
 - web/vs_engine.py: _compare_sessions_cached uses total_samples as cache key — stale if data changes without sample count change. Fix: include file mtime or content hash in key.
@@ -1311,12 +1309,6 @@ No necesita learning cycle manual.
   Estimado: 2-3h
 
 ## Prioridad: MEDIA
-- [ ] proposal.py _clamp() sigue siendo nested function (cosmetic cleanup — freebuff task 025 top-3)
-  Problema: _clamp(v) esta definida DENTRO de otra funcion, redefiniendose en cada llamada.
-  Fix: extraer a nivel modulo como def _clamp(v, max_delta), aceptando max_delta como parametro.
-  Archivo: web/proposal.py linea ~192
-  Estimado: 10min
-
 ---
 
 # Backlog: Knowledge Graph de Mapas — Diseño (freebuff task 028)
@@ -1675,27 +1667,6 @@ Community 1 se parte en dos comunidades con cohesión > 0.20 cada una.
 
 ## GPS — Pipeline de calidad
 
-### BL-GPS-01 — Persistir campos GPS Fase 1 en CSV
-**Priority:** HIGH — sin esto los campos de Fase 1 son en-memoria únicamente
-**Archivos:** ecu/protocol.py (CSV_COLUMNS list), ecu/logger_process.py
-
-Los campos añadidos en v2.7.160 (gps_epx, gps_epy, gps_epv, gps_mode, gps_stale)
-solo existen en `GPSFix.as_dict()` y en el IPC live. NO están en protocol.py
-CSV_COLUMNS, por lo que **nunca se graban en los archivos ride_*.csv**.
-
-Consecuencias:
-- IDEA-001 (Kalman VSS+GPS) nunca tendrá epx/epy históricos para pesos
-- IDEA-015 (GPS quality score) no puede computarse post-session
-- BL-BUG-02 (VSS auto-calibration) perdería contexto de calidad de fix
-
-**Implementación:**
-- protocol.py: añadir a CSV_COLUMNS: `gps_epx`, `gps_epy`, `gps_epv`, `gps_mode`, `gps_stale`
-- logger_process.py: ya extrae as_dict() completo — verificar que los nuevos
-  campos se pasen a la fila CSV sin cambios adicionales
-- Sesiones antiguas no tendrán estos campos (normal — sf(r.get('gps_epx', '')) = 0.0)
-
-**Esfuerzo:** Muy bajo (~5 líneas). **Riesgo:** Mínimo — solo añade columnas al final.
-
 ### BL-GPS-02 — Validar e integrar GPS Fase 2 (freebuff inbox)
 **Priority:** MEDIUM
 **Archivo inbox:** inbox/changelog_gps_fase2.md (versión incorrecta: v2.7.156 ya ocupada)
@@ -1768,30 +1739,6 @@ DDFI-2: BUEIB/B2RIB=870, BUEGB=862, BUECB=802, dims=12x13
 DDFI-1: BUEIA=744, BUEKA=760, BUEGC=788, dims=12x13
 DDFI-3: BUEOD/BUEWD/BUEYD=1816, BUE1D/BUEZD=2072, BUE2D=2328, BUE3D=2408, dims=16x20
 
-
-## [BL-ECM-04] — Fix SERIAL_RX_BYTES stat counter for DDFI-3
-**Prioridad:** LOW — cosmética, no afecta datos
-
-### Problema
-`ecu/logger_process.py` line 44: `SERIAL_RX_BYTES = 107` es un módulo-constant fijo.
-Se usa solo para el contador de bps del dashboard (live stats). Cuando la Pi conecta a la
-1125CR (DDFI-3, 135 bytes/frame), el contador muestra ~79% del ancho de banda real.
-Las lecturas reales ya usan `self._rt_frame_size` dinámicamente — esto es puramente visual.
-
-### Solución
-Cambiar de constante fija a lectura dinámica desde el IPC:
-- Opción A (simple): leer `ecu_init.json` al conectar y actualizar una variable local `_rx_bytes`
-- Opción B (limpia): pasar `ecu._rt_frame_size` al stat loop via IPC o variable compartida
-
-Recomendación: Opción A. Después del bloque "Connect ECU" (línea ~196), asignar:
-```python
-SERIAL_RX_BYTES = ecu._rt_frame_size  # actualizar stat local post-connect
-```
-Esto funciona porque el stat loop corre en el mismo proceso/thread.
-
-### Archivo a modificar
-- `ecu/logger_process.py`: línea 44 (eliminar constante), línea ~196 (asignar post-connect),
-  línea ~284 (asignar post-reconnect)
 
 ### BL-XPR-01 — Dedicated XPR/Session map editor page
 **Priority:** 🟡 MEDIA — depende de BL-ECM-01 Phase C (burn guard por firmware)

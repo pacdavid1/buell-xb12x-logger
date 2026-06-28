@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
+# DEV NOTE: All code, comments, and variable names must be in English.
 """
-AHT20 Driver - Temperatura y Humedad via I2C
-Usa smbus2 con i2c_rdwr para lecturas I2C puras (sin command byte).
+AHT20 Driver - Temperature and Humidity over I2C
+Uses smbus2 with i2c_rdwr for raw I2C reads (no command byte).
 
-Protocolo:
-  - Direccion I2C: 0x38
-  - Medicion: [0xAC, 0x33, 0x00]
-  - Lectura: 6 bytes via i2c_rdwr (sin comando previo)
+Protocol:
+  - I2C address: 0x38
+  - Measure: [0xAC, 0x33, 0x00]
+  - Read: 6 bytes via i2c_rdwr (no preceding command)
 """
 
 import time
 import smbus2
 
 class AHT20:
-    """Driver para sensor AHT20 de temperatura y humedad."""
+    """Driver for the AHT20 temperature and humidity sensor."""
 
     I2C_ADDR = 0x38
 
@@ -21,67 +22,87 @@ class AHT20:
     CMD_INIT      = [0xBE, 0x08, 0x00]
     CMD_SOFTRESET = [0xBA]
 
+    INIT_RETRIES  = 3
+    INIT_DELAY_S  = 0.1
+
     def __init__(self, i2c_dev, i2c_addr=None):
         self._bus = i2c_dev
         self._addr = i2c_addr or self.I2C_ADDR
         self._initialized = False
 
     def _read_bytes(self, n=6):
-        """Lee n bytes del sensor usando i2c_rdwr (SIN command byte)."""
+        """Read n bytes from the sensor using i2c_rdwr (NO command byte)."""
         msg = smbus2.i2c_msg.read(self._addr, n)
         self._bus.i2c_rdwr(msg)
         return list(msg)
 
     def _write_bytes(self, data):
-        """Escribe bytes al sensor."""
+        """Write bytes to the sensor."""
         self._bus.write_i2c_block_data(self._addr, data[0], data[1:])
 
-    def begin(self):
-        """Inicializa el sensor si es necesario.
-        Revisa si ya esta calibrado - si no, envia init."""
-        try:
-                # Leer status byte
+    def _try_begin_once(self) -> bool:
+        """Single calibration attempt. Returns True if the sensor is calibrated."""
+        # Read status byte
+        data = self._read_bytes(1)
+        status = data[0] if data else 0xFF
+
+        if not (status & 0x08):
+            # Not calibrated - send init
+            self._write_bytes(self.CMD_INIT)
+            time.sleep(0.02)
             data = self._read_bytes(1)
             status = data[0] if data else 0xFF
 
-            if not (status & 0x08):
-                # No calibrado - enviar init
-                self._write_bytes(self.CMD_INIT)
-                time.sleep(0.02)
-                data = self._read_bytes(1)
-                status = data[0] if data else 0xFF
+        return bool(status & 0x08)
 
-            if status & 0x08:
-                self._initialized = True
-                return True
-            else:
-                return False
-        except Exception as e:
-            raise RuntimeError(f"AHT20 begin failed: {e}")
+    def begin(self) -> bool:
+        """Initialize the sensor with retries.
+
+        The AHT20 can be in a transient state right after power-up. Without
+        retries a single failed attempt would disable the sensor permanently
+        until process restart. Retry up to INIT_RETRIES times before giving up.
+        """
+        last_error = None
+        for attempt in range(self.INIT_RETRIES):
+            try:
+                if self._try_begin_once():
+                    self._initialized = True
+                    return True
+            except Exception as e:
+                last_error = e
+            if attempt < self.INIT_RETRIES - 1:
+                time.sleep(self.INIT_DELAY_S)
+
+        if last_error is not None:
+            raise RuntimeError(f"AHT20 begin failed after {self.INIT_RETRIES} attempts: {last_error}")
+        return False
 
     def read(self):
         """
-        Lee humedad y temperatura del AHT20.
+        Read humidity and temperature from the AHT20.
         Returns:
-            tuple (humidity_pct, temperature_c) o (None, None) si falla
+            tuple (humidity_pct, temperature_c) or (None, None) on failure
         """
         if not self._initialized:
-            if not self.begin():
+            try:
+                if not self.begin():
+                    return None, None
+            except RuntimeError:
                 return None, None
 
         try:
-            # Disparar medicion
+            # Trigger measurement
             self._write_bytes(self.CMD_MEASURE)
             time.sleep(0.09)  # > 80ms
 
-            # Leer 6 bytes via i2c_rdwr (SIN command byte!)
+            # Read 6 bytes via i2c_rdwr (NO command byte!)
             data = self._read_bytes(6)
             if len(data) < 6:
                 return None, None
 
             status = data[0]
 
-            # Si esta ocupado, esperar y reintentar
+            # If busy, wait and retry once
             if status & 0x80:
                 time.sleep(0.05)
                 data = self._read_bytes(6)
@@ -89,11 +110,11 @@ class AHT20:
                     return None, None
                 status = data[0]
 
-            # Extraer humedad (20 bits)
+            # Extract humidity (20 bits)
             raw_humidity = ((data[1] << 12) | (data[2] << 4) | (data[3] >> 4))
             humidity = (raw_humidity / 1048576.0) * 100.0
 
-            # Extraer temperatura (20 bits)
+            # Extract temperature (20 bits)
             raw_temp = (((data[3] & 0x0F) << 16) | (data[4] << 8) | data[5])
             temperature = (raw_temp / 1048576.0) * 200.0 - 50.0
 

@@ -21,6 +21,40 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.229] -- 2026-06-28
+
+### fix: three backlog quick wins -- GPS CSV fields, AHT20 init retry, gear neutral detection
+
+BL-GPS-01: three GPS fields the reader already produces were being silently
+dropped by the CSV DictWriter (extrasaction="ignore"). Now persisted so
+post-session analysis (Kalman VSS+GPS, GPS quality score, VSS auto-cal) can
+use them.
+
+- ecu/protocol.py: add gps_heading_rate, gps_turning, gps_stale to CSV_COLUMNS
+
+BL-BUG-01 (AHT20): the sensor could fail permanently until process restart if
+it was in a transient state right after power-up (single init attempt). Added
+3 retries x 100ms in begin(). File rewritten in English (was Spanish).
+
+- sensors/aht20.py: begin() retries via _try_begin_once(), read() handles the
+  RuntimeError path gracefully, full English rewrite + DEV NOTE
+
+BL-BUG-01 (gear detect): detect_gear() reported false 1st gear in neutral.
+Data analysis (session 248AE2, 67k samples) confirmed the RPM/VSS ratio cannot
+separate low-speed 1st gear (clutch slipping, ratio up to 735) from neutral
+revving -- the distribution is a continuous tail with no clean cut. Fixed using
+the physical neutral switch (di_neutral) already present in the CSV instead of a
+magic ratio ceiling.
+
+- web/gear_detect.py: detect_gear() accepts di_neutral; returns 0 when set
+- web/f7.py, web/launch.py: pass di_neutral from the CSV row (backward
+  compatible -- old sessions without the column degrade to ratio-only)
+
+Backlog audit: BL-ECM-04 (SERIAL_RX_BYTES) was already resolved -- _rx_bytes
+updates dynamically from ecu._rt_frame_size on connect/reconnect. proposal.py
+_clamp() item is obsolete -- proposal.py no longer exists, /eeprom/propose
+deprecated.
+
 ## [v2.7.228] -- 2026-06-27
 
 ### feat: GPS M8N backup mode on shutdown -- reduces idle draw from 25mA to ~15uA
