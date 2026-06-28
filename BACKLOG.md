@@ -1083,7 +1083,6 @@ Track how avg_l100 evolves over time to correlate tuning changes with fuel effic
 ### BL-BUG-01 — Low priority bugs from freebuff audit (2026-06-07)
 **Priority:** LOW
 
-- CW2015 (sensors/cw2015.py): does not write MODE register (0x0A) to ensure active mode on init. Fix: write 0x00 to register 0x0A at startup.
 - network/manager.py: multiple threads can launch nmcli simultaneously (no lock on _switch_status). Fix: add threading.Lock around nmcli calls.
 - web/static/app.js: 37 fetch() calls without AbortSignal — requests hang forever if server stops responding. Fix: use AbortController with 10s timeout on all fetch() calls.
 - web/vs_engine.py: _compare_sessions_cached uses total_samples as cache key — stale if data changes without sample count change. Fix: include file mtime or content hash in key.
