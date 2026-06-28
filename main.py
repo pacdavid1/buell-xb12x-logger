@@ -382,8 +382,12 @@ class BuellLogger:
                 stats['bat_soc'] = sum(self._bat_socs) / len(self._bat_socs)
 
             if self._boot_soc is None and len(self._bat_socs) >= 3:
-                self._boot_soc = stats['bat_soc']
-                self.logger.info(f"Boot SOC captured: {self._boot_soc:.1f}%")
+                _candidate = stats['bat_soc']
+                if _candidate is not None and _candidate > 0:
+                    self._boot_soc = _candidate
+                    self.logger.info(f"Boot SOC captured: {self._boot_soc:.1f}%")
+                else:
+                    self.logger.warning("Boot SOC skipped: reading is 0 or None (sensor not ready)")
 
             # Hardware CHG_IND pin is authoritative; fall back to voltage trend
             if _hw_charging is not None:
@@ -418,8 +422,10 @@ class BuellLogger:
                 _soc_low = _soc is not None and _soc < (_threshold if _threshold > 0 else 10.0)
                 _v_low   = _v is not None and _v < _v_threshold
                 if _v_crit or _soc_low or _v_low:
+                    _v_s   = f'{_v:.2f}V'   if _v   is not None else '--V'
+                    _soc_s = f'{_soc:.0f}%' if _soc is not None else '--%'
                     self.logger.warning(
-                        f"BATTERY: {_v:.2f}V / {_soc:.0f}% "
+                        f"BATTERY: {_v_s} / {_soc_s} "
                         f"(boot={self._boot_soc:.0f}%, soc_thr={_threshold:.0f}%, "
                         f"v_thr={_v_threshold:.2f}V) — shutting down")
                     self._poweroff_requested = True

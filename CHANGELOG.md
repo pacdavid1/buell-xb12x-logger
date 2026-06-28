@@ -21,6 +21,27 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.227] -- 2026-06-27
+
+### fix: sysmon thread crash loop -- TypeError in battery shutdown f-string
+
+**Root cause of battery drain to 0%:**
+
+Chain of failures:
+1. CW2015 in SLEEP mode (fixed in v2.7.226) => voltage=0 filtered to None, SOC=0.0 passes filter
+2. boot_soc captured as 0.0 => _get_shutdown_threshold() returns (-1, 3.20) => v_crit=True
+3. Shutdown warning f-string {_v:.2f} with _v=None raises TypeError
+4. sysmon thread dies; thread watchdog restarts it every 30s
+5. Thread immediately crashes again => loop forever, no monitoring, no poweroff
+6. Battery drains to 0% undetected
+
+Fixes:
+- main.py: guard f-string for None voltage/soc in shutdown warning
+- main.py: boot_soc captured only when > 0 (guard against fake-zero readings)
+
+Both bugs are now moot (cw2015 wake fixes the root cause) but kept as
+defense-in-depth in case of future I2C errors or sensor unavailability.
+
 ## [v2.7.226] -- 2026-06-27
 
 ### fix: CW2015 in SLEEP mode -- wake on init, readings now correct
