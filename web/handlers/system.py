@@ -18,10 +18,11 @@ class SystemHandlerMixin:
         self._json({'ok': True})
 
     def _handle_post_git_pull(self, path, payload):
+        buell = str(self.server_instance.buell_dir)
         result = subprocess.run(
             ['git', 'pull'],
             capture_output=True, text=True,
-            cwd='/home/pi/buell'
+            cwd=buell
         )
         output = result.stdout.strip() + result.stderr.strip()
         ok = result.returncode == 0

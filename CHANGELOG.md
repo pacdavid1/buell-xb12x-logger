@@ -21,6 +21,28 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.233] — 2026-06-28
+
+### Changed
+- **Workflow migration**: local-first development with GitHub as source of truth
+- CLAUDE.md: updated workflow from Pi-SSH to Local -> GitHub -> Pi (git pull)
+- FREEBUFF.md: rewritten for local-first audit (no SSH needed)
+- buell-sessions/CLAUDE.md: rewritten as session data reference
+- All hardcoded /home/pi/buell/ paths replaced with relative paths (__file__ + buell_dir params)
+- web/utils.py: _get_version() uses relative path + utf-8 encoding
+- web/server.py: sys.path.insert + buell_dir fallback use relative paths
+- web/vs_engine.py: sys.path.insert uses relative path
+- network/manager.py: STATE_FILE now configurable via buell_dir
+- web/fuel_tracker.py: FUEL_FILE accepts buell_dir parameter
+- tools/health_journal.py: HEALTH_FILE accepts buell_dir parameter
+- web/handlers/system.py: git_pull cwd uses buell_dir
+- web/handlers/fuel.py: passes buell_dir to fuel_tracker
+- main.py: _get_version() uses relative path + utf-8 encoding
+- Git remote added: origin https://github.com/pacdavid1/buell-xb12x-logger.git
+
+### AI
+- DeepSeek V4 Flash, Codebuff (Buffy)
+
 ## [v2.7.232] -- 2026-06-28
 
 ### fix: crisp HiDPI canvas charts in Sessions VS (no more blurry graphs)

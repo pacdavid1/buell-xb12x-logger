@@ -18,7 +18,7 @@ import zlib
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 import sys as _sys
-_sys.path.insert(0, '/home/pi/buell')
+_sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from ecu.eeprom_params import decode_params as _decode_eeprom_params
 import datetime
 
@@ -387,7 +387,7 @@ class WebServer:
     def __init__(self, host='0.0.0.0', port=8080, buell_dir=None):
         self.host             = host
         self.port             = port
-        self.buell_dir        = Path(buell_dir) if buell_dir else Path('/home/pi/buell')
+        self.buell_dir        = Path(buell_dir) if buell_dir else Path(__file__).resolve().parent.parent
         self.network          = None
         self._server          = None
         self._thread          = None

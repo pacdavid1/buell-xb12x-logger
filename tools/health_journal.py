@@ -1,15 +1,27 @@
 import os
 import json, os, time
 
-HEALTH_FILE = '/home/pi/buell/system_health.json'
-MAX_ENTRIES = 100
-COOLDOWN = 300
+# DEV NOTE: All code, comments, and variable names must be in English.
+"""Health journal — tracks battery, CPU, and ECU health events."""
+import json, os, time
+from pathlib import Path
 
-def check(serial_stats, ecu_alive):
+_MAX_ENTRIES = 100
+_COOLDOWN = 300
+
+
+def _health_file(buell_dir: str = '') -> str:
+    if buell_dir:
+        return str(Path(buell_dir) / 'system_health.json')
+    return str(Path(__file__).resolve().parent.parent / 'system_health.json')
+
+
+def check(serial_stats, ecu_alive, buell_dir: str = '') -> None:
+    hf = _health_file(buell_dir)
     data = {'issues': [], 'counts': {}, 'last_seen': {}}
-    if os.path.exists(HEALTH_FILE):
+    if os.path.exists(hf):
         try:
-            with open(HEALTH_FILE) as f:
+            with open(hf) as f:
                 data = json.load(f)
         except Exception:
             pass
@@ -34,23 +46,25 @@ def check(serial_stats, ecu_alive):
         new.append(('ecu', 'WARN', 'No', 'ECU disconnected'))
     for typ, sev, val, desc in new:
         key = typ + sev
-        if now - data.get('last_seen', {}).get(key, 0) < COOLDOWN:
+        if now - data.get('last_seen', {}).get(key, 0) < _COOLDOWN:
             continue
         data.setdefault('issues', []).append({'ts': now, 'type': typ, 'severity': sev, 'value': val, 'desc': desc})
         data.setdefault('counts', {})[key] = data['counts'].get(key, 0) + 1
         data.setdefault('last_seen', {})[key] = now
-    if len(data['issues']) > MAX_ENTRIES:
-        data['issues'] = data['issues'][-MAX_ENTRIES:]
-    tmp = HEALTH_FILE + '.tmp'
+    if len(data['issues']) > _MAX_ENTRIES:
+        data['issues'] = data['issues'][-_MAX_ENTRIES:]
+    tmp = hf + '.tmp'
     with open(tmp, 'w') as f:
         json.dump(data, f, indent=2)
-    os.replace(tmp, HEALTH_FILE)
+    os.replace(tmp, hf)
 
-def get_summary():
+
+def get_summary(buell_dir: str = '') -> dict:
+    hf = _health_file(buell_dir)
     data = {}
-    if os.path.exists(HEALTH_FILE):
+    if os.path.exists(hf):
         try:
-            with open(HEALTH_FILE) as f:
+            with open(hf) as f:
                 data = json.load(f)
         except Exception:
             data = {}
@@ -60,6 +74,7 @@ def get_summary():
             recent.append(i)
     crits = [i for i in recent if i.get('severity') == 'CRIT']
     return {'issues_24h': len(recent), 'crits': len(crits), 'latest': recent[-1] if recent else None}
+
 
 if __name__ == '__main__':
     ss = {'bat_voltage': 3.1, 'bat_soc': 4, 'cpu_temp': 45}
