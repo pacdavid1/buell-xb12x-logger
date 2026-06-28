@@ -163,6 +163,81 @@ Plan:
       logged ride (no manual ratio extraction needed)
 - Connects to BL-ECM-02 (1125CR multi-bike support)
 
+## SENSORES — Logging multi-rate independiente (idea 2026-06-28)
+
+### BL-LOG-01 — Separate sensor logging tables by rate domain
+**Priority:** MEDIUM — refactor of the logging pipeline
+
+Today every sensor is forced into the single ECU CSV at the ECU frame rate.
+Each sensor has its own natural rate (ECU frame ~7.5Hz, GPS 10-20Hz, IMU
+100-200Hz, BMP/AHT ~1Hz). Forcing a common rate wastes the fast sensors and
+bloats the slow ones.
+
+**Design decision: split by RATE DOMAIN, not per-sensor.**
+PW + RPM + TPS come from the SAME atomic ECU frame -- keep them together.
+- ecu_*.csv   : ECU frame (~7.5Hz) -- all ECU fields together (as today)
+- gps_*.csv   : GPS rate (10-20Hz)
+- imu_*.csv   : IMU rate (100-200Hz, when MPU6050 lands -- FASE 3)
+- env_*.csv   : BMP280/AHT20 (~1Hz)
+
+**Synchronization: shared monotonic clock, NOT matching timestamps.**
+Every table stamps each row with the same time.monotonic() from the Pi (one
+clock domain). Matching exact timestamps across rates is impossible and
+unnecessary. In analysis, align with pandas.merge_asof (as-of join: each row
+pairs with the nearest-in-time row of the other table). GPS also carries its
+own atomic timestamp that can serve as a master reference if desired.
+
+- [ ] Define per-table schema + writer (reuse session.py DictWriter pattern)
+- [ ] Stamp t_monotonic + t_epoch on every row in every table
+- [ ] Analysis helper: merge_asof loader that joins tables on t_monotonic
+- [ ] Keep ECU table as canonical for F7/Sessions VS (PW/RPM/TPS atomic)
+- [ ] Migration: old single-CSV sessions stay readable (legacy path)
+
+---
+
+## GPS — Quality filtering + multi-pass route reference (idea 2026-06-28)
+
+### BL-GPS-03 — Filter bad GPS fixes before use
+**Priority:** MEDIUM — cheap, fields already in CSV (v2.7.229)
+
+Consumer M8N never gives the true value in a single pass; altitude is its worst
+component (5-15m error vs 2.5m horizontal). Same point on ride 6 vs ride 9 of
+session 47BF04 shows different altitudes -- this is sensor noise, not a bug.
+
+- [ ] Discard fixes with high estimated error: gps_epx/epy/epv above threshold
+- [ ] Require gps_mode == 3 (3D fix) for altitude-dependent analysis
+- [ ] Drop gps_stale rows
+- [ ] Optional: enable SBAS/WAAS in M8N config (differential correction) if the
+      region is covered -- improves single-pass accuracy somewhat
+
+### BL-GPS-04 — Multi-pass route reference profile (averaged elevation/position)
+**Priority:** MEDIUM — PREREQUISITE for GAP 4 (slope normalization)
+
+User rides the same routes repeatedly. Random GPS error averages down by sqrt(N)
+across passes taken at different times (different satellite geometry decorrelates
+the bias). Build an averaged "route reference": group points from all passes by
+location (spatial grid or map-matching), average altitude/position -> converges
+to the real route profile.
+
+NOTE: two GPS units side by side do NOT help -- their errors are correlated
+(same ionosphere, multipath, constellation). Time/repetition decorrelates the
+error, spatial redundancy does not. Do not buy a second GPS for this.
+
+- [ ] Spatial bucketing of GPS points across all rides of a route (grid or
+      map-match to a reference polyline)
+- [ ] Average altitude + position per bucket, weighted by fix quality (BL-GPS-03)
+- [ ] Store route_reference.json (lat/lon/alt grid) per recurring route
+- [ ] Feed averaged altitude into GAP 4 slope calc (reliable grade per segment)
+- [ ] Confidence per bucket = f(n_passes, fix quality) -- like GAP 1 for routes
+
+### BL-GPS-05 — gps_analysis subtab is down (BUG)
+**Priority:** MEDIUM — page currently broken
+URL: http://192.168.100.80:8080/gps_analysis
+- [ ] Investigate why the GPS analysis / map subtab fails to load
+- [ ] Used to compare GPS points across rides (e.g. 47BF04 ride 6 vs ride 9)
+
+---
+
 ## Core refactor (2026-06-14)
 
 ### BL-ECM-01 — Multi-ECU support vía EcmSpy XML (quitar offsets hardcodeados BUEIB)
