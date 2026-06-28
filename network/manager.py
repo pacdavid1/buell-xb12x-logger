@@ -11,7 +11,9 @@ import json
 import logging
 from pathlib import Path
 
-STATE_FILE = Path("/home/pi/buell/network_state.json")
+# Default fallback path (overridden by buell_dir passed to __init__)
+_DEFAULT_BUELL_DIR = Path(__file__).resolve().parent.parent
+_STATE_FILE_DEFAULT = _DEFAULT_BUELL_DIR / 'network_state.json'
 
 class NetworkManager:
 
@@ -20,12 +22,14 @@ class NetworkManager:
     WIFI_TIMEOUT_S   = 35
     DEFAULT_PASSWORD = "buell2024"
 
-    def __init__(self):
+    def __init__(self, buell_dir=None):
         self.logger          = logging.getLogger("NetworkManager")
         self._monitor_thread = None
         self._monitor_active = False
         self._switch_status  = {}
         self._state_lock     = threading.Lock()
+        state_file = Path(buell_dir) / 'network_state.json' if buell_dir else _STATE_FILE_DEFAULT
+        self._state_file = state_file
 
     @staticmethod
     def _run(cmd, timeout=10):
@@ -82,8 +86,9 @@ class NetworkManager:
 
     def get_wifi_ip(self):
         try:
-            if STATE_FILE.exists():
-                s = json.loads(STATE_FILE.read_text())
+            sf = self._state_file
+            if sf.exists():
+                s = json.loads(sf.read_text())
                 if s.get("last_wifi_ip"):
                     return s["last_wifi_ip"]
         except Exception as e:
@@ -94,8 +99,9 @@ class NetworkManager:
         with self._state_lock:
             try:
                 state = {}
-                if STATE_FILE.exists():
-                    state = json.loads(STATE_FILE.read_text())
+                sf = self._state_file
+                if sf.exists():
+                    state = json.loads(sf.read_text())
                 state["mode"]            = mode
                 state["ip"]              = ip
                 state["last_switch_utc"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -103,15 +109,16 @@ class NetworkManager:
                     state["last_wifi_ip"] = ip
                 if extra:
                     state.update(extra)
-                STATE_FILE.write_text(json.dumps(state, indent=2))
+                sf.write_text(json.dumps(state, indent=2))
             except Exception as e:
                 self.logger.warning(f"No se pudo guardar state: {e}")
 
     def load_state(self):
         try:
             with self._state_lock:
-                if STATE_FILE.exists():
-                    return json.loads(STATE_FILE.read_text())
+                sf = self._state_file
+                if sf.exists():
+                    return json.loads(sf.read_text())
         except Exception as e:
             self.logger.warning(f"load_state: {e}")
         return {}

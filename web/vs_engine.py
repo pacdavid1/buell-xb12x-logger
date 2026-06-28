@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import sys as _sys
-_sys.path.insert(0, '/home/pi/buell')
+_sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 from web.launch import _compare_sessions
 from web.utils import _session_version

@@ -59,8 +59,7 @@ IPC_POLL_S          = 0.25   # how often IPC reader polls live.json
 def _get_version():
     try:
         import re
-        with open("/home/pi/buell/CHANGELOG.md") as f:
-            cl = f.read()
+        cl = (Path(__file__).parent / "CHANGELOG.md").read_text(encoding='utf-8')
         # Skip the instruction block; real entries start after PROMPT_END.
         marker = cl.find("PROMPT_END -->")
         if marker != -1:
