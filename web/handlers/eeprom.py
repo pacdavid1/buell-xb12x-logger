@@ -222,6 +222,11 @@ class EepromHandlerMixin:
         body = payload or {}
         maps = body.get('maps', {})
         changes = body.get('changes', [])
+        # GAP 6: ILC learning rate — scale delta by alpha before burning.
+        # alpha=1.0 means apply 100% of proposed change (legacy default).
+        # alpha=0.5 means apply 50%; new_val = orig + alpha*(proposed - orig).
+        alpha = float(body.get('alpha', 1.0))
+        alpha = max(0.1, min(1.0, alpha))
         if not maps and not changes:
             self._json({'error': 'no maps or changes provided'})
             return
@@ -259,13 +264,15 @@ class EepromHandlerMixin:
                     if ri >= len(data) or ci >= len(data[ri]):
                         continue
                     orig = data[ri][ci]
-                    if orig > 0 and abs(val - orig) > orig * 0.15:
+                    # Apply alpha scaling (GAP 6): effective = orig + alpha*(proposed - orig)
+                    effective = orig + alpha * (val - orig) if orig is not None else val
+                    if orig is not None and orig > 0 and abs(effective - orig) > orig * 0.15:
                         self._json({'error': 'cell [' + str(ri) + ',' + str(ci) + '] exceeds +-15%: '
-                                    + str(round(orig, 1)) + ' to ' + str(round(val, 1))})
+                                    + str(round(orig, 1)) + ' to ' + str(round(effective, 1))})
                         return
                     if mk not in maps:
                         maps[mk] = [row[:] for row in data]
-                    maps[mk][ri][ci] = val
+                    maps[mk][ri][ci] = round(effective, 4)
             proposed = encode_eeprom_maps(current_bin, maps, _session_version(eeprom_path))
         except Exception as e:
             self._json({'error': 'encode failed: ' + str(e)})
@@ -307,6 +314,7 @@ class EepromHandlerMixin:
             self._json({'error': 'burn timeout (30s)'})
             return
         result['backup'] = backup_path.name
+        result['alpha_used'] = round(alpha, 2)
         # Burn ledger (VDYNO V0): record lineage parent -> child with the
         # exact cell diff. Must never block the burn response.
         try:
@@ -331,6 +339,11 @@ class EepromHandlerMixin:
         from web.burn_ledger import load_burns
         burns = load_burns(self.server_instance.buell_dir)
         self._json({'ok': True, 'count': len(burns), 'burns': burns[::-1]})
+
+    def _handle_convergence(self, path=None):
+        """GET /convergence — GAP 5 map convergence metric from burn history."""
+        from web.burn_ledger import convergence_report
+        self._json(convergence_report(self.server_instance.buell_dir))
 
     def _handle_msq_download(self, path=None):
         """Serve suggested MSQ for a given session (or active session if none specified)."""

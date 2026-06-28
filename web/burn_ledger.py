@@ -98,3 +98,109 @@ def record_burn(buell_dir, entry: dict) -> None:
     tmp = path.with_suffix('.json.tmp')
     tmp.write_text(json.dumps(burns, indent=1))
     os.replace(tmp, path)
+
+
+# ---------------------------------------------------------------------------
+# GAP 5 — Map convergence metric
+# A cell is "converged" when its last delta is < 1% of its current value.
+# Global score = % of active cells (touched in ≥1 burn) that are converged.
+# Status thresholds: converged ≥80%, converging ≥40%, else diverging.
+# ---------------------------------------------------------------------------
+_CONVERGE_REL   = 0.01   # 1% of cell value = converged threshold
+_CONVERGE_ABS   = 0.05   # absolute floor so near-zero cells aren't trivial
+_CONVERGE_BURNS = 3      # number of recent burns used to evaluate trend
+
+
+def _delta_trend(deltas: list) -> str:
+    """Qualitative trend: improving / stable / worsening based on last 4 deltas."""
+    if len(deltas) < 3:
+        return 'unknown'
+    recent = deltas[-4:]
+    if recent[-1] < recent[0] * 0.6:
+        return 'improving'
+    if recent[-1] > recent[0] * 1.4:
+        return 'worsening'
+    return 'stable'
+
+
+def convergence_report(buell_dir) -> dict:
+    """GAP 5: summarise how close the map is to convergence.
+
+    Returns::
+        {
+          'status':         'converged' | 'converging' | 'diverging' | 'no_data',
+          'score':          int (% of active cells converged) or None,
+          'burns':          int,
+          'n_active_cells': int,
+          'n_converged':    int,
+          'cells':          [per-cell detail, sorted worst-first],
+        }
+    """
+    burns = load_burns(buell_dir)
+    if not burns:
+        return {'status': 'no_data', 'score': None, 'burns': 0,
+                'n_active_cells': 0, 'n_converged': 0, 'cells': []}
+
+    # Collect delta history per cell key across all burns (chronological).
+    cell_hist: dict = {}
+    for burn in burns:
+        ts = burn.get('ts_utc', '')
+        for cell in burn.get('cells', []):
+            key = f"{cell['map']}:{cell['ri']},{cell['ci']}"
+            old_v = cell.get('old')
+            new_v = cell.get('new')
+            if old_v is None or new_v is None:
+                continue
+            delta = abs(float(new_v) - float(old_v))
+            cell_hist.setdefault(key, []).append(
+                {'ts': ts, 'delta': delta, 'val': float(new_v)})
+
+    if not cell_hist:
+        return {'status': 'no_data', 'score': None, 'burns': len(burns),
+                'n_active_cells': 0, 'n_converged': 0, 'cells': []}
+
+    cells_out = []
+    n_converged = 0
+
+    for key, history in cell_hist.items():
+        last_val = history[-1]['val']
+        threshold = max(_CONVERGE_ABS, abs(last_val) * _CONVERGE_REL)
+        recent = history[-_CONVERGE_BURNS:]
+        all_deltas = [h['delta'] for h in history]
+        converged = all(h['delta'] < threshold for h in recent)
+        map_name, rc = key.split(':')
+        ri, ci = rc.split(',')
+        cells_out.append({
+            'key':        key,
+            'map':        map_name,
+            'ri':         int(ri),
+            'ci':         int(ci),
+            'n_burns':    len(history),
+            'last_delta': round(history[-1]['delta'], 4),
+            'threshold':  round(threshold, 4),
+            'converged':  converged,
+            'trend':      _delta_trend(all_deltas),
+        })
+        if converged:
+            n_converged += 1
+
+    n_active = len(cells_out)
+    score = round(100 * n_converged / n_active) if n_active else None
+
+    if score is None or n_active == 0:
+        status = 'no_data'
+    elif score >= 80:
+        status = 'converged'
+    elif score >= 40:
+        status = 'converging'
+    else:
+        status = 'diverging'
+
+    return {
+        'status':         status,
+        'score':          score,
+        'burns':          len(burns),
+        'n_active_cells': n_active,
+        'n_converged':    n_converged,
+        'cells':          sorted(cells_out, key=lambda c: c['last_delta'], reverse=True),
+    }

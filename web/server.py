@@ -112,6 +112,7 @@ class DashboardHandler(
             "/eeprom/propose":  self._handle_eeprom_propose,
             '/eeprom/msq':      self._handle_eeprom_msq,
             '/burns':           self._handle_burns_list,
+            '/convergence':     self._handle_convergence,
             '/vdyno':           self._handle_vdyno,
             '/vdyno/compare':   self._handle_vdyno_compare,
             '/vdyno/launch':    self._handle_vdyno_launch,
