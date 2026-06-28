@@ -21,6 +21,21 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.232] -- 2026-06-28
+
+### fix: crisp HiDPI canvas charts in Sessions VS (no more blurry graphs)
+
+All 5 chart canvases used a fixed backing-store size (e.g. 620x200) rendered on
+HiDPI/retina/4K screens with 2-3x more physical pixels -> blurry lines and text.
+Added a hidpi() helper that scales the backing store by window.devicePixelRatio,
+keeps CSS size in logical px, and scales the 2D context so draw code stays in
+logical coords. Idempotent across re-renders.
+
+- web/templates/sessions_vs.html: hidpi(canvas) helper + applied to
+  drawClusterPowerChart, drawClusterChart, drawDualClusterChart,
+  drawLaunchChart, and the launch dyno canvas
+- Charts now render sharp on any pixel density
+
 ## [v2.7.231] -- 2026-06-28
 
 ### feat: GAP 1 UI -- flag non-significant fuel deltas in Sessions VS

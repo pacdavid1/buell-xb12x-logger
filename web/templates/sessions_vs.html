@@ -472,6 +472,21 @@ function renderClusterTable(elId, clusters, ses, data) {
 
 
 
+function hidpi(canvas){
+  // Crisp canvas on HiDPI/retina/4K: scale backing store by devicePixelRatio,
+  // keep CSS size in logical px, scale the context so draw code stays in logical
+  // coords. Idempotent: once style.width is set it is the source of truth.
+  var dpr = window.devicePixelRatio || 1;
+  var lw = parseInt(canvas.style.width) || canvas.width;
+  var lh = parseInt(canvas.style.height) || canvas.height;
+  canvas.style.width = lw + 'px';
+  canvas.style.height = lh + 'px';
+  canvas.width = Math.round(lw * dpr);
+  canvas.height = Math.round(lh * dpr);
+  var ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return {ctx: ctx, W: lw, H: lh};
+}
 function drawClusterPowerChart(canvas, cIdx, ses) {
   /* Draw HP vs RPM curve for a single launch cluster.
      Data comes from _launchPowerData fetched via /vdyno/compare. */
@@ -481,8 +496,8 @@ function drawClusterPowerChart(canvas, cIdx, ses) {
   var bins = cl.bins || [];
   if(!bins || bins.length < 2) return;
 
-  var ctx = canvas.getContext('2d');
-  var W = canvas.width, H = canvas.height;
+  var _hd = hidpi(canvas);
+  var ctx = _hd.ctx, W = _hd.W, H = _hd.H;
   var pad = {t: 20, b: 30, r: 16, l: 46};
   var cw = W - pad.l - pad.r;
   var ch = H - pad.t - pad.b;
@@ -677,8 +692,8 @@ function drawClusterChart(canvas, cIdx) {
   var ss = cl.std_series || [];
   if(!ms || !ms.length) return;
 
-  var ctx = canvas.getContext('2d');
-  var W = canvas.width, H = canvas.height;
+  var _hd = hidpi(canvas);
+  var ctx = _hd.ctx, W = _hd.W, H = _hd.H;
   var pad = {t: 20, b: 25, l: 45, r: 20};
   var cw = W - pad.l - pad.r;
   var ch = H - pad.t - pad.b;
@@ -808,8 +823,8 @@ function showMatchedChart(mIdx) {
 }
 
 function drawDualClusterChart(canvas, aCl, bCl) {
-  var ctx = canvas.getContext('2d');
-  var W = canvas.width, H = canvas.height;
+  var _hd = hidpi(canvas);
+  var ctx = _hd.ctx, W = _hd.W, H = _hd.H;
   var pad = {t: 25, b: 25, l: 45, r: 20};
   var cw = W - pad.l - pad.r;
   var ch = H - pad.t - pad.b;
@@ -924,8 +939,8 @@ function drawDualClusterChart(canvas, aCl, bCl) {
 }
 
 function drawLaunchChart(canvas, series) {
-  var ctx = canvas.getContext('2d');
-  var W = canvas.width, H = canvas.height;
+  var _hd = hidpi(canvas);
+  var ctx = _hd.ctx, W = _hd.W, H = _hd.H;
   var pad = {t:12, r:8, b:18, l:36};
   var pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
 
@@ -1013,8 +1028,8 @@ async function fetchDyno(a, b) {
 
 function drawDynoChart(d) {
   var canvas = document.getElementById('launchDynoCanvas');
-  var ctx = canvas.getContext('2d');
-  var W = canvas.width, H = canvas.height;
+  var _hd = hidpi(canvas);
+  var ctx = _hd.ctx, W = _hd.W, H = _hd.H;
   var PAD = {t:24, r:20, b:40, l:52};
   var CW = W - PAD.l - PAD.r, CH = H - PAD.t - PAD.b;
 
