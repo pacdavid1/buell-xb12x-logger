@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+# DEV NOTE: All code, comments, and variable names must be in English.
+"""
+route_reference.py -- Averaged elevation profile from repeated GPS passes.
+
+A consumer GPS (u-blox M8N) never gives the true altitude in a single pass
+(5-15 m vertical error). But the same route ridden N times averages the random
+error down by ~sqrt(N). This module buckets GPS points from many rides into a
+spatial grid and averages altitude per cell, so a repeated route converges to a
+real elevation profile. That profile feeds slope computation (GAP 4) to
+normalize acceleration comparisons in F7.
+
+Phase 1 (this file): build the grid + convergence report. No weighting yet.
+Pure stdlib so it runs identically on the Pi Zero.
+
+Data note: older sessions have no gps_epv/gps_mode, only gps_satellites. We use
+satellites as the fix-quality proxy and require >= MIN_SATS (3D fix) for
+altitude, since a 2D fix (3 sats) has no usable vertical component.
+"""
+import csv
+import glob
+import math
+import os
+from collections import defaultdict
+
+MIN_SATS = 4          # 3D fix required for usable altitude
+DEFAULT_CELL_M = 20.0  # grid cell size in meters
+EARTH_M_PER_DEG_LAT = 111320.0
+
+
+def _sf(v, d=None):
+    try:
+        return float(v) if v is not None and str(v).strip() != '' else d
+    except (ValueError, TypeError):
+        return d
+
+
+def _grid_steps(lat_deg, cell_m):
+    """Return (dlat, dlon) in degrees for a square cell of cell_m meters
+    at the given latitude (longitude degrees shrink by cos(lat))."""
+    dlat = cell_m / EARTH_M_PER_DEG_LAT
+    dlon = cell_m / (EARTH_M_PER_DEG_LAT * max(0.1, math.cos(math.radians(lat_deg))))
+    return dlat, dlon
+
+
+def _haversine_m(lat1, lon1, lat2, lon2):
+    """Great-circle distance in meters between two lat/lon points."""
+    r = 6371000.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+def _iter_gps_rows(buell_dir, sessions):
+    """Yield (session, ride_path, lat, lon, alt, sats) for valid 3D GPS rows."""
+    for sid in sessions:
+        for cp in sorted(glob.glob(os.path.join(buell_dir, 'sessions', sid, 'ride_*.csv'))):
+            with open(cp) as fh:
+                rd = csv.DictReader(l for l in fh if not l.startswith('#'))
+                for row in rd:
+                    if row.get('gps_valid', '').strip().lower() not in ('true', '1'):
+                        continue
+                    lat = _sf(row.get('gps_lat'))
+                    lon = _sf(row.get('gps_lon'))
+                    alt = _sf(row.get('gps_alt_m'))
+                    sats = _sf(row.get('gps_satellites'), 0)
+                    if lat is None or lon is None or alt is None:
+                        continue
+                    if abs(lat) < 0.01 or sats < MIN_SATS:
+                        continue
+                    yield sid, cp, lat, lon, alt, sats
+
+
+def build_elevation_grid(buell_dir, sessions, cell_m=DEFAULT_CELL_M):
+    """Bucket all valid 3D GPS points into a spatial grid; average altitude per
+    cell. Returns dict keyed by (gi, gj) -> stats incl. alt_mean, alt_std,
+    n_samples, n_passes (distinct rides), sats_avg, center lat/lon."""
+    # First pass: find a reference latitude for consistent lon scaling
+    lat_sum = lat_n = 0
+    rows = list(_iter_gps_rows(buell_dir, sessions))
+    if not rows:
+        return {}, {'rows': 0}
+    ref_lat = sum(r[2] for r in rows) / len(rows)
+    dlat, dlon = _grid_steps(ref_lat, cell_m)
+
+    cells = defaultdict(lambda: {
+        'alt_sum': 0.0, 'alt_sqsum': 0.0, 'n': 0,
+        'sats_sum': 0.0, 'rides': set(),
+        'lat_sum': 0.0, 'lon_sum': 0.0,
+    })
+    for sid, cp, lat, lon, alt, sats in rows:
+        gi = round(lat / dlat)
+        gj = round(lon / dlon)
+        c = cells[(gi, gj)]
+        c['alt_sum'] += alt
+        c['alt_sqsum'] += alt * alt
+        c['n'] += 1
+        c['sats_sum'] += sats
+        c['rides'].add(cp)            # distinct ride file = one pass
+        c['lat_sum'] += lat
+        c['lon_sum'] += lon
+
+    grid = {}
+    for k, c in cells.items():
+        n = c['n']
+        mean = c['alt_sum'] / n
+        var = max(0.0, c['alt_sqsum'] / n - mean * mean)
+        grid[k] = {
+            'alt_mean': round(mean, 2),
+            'alt_std': round(var ** 0.5, 2),
+            'n_samples': n,
+            'n_passes': len(c['rides']),
+            'sats_avg': round(c['sats_sum'] / n, 1),
+            'lat': round(c['lat_sum'] / n, 6),
+            'lon': round(c['lon_sum'] / n, 6),
+        }
+    meta = {'rows': len(rows), 'cells': len(grid), 'ref_lat': round(ref_lat, 5),
+            'cell_m': cell_m, 'dlat': dlat, 'dlon': dlon}
+    return grid, meta
+
+
+def convergence_report(grid, meta):
+    """Summarize how altitude spread relates to number of passes -- the core
+    evidence that multi-pass averaging works (more passes -> lower std)."""
+    by_passes = defaultdict(list)
+    for cell in grid.values():
+        by_passes[cell['n_passes']].append(cell['alt_std'])
+
+    lines = []
+    lines.append(f"rows={meta['rows']}  cells={meta['cells']}  cell={meta['cell_m']}m")
+    multi = sum(1 for c in grid.values() if c['n_passes'] >= 2)
+    lines.append(f"cells with >=2 passes: {multi} ({100*multi/max(1,len(grid)):.0f}%)")
+    lines.append("")
+    lines.append(f"{'passes':>6} {'cells':>6} {'avg_alt_std(m)':>15} {'median_std':>11}")
+    for np_ in sorted(by_passes):
+        stds = sorted(by_passes[np_])
+        avg = sum(stds) / len(stds)
+        med = stds[len(stds) // 2]
+        lines.append(f"{np_:>6} {len(stds):>6} {avg:>15.2f} {med:>11.2f}")
+    return "\n".join(lines)
+
+
+if __name__ == '__main__':
+    import sys
+    base = sys.argv[1] if len(sys.argv) > 1 else '.'
+    # Default: the 5 sessions that cover the same ~7km route
+    routes = ['47BF04', '653DC0', '91B225', '1E447A', '00210A']
+    grid, meta = build_elevation_grid(base, routes)
+    print(convergence_report(grid, meta))
