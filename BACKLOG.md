@@ -137,6 +137,30 @@ Nombre en literatura: Iterative Learning Control (ILC) con forgetting factor.
 
 ---
 
+### BL-GEAR-01 — Gear detection multi-bike via auto-clustered ratios
+**Priority:** MEDIUM — decision made 2026-06-28 (auto-cluster data-driven approach)
+
+Current GEAR_THRESHOLDS in web/gear_detect.py are hardcoded for XB12X #248AE2.
+They are garbage for the 1125 or any bike with a different sprocket/wheel/tire.
+
+**Decision: learn ratios from data, do NOT hardcode per-bike tables.**
+
+Physics: in the RPM-vs-VSS plane each gear is a straight line from the origin;
+its slope is that gear ratio. Cluster the measured ratios -> recover the gears,
+knowing nothing about the bike. Auto-adapts to transmission + sprocket + tire.
+
+Plan:
+- [ ] Collect samples with di_clutch=0 AND di_neutral=0 AND vss>min
+- [ ] ratio = RPM/VSS per sample -> k-means 1D over the histogram (N gears)
+- [ ] Detect cluster centers, sort high-ratio (1st) to low (top gear)
+- [ ] Store learned ratios per bike_serial in a bike profile (e.g. bike_profiles.json)
+- [ ] Real-time: use learned centers + temporal hysteresis (confirm 3-5 frames
+      before switching) -> stable in-ride readout (fixes the never-atina problem)
+- [ ] Post-ride: same centers, no hysteresis needed
+- [ ] XB12 calibrates now from existing rides; 1125 calibrates on its first
+      logged ride (no manual ratio extraction needed)
+- Connects to BL-ECM-02 (1125CR multi-bike support)
+
 ## Core refactor (2026-06-14)
 
 ### BL-ECM-01 — Multi-ECU support vía EcmSpy XML (quitar offsets hardcodeados BUEIB)
