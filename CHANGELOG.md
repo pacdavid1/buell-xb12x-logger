@@ -21,6 +21,30 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.225] -- 2026-06-27
+
+### fix: CW2015 UPS battery reports 0% when no battery present
+
+**Root cause:** CW2015 VER register reads 0x0000 (should be 0x00A5) and
+VCELL/SOC registers both read 0 when battery is absent or dead. The old
+SOC filter (0 <= s <= 100) passed the 0 value as valid, showing 0%.
+
+- cw2015.py: Added battery_present() via VER register check; read_all()
+  now returns None for voltage/SOC and bat_present=False when no battery
+- cw2015.py: SOC filter changed from 0<=s<=100 to 0<s<=100 (0 is invalid)
+- cw2015.py: read_all() now returns bat_charging from STATUS bit4 (CHG_IND),
+  which works independent of battery presence (driven by charger IC pin)
+- main.py: Hardware CHG_IND is now primary charging source; voltage-trend
+  heuristic kept as fallback when CW2015 not present
+- main.py: bat_present propagated through serial_stats to UI
+- server.py: bat_present added to serial_stats default dict
+
+**Result:** UI now shows -- for SOC/voltage with charging indicator visible
+when UPS is connected to power but battery is absent/dead.
+
+**Hardware note:** battery is physically absent or completely dead (VER=0x0000).
+CHG_IND=1 confirms charger circuit is active and receiving power.
+
 ## [v2.7.224] -- 2026-06-27
 
 ### docs: FASE V4 iterative map optimizer documented in BACKLOG_VDYNO

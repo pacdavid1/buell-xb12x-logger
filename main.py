@@ -358,11 +358,17 @@ class BuellLogger:
             if self._cw2015:
                 try:
                     _bat = self._cw2015.read_all()
-                    stats['bat_voltage'] = _bat.get('bat_voltage')
-                    stats['bat_soc']     = _bat.get('bat_soc')
+                    stats['bat_voltage']  = _bat.get('bat_voltage')
+                    stats['bat_soc']      = _bat.get('bat_soc')
+                    stats['bat_present']  = _bat.get('bat_present', False)
+                    _hw_charging          = _bat.get('bat_charging')
                 except Exception:
-                    stats['bat_voltage'] = None
-                    stats['bat_soc']     = None
+                    stats['bat_voltage']  = None
+                    stats['bat_soc']      = None
+                    stats['bat_present']  = False
+                    _hw_charging          = None
+            else:
+                _hw_charging = None
 
             _v_now = stats.get('bat_voltage')
             if _v_now is not None:
@@ -381,7 +387,11 @@ class BuellLogger:
                 self._boot_soc = stats['bat_soc']
                 self.logger.info(f"Boot SOC captured: {self._boot_soc:.1f}%")
 
-            if len(self._bat_voltages) >= 3:
+            # Hardware CHG_IND pin is authoritative; fall back to voltage trend
+            if _hw_charging is not None:
+                stats['bat_charging'] = _hw_charging
+                stats['bat_trend']    = 'up' if _hw_charging else 'stable'
+            elif len(self._bat_voltages) >= 3:
                 _early = sum(self._bat_voltages[:2]) / 2
                 _late  = sum(self._bat_voltages[-2:]) / 2
                 _diff  = _late - _early
@@ -392,12 +402,12 @@ class BuellLogger:
                     stats['bat_charging'] = False
                     stats['bat_trend']    = 'down'
                 else:
-                    _prev = stats.get('bat_charging', _v_now is not None and _v_now > 3.85)
+                    _prev = stats.get('bat_charging', False)
                     stats['bat_trend']    = 'stable'
                     stats['bat_charging'] = _prev
             else:
                 stats['bat_trend']    = 'stable'
-                stats['bat_charging'] = _v_now is not None and _v_now > 3.85
+                stats['bat_charging'] = False
 
             _health_check(stats, True)
 
