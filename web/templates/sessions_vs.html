@@ -362,6 +362,11 @@ function renderBody(rows){
     var r=rows[i];
 
 
+    // GAP 1: dim fuel deltas whose dpw_eff 95% CI crosses 0 (possible noise)
+    var sigDim=(r.dpw_eff_sig===false);
+    var dimStyle=sigDim?'opacity:.35;':'';
+    var sigTitle=sigDim?' title="dpw_eff '+(r.dpw_eff!=null?(r.dpw_eff>=0?'+':'')+r.dpw_eff.toFixed(3):'?')+', 95% CI ['+(r.dpw_eff_ci_lo!=null?r.dpw_eff_ci_lo.toFixed(2):'?')+','+(r.dpw_eff_ci_hi!=null?r.dpw_eff_ci_hi.toFixed(2):'?')+'] crosses 0 - not statistically significant"':'';
+    var sigMark=sigDim?'~':'';
     var cltBias=Math.abs(r.dclt||0)>5;
     html+='<tr'+(cltBias?' style="background:rgba(245,166,35,0.07)"':'')+'>'      +'<td>'+(cltBias?'<span title="dCLT='+r.dclt+'°" style="color:var(--a2)">⚠ </span>':'')+r.rpm+'</td>'
       +'<td>'+r.tps+'%</td>'
@@ -369,10 +374,10 @@ function renderBody(rows){
       +'<td class="n-badge" style="border-right:1px solid var(--bd)">'+r.nb+'</td>'
       +'<td style="color:#f5a623">'+r.pw1_a.toFixed(2)+'</td>'
       +'<td style="color:#f5a623">'+r.pw1_b.toFixed(2)+'</td>'
-      +'<td class="'+(r.dpw1>0.1?'pos':r.dpw1<-0.1?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dpw1>=0?'+':'')+r.dpw1.toFixed(3)+'</td>'
+      +'<td'+sigTitle+' class="'+(r.dpw1>0.1?'pos':r.dpw1<-0.1?'neg':'neu')+'" style="'+dimStyle+'border-right:1px solid var(--bd)">'+sigMark+(r.dpw1>=0?'+':'')+r.dpw1.toFixed(3)+'</td>'
       +'<td style="color:#e8720a">'+r.pw2_a.toFixed(2)+'</td>'
       +'<td style="color:#e8720a">'+r.pw2_b.toFixed(2)+'</td>'
-      +'<td class="'+(r.dpw2>0.1?'pos':r.dpw2<-0.1?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dpw2>=0?'+':'')+r.dpw2.toFixed(3)+'</td>'
+      +'<td'+sigTitle+' class="'+(r.dpw2>0.1?'pos':r.dpw2<-0.1?'neg':'neu')+'" style="'+dimStyle+'border-right:1px solid var(--bd)">'+sigMark+(r.dpw2>=0?'+':'')+r.dpw2.toFixed(3)+'</td>'
       +'<td style="color:#3d9eff">'+r.spk1_a.toFixed(1)+'</td>'
       +'<td style="color:#3d9eff">'+r.spk1_b.toFixed(1)+'</td>'
       +'<td class="'+(r.dspk1>0.5?'pos':r.dspk1<-0.5?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dspk1>=0?'+':'')+r.dspk1.toFixed(2)+'</td>'

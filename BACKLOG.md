@@ -19,7 +19,7 @@ Con N eventos en una celda se puede calcular p-value y confidence interval.
 - [DONE v2.7.230] N por celda (na/nb) -- ya existia en el delta output
 - [DONE v2.7.230] Welch 95% CI por celda (dpw_eff_se/ci_lo/ci_hi/dpw_eff_sig); sig solo si CI no cruza 0
 - [DONE v2.7.230] N minimo por celda -- ya existia (MIN_N=5 en _compare_sessions)
-- [ ] UI: marcar celdas no significativas (dpw_eff_sig=False) como "datos insuficientes" en sessions_vs.html
+- [DONE v2.7.231] UI: celdas no significativas (dpw_eff_sig=False) atenuadas con ~ + tooltip CI en sessions_vs.html
 - [ ] N efectivo por VISITAS independientes (no samples) -- corrige autocorrelacion que infla N
       y estrecha el CI artificialmente. Contar entradas separadas a la celda como N real.
 

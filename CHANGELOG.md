@@ -21,6 +21,23 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.231] -- 2026-06-28
+
+### feat: GAP 1 UI -- flag non-significant fuel deltas in Sessions VS
+
+Backend (v2.7.230) computed dpw_eff_sig per cell; now the Sessions VS table
+surfaces it. When a cell's dpw_eff 95% CI crosses zero (the fuel delta could be
+noise), its dPW1/dPW2 cells are dimmed (opacity .35), prefixed with "~", and
+carry a tooltip showing dpw_eff and its CI. Significant cells render as before.
+
+- web/templates/sessions_vs.html renderBody(): sigDim/dimStyle/sigMark/sigTitle
+  derived from r.dpw_eff_sig; applied to the two fuel-delta cells
+- Backward compatible: only dims when dpw_eff_sig is explicitly false (old
+  cached rows without the field render normally)
+
+Now a decision to burn a cell is visually gated by whether its difference is
+statistically real, not just by its magnitude.
+
 ## [v2.7.230] -- 2026-06-28
 
 ### feat: GAP 1 -- per-cell statistical significance for dpw_eff (Welch CI)
