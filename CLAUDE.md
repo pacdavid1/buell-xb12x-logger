@@ -209,6 +209,42 @@ Local (edit + test)  →  git push  →  GitHub (canonical)  →  Pi: git pull
 7. If you make local changes without pushing, the Pi falls behind —
    commit + push immediately after every change
 
+## Model routing — automatic
+
+Before starting any task, evaluate complexity and route accordingly.
+**The user cannot always tell how complex something is — that evaluation is Claude's job.**
+
+### Decision criteria
+
+| Use Sonnet 4.6 | Use Opus 4.8 sub-agent |
+|----------------|------------------------|
+| Feature implementation | Algorithm design (GAPs 1-6) |
+| Bug fixes, refactors | Statistical validity questions |
+| UI changes, CSS, templates | Convergence / learning rate analysis |
+| Git operations, file moves | Multi-ECU architecture decisions |
+| Data pipeline plumbing | "Is this approach mathematically correct?" |
+| Backlog items marked BL-GPS / BL-LOG | BL-GEAR-01 clustering design |
+| Anything with a clear spec | Anything where the spec itself is uncertain |
+
+### How to route
+
+**Sonnet-only (default):** just do the work.
+
+**Opus sub-agent (complex reasoning):** spawn with `model: "opus"` via the Agent
+tool for the analysis/design phase, then implement the result in Sonnet.
+
+```
+Sonnet (you, orchestrating)
+  └─→ Opus sub-agent: "design the convergence criterion for GAP 5"
+        └─→ returns: algorithm, edge cases, mathematical justification
+  └─→ Sonnet implements the returned design
+```
+
+**When in doubt, default to Sonnet.** Spawning Opus unnecessarily wastes the user's
+budget. Only escalate when the task requires reasoning that cannot be verified by
+reading code — i.e., when the correctness of the *approach* (not the implementation)
+is what needs deep analysis.
+
 ## Commit workflow (mandatory order)
 
 1. Update CHANGELOG.md with the new version entry
