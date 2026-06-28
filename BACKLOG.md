@@ -1116,9 +1116,31 @@ No necesita learning cycle manual.
   Implementation: read pct at startup, store as BOOT_PCT, use tiered threshold
   File: likely main.py or the CW2015 monitor loop
   Dashboard: show which tier is active (normal / grace-1 / grace-2 / critical)
-- [ ] Wake-on-GPIO: connect UPS-Lite power detect pad to Pi RUN pin
-  Requires: solder pads on UPS-Lite, wire to Pi header
-  Effect: Pi turns on when USB power connected
+- [ ] Wake-on-ignition: auto-boot Pi when motorcycle 12V connects
+  Investigado 2026-06-27. Hallazgos:
+  - GPIO4 (pin 7): FLOTANTE, UPS no lo usa -- descartado como señal de wake
+  - UPS-Lite v1.3 en este setup usa solo pins 3(SDA), 4(5V), 5(SCL), 6(GND)
+  - No hay IP5306 ni PMIC con control GPIO de salida
+  - UPS no tiene señal de VBUS en el header 40-pin -- no hay camino software
+  Solución confirmada: hardware mod (circuito RC + transistor)
+  Componentes: NPN (2N2222/BC547) + 100kΩ + 100µF/10V + cable fino
+  Circuito:
+    VBUS UPS (5V, pad VIN del chip cargador)
+        │
+       [100kΩ]
+        │
+        ├──[100µF]── GND
+        │
+       Base NPN
+        │
+      Colector ── RUN pad Pi Zero 2W
+        │
+      Emisor ── GND Pi
+  Funcionamiento: VBUS sube al encender moto → cap se carga → transistor
+    conduce ~100ms → RUN va a GND → Pi arranca desde halt → transistor
+    se corta al cargar el cap → Pi corre normal
+  RUN pad: pad circular ~1.5mm entre conector cámara y header GPIO, Pi Zero 2W
+  Estado actual: se usa switch físico del UPS para cortar/restaurar corriente
 - [ ] INA219 current sensor for precise power consumption monitoring
 
 ---
