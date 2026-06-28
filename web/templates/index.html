@@ -305,7 +305,6 @@ table.veg td:active{filter:brightness(1.6)}
         <a href="#" class="nav-tab" data-tab="ve" onclick="showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()">VE</a>
         <a href="#" class="nav-tab" data-tab="cfg" onclick="showTab('cfg');trackUsage('tab_config')">Config</a>
         <a href="#" class="nav-tab" data-tab="net" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</a>
-        <a href="#" class="nav-tab" data-tab="map" onclick="showTab('map');loadMapPane();trackUsage('tab_map')">Mapa</a>
       </div>
     </div>
   </div>
@@ -728,8 +727,7 @@ table.veg td:active{filter:brightness(1.6)}
     </div>
   </div>
 
-<link rel="stylesheet" href="/static/leaflet.css"/>
-<script src="/static/leaflet.js"></script>
+
 
 <style>
 /* ── Map pane enhancements ─────────────────────── */
@@ -756,105 +754,6 @@ table.veg td:active{filter:brightness(1.6)}
 .map-3d-toggle{background:var(--panel);border-top:1px solid var(--border);padding:3px 8px;font-family:var(--mono);font-size:8px;color:var(--dim);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
 .map-3d-toggle:hover{color:#aaa}
 </style>
-
-<div class="pane content" id="pane-map" style="padding:0">
-  <!-- Toolbar -->
-  <div class="map-toolbar">
-    <select id="mapRideSelect">
-      <option value="">-- Selecciona un ride --</option>
-    </select>
-    <button class="btn" onclick="loadMapTrack()" style="border-color:var(--blue);color:var(--blue)">Ver</button>
-    <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
-    <button class="btn" id="mapPlayBtn" onclick="toggleTrackReplay()" disabled style="font-size:12px;padding:2px 8px" title="Reproducir track">▶</button>
-    <span style="font-family:var(--mono);font-size:8px;color:var(--dim)" id="mapSpeedLabel">1×</span>
-    <button class="btn" onclick="setTrackSpeed(1)" id="mapSpd1" style="font-size:8px;padding:2px 4px">1×</button>
-    <button class="btn" onclick="setTrackSpeed(2)" id="mapSpd2" style="font-size:8px;padding:2px 4px">2×</button>
-    <button class="btn" onclick="setTrackSpeed(4)" id="mapSpd4" style="font-size:8px;padding:2px 4px">4×</button>
-    <button class="btn" onclick="setTrackSpeed(8)" id="mapSpd8" style="font-size:8px;padding:2px 4px">8×</button>
-    <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
-    <button class="btn" id="mapStyleBtn" onclick="cycleMapStyle()" style="font-size:8px;padding:2px 6px" title="Cambiar estilo de mapa">🌍</button>
-    <button class="btn" id="mapHeatBtn" onclick="toggleHeatmap()" style="font-size:8px;padding:2px 6px" title="Heatmap de velocidad">🔥</button>
-  </div>
-
-  <!-- Metric cards -->
-  <div class="map-metrics" id="mapMetrics">
-    <div class="map-metric" style="border-top-color:#4af">
-      <div class="mm-label">Distancia</div>
-      <div class="mm-val" style="color:#4af" id="mDist">-- <span class="mm-unit">km</span></div>
-    </div>
-    <div class="map-metric" style="border-top-color:#ff4444">
-      <div class="mm-label">Vel. Max</div>
-      <div class="mm-val" style="color:#ff4444" id="mMaxSpd">-- <span class="mm-unit">km/h</span></div>
-    </div>
-    <div class="map-metric" style="border-top-color:#2ecc71">
-      <div class="mm-label">Vel. Media</div>
-      <div class="mm-val" style="color:#2ecc71" id="mAvgSpd">-- <span class="mm-unit">km/h</span></div>
-    </div>
-    <div class="map-metric" style="border-top-color:#f5a623">
-      <div class="mm-label">Desnivel</div>
-      <div class="mm-val" style="color:#f5a623" id="mElev">-- <span class="mm-unit">m</span></div>
-    </div>
-    <div class="map-metric" style="border-top-color:#a8f">
-      <div class="mm-label">Duración</div>
-      <div class="mm-val" style="color:#a8f" id="mDuration">-- <span class="mm-unit">min</span></div>
-    </div>
-    <div class="map-metric" style="border-top-color:#ff0">
-      <div class="mm-label">GPS Fix</div>
-      <div class="mm-val" style="color:#ff0;font-size:12px" id="mFixInfo">--</div>
-    </div>
-  </div>
-
-  <!-- Info bar + legend -->
-  <div class="map-legend-bar">
-    <span id="mapInfo" style="flex:1;font-size:9px">Sin datos GPS</span>
-    <span class="leg-item"><span class="leg-swatch" style="background:#0000FF"></span>0-20</span>
-    <span class="leg-item"><span class="leg-swatch" style="background:#00FF00"></span>20-60</span>
-    <span class="leg-item"><span class="leg-swatch" style="background:#FFFF00"></span>60-120</span>
-    <span class="leg-item"><span class="leg-swatch" style="background:#FF0000"></span>120-160</span>
-    <span class="leg-item"><span class="leg-swatch" style="background:#FF00FF"></span>160+</span>
-  </div>
-
-  <!-- Map -->
-  <div id="mapLeaflet" style="height:calc(35dvh);width:100%"></div>
-
-  <!-- Altitude header with controls -->
-  <div class="map-alt-header">
-    <span>Perfil de altitud · color = velocidad</span>
-    <div class="alt-ctrls">
-      <button class="btn" id="altModeAlt" onclick="setAltMode('alt')" style="border-color:var(--blue);color:var(--blue)">Alt</button>
-      <button class="btn" id="altModeSpd" onclick="setAltMode('spd')">Spd</button>
-      <button class="btn" id="altModeBoth" onclick="setAltMode('both')">Both</button>
-    </div>
-  </div>
-  <div style="background:var(--bg);height:calc(15dvh);padding:4px;position:relative">
-    <canvas id="altitudeChart" style="cursor:crosshair"></canvas>
-    <!-- Cursor vertical line (synced to map) -->
-    <div id="altCursorLine" style="position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.4);pointer-events:none;display:none"></div>
-  </div>
-
-  <!-- Cursor data panel (overlay, shown when hovering alt chart) -->
-  <div class="map-cursor-panel" id="mapCursorPanel">
-    <div class="cp-line"><span class="cp-label">Dist</span><span class="cp-val" id="cpDist">--</span></div>
-    <div class="cp-line"><span class="cp-label">Alt</span><span class="cp-val" id="cpAlt">--</span></div>
-    <div class="cp-line"><span class="cp-label">Vel</span><span class="cp-val" id="cpSpd">--</span></div>
-  </div>
-
-  <!-- 3D track toggle + canvas -->
-  <div class="map-3d-toggle" onclick="toggle3DSection()">
-    <span>3D track · color = speed · drag to rotate · wheel = zoom</span>
-    <span id="map3dArrow">▾</span>
-  </div>
-  <div id="map3dSection" style="background:var(--bg);height:calc(50dvh);padding:4px">
-<div style="position:absolute;top:8px;left:8px;z-index:99;background:rgba(0,0,0,0.8);border-radius:4px;padding:2px 6px;font-size:9px;font-family:monospace;display:flex;align-items:center;gap:3px;pointer-events:none">
-<span style="color:#0000FF">█</span><span>0-20</span>
-<span style="color:#00FF00">█</span><span>20-60</span>
-<span style="color:#FFFF00">█</span><span>60-120</span>
-<span style="color:#FF0000">█</span><span>120-160</span>
-<span style="color:#FF00FF">█</span><span>160+ km/h</span>
-</div>
-    <canvas id="track3d" style="width:100%;height:100%;display:block;touch-action:none;cursor:grab"></canvas>
-  </div>
-</div>
 
 <script src="/static/app.js?v=--LOGGER_VERSION--"></script>
 <script>
