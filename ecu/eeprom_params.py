@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+# DEV NOTE: All code, comments, and variable names must be in English.
+"""
+ecu/eeprom_params.py — EEPROM parameter parser from EcmSpy XMLs.
+
+Reads ecu_defs/*.xml based on the real ECU version resolved via files.xml
+and decodes all type=Value parameters from the EEPROM blob.
+"""
+
+import xml.etree.ElementTree as ET
+import logging
+from pathlib import Path
+
+from ecu.version_resolver import resolve_ecu
+
+logger = logging.getLogger("EepromParams")
+
+ECU_DEFS_DIR = Path(__file__).parent.parent / "ecu_defs"
+HEADER_OFFSET = 0  # offsets XML son directos al blob
+
+
+def _find_xml_fallback(version_string):
+    """Heuristic fallback for XML lookup when version resolution fails."""
+    token = version_string.strip().split()[0]
+    prefix = ''.join(c for c in token if c.isalpha())
+    candidates = [
+        ECU_DEFS_DIR / f"{prefix}.xml",
+        ECU_DEFS_DIR / f"{token}.xml",
+    ]
+    for p in candidates:
+        if p.exists():
+            return p
+    return None
+
+
+def decode_params(blob, version_string):
+    """
+    Decodifica parámetros EEPROM type=Value del blob.
+    Retorna lista de dicts con:
+      name, offset, size, raw, value, units, remark
+    """
+
+    ecu = resolve_ecu(version_string)
+
+    if ecu:
+        xml_path = ECU_DEFS_DIR / f"{ecu.get('dbfile')}.xml"
+    else:
+        logger.warning(f"No se pudo resolver ECU para '{version_string}', usando fallback")
+        xml_path = _find_xml_fallback(version_string)
+
+    if not xml_path or not xml_path.exists():
+        logger.warning(f"No se encontró XML válido para '{version_string}'")
+        return []
+
+    try:
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+    except Exception as e:
+        logger.error(f"Error parsing {xml_path}: {e}")
+        return []
+
+    # detectar namespace
+    ns_tag = root.tag
+    ns = ns_tag.split('}')[0].lstrip('{') if '}' in ns_tag else ''
+    prefix = f'{{{ns}}}' if ns else ''
+
+    results = []
+
+    for e in root.findall(f'{prefix}eeoffsets'):
+        ptype = e.findtext(f'{prefix}type', default='')
+        if ptype != 'Value':
+            continue
+
+        offset_str = e.findtext(f'{prefix}offset', default='')
+        size_str = e.findtext(f'{prefix}size', default='1')
+
+        if not offset_str:
+            continue
+
+        offset = int(offset_str)
+        size = int(size_str) if size_str else 1
+        blob_i = offset - HEADER_OFFSET
+
+        if blob_i < 0 or blob_i + size > len(blob):
+            continue
+
+        try:
+            scale = float(e.findtext(f'{prefix}scale', default='1') or 1)
+            translate = float(e.findtext(f'{prefix}translate', default='0') or 0)
+        except ValueError:
+            scale, translate = 1.0, 0.0
+
+        if size == 2:
+            raw = blob[blob_i] | (blob[blob_i + 1] << 8)
+            if raw > 32767:
+                raw -= 65536
+        elif size == 4:
+            raw = blob[blob_i] | (blob[blob_i + 1] << 8) | (blob[blob_i + 2] << 16) | (blob[blob_i + 3] << 24)
+            if raw > 2147483647:
+                raw -= 4294967296
+        else:
+            raw = blob[blob_i]
+
+        value = round(raw * scale + translate, 4)
+
+        results.append({
+            'name': e.findtext(f'{prefix}name', default='?'),
+            'offset': offset,
+            'size': size,
+            'raw': raw,
+            'value': value,
+            'units': e.findtext(f'{prefix}units', default=''),
+            'remark': e.findtext(f'{prefix}remarks', default='')
+                      or e.findtext(f'{prefix}remark', default=''),
+        })
+
+    logger.info(f"Decoded {len(results)} params from {xml_path.name}")
+    return results

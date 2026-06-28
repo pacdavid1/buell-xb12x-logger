@@ -1,0 +1,7 @@
+{
+  "cell_targets": [
+    {"label":"Zona media (2900-4000, Load 40-80)","rpm_min":2900,"rpm_max":4000,"load_min":40,"load_max":80,"seconds":10},
+    {"label":"WOT media (2900-4000, Load 80+)","rpm_min":2900,"rpm_max":4000,"load_min":80,"load_max":255,"seconds":5}
+  ],
+  "indicators": {"max_cht":250,"min_duration_s":300}
+}

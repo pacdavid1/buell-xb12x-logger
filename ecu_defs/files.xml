@@ -1,0 +1,265 @@
+<?xml version="1.0" standalone="yes"?>
+<dataSet xmlns="files">
+ <xs:schema id="dataSet" targetNamespace="files" xmlns:mstns="files" xmlns="files" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" attributeFormDefault="qualified" elementFormDefault="qualified">
+ <xs:element name="dataSet" msdata:IsDataSet="true" msdata:Locale="en-US">
+    <xs:complexType>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element name="file">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="version" type="xs:decimal" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="ecm">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="name" type="xs:string" minOccurs="0" />
+              <xs:element name="size" type="xs:sring" minOccurs="0" />
+              <xs:element name="xsize" type="xs:string" minOccurs="0" />
+              <xs:element name="category" type="xs:decimal" minOccurs="0" />
+              <xs:element name="dbfile" type="xs:string" minOccurs="0" />
+              <xs:element name="encrypted" type="xs:string" minOccurs="0" />
+              <xs:element name="ddfi" type="xs:string" minOccurs="0" />
+              <xs:element name="poll_len" type="xs:string"  minOccurs="0" />
+              <xs:element name="remark" type="xs:string"  minOccurs="0" />
+              <xs:element name="version" type="xs:decimal" minOccurs="0" />
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:choice>
+    </xs:complexType>
+  </xs:element>
+ </xs:schema>
+ <file>
+  <version>4</version>
+ </file>
+  <ecm>
+    <category>3</category>
+    <dbfile>BUEIA</dbfile>
+    <ddfi>DDFI</ddfi>
+    <name>BUEIA</name>
+    <poll_len>100</poll_len>
+    <remark>Buell Street and ProSeries ECM</remark>
+    <size>1056</size>
+    <xsize>1056</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>5</category>
+    <dbfile>BUEKA</dbfile>
+    <ddfi>DDFI</ddfi>
+    <name>BUEKA</name>
+    <poll_len>99</poll_len>
+    <remark>Buell Street  and ProSeries ECM</remark>
+    <size>1072</size>
+    <xsize>1072</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>5</category>
+    <dbfile>BUEKA</dbfile>
+    <ddfi>DDFI</ddfi>
+    <name>BUEJA</name>
+    <poll_len>99</poll_len>
+    <remark>Buell Street and ProSeries ECM</remark>
+    <size>1072</size>
+    <xsize>1072</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>4</category>
+    <dbfile>BUEGC</dbfile>
+    <ddfi>DDFI</ddfi>
+    <name>BUEGC</name>
+    <poll_len>99</poll_len>
+    <remark>Buell Street and Pro Series ECM</remark>
+    <size>1100</size>
+    <xsize>1100</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>6</category>
+    <dbfile>BUECB</dbfile>
+    <ddfi>DDFI-2</ddfi>
+    <name>BUECB</name>
+    <poll_len>103</poll_len>
+    <remark>Buell Street and ProSeries ECM</remark>
+    <size>1138</size>
+    <xsize>1138</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>7</category>
+    <dbfile>BUEGB</dbfile>
+    <ddfi>DDFI-2</ddfi>
+    <name>BUEGB</name>
+    <poll_len>107</poll_len>
+    <remark>Buell Street and ProSeries ECM</remark>
+    <size>1198</size>
+    <xsize>1202</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>8</category>
+    <dbfile>BUEIB</dbfile>
+    <ddfi>DDFI-2</ddfi>
+    <name>BUEIC</name>
+    <poll_len>107</poll_len>
+    <remark>Buell Street ECM, OEM Japan model</remark>
+    <size>1206</size>
+    <xsize>1210</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>8</category>
+    <dbfile>BUEIB</dbfile>
+    <ddfi>DDFI-2</ddfi>
+    <name>BUEIB</name>
+    <poll_len>107</poll_len>
+    <remark>Buell Street ECM. OEM</remark>
+    <size>1206</size>
+    <xsize>1210</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>9</category>
+    <dbfile>BUEIB</dbfile>
+    <ddfi>DDFI-2</ddfi>
+    <name>B2RIB</name>
+    <poll_len>107</poll_len>
+    <remark>Buell Factory Race ECM</remark>
+    <size>1206</size>
+    <xsize>1210</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>79</category>
+    <dbfile>BUEOD</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>BUEOD</name>
+    <poll_len>135</poll_len>
+    <remark>Buell Street ECM, OEM</remark>
+    <size>2788</size>
+    <xsize>2820</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>88</category>
+    <dbfile>BUEWD</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>BUEWD</name>
+    <poll_len>135</poll_len>
+    <remark>Buell Street ECM, OEM</remark>
+    <size>3116</size>
+    <xsize>3156</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>89</category>
+    <dbfile>BUEYD</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>BUEYD</name>
+    <poll_len>135</poll_len>
+    <remark>Buell Street ECM, OEM</remark>
+    <size>3232</size>
+    <xsize>3272</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>90</category>
+    <dbfile>BUEZD</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>BUEZD</name>
+    <poll_len>135</poll_len>
+    <remark>Buell Street ECM, OEM</remark>
+    <size>3372</size>
+    <xsize>3412</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>49</category>
+    <dbfile>BUE1D</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>BUE1D</name>
+    <poll_len>135</poll_len>
+    <remark>Buell Street ECM, OEM</remark>
+    <size>3404</size>
+    <xsize>3444</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>49</category>
+    <dbfile>BUE1D</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>B3R1D</name>
+    <poll_len>135</poll_len>
+    <remark>EBR Race ECM</remark>
+    <size>3404</size>
+    <xsize>3444</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>50</category>
+    <dbfile>BUE2D</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>BUE2D</name>
+    <poll_len>135</poll_len>
+    <remark>Buell Street ECM, OEM</remark>
+    <size>3756</size>
+    <xsize>3796</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>50</category>
+    <dbfile>BUE2D</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>B3R2D</name>
+    <poll_len>135</poll_len>
+    <remark>EBR Race ECM</remark>
+    <size>3756</size>
+    <xsize>3796</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>51</category>
+    <dbfile>BUE3D</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>BUE3D</name>
+    <poll_len>135</poll_len>
+    <remark>Buell Street ECM, OEM</remark>
+    <size>3884</size>
+    <xsize>3924</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+  <ecm>
+    <category>51</category>
+    <dbfile>BUE3D</dbfile>
+    <ddfi>DDFI-3</ddfi>
+    <name>B3R3D</name>
+    <poll_len>135</poll_len>
+    <remark>EBR Race ECM</remark>
+    <size>3884</size>
+    <xsize>3924</xsize>
+    <encrypted>false</encrypted>
+    <version>3</version>
+  </ecm>
+</dataSet>

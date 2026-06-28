@@ -1,0 +1,973 @@
+<!-- DEV NOTE: All code, comments, and variable names must be in English. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Map Editor -- --LOGGER_VERSION--</title>
+<style>
+:root{
+  --bg:#0a0a0b;--p:#111114;--bd:#1e1e24;--ac:#e8420a;--a2:#f5a623;
+  --bl:#3d9eff;--dm:#555;--tx:#c8c8cc;--rd:#ff4444;
+  --mn:'JetBrains Mono',monospace;
+  --staged:#a07800;--staged-bg:rgba(160,120,0,.18);
+
+  /* ── font system ──
+     --fs-base : global multiplier (header slider)
+     --px-*    : per-role base size in px (floating Font panel edits these)
+     both compose: final = px * base */
+  --fs-base: 1.2;
+  --px-xs: 6;    --fs-xs:   calc(var(--px-xs)   * 1px * var(--fs-base));  /* axis labels, meta */
+  --px-sm: 7;    --fs-sm:   calc(var(--px-sm)   * 1px * var(--fs-base));  /* badges, tooltip, 3D label */
+  --px-md: 8;    --fs-md:   calc(var(--px-md)   * 1px * var(--fs-base));  /* ui controls, burn bar */
+  --px-cell: 9;  --fs-cell: calc(var(--px-cell) * 1px * var(--fs-base));  /* table cells */
+  --px-lg: 10;   --fs-lg:   calc(var(--px-lg)   * 1px * var(--fs-base));  /* toast */
+  --px-xl: 11;   --fs-xl:   calc(var(--px-xl)   * 1px * var(--fs-base));  /* logo, selects */
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;min-height:100dvh;display:flex;flex-direction:column}
+
+/* header */
+.hd{background:var(--p);border-bottom:2px solid var(--ac);padding:8px 14px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:12px}
+.hd-left{display:flex;align-items:center;gap:10px}
+.logo{font-family:var(--mn);font-size:var(--fs-xl);font-weight:700;color:var(--ac);letter-spacing:.12em;text-transform:uppercase}
+.ver{font-family:var(--mn);font-size:var(--fs-md);color:var(--dm);letter-spacing:.06em}
+.hd-right{display:flex;align-items:center;gap:8px}
+
+/* session selector */
+.sess-sel{display:flex;align-items:center;gap:6px}
+.sess-sel label{font-family:var(--mn);font-size:var(--fs-md);color:var(--a2);letter-spacing:.08em;text-transform:uppercase}
+.sess-sel select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:var(--fs-xl);padding:4px 8px;border-radius:2px;cursor:pointer;min-width:130px}
+.sess-sel select:focus{outline:none;border-color:var(--ac)}
+
+/* burn bar */
+.burn-bar{display:flex;align-items:center;gap:6px}
+#stageCount{font-family:var(--mn);font-size:var(--fs-md);color:var(--dm);min-width:70px;text-align:right}
+#burnBtn{font-family:var(--mn);font-size:var(--fs-md);font-weight:700;padding:4px 14px;background:#c0392b;color:#fff;border:none;border-radius:2px;cursor:pointer;letter-spacing:.08em;opacity:.35;transition:opacity .15s}
+#burnBtn:not([disabled]){opacity:1}
+#resetBtn{font-family:var(--mn);font-size:var(--fs-md);padding:4px 10px;background:transparent;color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer;opacity:.35}
+#resetBtn:not([disabled]){opacity:1;color:var(--tx)}
+
+/* nav */
+.nav-menu{position:relative;flex-shrink:0}
+.nav-menu-btn{font-size:calc(18px * var(--fs-base));color:var(--dm);cursor:pointer;padding:4px 10px;border:1px solid var(--bd);border-radius:2px;background:none;font-family:var(--mn)}
+.nav-menu-btn:hover{color:var(--bl);border-color:var(--bl)}
+.nav-menu-drop{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--p);border:1px solid var(--bd);border-radius:3px;padding:4px;min-width:180px;z-index:999}
+.nav-menu-drop.open{display:block}
+.nav-menu-drop a{display:block;font-family:var(--mn);font-size:calc(12px * var(--fs-base));color:var(--dm);text-decoration:none;padding:10px 14px;border-radius:2px}
+.nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-menu-drop a.active{color:var(--ac);background:rgba(255,255,255,.06)}
+
+/* main scroll area */
+.main{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:24px}
+.state-msg{font-family:var(--mn);font-size:var(--fs-xl);color:var(--dm);text-align:center;padding:60px 0;letter-spacing:.08em}
+
+/* map block */
+.map-block{background:var(--p);border:1px solid var(--bd);border-radius:4px;overflow:hidden}
+.map-block.rear{border-color:#1a2535}
+.map-block.rear .map-name{color:var(--bl)}
+.map-block.rear .map-header{border-bottom-color:#1a2535}
+.map-header{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--bd);background:rgba(255,255,255,.02)}
+.map-name{font-family:var(--mn);font-size:var(--fs-cell);font-weight:700;color:var(--ac);letter-spacing:.1em;text-transform:uppercase}
+.map-axes{opacity:.5}
+.map-meta{font-family:var(--mn);font-size:var(--fs-sm);color:var(--dm);letter-spacing:.06em;margin-left:auto}
+.staged-badge{font-family:var(--mn);font-size:var(--fs-sm);color:var(--staged);background:var(--staged-bg);border:1px solid rgba(160,120,0,.35);padding:1px 5px;border-radius:2px;display:none}
+.staged-badge.vis{display:inline-block}
+.map-body{display:flex;min-height:200px}
+
+/* editable table — compact */
+.tbl-wrap{overflow:auto;flex:0 0 auto;border-right:1px solid var(--bd);padding:4px}
+table.em{border-collapse:collapse;font-family:var(--mn);white-space:nowrap;font-size:var(--fs-cell)}
+table.em th.axis-label{font-size:var(--fs-xs);color:var(--dm);padding:1px 3px;text-align:center;background:rgba(255,255,255,.02);border:1px solid var(--bd);min-width:22px}
+table.em th.row-label{font-size:var(--fs-xs);color:var(--dm);padding:0 3px;text-align:right;min-width:20px;border:1px solid var(--bd);background:rgba(255,255,255,.02)}
+table.em td{color:var(--tx);padding:0;text-align:center;border:1px solid var(--bd);cursor:pointer;position:relative;min-width:22px;width:22px;height:18px}
+table.em td.staged{background:var(--staged-bg)!important;color:var(--staged)}
+table.em td:hover{outline:1px solid var(--a2);z-index:1}
+table.em td input{position:absolute;inset:0;width:100%;height:100%;background:rgba(160,120,0,.3);color:var(--staged);border:1px solid var(--staged);font-family:var(--mn);font-size:var(--fs-md);text-align:center;padding:0;outline:none;z-index:2}
+
+/* 3D canvas */
+.c3-wrap{flex:1;min-width:0;display:flex;flex-direction:column;background:var(--p);min-height:200px}
+.c3-label{font-family:var(--mn);font-size:var(--fs-sm);color:var(--a2);padding:3px 6px;border-bottom:1px solid var(--bd);letter-spacing:.08em;text-transform:uppercase;flex-shrink:0}
+.c3-wrap canvas{display:block;flex:1;touch-action:none;width:100%;min-height:180px}
+
+/* font scale control */
+.fs-ctrl{display:flex;align-items:center;gap:4px}
+.fs-lbl{font-family:var(--mn);font-size:calc(8px * var(--fs-base));color:var(--dm);line-height:1;user-select:none}
+.fp-btn{font-family:var(--mn);font-size:var(--fs-md);color:var(--dm);background:none;border:1px solid var(--bd);border-radius:2px;padding:3px 7px;cursor:pointer;letter-spacing:.04em}
+.fp-btn:hover{color:var(--a2);border-color:var(--a2)}
+.fp-btn.on{color:var(--ac);border-color:var(--ac)}
+
+/* floating font panel */
+.font-panel{position:fixed;top:60px;right:24px;width:230px;background:var(--p);border:1px solid var(--bd);border-radius:5px;z-index:500;display:none;box-shadow:0 8px 28px rgba(0,0,0,.55)}
+.font-panel.open{display:block}
+.fp-head{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border-bottom:1px solid var(--bd);cursor:move;background:rgba(255,255,255,.03);border-radius:5px 5px 0 0;user-select:none}
+.fp-head span{font-family:var(--mn);font-size:var(--fs-md);color:var(--a2);letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.fp-x{background:none;border:none;color:var(--dm);font-size:calc(14px * var(--fs-base));cursor:pointer;line-height:1;padding:0 2px}
+.fp-x:hover{color:var(--rd)}
+.fp-body{padding:8px 10px;display:flex;flex-direction:column;gap:6px}
+.fp-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.fp-row label{font-family:var(--mn);font-size:calc(9px * var(--fs-base));color:var(--tx);flex:1}
+.fp-row input{width:54px;background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:calc(10px * var(--fs-base));padding:3px 5px;border-radius:2px;text-align:center}
+.fp-row input:focus{outline:none;border-color:var(--ac)}
+.fp-foot{display:flex;justify-content:flex-end;padding-top:4px;margin-top:2px;border-top:1px solid var(--bd)}
+.fp-foot button{font-family:var(--mn);font-size:calc(8px * var(--fs-base));color:var(--dm);background:transparent;border:1px solid var(--bd);border-radius:2px;padding:3px 8px;cursor:pointer;letter-spacing:.06em}
+.fp-foot button:hover{color:var(--tx);border-color:var(--dm)}
+
+/* hover tooltip */
+#cellTip{position:fixed;pointer-events:none;z-index:50;display:none;background:var(--p);border:1px solid var(--bd);padding:3px 8px;border-radius:2px;font-family:var(--mn);font-size:var(--fs-md);color:var(--tx);line-height:1.7;white-space:nowrap}
+
+/* toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-family:var(--mn);font-size:var(--fs-lg);background:var(--p);border:1px solid var(--bd);color:var(--tx);padding:6px 16px;border-radius:3px;z-index:200;opacity:0;transition:opacity .2s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="hd-left">
+    <span class="logo">&#9670; Map Editor</span>
+    <span class="ver">--LOGGER_VERSION--</span>
+  </div>
+  <div class="hd-right">
+    <div class="sess-sel">
+      <label>Session</label>
+      <select id="sessionSel" onchange="loadSession(this.value)">
+        <option value="">-- select --</option>
+      </select>
+    </div>
+    <div class="fs-ctrl">
+      <span class="fs-lbl">A</span>
+      <input type="range" id="fsSlider" min="0.7" max="2" step="0.05" value="1.2"
+        oninput="setFontScale(this.value)"
+        style="width:70px;accent-color:var(--ac);vertical-align:middle;cursor:pointer">
+      <span class="fs-lbl" style="font-size:calc(11px * var(--fs-base))">A</span>
+      <button class="fp-btn" id="fpBtn" onclick="toggleFontPanel()" title="Per-font sizes">Aa</button>
+    </div>
+    <div class="burn-bar">
+      <span id="stageCount"></span>
+      <button id="resetBtn" disabled onclick="resetStaged()">RESET</button>
+      <button id="burnBtn" disabled onclick="burnStaged()">BURN</button>
+    </div>
+    <div class="nav-menu" id="navMenu">
+      <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">&#9776;</button>
+      <div class="nav-menu-drop" id="navDrop">
+        <a href="/">Dashboard</a>
+        <a href="/session_events">Session Events</a>
+        <a href="/sessions_vs">Sessions VS</a>
+        <a href="/sessions_launch">Launch</a>
+        <a href="/tuner">Tuner</a>
+        <a href="/map-editor" class="active">Map Editor</a>
+        <a href="/gps_analysis">GPS Analysis</a>
+        <a href="/errorlog/viz">Errors</a>
+        <a href="/fuel">Fuel</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="main" id="main">
+  <div class="state-msg">Select a session to begin.</div>
+</div>
+
+<div id="cellTip"></div>
+<div id="toast"></div>
+
+<div class="font-panel" id="fontPanel">
+  <div class="fp-head" id="fpHead">
+    <span>Font Sizes</span>
+    <button class="fp-x" onclick="toggleFontPanel(false)">&times;</button>
+  </div>
+  <div class="fp-body" id="fpBody">
+    <!-- rows injected by JS -->
+    <div class="fp-foot"><button onclick="resetFonts()">Reset all</button></div>
+  </div>
+</div>
+
+<script>
+// DEV NOTE: All code, comments, and variable names must be in English.
+
+var STAGE = {};
+var MAPS_DATA = {};
+var AXES_DATA = {};
+var CUR_SESSION = '';
+var MAX_STAGE = 50;
+
+// per-map camera state: { ang, tilt, drag, lx, ly }
+var CAMS = {};
+
+var SC = {
+  fuel_map_front: 0.50, fuel_map_rear: 0.50,
+  timing_table_front: 0.30, timing_table_rear: 0.30,
+  startup_enrichment: 0.40, startup_enrichment_duration: 0.40
+};
+var INV = { X: false, Y: false, Z: false };
+
+var MAP_RANGES = {
+  fuel:   { mn: 0, mx: 200 },
+  timing: { mn: 0, mx: 50  },
+  dflt:   { mn: 0, mx: 255 }
+};
+
+// canvas text base size (px) — edited via Font panel "Chart text"
+var CANVAS_FS = 11;
+function cfont(mult) { return (CANVAS_FS * (mult || 1)).toFixed(1) + 'px ' + "'JetBrains Mono', monospace"; }
+
+// HiDPI-aware canvas setup: backing store scaled by devicePixelRatio so
+// nothing is blurry on retina / fractional-scaling displays. Returns ctx;
+// logical (CSS-pixel) dims are stored on cv._lw / cv._lh.
+function setupCanvas(cv) {
+  var dpr = window.devicePixelRatio || 1;
+  var r = cv.getBoundingClientRect();
+  var w = Math.max(10, r.width), h = Math.max(10, r.height);
+  var tw = Math.round(w * dpr), th = Math.round(h * dpr);
+  if (cv.width !== tw || cv.height !== th) { cv.width = tw; cv.height = th; }
+  var ctx = cv.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  cv._lw = w; cv._lh = h;
+  return ctx;
+}
+
+function redrawAllViz() { Object.keys(MAPS_DATA).forEach(redrawViz); }
+
+// ── session list ─────────────────────────────────────────────────────────────
+async function loadSessions() {
+  try {
+    var r = await fetch('/tuner/sessions');
+    var d = await r.json();
+    var sel = document.getElementById('sessionSel');
+    (d.sessions || []).forEach(function(s) {
+      var opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.id + '  ·  ' + s.created + '  ·  ' + s.rides + ' rides';
+      sel.appendChild(opt);
+    });
+    var params = new URLSearchParams(location.search);
+    var sid = params.get('session');
+    if (sid) { sel.value = sid; loadSession(sid); }
+  } catch(e) { setMsg('Could not load sessions: ' + e.message); }
+}
+
+// ── load maps ────────────────────────────────────────────────────────────────
+async function loadSession(sid) {
+  if (!sid) { setMsg('Select a session to begin.'); return; }
+  CUR_SESSION = sid;
+  STAGE = {};
+  updateBurnBar();
+  setMsg('Loading ' + sid + '…');
+  try {
+    var r = await fetch('/tuner/maps?session=' + encodeURIComponent(sid));
+    var d = await r.json();
+    if (d.error) { setMsg('Error: ' + d.error); return; }
+    MAPS_DATA = d.maps || {};
+    AXES_DATA = d.axes || {};
+    renderAll();
+    history.replaceState(null, '', '?session=' + sid);
+  } catch(e) { setMsg('Fetch error: ' + e.message); }
+}
+
+// ── render all ───────────────────────────────────────────────────────────────
+function renderAll() {
+  var main = document.getElementById('main');
+  main.innerHTML = '';
+  var keys = Object.keys(MAPS_DATA);
+  if (!keys.length) { setMsg('No maps in this session.'); return; }
+  keys.forEach(function(k) { main.appendChild(buildMapBlock(k)); });
+  requestAnimationFrame(function() { keys.forEach(redrawViz); });
+}
+
+// ── build one map block ──────────────────────────────────────────────────────
+function buildMapBlock(key) {
+  var m = MAPS_DATA[key];
+  var xAxis = AXES_DATA[m.xaxis] || { data: [], units: '' };
+  var yAxis = AXES_DATA[m.yaxis] || { data: [], units: '' };
+  var range = getRange(m.units, m.data);
+
+  if (!CAMS[key]) CAMS[key] = { ang: -0.65, tilt: 0.88, drag: false, lx: 0, ly: 0 };
+
+  var block = document.createElement('div');
+  block.className = 'map-block' + (key.indexOf('rear') >= 0 ? ' rear' : '');
+  block.id = 'block-' + key;
+
+  // header
+  var hdr = document.createElement('div');
+  hdr.className = 'map-header';
+  var axisSubtitle = '';
+  if (xAxis.units || yAxis.units) {
+    var parts = [];
+    if (xAxis.units) parts.push('X: ' + xAxis.units);
+    if (yAxis.units) parts.push('Y: ' + yAxis.units);
+    axisSubtitle = '<span class="map-axes">' + escH(parts.join(' · ')) + '</span>';
+  }
+  var axisInline = (xAxis.units || yAxis.units)
+    ? '<span class="map-axes"> · ' + escH([xAxis.units, yAxis.units].filter(Boolean).join(' · ')) + '</span>'
+    : '';
+  hdr.innerHTML =
+    '<span class="map-name">' + escH(m.label) + axisInline + '</span>' +
+    '<span class="staged-badge" id="badge-' + key + '"></span>' +
+    '<span class="map-meta">' + m.rows + '×' + m.cols + ' · ' + escH(m.units || '') + '</span>';
+  block.appendChild(hdr);
+
+  var body = document.createElement('div');
+  body.className = 'map-body';
+
+  // left: compact editable table
+  var tblWrap = document.createElement('div');
+  tblWrap.className = 'tbl-wrap';
+  tblWrap.appendChild(buildTable(key, m, xAxis, yAxis, range));
+  body.appendChild(tblWrap);
+
+  // right: 3D surface or bar chart depending on map dimensions
+  var c3Wrap = document.createElement('div');
+  c3Wrap.className = 'c3-wrap';
+  var is1D = m.rows === 1 || m.cols === 1;
+  var cv = document.createElement('canvas');
+  cv.id = 'c3-' + key;
+  cv.width = 400; cv.height = 220;
+  if (!is1D) wire3D(cv, key);
+  c3Wrap.appendChild(cv);
+  body.appendChild(c3Wrap);
+
+  block.appendChild(body);
+  return block;
+}
+
+// ── compact table ────────────────────────────────────────────────────────────
+function buildTable(key, m, xAxis, yAxis, range) {
+  var tbl = document.createElement('table');
+  tbl.className = 'em';
+
+  // sort column indices by x axis value ascending
+  var xData = xAxis.data || [];
+  var xOrder = xData.map(function(_, i) { return i; });
+  xOrder.sort(function(a, b) { return (xData[a] || 0) - (xData[b] || 0); });
+
+  // sort row indices by y axis value descending (highest at top)
+  var yData = yAxis.data || [];
+  var yOrder = yData.map(function(_, i) { return i; });
+  yOrder.sort(function(a, b) { return (yData[b] || 0) - (yData[a] || 0); });
+  if (!yData.length) { for (var r = m.rows - 1; r >= 0; r--) yOrder[m.rows - 1 - r] = r; }
+
+  var thead = tbl.createTHead();
+  var hrow = thead.insertRow();
+  var corner = document.createElement('th');
+  corner.className = 'axis-label';
+  hrow.appendChild(corner);
+  xOrder.forEach(function(ci) {
+    var th = document.createElement('th');
+    th.className = 'axis-label';
+    th.textContent = xData[ci] !== undefined ? xData[ci] : ci;
+    th.style.color = '#ff6666';
+    hrow.appendChild(th);
+  });
+
+  var tbody = tbl.createTBody();
+  yOrder.forEach(function(ri) {
+    var tr = tbody.insertRow();
+    var rowTh = document.createElement('th');
+    rowTh.className = 'row-label';
+    rowTh.textContent = yData[ri] !== undefined ? yData[ri] : ri;
+    rowTh.style.color = '#55cc55';
+    tr.appendChild(rowTh);
+    xOrder.forEach(function(ci) {
+      tr.appendChild(buildCell(key, m, ri, ci, range));
+    });
+  });
+  return tbl;
+}
+
+function buildCell(key, m, ri, ci, range) {
+  var td = document.createElement('td');
+  td.dataset.key = key;
+  td.dataset.ri = ri;
+  td.dataset.ci = ci;
+  td.dataset.orig = m.data[ri][ci];
+  var stk = ri + ',' + ci;
+  var staged = (STAGE[key] || {})[stk];
+  var val = staged !== undefined ? staged : m.data[ri][ci];
+  td.style.background = cellBg(val, range);
+  td.textContent = val.toFixed(0);
+  if (staged !== undefined) td.classList.add('staged');
+  td.addEventListener('click', onCellClick);
+  td.addEventListener('mouseenter', onCellEnter);
+  td.addEventListener('mouseleave', onCellLeave);
+  td.addEventListener('mousemove', onCellMove);
+  return td;
+}
+
+// ── 3D surface renderer (ported from tuner.html) ─────────────────────────────
+function wire3D(cv, key) {
+  cv.addEventListener('mousedown', function(e) {
+    CAMS[key].drag = true; CAMS[key].lx = e.clientX; CAMS[key].ly = e.clientY;
+  });
+  cv.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    CAMS[key].zoom = Math.min(2.5, Math.max(0.3, Math.round(((CAMS[key].zoom || 1) + (e.deltaY < 0 ? 0.07 : -0.07)) * 100) / 100));
+    drawSurf3D(key);
+  }, { passive: false });
+  cv.addEventListener('touchstart', function(e) {
+    CAMS[key].drag = true; CAMS[key].lx = e.touches[0].clientX; CAMS[key].ly = e.touches[0].clientY;
+  }, { passive: true });
+}
+
+document.addEventListener('mousemove', function(e) {
+  Object.keys(CAMS).forEach(function(key) {
+    var c = CAMS[key];
+    if (!c.drag) return;
+    c.ang  += (e.clientX - c.lx) * 0.005;
+    c.tilt += (e.clientY - c.ly) * 0.005;
+    c.lx = e.clientX; c.ly = e.clientY;
+    drawSurf3D(key);
+  });
+});
+document.addEventListener('mouseup',    function() { Object.keys(CAMS).forEach(function(k) { CAMS[k].drag = false; }); });
+document.addEventListener('touchend',   function() { Object.keys(CAMS).forEach(function(k) { CAMS[k].drag = false; }); });
+document.addEventListener('touchmove',  function(e) {
+  Object.keys(CAMS).forEach(function(key) {
+    var c = CAMS[key];
+    if (!c.drag) return;
+    c.ang  += (e.touches[0].clientX - c.lx) * 0.005;
+    c.tilt += (e.touches[0].clientY - c.ly) * 0.005;
+    c.lx = e.touches[0].clientX; c.ly = e.touches[0].clientY;
+    drawSurf3D(key);
+    e.preventDefault();
+  });
+}, { passive: false });
+
+function drawSurf3D(key) {
+  var cv = document.getElementById('c3-' + key);
+  if (!cv) return;
+  var m = MAPS_DATA[key];
+  if (!m) return;
+  var ctx = setupCanvas(cv);
+  var W = cv._lw, H = cv._lh;
+  if (W < 10 || H < 10) return;
+
+  var data = m.data;
+  var xAxis = AXES_DATA[m.xaxis] || { data: [] };
+  var yAxis = AXES_DATA[m.yaxis] || { data: [] };
+  var rpm = xAxis.data || [];
+  var lod = yAxis.data || [];
+  var R = m.rows, Cl = m.cols;
+
+  // subtle vertical gradient background for depth
+  var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#0e0e13');
+  bgGrad.addColorStop(1, '#060608');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  var zN = 1e9, zX = -1e9;
+  for (var i = 0; i < R; i++)
+    for (var j = 0; j < Cl; j++) {
+      var v = ((STAGE[key] || {})[i + ',' + j] !== undefined) ? STAGE[key][i + ',' + j] : data[i][j];
+      if (v < zN) zN = v;
+      if (v > zX) zX = v;
+    }
+  if (zX === zN) zX = zN + 1;
+  var zRange = zX - zN; if (zRange < 1) zRange = 1;
+
+  var c = CAMS[key];
+  var zoom = c.zoom || 1;
+  var sf = SC[key] || 0.4;
+  var pad = 40;
+  var sX = Math.min((W - pad) / Math.max(Cl - 1, 1), 30) * zoom;
+  var sY = Math.min((H - pad) / Math.max(R  - 1, 1), 24) * zoom;
+  var sZ = (H * sf * zoom) / zRange;
+
+  var cy = Math.cos(c.ang), sy = Math.sin(c.ang);
+  var cp = Math.cos(c.tilt), sp = Math.sin(c.tilt);
+
+  function project(j, i, z) {
+    var mx = (j - (Cl - 1) / 2) * sX;
+    var my = (z - zN) * sZ;
+    var mz = ((R - 1) - i - (R - 1) / 2) * sY;
+    var x1 = mx * cy + mz * sy;
+    var y1 = my;
+    var z1 = -mx * sy + mz * cy;
+    var x2 = x1, y2 = y1 * cp - z1 * sp, z2 = y1 * sp + z1 * cp;
+    return [x2, y2, z2];
+  }
+
+  // auto-center
+  var mnX = 1e9, mxX = -1e9, mnY = 1e9, mxY = -1e9;
+  for (var i = 0; i < R; i++)
+    for (var j = 0; j < Cl; j++) {
+      var p = project(j, i, data[i][j]);
+      if (p[0] < mnX) mnX = p[0]; if (p[0] > mxX) mxX = p[0];
+      if (-p[1] < mnY) mnY = -p[1]; if (-p[1] > mxY) mxY = -p[1];
+    }
+  var ox = W * 0.5 - (mnX + mxX) * 0.5;
+  var oy = H * 0.5 - (mnY + mxY) * 0.5;
+
+  function pr(j, i, z) { var p = project(j, i, z); return [ox + p[0], oy - p[1], p[2]]; }
+
+  function heat(t) {
+    var r, g, b;
+    if (t < 0.2) { var s = t / 0.2; r = 15; g = Math.round(10 + 60 * s); b = Math.round(80 + 140 * s); }
+    else if (t < 0.4) { var s = (t - 0.2) / 0.2; r = Math.round(15 + 20 * s); g = Math.round(70 + 130 * s); b = Math.round(220 + 35 * s); }
+    else if (t < 0.6) { var s = (t - 0.4) / 0.2; r = Math.round(35 + 120 * s); g = Math.round(200 + 55 * s); b = Math.round(255 - 155 * s); }
+    else if (t < 0.8) { var s = (t - 0.6) / 0.2; r = Math.round(155 + 100 * s); g = Math.round(255 - 60 * s); b = Math.round(100 - 70 * s); }
+    else { var s = (t - 0.8) / 0.2; r = 255; g = Math.round(195 - 145 * s); b = Math.round(30 - 10 * s); }
+    return 'rgba(' + r + ',' + g + ',' + b + ',0.9)';
+  }
+
+  function shadeRGBA(col, f) {
+    var m = col.match(/rgba?\(([\d.]+),([\d.]+),([\d.]+)/);
+    if (!m) return col;
+    return 'rgba(' + Math.round(m[1]*f) + ',' + Math.round(m[2]*f) + ',' + Math.round(m[3]*f) + ',0.9)';
+  }
+
+  // floor grid at base plane (z = zN) — grounds the surface, adds depth
+  ctx.strokeStyle = 'rgba(120,150,200,0.07)'; ctx.lineWidth = 0.5;
+  for (var j = 0; j < Cl; j++) { var a = pr(j, 0, zN), b = pr(j, R - 1, zN); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+  for (var i = 0; i < R; i++) { var a = pr(0, i, zN), b = pr(Cl - 1, i, zN); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+
+  // build faces with depth sort
+  var faces = [];
+  for (var i = 0; i < R - 1; i++) {
+    for (var j = 0; j < Cl - 1; j++) {
+      var v00 = ((STAGE[key] || {})[i + ',' + j]         !== undefined) ? STAGE[key][i + ',' + j]         : data[i][j];
+      var v01 = ((STAGE[key] || {})[i + ',' + (j+1)]     !== undefined) ? STAGE[key][i + ',' + (j+1)]     : data[i][j+1];
+      var v10 = ((STAGE[key] || {})[(i+1) + ',' + j]     !== undefined) ? STAGE[key][(i+1) + ',' + j]     : data[i+1][j];
+      var v11 = ((STAGE[key] || {})[(i+1) + ',' + (j+1)] !== undefined) ? STAGE[key][(i+1) + ',' + (j+1)] : data[i+1][j+1];
+      var p0 = pr(j,   i,   v00), p1 = pr(j+1, i,   v01);
+      var p2 = pr(j+1, i+1, v11), p3 = pr(j,   i+1, v10);
+      var av = Math.max(v00, v01, v11, v10);
+      // floor depth for painter sort
+      var dp0 = pr(j,i,zN), dp1 = pr(j+1,i,zN), dp2 = pr(j+1,i+1,zN), dp3 = pr(j,i+1,zN);
+      var dz = (dp0[2] + dp1[2] + dp2[2] + dp3[2]) / 4;
+      // Lambert shading
+      var ux=p1[0]-p0[0], uy=p1[1]-p0[1], uz=p1[2]-p0[2];
+      var vx=p3[0]-p0[0], vy=p3[1]-p0[1], vz=p3[2]-p0[2];
+      var nx=uy*vz-uz*vy, ny=uz*vx-ux*vz, nz=ux*vy-uy*vx;
+      var nl = Math.sqrt(nx*nx+ny*ny+nz*nz) || 1;
+      var lam = Math.abs((nx*-0.35+ny*-0.55+nz*0.76)/nl);
+      var isStagedFace = (STAGE[key]||{})[i+','+j] !== undefined ||
+                         (STAGE[key]||{})[i+','+(j+1)] !== undefined ||
+                         (STAGE[key]||{})[(i+1)+','+j] !== undefined ||
+                         (STAGE[key]||{})[(i+1)+','+(j+1)] !== undefined;
+      faces.push({ p: [p0,p1,p2,p3], z: dz, v: av, sh: 0.55 + 0.45 * lam, staged: isStagedFace });
+    }
+  }
+  faces.sort(function(a, b) { return a.z - b.z; });
+
+  for (var f = 0; f < faces.length; f++) {
+    var fc = faces[f];
+    ctx.beginPath();
+    ctx.moveTo(fc.p[0][0], fc.p[0][1]);
+    for (var k = 1; k < 4; k++) ctx.lineTo(fc.p[k][0], fc.p[k][1]);
+    ctx.closePath();
+    var nm = (fc.v - zN) / (zX - zN);
+    ctx.fillStyle = shadeRGBA(heat(nm), fc.sh);
+    ctx.fill();
+    if (fc.staged) { ctx.strokeStyle = 'rgba(245,166,35,0.9)'; ctx.lineWidth = 1.5; }
+    else           { ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; }
+    ctx.stroke();
+  }
+
+  // axes
+  var o3 = pr(0,0,zN), x3 = pr(Cl-1,0,zN), y3 = pr(0,0,zX), z3 = pr(0,R-1,zN);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = '#ff3333'; ctx.beginPath(); ctx.moveTo(o3[0],o3[1]); ctx.lineTo(x3[0],x3[1]); ctx.stroke();
+  ctx.strokeStyle = '#3399ff'; ctx.beginPath(); ctx.moveTo(o3[0],o3[1]); ctx.lineTo(y3[0],y3[1]); ctx.stroke();
+  ctx.strokeStyle = '#33ff33'; ctx.beginPath(); ctx.moveTo(o3[0],o3[1]); ctx.lineTo(z3[0],z3[1]); ctx.stroke();
+  ctx.font = cfont(1); ctx.lineWidth = 1;
+
+  // X axis label (RPM) — rotated to follow the axis direction on screen
+  var xAngle = Math.atan2(x3[1] - o3[1], x3[0] - o3[0]);
+  ctx.save();
+  ctx.translate(x3[0] + Math.cos(xAngle) * 14, x3[1] + Math.sin(xAngle) * 14);
+  ctx.rotate(xAngle);
+  ctx.fillStyle = '#ff5555'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(xAxis.units || 'RPM', 0, 0);
+  ctx.restore();
+
+  // depth axis label (VAL) — rotated to follow its axis direction
+  var yAngle = Math.atan2(y3[1] - o3[1], y3[0] - o3[0]);
+  ctx.save();
+  ctx.translate(y3[0] + Math.cos(yAngle) * 14, y3[1] + Math.sin(yAngle) * 14);
+  ctx.rotate(yAngle);
+  ctx.fillStyle = '#5599ff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('VAL', 0, 0);
+  ctx.restore();
+
+  // Z axis label (Load/TPS) — vertical, normal upright text
+  ctx.fillStyle = '#55cc55'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText(yAxis.units || 'TPS', z3[0] + 4, z3[1] - 6);
+  ctx.font = cfont(0.82); ctx.fillStyle = '#8a8a90';
+  var rpmS = rpm.slice().sort(function(a,b){return (a||0)-(b||0);});
+  var lodS = lod.slice().sort(function(a,b){return (a||0)-(b||0);});
+  for (var j = 0; j < Cl; j += 2) { var pp = pr(j,R-1,zN); ctx.fillText(rpmS[j]!==undefined?rpmS[j]:j, pp[0]-8, pp[1]+11); }
+  for (var i = 0; i < R;  i += 2) { var pp = pr(0,i,zN);   ctx.fillText(lodS[i]!==undefined?lodS[i]:i, pp[0]-26, pp[1]+3); }
+}
+
+// ── bar chart for 1D maps (rows=1 or cols=1) ────────────────────────────────
+function drawBar1D(key) {
+  var cv = document.getElementById('c3-' + key);
+  if (!cv) return;
+  var m = MAPS_DATA[key];
+  var ctx = setupCanvas(cv);
+  var W = cv._lw, H = cv._lh;
+  var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, '#0e0e13'); bgGrad.addColorStop(1, '#060608');
+  ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
+
+  // flatten to a 1D array of { label, val }
+  var xAxis = AXES_DATA[m.xaxis] || { data: [] };
+  var yAxis = m.yaxis ? (AXES_DATA[m.yaxis] || { data: [] }) : { data: [] };
+  var items = [];
+  if (m.rows === 1) {
+    for (var ci = 0; ci < m.cols; ci++) {
+      var stk = '0,' + ci;
+      var val = (STAGE[key] || {})[stk] !== undefined ? STAGE[key][stk] : m.data[0][ci];
+      items.push({ label: xAxis.data[ci] !== undefined ? String(xAxis.data[ci]) : String(ci), val: val, stk: stk });
+    }
+  } else {
+    for (var ri = 0; ri < m.rows; ri++) {
+      var stk = ri + ',0';
+      var val = (STAGE[key] || {})[stk] !== undefined ? STAGE[key][stk] : m.data[ri][0];
+      items.push({ label: yAxis.data[ri] !== undefined ? String(yAxis.data[ri]) : String(ri), val: val, stk: stk });
+    }
+  }
+
+  var n = items.length;
+  if (!n) return;
+  var mn = Math.min.apply(null, items.map(function(x){ return x.val; }));
+  var mx = Math.max.apply(null, items.map(function(x){ return x.val; }));
+  if (mx === mn) mx = mn + 1;
+
+  var padL = 14 + CANVAS_FS * 2.2, padR = 12, padT = 8 + CANVAS_FS, padB = 14 + CANVAS_FS * 1.4;
+  var bW = Math.floor((W - padL - padR) / n) - 4;
+  var range = getRange(m.units, m.data);
+
+  items.forEach(function(item, idx) {
+    var t = (item.val - mn) / (mx - mn);
+    var barH = Math.max(4, Math.round(t * (H - padT - padB)));
+    var x = padL + idx * ((W - padL - padR) / n) + 2;
+    var y = H - padB - barH;
+    var isStaged = (STAGE[key] || {})[item.stk] !== undefined;
+    ctx.fillStyle = isStaged ? 'rgba(160,120,0,0.85)' : cellBg(item.val, range);
+    ctx.fillRect(x, y, bW, barH);
+    if (isStaged) { ctx.strokeStyle = 'rgba(245,166,35,0.9)'; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, bW, barH); }
+    // value label on top
+    ctx.font = cfont(0.92); ctx.fillStyle = '#d8d8dc'; ctx.textAlign = 'center';
+    ctx.fillText(item.val.toFixed(0), x + bW / 2, y - 4);
+    // axis label at bottom
+    ctx.font = cfont(0.82); ctx.fillStyle = '#8a8a90';
+    ctx.fillText(item.label, x + bW / 2, H - padB + CANVAS_FS + 2);
+  });
+
+  // Y axis ticks
+  ctx.textAlign = 'right'; ctx.fillStyle = '#8a8a90'; ctx.font = cfont(0.82);
+  [0, 0.5, 1].forEach(function(t) {
+    var v = mn + t * (mx - mn);
+    var y = H - padB - Math.round(t * (H - padT - padB));
+    ctx.fillText(v.toFixed(0), padL - 5, y + 3);
+    ctx.strokeStyle = 'rgba(120,150,200,0.07)'; ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+  });
+}
+
+// ── color (table cell background) ───────────────────────────────────────────
+function cellBg(val, range) {
+  var t = Math.max(0, Math.min(1, (val - range.mn) / (range.mx - range.mn)));
+  // dark blue → teal → amber → red
+  var stops = [[10,25,60],[10,80,120],[30,130,90],[160,130,20],[200,50,20],[180,10,10]];
+  var seg = t * (stops.length - 1);
+  var i = Math.min(Math.floor(seg), stops.length - 2);
+  var f = seg - i;
+  var r = Math.round(stops[i][0] + f * (stops[i+1][0] - stops[i][0]));
+  var g = Math.round(stops[i][1] + f * (stops[i+1][1] - stops[i][1]));
+  var b = Math.round(stops[i][2] + f * (stops[i+1][2] - stops[i][2]));
+  return 'rgb(' + r + ',' + g + ',' + b + ')';
+}
+
+function computeDataRange(data) {
+  var mn = Infinity, mx = -Infinity;
+  (data || []).forEach(function(row) {
+    (Array.isArray(row) ? row : [row]).forEach(function(v) {
+      var n = parseFloat(v); if (!isNaN(n)) { mn = Math.min(mn, n); mx = Math.max(mx, n); }
+    });
+  });
+  if (!isFinite(mn)) return MAP_RANGES.dflt;
+  var span = mx - mn; if (span < 1) { mn -= 1; mx += 1; }
+  return { mn: mn, mx: mx };
+}
+
+function getRange(units, data) {
+  if (!units) return computeDataRange(data);
+  var u = units.toLowerCase();
+  if (u.indexOf('fuel') >= 0) return MAP_RANGES.fuel;
+  if (u.indexOf('timing') >= 0 || u.indexOf('spark') >= 0 || u.indexOf('degree') >= 0) return MAP_RANGES.timing;
+  return computeDataRange(data);
+}
+
+// ── inline cell edit ─────────────────────────────────────────────────────────
+var _activeInp = null;
+function onCellClick(e) {
+  var td = e.currentTarget;
+  if (td.querySelector('input')) return;
+  var key = td.dataset.key, ri = parseInt(td.dataset.ri), ci = parseInt(td.dataset.ci);
+  var stk = ri + ',' + ci;
+  var isNew = (STAGE[key] || {})[stk] === undefined;
+  if (isNew) {
+    var total = Object.values(STAGE).reduce(function(s,m){ return s + Object.keys(m).length; }, 0);
+    if (total >= MAX_STAGE) { toast('Max ' + MAX_STAGE + ' cells staged'); return; }
+  }
+  var curVal = isNew ? parseFloat(td.dataset.orig) : STAGE[key][stk];
+  var inp = document.createElement('input');
+  inp.type = 'number'; inp.value = curVal.toFixed(0); inp.step = '1';
+  td.appendChild(inp); inp.focus(); inp.select();
+  _activeInp = inp;
+
+  function commit() {
+    var v = parseFloat(inp.value);
+    inp.remove(); _activeInp = null;
+    if (isNaN(v)) return;
+    if (!STAGE[key]) STAGE[key] = {};
+    STAGE[key][stk] = v;
+    td.textContent = v.toFixed(0);
+    td.classList.add('staged');
+    td.style.background = cellBg(v, getRange(MAPS_DATA[key].units));
+    redrawViz(key);
+    updateBurnBar();
+    updateBadge(key);
+  }
+  function cancel() { inp.remove(); _activeInp = null; }
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); commit(); }
+    if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
+  });
+  e.stopPropagation();
+}
+document.addEventListener('click', function() { if (_activeInp) _activeInp.blur(); });
+
+// ── hover tooltip ─────────────────────────────────────────────────────────────
+var _tip = document.getElementById('cellTip');
+function onCellEnter(e) {
+  var td = e.currentTarget;
+  var key = td.dataset.key, ri = parseInt(td.dataset.ri), ci = parseInt(td.dataset.ci);
+  var m = MAPS_DATA[key];
+  var xAxis = AXES_DATA[m.xaxis] || { data: [], units: '' };
+  var yAxis = AXES_DATA[m.yaxis] || { data: [], units: '' };
+  var stk = ri + ',' + ci;
+  var val = (STAGE[key] || {})[stk] !== undefined ? STAGE[key][stk] : m.data[ri][ci];
+  _tip.innerHTML =
+    (xAxis.units || 'X') + ': <b>' + (xAxis.data[ci] !== undefined ? xAxis.data[ci] : ci) + '</b>  ' +
+    (yAxis.units || 'Y') + ': <b>' + (yAxis.data[ri] !== undefined ? yAxis.data[ri] : ri) + '</b>  ' +
+    'val: <b>' + val.toFixed(1) + '</b>' +
+    ((STAGE[key] || {})[stk] !== undefined ? '  <span style="color:var(--staged)">staged</span>' : '');
+  _tip.style.display = 'block';
+}
+function onCellLeave()  { _tip.style.display = 'none'; }
+function onCellMove(e)  { _tip.style.left = (e.clientX + 14) + 'px'; _tip.style.top = (e.clientY - 30) + 'px'; }
+
+// ── burn / reset ──────────────────────────────────────────────────────────────
+function updateBurnBar() {
+  var total = Object.values(STAGE).reduce(function(s,m){ return s + Object.keys(m).length; }, 0);
+  document.getElementById('stageCount').textContent = total ? total + ' cell' + (total===1?'':'s') + ' staged' : '';
+  document.getElementById('burnBtn').disabled = !total;
+  document.getElementById('resetBtn').disabled = !total;
+}
+
+function updateBadge(key) {
+  var badge = document.getElementById('badge-' + key);
+  if (!badge) return;
+  var n = Object.keys(STAGE[key] || {}).length;
+  if (n) { badge.textContent = n + ' staged'; badge.classList.add('vis'); }
+  else   { badge.textContent = ''; badge.classList.remove('vis'); }
+}
+
+async function burnStaged() {
+  if (!CUR_SESSION) return;
+  var changes = [];
+  for (var mk in STAGE)
+    for (var stk in STAGE[mk]) {
+      var p = stk.split(',');
+      changes.push({ map: mk, ri: parseInt(p[0]), ci: parseInt(p[1]), val: STAGE[mk][stk] });
+    }
+  if (!changes.length) return;
+  document.getElementById('burnBtn').disabled = true;
+  try {
+    var r = await fetch('/tuner/burn', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session: CUR_SESSION, changes: changes })
+    });
+    var d = await r.json();
+    if (d.ok) {
+      toast('Burned ' + changes.length + ' cell' + (changes.length===1?'':'s') + ' to ECU');
+      STAGE = {}; updateBurnBar();
+      await loadSession(CUR_SESSION);
+    } else {
+      toast('Burn failed: ' + (d.error || '?'), true);
+      document.getElementById('burnBtn').disabled = false;
+    }
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+    document.getElementById('burnBtn').disabled = false;
+  }
+}
+
+function resetStaged() {
+  STAGE = {}; updateBurnBar();
+  Object.keys(MAPS_DATA).forEach(function(key) {
+    var m = MAPS_DATA[key], range = getRange(m.units, m.data);
+    var block = document.getElementById('block-' + key);
+    if (!block) return;
+    block.querySelectorAll('td[data-key]').forEach(function(td) {
+      var ri = parseInt(td.dataset.ri), ci = parseInt(td.dataset.ci);
+      var v = m.data[ri][ci];
+      td.textContent = v.toFixed(0); td.classList.remove('staged');
+      td.style.background = cellBg(v, range);
+    });
+    redrawViz(key);
+    updateBadge(key);
+  });
+}
+
+function redrawViz(key) {
+  var m = MAPS_DATA[key];
+  if (m.rows === 1 || m.cols === 1) drawBar1D(key);
+  else drawSurf3D(key);
+}
+
+// ── utils ─────────────────────────────────────────────────────────────────────
+function setMsg(txt) { document.getElementById('main').innerHTML = '<div class="state-msg">' + txt + '</div>'; }
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'); }
+
+var _toastTimer;
+function toast(msg, err) {
+  var el = document.getElementById('toast');
+  el.textContent = msg; el.style.borderColor = err ? 'var(--rd)' : 'var(--ac)';
+  el.classList.add('show'); clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 3000);
+}
+
+document.addEventListener('click', function(e) {
+  var nm = document.getElementById('navMenu');
+  if (nm && !nm.contains(e.target)) document.getElementById('navDrop').classList.remove('open');
+});
+
+// ── global font scale (header slider) ────────────────────────────────────────
+function setFontScale(v) {
+  document.documentElement.style.setProperty('--fs-base', v);
+  try { localStorage.setItem('me_fs', v); } catch(e) {}
+}
+
+// ── per-font panel ───────────────────────────────────────────────────────────
+var FONT_VARS = [
+  { v: '--px-xl',   label: 'Logo / selects',      def: 11 },
+  { v: '--px-lg',   label: 'Toast / notifications', def: 10, preview: function(){ toastPreview('Toast preview — ' + document.getElementById('fp---px-lg').value + 'px'); } },
+  { v: '--px-cell', label: 'Table cells',          def: 9  },
+  { v: '--px-md',   label: 'UI / burn bar',        def: 8  },
+  { v: '--px-sm',   label: 'Badges / tooltip',     def: 7  },
+  { v: '--px-xs',   label: 'Axis labels / meta',   def: 6  },
+  { v: 'canvas',    label: 'Chart text (3D/bars)', def: 11 }
+];
+
+var _toastPreviewTimer;
+function toastPreview(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg; el.style.borderColor = 'var(--ac)';
+  el.classList.add('show');
+  clearTimeout(_toastTimer); clearTimeout(_toastPreviewTimer);
+  _toastPreviewTimer = setTimeout(function(){ el.classList.remove('show'); }, 2000);
+}
+
+function applyFont(varName, val) {
+  if (varName === 'canvas') { CANVAS_FS = parseFloat(val) || 11; redrawAllViz(); }
+  else document.documentElement.style.setProperty(varName, val);
+}
+
+function saveFonts() {
+  var obj = {};
+  FONT_VARS.forEach(function(f) {
+    var inp = document.getElementById('fp-' + f.v);
+    if (inp) obj[f.v] = inp.value;
+  });
+  try { localStorage.setItem('me_fonts', JSON.stringify(obj)); } catch(e) {}
+}
+
+function buildFontPanel() {
+  var body = document.getElementById('fpBody');
+  var foot = body.querySelector('.fp-foot');
+  FONT_VARS.forEach(function(f) {
+    var row = document.createElement('div');
+    row.className = 'fp-row';
+    var lbl = document.createElement('label');
+    lbl.textContent = f.label;
+    var inp = document.createElement('input');
+    inp.type = 'number'; inp.min = '3'; inp.max = '48'; inp.step = '0.5';
+    inp.id = 'fp-' + f.v; inp.value = f.def;
+    inp.addEventListener('input', (function(fv, fp) { return function() { applyFont(fv, this.value); saveFonts(); if (fp) fp(); }; })(f.v, f.preview || null));
+    row.appendChild(lbl); row.appendChild(inp);
+    body.insertBefore(row, foot);
+  });
+}
+
+function loadFonts() {
+  var saved = {};
+  try { saved = JSON.parse(localStorage.getItem('me_fonts') || '{}'); } catch(e) {}
+  FONT_VARS.forEach(function(f) {
+    var val = saved[f.v] !== undefined ? saved[f.v] : f.def;
+    var inp = document.getElementById('fp-' + f.v);
+    if (inp) inp.value = val;
+    applyFont(f.v, val);
+  });
+}
+
+function resetFonts() {
+  FONT_VARS.forEach(function(f) {
+    var inp = document.getElementById('fp-' + f.v);
+    if (inp) inp.value = f.def;
+    applyFont(f.v, f.def);
+  });
+  saveFonts();
+}
+
+function toggleFontPanel(force) {
+  var p = document.getElementById('fontPanel'), b = document.getElementById('fpBtn');
+  var open = (force === undefined) ? !p.classList.contains('open') : force;
+  p.classList.toggle('open', open);
+  b.classList.toggle('on', open);
+}
+
+// draggable panel via its header
+(function() {
+  var head = document.getElementById('fpHead'), panel = document.getElementById('fontPanel');
+  var dragging = false, ox = 0, oy = 0;
+  head.addEventListener('mousedown', function(e) {
+    dragging = true;
+    var r = panel.getBoundingClientRect();
+    ox = e.clientX - r.left; oy = e.clientY - r.top;
+    panel.style.right = 'auto'; panel.style.left = r.left + 'px'; panel.style.top = r.top + 'px';
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!dragging) return;
+    panel.style.left = (e.clientX - ox) + 'px';
+    panel.style.top  = (e.clientY - oy) + 'px';
+  });
+  document.addEventListener('mouseup', function() { dragging = false; });
+})();
+
+// redraw canvases crisply on viewport resize (DPR / size changes)
+var _rzTimer;
+window.addEventListener('resize', function() { clearTimeout(_rzTimer); _rzTimer = setTimeout(redrawAllViz, 150); });
+
+// ── init ─────────────────────────────────────────────────────────────────────
+(function init() {
+  // restore global slider
+  try {
+    var savedScale = localStorage.getItem('me_fs');
+    if (savedScale) { document.getElementById('fsSlider').value = savedScale; setFontScale(savedScale); }
+  } catch(e) {}
+  buildFontPanel();
+  loadFonts();
+  loadSessions();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<!-- DEV NOTE: All code, comments, variable names, and UI strings in this file must
+     be written in English. If you are an AI agent making changes: write everything
+     in English — identifiers, inline comments, docstrings, frontend labels.
+     Spanish is only acceptable in user-facing UI text where the end user speaks Spanish. -->
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Launch Analysis — Buell</title>
+<style>
+:root{--bg:#0a0a0b;--p:#111114;--bd:#1e1e24;--ac:#e8420a;--a2:#f5a623;--bl:#3d9eff;--gn:#2cdd6e;--dm:#55555e;--tx:#c8c8cc;--rd:#ff4444;--mn:'JetBrains Mono',monospace}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--tx);font-family:'JetBrains Mono',monospace;font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+
+/* ── Header ───────────────────────────────────────────────── */
+.hdr{background:var(--p);border-bottom:2px solid var(--ac);padding:6px 12px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.hdr-title{font-size:13px;font-weight:900;color:#fff;font-family:var(--mn);letter-spacing:.04em}
+.nav-menu{position:relative;flex-shrink:0}
+.nav-menu-btn{font-size:18px;color:var(--dm);cursor:pointer;padding:4px 10px;border:1px solid var(--bd);border-radius:2px;background:none;font-family:var(--mn);letter-spacing:0}
+.nav-menu-btn:hover{color:var(--bl);border-color:var(--bl)}
+.nav-menu-drop{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--p);border:1px solid var(--bd);border-radius:3px;padding:4px;min-width:180px;z-index:999}
+.nav-menu-drop.open{display:block}
+.nav-menu-drop a{display:block;font-family:var(--mn);font-size:12px;color:var(--dm);text-decoration:none;padding:10px 14px;border-radius:2px}
+.nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-menu-drop a.active{color:var(--ac);background:rgba(255,255,255,.06)}
+
+/* ── Session selectors bar ────────────────────────────────── */
+.controls{background:var(--p);border-bottom:1px solid var(--bd);padding:6px 12px;display:flex;gap:8px;align-items:center;flex-shrink:0;flex-wrap:wrap}
+.ctrl-group{display:flex;flex-direction:column;gap:2px;flex:1;min-width:110px;max-width:240px}
+.ctrl-group label{font-family:var(--mn);font-size:7px;color:var(--a2);letter-spacing:.12em;text-transform:uppercase}
+.ctrl-group select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:10px;padding:4px 6px;border-radius:2px;width:100%;cursor:pointer}
+.btn-compare{font-family:var(--mn);font-size:10px;font-weight:700;background:var(--ac);color:#fff;border:none;padding:6px 14px;border-radius:2px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;flex-shrink:0;align-self:flex-end}
+.btn-compare:hover{filter:brightness(1.15)}
+.btn-compare:disabled{opacity:.4;cursor:default}
+.status{font-family:var(--mn);font-size:9px;color:var(--dm);margin-left:auto;white-space:nowrap;align-self:center}
+.status.err{color:var(--rd)}.status.ok{color:var(--gn)}
+
+/* ── Pairs strip: horizontal scrollable chips ─────────────── */
+.pairs-strip{flex-shrink:0;border-bottom:1px solid var(--bd);padding:5px 12px;display:none;overflow-x:auto;overflow-y:hidden;white-space:nowrap;background:var(--bg)}
+.pairs-strip.visible{display:block}
+.pair-chip{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border:1px solid var(--bd);border-left:3px solid transparent;border-radius:2px;background:var(--p);cursor:pointer;font-family:var(--mn);font-size:9px;color:var(--dm);transition:border-color .12s,color .12s;vertical-align:top;margin-right:5px;white-space:nowrap}
+.pair-chip:hover{border-color:var(--bl);color:var(--tx)}
+.pair-chip.active{border-left-color:var(--ac);border-color:var(--ac);color:#fff}
+.pair-chip-gear{font-size:14px;font-weight:900;color:var(--a2)}
+.pair-chip-cond{color:var(--tx)}
+.pair-chip-score{font-size:8px;opacity:.7}
+.pair-chip-env{font-size:8px;color:var(--bl)}
+.no-pairs{display:inline-block;font-family:var(--mn);font-size:9px;color:var(--dm);padding:2px 0}
+
+/* ── Chart area: protagonist ──────────────────────────────── */
+.chart-area{flex:1;min-height:0;display:none;flex-direction:column;padding:8px 12px 6px;gap:5px}
+.chart-area.visible{display:flex}
+
+/* toolbar: pair label + metric toggles */
+.chart-toolbar{flex-shrink:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.chart-pair-label{font-family:var(--mn);font-size:9px;color:var(--dm);flex-shrink:0;padding-right:6px;border-right:1px solid var(--bd)}
+.metric-toggles{display:flex;gap:4px;flex-wrap:wrap}
+.mtog{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--bd);border-radius:2px;background:var(--bg);font-family:var(--mn);font-size:9px;color:var(--dm);cursor:pointer;transition:all .12s;user-select:none}
+.mtog:hover{border-color:var(--mc,#fff);color:var(--mc,#fff)}
+.mtog.active{border-color:var(--mc,#fff);color:var(--mc,#fff);background:color-mix(in srgb,var(--mc,#fff) 10%,transparent)}
+.mtog-dot{width:7px;height:7px;border-radius:50%;background:var(--mc,#888);flex-shrink:0}
+.mtog:not(.active) .mtog-dot{background:var(--dm)}
+
+/* canvas wrapper fills remaining space */
+.chart-wrap{flex:1;min-height:0;position:relative}
+canvas#chart{position:absolute;top:0;left:0;width:100%;height:100%;display:block}
+
+/* footer: legend + delta */
+.chart-footer{flex-shrink:0;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.sess-legend{display:flex;gap:14px}
+.sleg{display:flex;align-items:center;gap:5px;font-family:var(--mn);font-size:9px;color:var(--dm)}
+.sleg-a{width:20px;height:2px;background:#ccc;display:inline-block;border-radius:1px}
+.sleg-b{width:20px;height:0;border-top:2px dashed #ccc;display:inline-block}
+.delta-row{font-family:var(--mn);font-size:9px;color:var(--dm)}
+.delta-row .pos{color:var(--gn)}.delta-row .neg{color:var(--rd)}
+
+/* conditions: compact 2-up row at the bottom */
+.cond-row-wrap{flex-shrink:0;display:flex;gap:6px;overflow-x:auto}
+.cond-box{background:var(--p);border:1px solid var(--bd);border-radius:2px;padding:5px 8px;min-width:130px;flex:1}
+.cond-box-label{font-family:var(--mn);font-size:7px;color:var(--dm);letter-spacing:.12em;text-transform:uppercase;margin-bottom:3px}
+.cond-row{display:flex;justify-content:space-between;font-family:var(--mn);font-size:9px;padding:1px 0;gap:8px}
+.cond-row .k{color:var(--dm)}.cond-row .v{color:#fff;font-weight:700}
+.fuel-bar-track{height:4px;background:#111;width:100%}
+.fuel-bar-fill{height:100%;width:0%;transition:width .8s ease,background .5s}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">LAUNCH ANALYSIS</div>
+<div class="nav-menu" id="navMenu">
+  <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
+  <div class="nav-menu-drop" id="navDrop">
+    <a href="/">Dashboard</a>
+    <a href="/session_events">Session Events</a>
+    <a href="/sessions_vs">Sessions VS</a>
+    <a href="/sessions_launch" class="active">Launch</a>
+    <a href="/tuner">Tuner</a>
+    <a href="/map-editor">Map Editor</a>
+    <a href="/gps_analysis">GPS Analysis</a>
+    <a href="/errorlog/viz">Errors</a>
+    <a href="/fuel">Fuel</a>
+  </div>
+</div>
+</div>
+<div class="fuel-bar-track"><div id="fuelFill" class="fuel-bar-fill"></div></div>
+
+<div class="controls">
+  <div class="ctrl-group">
+    <label>Session A (baseline)</label>
+    <select id="sA" onchange="maybeLoad()"></select>
+  </div>
+  <div class="ctrl-group">
+    <label>Session B (compare)</label>
+    <select id="sB" onchange="maybeLoad()"></select>
+  </div>
+  <button class="btn-compare" id="btnCompare" onclick="loadData()" disabled>Compare</button>
+  <div class="status" id="status">Select two sessions to compare launches.</div>
+</div>
+
+<!-- horizontal chip strip for matched pairs -->
+<div class="pairs-strip" id="pairsStrip"></div>
+
+<!-- chart protagonist: fills remaining viewport height -->
+<div class="chart-area" id="chartArea">
+  <div class="chart-toolbar">
+    <div class="chart-pair-label" id="chartPairLabel"></div>
+    <div class="metric-toggles" id="metricToggles"></div>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="chart"></canvas>
+  </div>
+  <div class="chart-footer">
+    <div class="sess-legend">
+      <div class="sleg"><span class="sleg-a"></span><span id="legA">Session A</span></div>
+      <div class="sleg"><span class="sleg-b"></span><span id="legB">Session B (dashed)</span></div>
+    </div>
+    <div class="delta-row" id="deltaRow"></div>
+  </div>
+  <div class="cond-row-wrap" id="condCompare"></div>
+</div>
+
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script>
+var DATA = null;
+var SESSIONS = [];
+var currentPairA = null;
+var currentPairB = null;
+
+var METRICS = {
+  rpm: { label:'RPM',   color:'#ff4444', field:'rpm', fmt:function(v){ return Math.round(v); } },
+  spd: { label:'km/h',  color:'#3d9eff', field:'spd', fmt:function(v){ return v.toFixed(0); } },
+  pw:  { label:'PW ms', color:'#f5a623', field:'pw',  fmt:function(v){ return v.toFixed(2); } },
+  tps: { label:'TPS %', color:'#2cdd6e', field:'tps', fmt:function(v){ return v.toFixed(1); } },
+  ae:  { label:'AE %',  color:'#c084fc', field:'ae',  fmt:function(v){ return v.toFixed(1); } },
+  alt: { label:'Alt m', color:'#84cc16', field:'alt', fmt:function(v){ return Math.round(v); } },
+};
+var activeMetrics = ['rpm', 'spd', 'pw'];
+
+// ── Init ─────────────────────────────────────────────────────────
+async function init() {
+  try {
+    var r = await fetch('/tuner/sessions');if(!r.ok)throw Error("HTTP "+r.status);var d=await r.json();
+    SESSIONS = (d.sessions || []).sort(function(a,b){ return b.created.localeCompare(a.created); });
+    var sA = document.getElementById('sA');
+    var sB = document.getElementById('sB');
+    var groups = {};
+    SESSIONS.forEach(function(s) {
+      var key = s.serial != null ? '#' + s.serial : 'Unknown';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(s);
+    });
+    var keys = Object.keys(groups).sort(function(a, b) {
+      var na = parseInt(a.replace('#','')), nb = parseInt(b.replace('#',''));
+      if (isNaN(na)) return 1; if (isNaN(nb)) return -1;
+      return na - nb;
+    });
+    [sA, sB].forEach(function(sel) {
+      keys.forEach(function(key) {
+        var grp = document.createElement('optgroup');
+        grp.label = 'Moto ' + key;
+        groups[key].forEach(function(s) {
+          var o = document.createElement('option');
+          o.value = s.id;
+          o.textContent = s.id + (s.created ? '  (' + s.created + ')' : '') + '  ' + (s.rides || 0) + 'r';
+          grp.appendChild(o);
+        });
+        sel.appendChild(grp);
+      });
+    });
+    if (SESSIONS.length >= 2) { sB.selectedIndex = 1; document.getElementById('btnCompare').disabled = false; }
+  } catch(e) { st('Failed to load sessions: ' + e, 'err'); }
+}
+
+function maybeLoad() {
+  var a = document.getElementById('sA').value;
+  var b = document.getElementById('sB').value;
+  document.getElementById('btnCompare').disabled = (!a || !b || a === b);
+}
+
+function st(msg, cls) {
+  var el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status' + (cls ? ' ' + cls : '');
+}
+
+// ── Load & render pairs ──────────────────────────────────────────
+async function loadData() {
+  var a = document.getElementById('sA').value;
+  var b = document.getElementById('sB').value;
+  if (!a || !b || a === b) { st('Select two different sessions.', 'err'); return; }
+  st('Computing launch analysis…');
+  document.getElementById('pairsStrip').innerHTML = '';
+  document.getElementById('pairsStrip').classList.remove('visible');
+  document.getElementById('chartArea').classList.remove('visible');
+
+  try {
+    var r = await fetch('/sessions_launch/data?a=' + encodeURIComponent(a) + '&b=' + encodeURIComponent(b) + '&t=' + Date.now());
+    if (!r.ok) { st('Server error ' + r.status, 'err'); return; }
+    DATA = await r.json();
+    if (DATA.error) { st('Error: ' + DATA.error, 'err'); return; }
+    renderPairs();
+    st((DATA.clusters_a||[]).length + ' clusters A · ' + (DATA.clusters_b||[]).length + ' clusters B · ' + (DATA.cluster_matches||[]).length + ' matched', 'ok');
+  } catch(e) { st('Network error: ' + e, 'err'); }
+}
+
+function gearLabel(g) { return g ? 'G' + g : 'G?'; }
+
+// Render matched pairs as horizontal chip strip
+function renderPairs() {
+  var matches = (DATA.cluster_matches || []).slice().sort(function(x,y){ return x[2]-y[2]; });
+  var ca = DATA.clusters_a || [];
+  var cb = DATA.clusters_b || [];
+  var strip = document.getElementById('pairsStrip');
+  strip.innerHTML = '';
+
+  if (!matches.length) {
+    var no = document.createElement('span');
+    no.className = 'no-pairs';
+    no.textContent = 'No matching conditions found.';
+    strip.appendChild(no);
+    strip.classList.add('visible');
+    return;
+  }
+
+  matches.forEach(function(m, idx) {
+    var a = ca.find(function(c){ return c.id === m[0]; });
+    var b = cb.find(function(c){ return c.id === m[1]; });
+    if (!a || !b) return;
+
+    var dist = m[2];
+    var qCol = dist < 0.3 ? 'var(--gn)' : dist < 0.7 ? 'var(--a2)' : 'var(--dm)';
+    var qMark = dist < 0.3 ? '●' : dist < 0.7 ? '◑' : '○';
+
+    var chip = document.createElement('div');
+    chip.className = 'pair-chip';
+    chip.onclick = (function(i, ma, mb){ return function(){ selectPair(i, ma, mb); }; })(idx, a, b);
+
+    var envParts = [];
+    if (a.pre_clt_mean != null) envParts.push(Math.round(a.pre_clt_mean) + '°C');
+    if (a.pre_alt_mean != null) envParts.push(Math.round(a.pre_alt_mean) + 'm');
+
+    chip.innerHTML =
+      '<span class="pair-chip-gear">' + gearLabel(a.gear) + '</span>' +
+      '<span class="pair-chip-cond">' + Math.round(a.mean_rpm) + ' rpm · ' + a.mean_tps.toFixed(1) + '% TPS</span>' +
+      '<span class="pair-chip-score" style="color:' + qCol + '">' + qMark + ' sim ' + dist.toFixed(2) + '</span>' +
+      (envParts.length ? '<span class="pair-chip-env">' + envParts.join(' · ') + '</span>' : '');
+
+    strip.appendChild(chip);
+  });
+
+  strip.classList.add('visible');
+}
+
+// ── Select pair & draw ───────────────────────────────────────────
+function selectPair(idx, a, b) {
+  document.querySelectorAll('.pair-chip').forEach(function(c,i){ c.classList.toggle('active', i===idx); });
+  currentPairA = a;
+  currentPairB = b;
+
+  var saId = document.getElementById('sA').value;
+  var sbId = document.getElementById('sB').value;
+  document.getElementById('legA').textContent = 'Session A — ' + saId.slice(0,6);
+  document.getElementById('legB').textContent = 'Session B — ' + sbId.slice(0,6) + ' (dashed)';
+  document.getElementById('chartPairLabel').textContent = gearLabel(a.gear) + ' · ~' + Math.round(a.mean_rpm) + ' rpm · ~' + a.mean_tps.toFixed(1) + '% TPS';
+
+  // Show chart area BEFORE drawing so canvas has correct clientWidth/clientHeight
+  document.getElementById('chartArea').classList.add('visible');
+
+  buildToggles();
+  // Draw on next frame so layout is flushed
+  requestAnimationFrame(function() {
+    drawChart(a, b);
+    renderConditions(a, b);
+    document.getElementById('chartArea').scrollIntoView({behavior:'smooth', block:'nearest'});
+  });
+}
+
+// ── Metric toggles ───────────────────────────────────────────────
+function buildToggles() {
+  var container = document.getElementById('metricToggles');
+  container.innerHTML = '';
+  Object.keys(METRICS).forEach(function(k) {
+    var m = METRICS[k];
+    var isActive = activeMetrics.indexOf(k) >= 0;
+    var btn = document.createElement('button');
+    btn.className = 'mtog' + (isActive ? ' active' : '');
+    btn.style.setProperty('--mc', m.color);
+    btn.dataset.key = k;
+    btn.innerHTML = '<span class="mtog-dot"></span>' + m.label;
+    btn.onclick = function(){ toggleMetric(k); };
+    container.appendChild(btn);
+  });
+}
+
+function toggleMetric(k) {
+  var idx = activeMetrics.indexOf(k);
+  if (idx >= 0) {
+    if (activeMetrics.length <= 1) return;
+    activeMetrics.splice(idx, 1);
+  } else {
+    activeMetrics.push(k);
+  }
+  buildToggles();
+  if (currentPairA && currentPairB) drawChart(currentPairA, currentPairB);
+}
+
+// ── Chart drawing ────────────────────────────────────────────────
+function drawChart(ca, cb) {
+  var canvas = document.getElementById('chart');
+  var wrap   = canvas.parentElement;
+  var dpr    = window.devicePixelRatio || 1;
+  var W = wrap.clientWidth  || 600;
+  var H = wrap.clientHeight || 320;
+
+  // Set physical pixel dimensions; CSS width/height stay 100%/100% via stylesheet
+  canvas.width  = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  var active = activeMetrics.filter(function(k){ return METRICS[k]; });
+  var N = active.length;
+  if (!N) return;
+
+  var TM = 18, BM = 22, LM = 8, RM = 8;
+  var PW = W - LM - RM;
+  var PH = H - TM - BM;
+
+  // Per-metric Y scale from both sessions combined
+  var scales = {};
+  active.forEach(function(k) {
+    var field = METRICS[k].field;
+    var vals = [];
+    [ca.mean_series, cb.mean_series].forEach(function(arr) {
+      (arr || []).forEach(function(p) {
+        var v = p ? p[field] : null;
+        if (v != null) vals.push(v);
+      });
+    });
+    if (!vals.length) { scales[k] = {min:0, max:1}; return; }
+    var mn = Math.min.apply(null, vals);
+    var mx = Math.max.apply(null, vals);
+    var pad = Math.max((mx - mn) * 0.12, 0.5);
+    scales[k] = {min: mn - pad, max: mx + pad};
+  });
+
+  // Time range
+  var allT = [];
+  [ca.mean_series, cb.mean_series].forEach(function(s){
+    (s||[]).forEach(function(p){ if(p && p.dt != null) allT.push(p.dt); });
+  });
+  if (!allT.length) return;
+  var minT = Math.min.apply(null, allT);
+  var maxT = Math.max.apply(null, allT);
+  if (maxT === minT) maxT += 1;
+
+  function tx(t) { return LM + (t - minT) / (maxT - minT) * PW; }
+  function ty(k, v) {
+    var s = scales[k];
+    return TM + PH - (v - s.min) / (s.max - s.min) * PH;
+  }
+
+  // Pre-window shading (dt < 0)
+  if (minT < 0) {
+    ctx.fillStyle = 'rgba(255,255,255,0.018)';
+    ctx.fillRect(tx(minT), TM, tx(Math.min(0, maxT)) - tx(minT), PH);
+  }
+
+  // Horizontal grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.035)';
+  ctx.lineWidth = 1;
+  for (var g = 1; g <= 3; g++) {
+    var yg = TM + PH * g / 4;
+    ctx.beginPath(); ctx.moveTo(LM, yg); ctx.lineTo(LM + PW, yg); ctx.stroke();
+  }
+
+  // X-axis time ticks
+  ctx.font = '7px monospace'; ctx.textAlign = 'center';
+  [-3,-2,-1,0,1,2,3,4,5].forEach(function(t) {
+    if (t < minT - 0.1 || t > maxT + 0.1) return;
+    var x = tx(t);
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth = 1; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(x, TM); ctx.lineTo(x, TM + PH); ctx.stroke();
+    ctx.fillStyle = t === 0 ? 'rgba(232,66,10,0.8)' : 'rgba(255,255,255,0.3)';
+    ctx.fillText(t + 's', x, H - 6);
+  });
+
+  // Tip-in marker (t=0)
+  var x0 = tx(0);
+  ctx.strokeStyle = 'rgba(232,66,10,0.35)';
+  ctx.setLineDash([4,4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(x0, TM); ctx.lineTo(x0, TM + PH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Per-metric Y axes (one section each, left edge = axis) ────
+  // Axis line very subtle; only min/max labels, no tick marks
+  active.forEach(function(k, i) {
+    var m = METRICS[k];
+    var s = scales[k];
+    var axX = LM + (i / N) * PW;
+
+    // Faint colored axis line
+    ctx.strokeStyle = m.color;
+    ctx.globalAlpha = 0.14;
+    ctx.lineWidth = 1; ctx.setLineDash([]);
+    ctx.beginPath(); ctx.moveTo(axX, TM); ctx.lineTo(axX, TM + PH); ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    // Metric label at top
+    ctx.fillStyle = m.color;
+    ctx.globalAlpha = 0.9;
+    ctx.font = 'bold 7px monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(m.label, axX + 3, TM + 9);
+
+    // Min/max only — less clutter
+    ctx.font = '6px monospace';
+    ctx.globalAlpha = 0.55;
+    ctx.fillText(m.fmt(s.max), axX + 3, TM + 20);
+    ctx.fillText(m.fmt(s.min), axX + 3, TM + PH - 3);
+    ctx.globalAlpha = 1;
+  });
+
+  // ── Draw series curves ────────────────────────────────────────
+  // Session A: solid, 2.5px.  Session B: dashed, 2px, 80% alpha.
+  // No std deviation bands — cleaner.
+  function drawLine(series, metricKey, dashed) {
+    var field = METRICS[metricKey].field;
+    var color = METRICS[metricKey].color;
+    var pts = [];
+    (series || []).forEach(function(p) {
+      if (!p || p[field] == null) return;
+      pts.push({ t: p.dt, v: p[field] });
+    });
+    if (pts.length < 2) return;
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = dashed ? 1.8 : 2.5;
+    ctx.globalAlpha = dashed ? 0.72 : 1.0;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    if (dashed) ctx.setLineDash([6,4]);
+    ctx.beginPath();
+    pts.forEach(function(p, i) {
+      var x = tx(p.t), y = ty(metricKey, p.v);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  active.forEach(function(k) {
+    drawLine(ca.mean_series, k, false); // A: solid
+    drawLine(cb.mean_series, k, true);  // B: dashed
+  });
+}
+
+// ── Conditions comparison ────────────────────────────────────────
+function renderConditions(ca, cb) {
+  var saId = document.getElementById('sA').value.slice(0,6);
+  var sbId = document.getElementById('sB').value.slice(0,6);
+
+  function condBox(c, label) {
+    var rows = [
+      ['Gear',   gearLabel(c.gear)],
+      ['RPM',    Math.round(c.mean_rpm) + ' ±' + Math.round(c.rpm_std||0)],
+      ['TPS',    c.mean_tps.toFixed(1) + '% ±' + (c.tps_std||0).toFixed(1)],
+      ['Speed',  c.mean_spd.toFixed(0) + ' km/h'],
+      ['Events', c.count],
+    ];
+    if (c.pre_clt_mean  != null) rows.push(['CLT',    Math.round(c.pre_clt_mean)  + '°C']);
+    if (c.pre_alt_mean  != null) rows.push(['Alt',    Math.round(c.pre_alt_mean)  + ' m']);
+    if (c.peak_pw_mean  != null) rows.push(['PW pk',  c.peak_pw_mean.toFixed(3)   + ' ms']);
+    if (c.rpm_gain_mean != null) rows.push(['+RPM',  '+' + Math.round(c.rpm_gain_mean)
+      + (c.rpm_gain_std > 0 ? ' ±' + Math.round(c.rpm_gain_std) : '')]);
+    if (c.spd_gain_mean != null) rows.push(['+Spd',  '+' + c.spd_gain_mean.toFixed(1)
+      + (c.spd_gain_std > 0 ? ' ±' + c.spd_gain_std.toFixed(1) : '') + ' km/h']);
+    return '<div class="cond-box"><div class="cond-box-label">' + label + '</div>' +
+      rows.map(function(r){
+        return '<div class="cond-row"><span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span></div>';
+      }).join('') + '</div>';
+  }
+
+  document.getElementById('condCompare').innerHTML = condBox(ca, 'A — ' + saId) + condBox(cb, 'B — ' + sbId);
+
+  // Delta summary line
+  var d = [];
+  function delta(label, va, vb, fmt, higherIsBetter) {
+    if (va == null || vb == null) return;
+    var diff = vb - va;
+    var cls = (diff > 0) === higherIsBetter ? 'pos' : 'neg';
+    d.push(label + ': <span class="' + cls + '">' + (diff > 0 ? '+' : '') + fmt(diff) + '</span>');
+  }
+  delta('ΔRPM gain', ca.rpm_gain_mean, cb.rpm_gain_mean, function(v){ return Math.round(v); }, true);
+  delta('ΔSpd gain', ca.spd_gain_mean, cb.spd_gain_mean, function(v){ return v.toFixed(1)+'km/h'; }, true);
+  delta('ΔPeak PW',  ca.peak_pw_mean,  cb.peak_pw_mean,  function(v){ return v.toFixed(3)+'ms'; }, true);
+  // Efficiency: speed gained per ms of peak PW (km/h · ms⁻¹). Valid when CLT is comparable between sessions.
+  if (ca.spd_gain_mean != null && ca.peak_pw_mean > 0.01 &&
+      cb.spd_gain_mean != null && cb.peak_pw_mean > 0.01) {
+    var effA = ca.spd_gain_mean / ca.peak_pw_mean;
+    var effB = cb.spd_gain_mean / cb.peak_pw_mean;
+    var dEff = effB - effA;
+    var pct  = (dEff / Math.abs(effA) * 100);
+    var cls  = dEff > 0 ? 'pos' : 'neg';
+    d.push('Eff(spd/PW): A=' + effA.toFixed(2) + ' B=' + effB.toFixed(2)
+      + ' → <span class="' + cls + '">' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '%</span>');
+  }
+  document.getElementById('deltaRow').innerHTML = d.length ? 'B vs A — ' + d.join(' · ') : '';
+}
+
+init();
+
+// Redraw chart on resize (debounced)
+var _resizeTimer = null;
+window.addEventListener('resize', function() {
+  clearTimeout(_resizeTimer);
+  _resizeTimer = setTimeout(function() {
+    if (currentPairA && currentPairB) drawChart(currentPairA, currentPairB);
+  }, 150);
+});
+</script>
+<script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>
+<script>
+(function(){fetch('/fuel/status').then(function(r){return r.json()}).then(function(d){
+  var el=document.getElementById('fuelFill');if(!el)return;
+  var pct=d.level_pct||0;
+  el.style.width=Math.min(pct,100)+'%';
+  el.style.background=pct>40?'#2ecc71':pct>18?'#f1c40f':'#e74c3c';
+  el.title=(d.level_L!=null?d.level_L.toFixed(1):'?');
+}).catch(function(){})})();
+</script>
+</body>
+</html>

@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Buell XB12X</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="/static/chart.umd.min.js"></script>
+<script src="/static/papaparse.min.js"></script>
+<style>
+:root{
+  --bg:#0a0a0b;--panel:#111114;--border:#1e1e24;
+  --accent:#e8420a;--accent2:#f5a623;--green:#2cdd6e;
+  --blue:#3d9eff;--dim:#55555e;--text:#c8c8cc;
+  --red:#ff4444;--mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;
+     font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+/* Scrollbar — dark theme, thin, hidden track */
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--dim)}
+*{scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+
+/* HEADER */
+.hdr{background:var(--panel);border-bottom:2px solid var(--accent);
+     padding:4px 10px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.hdr-row{display:flex;align-items:center;gap:8px;width:100%}
+.nav-menu{position:relative;flex-shrink:0}
+.nav-menu-btn{font-size:18px;color:var(--dim);cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:2px;background:none;font-family:var(--mono);letter-spacing:0}
+.nav-menu-btn:hover{color:var(--blue);border-color:var(--blue)}
+.nav-menu-drop{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:4px;min-width:180px;z-index:999}
+.nav-menu-drop.open{display:block}
+.nav-menu-drop a{display:block;font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:none;padding:10px 14px;border-radius:2px}
+.nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-menu-drop a.nav-tab.active{color:var(--accent);background:rgba(255,255,255,.06)}
+.nav-links a{font-family:var(--mono);font-size:8px;color:var(--dim);text-decoration:none;
+  border:1px solid var(--border);padding:2px 7px;border-radius:2px;letter-spacing:.06em;text-transform:uppercase}
+.nav-links a:hover{color:var(--blue);border-color:var(--blue)}
+.nav-links a.on{color:var(--accent);border-color:var(--accent)}
+.hdr-stats{display:flex;gap:0;flex:1;overflow:hidden}
+.hdr-comms{display:flex;gap:0;flex:1;overflow:hidden}
+.hs-sm{display:flex;flex-direction:row;align-items:center;padding:1px 6px 1px 2px;gap:2px;
+    border-right:1px solid var(--border);width:60px;height:33px;flex-shrink:0;box-sizing:border-box}
+.hs-sm:last-child{border-right:none}
+.hs-sm .hs-label,.hs .hs-label{font-family:var(--mono);color:var(--dim);letter-spacing:.12em;text-transform:uppercase;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;flex-shrink:0;line-height:1}
+.hs-sm .hs-val{font-size:20px;font-weight:700;line-height:1;flex:1;text-align:left}
+.hs{width:60px;height:33px;display:flex;flex-direction:row;align-items:center;gap:2px;padding:1px 6px 1px 2px;box-sizing:border-box;
+    border-right:1px solid var(--border);flex-shrink:0;overflow:hidden}
+.hs:last-child{border-right:none}
+.hs-val{font-size:24px;font-weight:900;line-height:1;flex:1;text-align:left}
+.ac{color:var(--accent)} .gn{color:var(--green)} .bl{color:var(--blue)}
+.wh{color:#fff}          .yw{color:var(--accent2)}
+.pill{padding:3px 7px;font-family:var(--mono);font-size:8px;border:1px solid;
+      letter-spacing:.1em;text-transform:uppercase;flex-shrink:0}
+.pill.on{color:var(--green);border-color:var(--green)}
+.pill.off{color:var(--dim);border-color:var(--border)}
+.pill.yw{color:var(--accent2);border-color:var(--accent2)}
+.pill-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+.pill-dot.on{background:var(--green);animation:blink 1.4s ease-in-out infinite}
+.pill-dot.yw{background:var(--accent2);animation:blink 2.2s ease-in-out infinite}
+.pill-dot.off{background:#333}
+.rdot{width:5px;height:5px;border-radius:50%;background:var(--green);
+      display:inline-block;animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+@media (max-width:600px){
+  .hdr{padding:4px 4px}
+  .hdr-row{gap:4px}
+  .hs,.hs-sm{flex:1;width:auto;min-width:0;flex-shrink:1}
+  .hs-val{font-size:20px}
+  .big-num{font-size:64px}
+}
+
+
+/* TABS */
+
+/* CONTENT */
+.content{flex:1;overflow-y:auto;overflow-x:hidden}
+.pane{display:none;padding:8px}
+.pane.active{display:block}
+
+/* BIG DISPLAY */
+.big-display{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.big-card{background:var(--panel);border:1px solid var(--border);
+          padding:5px 6px;display:flex;flex-direction:row;align-items:center;gap:6px;
+          border-top:2px solid var(--border)}
+.big-card.hot{border-top-color:var(--accent)}
+.big-card.tps{border-top-color:var(--blue)}
+.big-label{font-family:var(--mono);color:var(--dim);
+           letter-spacing:.12em;text-transform:uppercase;
+           writing-mode:vertical-rl;transform:rotate(180deg);
+           white-space:nowrap;flex-shrink:0;line-height:1}
+.big-num{font-size:80px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.big-unit{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:2px}
+.big-val-row{display:flex;align-items:baseline;gap:4px}
+.big-unit-inline{font-family:var(--mono);font-size:14px;color:var(--dim);font-weight:400;line-height:1}
+
+
+/* INDICADORES */
+.ind-row{display:flex;gap:6px;margin-bottom:8px}
+.ind{flex:1;background:var(--panel);padding:6px 8px;display:flex;align-items:center;
+     gap:6px;border:1px solid var(--border)}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:var(--green)}.dot.warn{background:var(--accent2)}.dot.bad{background:var(--red)}
+.ind-text{font-size:11px;line-height:1.3}
+.ind-val{font-family:var(--mono);font-weight:700;color:#fff}
+
+/* OBJETIVOS — una línea */
+.obj-row-compact{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.obj-chip{display:flex;flex-direction:column;flex:1;min-width:80px;
+          background:var(--panel);border:1px solid var(--border);
+          border-left:3px solid var(--dim);padding:5px 8px;border-radius:0 3px 3px 0}
+.obj-chip.done{border-left-color:var(--green)}
+.obj-chip.partial{border-left-color:var(--accent2)}
+.obj-chip-label{font-family:var(--mono);font-size:7px;color:var(--dim);
+                text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;
+                white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.obj-chip-pct{font-size:20px;font-weight:900;font-family:var(--mono);color:#fff}
+.obj-chip-sub{font-family:var(--mono);font-size:7px;color:var(--dim);margin-top:1px}
+.obj-bar{height:2px;background:rgba(255,255,255,.08);border-radius:1px;margin-top:3px}
+.obj-fill{height:2px;border-radius:1px;background:var(--accent2);transition:width .5s}
+.obj-fill.done{background:var(--green)}
+
+/* VE GRID */
+.grid-section{margin-bottom:4px}
+.grid-label{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.15em;
+             text-transform:uppercase;margin-bottom:6px}
+.grid-wrap{overflow-x:hidden;padding-bottom:4px}
+table.veg{border-collapse:collapse;font-family:var(--mono);white-space:nowrap}
+table.veg th{font-size:16px;color:var(--dim);padding:2px 3px;text-align:center;font-weight:700;min-width:22px}table.veg thead th:not(.rh){writing-mode:vertical-rl;transform:rotate(180deg)}
+table.veg th.rh{text-align:right;min-width:26px;padding-right:4px}
+table.veg td{width:32px;height:28px;border:1px solid rgba(255,255,255,.04);
+             text-align:center;vertical-align:middle;cursor:pointer;position:relative}
+table.veg td:active{filter:brightness(1.6)}
+.cv{font-size:8px;font-weight:700;line-height:1}
+.c0{background:#141417}.c1{background:#2a1f08}.c2{background:#3a3000}
+.c3{background:#0f2e0f}.c4{background:#0a420a}
+.ca{background:#3d0800 !important;animation:pulse .7s infinite alternate}
+@keyframes pulse{from{filter:brightness(1)}to{filter:brightness(2.2)}}
+
+/* LEYENDA */
+.legend{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;color:var(--dim)}
+.leg-dot{width:10px;height:10px;flex-shrink:0}
+
+/* CONFIG */
+.cfg-section{margin-bottom:14px}
+.cfg-title{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.15em;
+           text-transform:uppercase;margin-bottom:8px;padding-bottom:4px;
+           border-bottom:1px solid var(--border)}
+.cfg-textarea{width:100%;background:#0a0a0b;border:1px solid var(--border);
+              color:var(--text);font-family:var(--mono);font-size:10px;
+              padding:8px;resize:vertical;height:160px;border-radius:2px}
+.btn{display:inline-block;padding:6px 16px;background:transparent;
+     border:1px solid var(--border);color:var(--dim);font-family:var(--mono);
+     font-size:9px;cursor:pointer;text-transform:uppercase;letter-spacing:.1em;border-radius:2px}
+.btn:active{opacity:.7}
+.btn.p{border-color:var(--accent);color:var(--accent)}
+.btn.g{border-color:var(--green);color:var(--green)}
+.msq-drop{border:2px dashed var(--border);padding:16px;text-align:center;cursor:pointer;
+          font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em;border-radius:2px}
+.msq-drop.loaded{border-color:var(--green);color:var(--green)}
+.status-row{display:flex;align-items:center;gap:8px;padding:6px 0;
+            font-family:var(--mono);font-size:9px;color:var(--dim)}
+
+/* RIDES */
+.ride-item{background:var(--panel);border:1px solid var(--border);padding:8px 10px;
+           display:flex;justify-content:space-between;align-items:center;
+           margin-bottom:4px;transition:all .15s;cursor:pointer}
+.ride-item.selected{border-color:var(--accent2);background:rgba(245,166,35,.06)}
+.ride-item.disabled{opacity:.4;cursor:default}
+.ride-name{font-family:var(--mono);font-size:11px;color:#fff;font-weight:700}
+.ride-meta{font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:2px}
+.ride-check{width:16px;height:16px;border:1px solid var(--border);border-radius:2px;
+            display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0}
+.ride-item.selected .ride-check{border-color:var(--accent2);color:var(--accent2);background:rgba(245,166,35,.12)}
+
+/* RED / SISTEMA */
+.net-row{display:flex;gap:8px;margin-bottom:8px}
+.btn-net{flex:1;padding:10px 4px;border:1px solid var(--border);background:var(--panel);
+         color:var(--dim);font-family:var(--mono);font-size:9px;cursor:pointer;
+         text-transform:uppercase;text-align:center;transition:all .2s}
+.btn-net.on{border-color:var(--green);color:var(--green);background:rgba(44,221,110,.07)}
+.btn-net:active{opacity:.6}
+.btn-danger{width:100%;padding:12px;background:transparent;border:1px solid var(--red);
+            color:var(--red);font-family:var(--mono);font-size:10px;cursor:pointer;
+            text-transform:uppercase;margin-top:6px;letter-spacing:.1em}
+.btn-danger:active{background:rgba(255,68,68,.12)}
+.net-status{font-family:var(--mono);font-size:9px;padding:4px 0 8px;color:var(--dim);
+            display:flex;align-items:center;gap:6px}
+
+/* GRÁFICAS */
+.chart-wrap{background:var(--panel);border:1px solid var(--border);
+            padding:8px;margin-bottom:8px;border-radius:2px}
+.chart-title{font-family:var(--mono);font-size:8px;color:var(--dim);letter-spacing:.12em;
+             text-transform:uppercase;margin-bottom:6px;position:relative;display:flex;align-items:center;justify-content:space-between}
+.chart-cfg-btn{font-size:8px!important;padding:1px 5px!important;opacity:0.5;flex-shrink:0;margin-left:6px}
+.charts-scroll-outer{overflow-x:auto;overflow-y:visible;width:100%;margin-bottom:2px}
+.charts-scroll-inner{display:flex;flex-direction:column;gap:0}
+.chart-wrap .chart-inner{position:relative;width:100%;display:block}
+.chart-wrap .chart-inner canvas{display:block;width:100%;height:100%}
+#chartScrollbar{width:100%;height:14px;overflow-x:auto;overflow-y:hidden;margin-bottom:8px}
+#chartScrollbar div{height:1px;background:transparent}
+.gauge-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.gauge{flex:1;min-width:70px;background:var(--panel);border:1px solid var(--border);
+       padding:6px 8px;text-align:center;border-top:2px solid var(--border)}
+.gauge-label{font-family:var(--mono);font-size:7px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+.gauge-value{font-size:22px;font-weight:900;color:#fff;line-height:1.1}
+.gauge-unit{font-family:var(--mono);font-size:8px;color:var(--dim)}
+.chart-controls{display:flex;gap:6px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.range-wrap{flex:1;display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:9px;color:var(--dim)}
+.range-wrap input{flex:1;accent-color:var(--accent)}
+.graph-warn{font-family:var(--mono);font-size:10px;color:var(--dim);
+            padding:30px;text-align:center}
+
+/* VE placeholder */
+.coming-soon{display:flex;flex-direction:column;align-items:center;justify-content:center;
+             min-height:200px;gap:12px;color:var(--dim);text-align:center}
+.coming-soon p{font-family:var(--mono);font-size:10px;letter-spacing:.1em;line-height:1.8}
+
+/* BOTTOM SHEET */
+
+.sheet{background:#18181c;border-top:2px solid var(--accent);padding:16px;
+       width:100%;max-height:60vh;overflow-y:auto}
+.sheet-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:12px;
+             display:flex;justify-content:space-between;align-items:center}
+.sheet-close{font-size:20px;color:var(--dim);cursor:pointer;padding:4px}
+.sheet-row{display:flex;justify-content:space-between;padding:5px 0;
+           border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px}
+.sheet-key{color:var(--dim)}.sheet-val{color:#fff;font-weight:700}
+/* LAUNCH READY */
+.big-card.launch-clt{background:rgba(232,66,10,.1) !important}
+.big-card.launch-rpm{background:rgba(255,68,68,.1) !important}
+.big-card.launch-tps{background:rgba(61,158,255,.1) !important}
+.big-card.launch-ready{background:rgba(44,221,110,.15) !important;border-color:var(--green) !important}
+.big-card.launch-ready .big-num{color:var(--green) !important}
+@keyframes launchBarPulse{0%,100%{opacity:1}50%{opacity:.2}}
+.launch-bar.blink .launch-bar-fill{animation:launchBarPulse .33s ease-in-out infinite}
+.hs.launch-gear{background:rgba(170,136,255,.12) !important}
+.fuel-bar-track{height:4px;background:#111;width:100%}
+.fuel-bar-fill{height:100%;width:0%;transition:width .8s ease,background .5s}
+.wa-menu{display:none;position:absolute;inset:0;z-index:20;background:rgba(10,10,11,.96);
+  border-radius:inherit;flex-direction:column;justify-content:center;gap:2px;padding:10px 12px;
+  border:1px solid var(--border)}
+.wa-menu.open{display:flex}
+.wa-opt{font-family:var(--mono);font-size:11px;padding:6px 8px;cursor:pointer;
+  border-radius:2px;color:var(--dim);white-space:nowrap}
+.wa-opt:hover,.wa-opt.sel{background:rgba(255,255,255,.08);color:#fff}
+
+/* ── Configurable Graf panels ─────────────────────── */
+.chart-title{display:flex;align-items:center;gap:4px}
+.chart-title-text{flex:1}
+.chart-ctrl-btn{background:none;border:1px solid #2a2a2a;color:#555;font-size:11px;
+  cursor:pointer;padding:1px 5px;border-radius:3px;line-height:1.4;font-family:var(--mono)}
+.chart-ctrl-btn:hover{color:#ccc;border-color:#555}
+.chart-del-btn:hover{color:#f44;border-color:#f44}
+.signal-picker{background:#0d0d0d;border:1px solid #2a2a2a;border-top:none;
+  padding:6px;display:flex;flex-direction:column;gap:4px;width:100%;box-sizing:border-box}
+.picker-chips{display:flex;flex-wrap:wrap;gap:4px;min-height:18px}
+.sig-chip{font-size:9px;font-family:var(--mono);border:1px solid;border-radius:3px;
+  padding:1px 5px;cursor:pointer;color:#999;white-space:nowrap}
+.sig-chip:hover{background:#1a1a1a;color:#ddd}
+.picker-search-wrap{width:100%}
+.picker-search{width:100%;background:#0a0a0b;border:1px solid #2a2a2a;color:#aaa;
+  font-size:9px;font-family:var(--mono);padding:4px 6px;border-radius:2px;
+  outline:none;box-sizing:border-box}
+.picker-list{overflow-y:auto;max-height:150px}
+.picker-item{display:flex;align-items:center;gap:6px;padding:2px 4px;
+  font-size:9px;font-family:var(--mono);cursor:pointer;color:#666;user-select:none}
+.picker-item:hover,.picker-item.is-active{color:#ccc;background:#1a1a1a}
+.picker-item input{margin:0;cursor:pointer;accent-color:#4ab4ff}
+.picker-swatch{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.chart-add-wrap{padding:6px 0}
+.chart-add-btn{background:none;border:1px dashed #2a2a2a;color:#444;padding:4px 16px;
+  font-size:10px;font-family:var(--mono);cursor:pointer;border-radius:3px;letter-spacing:.05em}
+.chart-add-btn:hover{border-color:#555;color:#aaa}
+</style>
+<script>window.LOGGER_VERSION = "--LOGGER_VERSION--";</script>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr" id="hdrMain">
+  <div class="hdr-row" id="hdrLogoRow" style="justify-content:space-between">
+    <div id="hdrLogo" style="font-size:14px;font-weight:900;color:#fff;letter-spacing:.04em;display:flex;align-items:center;gap:8px">BUELL LOGGER<span id="hdrVersion" style="font-weight:400;color:#7df;font-size:11px">--LOGGER_VERSION--</span><span id="freezeIndicator" style="font-size:10px;font-weight:700;color:#2ecc71;margin-left:6px">OK</span><div id="hPill" class="pill-dot off" style="margin-left:6px"></div></div>
+    <div class="nav-menu" id="navMenu">
+      <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">☰</button>
+      <div class="nav-menu-drop" id="navDrop">
+        <a href="/graf2" target="_blank">Graf2 ⚡</a>
+        <a href="/session_events" target="_blank">Session Events</a>
+        <a href="/sessions_vs" target="_blank">Sessions VS</a>
+        <a href="/sessions_launch" target="_blank">Launch</a>
+        <a href="/tuner" target="_blank">Tuner</a>
+        <a href="/errorlog/viz" target="_blank">Errors</a>
+        <a href="/launch_power" target="_blank">Launch Power</a>
+        <a href="/gps_analysis" target="_blank">GPS Analysis</a>
+        <a href="/fuel" target="_blank">Fuel</a>
+        <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+        <a href="#" class="nav-tab active" data-tab="ride" onclick="showTab('ride');trackUsage('tab_ride')">Ride</a>
+        <a href="#" class="nav-tab" data-tab="rides" onclick="showTab('rides');trackUsage('tab_sesiones')">Sesiones</a>
+        <a href="#" class="nav-tab" data-tab="graph" onclick="showTab('graph');trackUsage('tab_graph')">Graf</a>
+        <a href="#" class="nav-tab" data-tab="ve" onclick="showTab('ve');trackUsage('tab_ve');if(!_mapsData)loadMaps()">VE</a>
+        <a href="#" class="nav-tab" data-tab="cfg" onclick="showTab('cfg');trackUsage('tab_config')">Config</a>
+        <a href="#" class="nav-tab" data-tab="net" onclick="showTab('net');loadNetPane();trackUsage('tab_redes')">Redes</a>
+        <a href="#" class="nav-tab" data-tab="map" onclick="showTab('map');loadMapPane();trackUsage('tab_map')">Mapa</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div class="fuel-bar-track"><div id="fuelFill" class="fuel-bar-fill"></div></div>
+<div id="ecuLostBanner" style="display:none;pointer-events:none;background:transparent;text-align:center;padding:6px 0 2px">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:2.2rem;font-weight:900;color:#e74c3c;letter-spacing:2px;line-height:1">
+    通信斷開
+  </div>
+  <div style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:#e74c3c;letter-spacing:3px;margin-top:2px">
+    ECU SIGNAL LOST · <span id="ecuLostSecs">0</span>s
+    · <span onclick="doReconnect()" style="cursor:pointer;text-decoration:underline;pointer-events:auto">RECONNECT</span>
+  </div>
+</div>
+
+<!-- ERROR LOG MODAL -->
+<div id="errorLogModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:9999;align-items:flex-start;justify-content:center;padding-top:40px" onclick="if(event.target===this)closeErrorLog()">
+  <div style="background:#1a1a1a;border:1px solid var(--border);padding:16px;width:90%;max-width:520px;border-radius:4px;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em" id="errLogModalTitle">ERROR LOG</div>
+      <span onclick="closeErrorLog()" style="cursor:pointer;color:var(--dim);font-size:14px;font-weight:bold">&times;</span>
+    </div>
+    <div id="errLogContent" style="font-family:var(--mono);font-size:10px;color:#ccc;min-height:60px">Cargando...</div>
+  </div>
+</div>
+
+<!-- TABS -->
+
+
+<!-- PANE RIDE -->
+<div class="pane active content" id="pane-ride" style="user-select:none;-webkit-user-select:none">
+  <!-- Row 1: bike params -->
+  <div class="hdr-row" id="hdrRowBike">
+    <div class="hdr-stats">
+      <div class="hs"><span class="hs-label">EGO</span><div class="hs-val gn" id="hEGO">--</div></div>
+      <div class="hs"><span class="hs-label">MAT</span><div class="hs-val bl" id="hMAT">--</div></div>
+      <div class="hs"><span class="hs-label">BAT</span><div class="hs-val yw" id="hBatt">--</div></div>
+      <div class="hs"><span class="hs-label">GER</span><div class="hs-val" id="hGear" style="color:#a8f">--</div></div>
+      <div class="hs"><span class="hs-label">RID</span><div class="hs-val wh" id="hRide">--</div></div>
+      <div class="hs"><span class="hs-label">SER</span><div class="hs-val" id="hSerial" style="color:#888">--</div></div>
+    </div>
+  </div>
+  <!-- Row 2: serial communication -->
+  <div class="hdr-row" id="hdrRowSerial">
+    <div class="hdr-comms">
+      <div class="hs-sm"><div class="hs-label">TTL</div><div class="hs-val gn" id="hTTL">--</div></div>
+      <div class="hs-sm"><div class="hs-label">BPS</div><div class="hs-val" id="hBPS" style="color:#888">--</div></div>
+      <div class="hs-sm"><div class="hs-label">BUF</div><div class="hs-val gn" id="hBuf">--</div></div>
+      <div class="hs-sm"><div class="hs-label">MEM</div><div class="hs-val gn" id="hMem">--</div></div>
+      <div class="hs-sm"><div class="hs-label">CPU</div><div class="hs-val gn" id="hCpu">--</div></div>
+      <div class="hs-sm"><div class="hs-label">TMP</div><div class="hs-val gn" id="hTemp">--</div></div>
+    </div>
+  </div>
+  <!-- Row 3: system -->
+  <div class="hdr-row" id="hdrRowSensor">
+    <div class="hdr-comms">
+      
+      <div class="hs-sm"><div class="hs-label">SAT</div><div class="hs-val gn" id="hSat">--</div></div>
+      <div class="hs-sm"><div class="hs-label">BAR</div><div class="hs-val gn" id="hBaro">--</div></div>
+      <div class="hs-sm"><div class="hs-label">AMB</div><div class="hs-val gn" id="hBaroTemp">--</div></div>
+            <div class="hs-sm"><div class="hs-label">HUM%</div><div class="hs-val gn" id="hHum">--</div></div>
+            <div class="hs-sm"><div class="hs-label">BAT</div><div class="hs-val gn" id="hBatPct"><span id="hBatPctVal">--</span><span id="hBatChg" style="font-size:11px;display:none;margin-left:2px">⚡</span></div></div>
+            <div class="hs-sm"><div class="hs-label">VLT</div><div class="hs-val gn" id="hBatV">--</div></div>
+
+    </div>
+  </div>
+  <div class="big-display" id="bigDisplay">
+    <div class="big-card hot" id="cardCHT">
+      <span class="big-label">CHT</span>
+      <div class="big-val-row">
+        <div class="big-num ac" id="bigCHT">--</div>
+        <span class="big-unit-inline">°C</span>
+      </div>
+    </div>
+    <div class="big-card" id="cardKPH" style="border-top-color:#2ecc71">
+      <span class="big-label">KPH</span>
+      <div class="big-val-row">
+        <div class="big-num" style="color:#2ecc71" id="bigKPH">--</div>
+        <span class="big-unit-inline">km/h</span>
+      </div>
+    </div>
+    <div class="big-card tps" id="cardTPS">
+      <span class="big-label">TPS</span>
+      <div>
+      <div class="big-val-row">
+        <div class="big-num bl" id="bigTPS">--</div>
+        <span class="big-unit-inline">%</span>
+      </div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:2px">
+        <span id="bigTPSPct" style="color:var(--blue);font-weight:700">--°</span>
+      </div>
+      </div>
+    </div>
+    <!-- RPM / configurable widget A (tap for menu) -->
+    <div class="big-card" id="cardWidgetA"
+         style="border-top-color:#ff4444;position:relative;cursor:pointer;user-select:none"
+         onclick="showWAMenu()">
+      <span class="big-label" id="waLabel">RPM</span>
+      <div class="big-val-row">
+        <div class="big-num" id="waVal" style="color:#ff4444">--</div>
+        <span class="big-unit-inline" id="waUnit">rpm</span>
+      </div>
+      <div id="waMenu" class="wa-menu"></div>
+    </div>
+  </div>
+  <!-- Launch progress bar -->
+  <div class="launch-bar" id="launchBar">
+    <div class="launch-bar-fill" id="launchBarFill"></div>
+  </div>
+
+  <div class="ind-row" id="indicators"></div>      <div class="grid-section" id="sectionGrid">
+    <div class="grid-wrap">
+      <table class="veg" id="cobertGrid"></table>
+    </div>
+    <div class="obj-row-compact" id="cobert-summary"></div>
+    <div class="btns" id="cobert-btns" style="display:flex;gap:3px;flex-wrap:wrap;margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">
+      <button class="btn cobert-btn active" data-mode="seconds" onclick="setCobertMode('seconds')" style="font-size:8px;padding:3px 6px;border-color:var(--accent2);color:var(--accent2)">Segundos</button>
+      <button class="btn cobert-btn" data-mode="ego" onclick="setCobertMode('ego')" style="font-size:8px;padding:3px 6px">EGO</button>
+      <button class="btn cobert-btn" data-mode="SWEET" onclick="setCobertMode('SWEET')" style="font-size:8px;padding:3px 6px;color:#7df">SWEET</button>
+      <button class="btn cobert-btn" data-mode="TIPOUT" onclick="setCobertMode('TIPOUT')" style="font-size:8px;padding:3px 6px;color:#fa3">TIPOUT</button>
+      <button class="btn cobert-btn" data-mode="confidence" onclick="setCobertMode('confidence')" style="font-size:8px;padding:3px 6px;color:#fa0">Confianza</button>
+      <button class="btn cobert-btn" data-mode="o2_adc" onclick="setCobertMode('o2_adc')" style="font-size:8px;padding:3px 6px;color:#a8f">O2 ADC</button>
+      <button class="btn cobert-btn" data-mode="WOT" onclick="setCobertMode('WOT')" style="font-size:8px;padding:3px 6px;color:#f74">WOT</button>
+    </div>
+  </div>
+  <div class="obj-row-compact" id="objList"></div>
+</div>
+
+  <!-- PANE RIDES -->
+<div class="pane content" id="pane-rides">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="cfg-title" style="margin:0;border:none;padding:0">Sesiones</div>
+    <button class="btn" onclick="loadSessions()">Actualizar</button>
+  </div>
+  <!-- Active ride banner — shown only during a ride -->
+  <div id="liveRideBanner" style="display:none;background:rgba(44,221,110,.08);
+       border:1px solid var(--green);border-radius:4px;padding:8px 10px;margin-bottom:10px;
+       font-family:var(--mono);font-size:9px;color:var(--green)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span>● RIDE ACTIVO — <span id="liveRideNum">---</span></span>
+      <button class="btn" style="font-size:9px;padding:3px 8px;color:var(--green);
+              border-color:var(--green)" onclick="openLiveRideGraph()">Ver Graf</button>
+    </div>
+    <div style="color:var(--dim);font-size:8px;margin-top:3px">Los rides anteriores están disponibles abajo</div>
+  </div>
+  <div id="ridesList">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--dim);padding:20px;text-align:center">Cargando...</div>
+  </div>
+</div>
+
+<!-- Modal nota de ride -->
+<div id="noteModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;
+     background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:#1a1a1a;border:1px solid var(--border);padding:16px;width:90%;max-width:360px;border-radius:4px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em;margin-bottom:8px" id="noteModalTitle">NOTA DEL RIDE</div>
+    <textarea id="noteText" style="width:100%;height:100px;background:#111;border:1px solid var(--border);
+              color:#fff;font-family:var(--mono);font-size:11px;padding:8px;resize:vertical;box-sizing:border-box"
+              placeholder="Escribe tus notas aquí..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn g" style="flex:1" onclick="saveNote()">Guardar</button>
+      <button class="btn" style="flex:1" onclick="closeNoteModal()">Cerrar</button>
+    </div>
+    <div id="noteStatus" style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:6px;min-height:12px"></div>
+  </div>
+</div>
+
+
+</div>
+<!-- /PANE NET -->
+
+<!-- PANE GRAPH -->
+<div class="pane content" id="pane-graph">
+  <div class="chart-controls" style="display:none">
+    <select id="graphRideSelect" style="flex:1;background:var(--bg);border:1px solid var(--border);
+            color:#fff;font-family:var(--mono);font-size:10px;padding:6px 8px">
+      <option value="">-- Selecciona un ride --</option>
+    </select>
+    <button class="btn p" onclick="loadGraphRide()">&#9654; Ver</button>
+  </div>
+  <!-- Chart ride title — always visible on top -->
+  <div id="graphRideTitle" style="font-family:var(--mono);font-size:11px;color:#7df;
+       font-weight:700;letter-spacing:.08em;padding:6px 0 2px;
+       border-bottom:1px solid rgba(125,223,255,0.2);margin-bottom:6px;display:none"></div>
+  <div id="graphStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
+       margin-bottom:6px;min-height:14px"></div>
+
+  <!-- Chart preset selector — hidden: fixed layout active -->
+  <div style="display:none">
+    <select id="graphPreset" onchange="applyChartPreset(this.value)">
+      <option value="CUSTOM">CUSTOM</option>
+    </select>
+  </div>
+
+  <!-- Markers legend -->
+  <div id="graphLegend" style="display:none;font-family:var(--mono);font-size:8px;
+       color:var(--dim);margin-bottom:8px;display:flex;gap:10px;flex-wrap:wrap">
+    <span><span style="color:#f80">●</span> fl_hot</span>
+    <span><span style="color:#f44">●</span> fl_kill</span>
+    <span><span style="color:#ff0">▲</span> DTC nuevo</span>
+    <span><span style="color:#8af">●</span> do_cel</span>
+    <span><span style="color:#0f8">●</span> WOT&gt;80%</span>
+    <span><span style="color:#a8f">●</span> Cambio marcha</span>
+  </div>
+
+  <!-- Synced scrollbar -->
+  <div id="chartScrollbar"><div id="chartScrollbarInner"></div></div>
+  <!-- Charts — synced scroll -->
+      <!-- Cursor data panel (fixed overlay) -->
+    <div id="tunePanel" style="position:fixed;right:10px;top:120px;width:140px;
+         background:rgba(10,10,10,0.95);border:1px solid #333;padding:12px;
+         font-family:'JetBrains Mono',monospace;z-index:1000;border-radius:4px;display:none">
+      <div style="color:#666;font-size:9px;text-transform:uppercase;letter-spacing:.1em;
+           margin-bottom:8px;border-bottom:1px solid #333;padding-bottom:4px">Cursor</div>
+      <div style="margin-bottom:8px">
+        <div style="color:#666;font-size:8px">TIME</div>
+        <div id="panelTime" style="color:#fff;font-size:14px;font-weight:bold">--</div>
+      </div>
+      <div id="panelItems" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+<div class="charts-scroll-outer" id="chartsOuter">
+    <div class="charts-scroll-inner" id="chartsInner">
+      <!-- panels built dynamically by _rebuildDOM() -->
+    </div>
+  </div>
+</div>
+
+<!-- PANE VE -->
+<div class="pane content" id="pane-ve">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <div class="cfg-title" style="margin:0;border:none;padding:0">Mapas EEPROM</div>
+    <button class="btn" onclick="loadMaps()">&#8635; Recargar</button>
+    <button class="btn" style="font-size:9px;padding:4px 8px" onclick="downloadEeprom()" id="btnDlEeprom" title="Download raw EEPROM binary">&#11015; EEPROM</button>
+    <button class="btn" style="font-size:9px;padding:4px 8px" onclick="downloadMsq()" id="btnDlMsq" title="Download current EEPROM as MSQ (EcmSpy compatible)">&#11015; MSQ</button>
+    <button class="btn" id="btnEditMode" style="font-size:9px;padding:4px 8px" onclick="toggleEditMode()">&#9998; Edit</button>
+  </div>
+  <div id="veMapStatus" style="font-family:var(--mono);font-size:9px;color:var(--dim);
+       margin-bottom:8px;min-height:12px">Connect ECU to load maps</div>
+
+  <!-- Map selector — populated dynamically by loadMaps() -->
+  <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap" id="mapBtnContainer"></div>
+
+  <!-- Edit toolbar -->
+  <div id="editToolbar" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 8px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.3);border-radius:3px;margin-bottom:8px;font-family:var(--mono);font-size:9px">
+    <span style="color:var(--accent2);font-weight:700">&#9998; EDIT MODE</span>
+    <span id="editCount" style="color:var(--dim)">0 cells staged</span>
+    <span style="flex:1"></span>
+    <span id="editRange" style="color:var(--dim);font-size:8px">safety gate: ±15%</span>
+    <button class="btn" id="btnBurnEcu" onclick="burnStaged()" disabled style="font-size:9px;padding:4px 10px;background:var(--ac);color:#fff;border-color:var(--ac)">&#128293; Burn to ECU</button>
+    <button class="btn" onclick="discardChanges()" style="font-size:9px;padding:4px 10px">&#10005; Discard</button>
+  </div>
+  <!-- Map table -->
+  <div id="mapContainer" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--dim);text-align:center;padding:20px">
+      Connect ECU · maps are read from EEPROM on startup
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div id="mapLegend" style="display:none;margin-top:10px;font-family:var(--mono);font-size:8px;color:var(--dim)">
+    <span style="display:inline-block;width:12px;height:12px;background:#1a3a6a;margin-right:4px;vertical-align:middle"></span>low ·
+    <span style="display:inline-block;width:12px;height:12px;background:#c85000;margin-right:4px;margin-left:8px;vertical-align:middle"></span>high ·
+    X = RPM · Y = Load
+  </div>
+
+  <!-- Burn ledger (VDYNO V0) — lineage of every EEPROM burn -->
+  <div id="burnLedgerSection" style="margin-top:18px;padding-top:12px;border-top:1px solid var(--border)">
+    <div class="cfg-title" style="margin-bottom:6px">
+      Burn History
+      <button class="btn" style="font-size:9px;padding:3px 8px;float:right" onclick="loadBurnLedger()">&#8635;</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:6px">
+      parent &#8594; child map lineage &middot; child checksum = next session ID
+    </div>
+    <div id="burnLedgerList" style="font-family:var(--mono);font-size:9px;color:var(--text)">
+      <div style="color:var(--dim);padding:8px 0">No burns recorded yet</div>
+    </div>
+  </div>
+
+  
+  <div id="ecu-params-panel" style="
+       margin-top:24px;
+       padding-top:16px;
+       border-top:1px solid var(--border);
+       display:block;
+       position:relative;
+  ">
+
+    <div class="cfg-title" style="margin-bottom:8px">
+      ECU Parameters (EEPROM)
+    </div>
+<!-- PARAMETROS EEPROM -->
+  <div class="cfg-section">
+    <div class="cfg-title">EEPROM Parameters
+      <button class="btn" style="font-size:9px;padding:3px 8px;float:right" onclick="loadEepromParams()">Refrescar</button>
+    </div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px">
+      Read-only parameters from ECU EEPROM
+
+  <!-- Revert EEPROM section -->
+  <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-family:var(--mono);font-size:10px;color:var(--dim);font-weight:700">&#8635; REVERT EEPROM</span>
+      <button class="btn" style="font-size:9px;padding:3px 8px" onclick="loadEepromSessions()">&#8635; Refresh</button>
+    </div>
+    <div id="revertSessionsList" style="font-family:var(--mono);font-size:9px;color:var(--dim);max-height:200px;overflow-y:auto">
+      Loading sessions...
+    </div>
+  </div>
+<div id="eepromParamsTable" style="margin-top:8px; max-height:50vh; overflow-y:auto; padding-right:4px;"></div>
+    </div>
+  </div>
+
+
+</div>
+
+</div>
+
+<!-- PANE CONFIG -->
+<div class="pane content" id="pane-cfg">
+  
+<div style="
+  font-family:var(--mono);
+  font-size:12px;
+  letter-spacing:.15em;
+  color:#aaa;
+  margin-bottom:12px;
+">
+  CONFIGURATION
+</div>
+
+  <div class="cfg-section" style="border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:10px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em">LOGGER VERSION</div>
+    
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-top:2px">Buell XB12X DDFI2 · Pi Zero 2W · CH343P</div>
+  </div>
+  
+  <!-- UPDATE BUTTON -->
+  <div class="cfg-section">
+    <div class="cfg-title">Actualizar Logger</div>
+    <div style="font-family:var(--mono);font-size:8px;color:var(--dim);margin-bottom:8px;line-height:1.8">
+      Jala la última versión desde GitHub y reinicia el servicio automáticamente.
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn g" onclick="gitPull()" style="width:100%; padding:10px;">🔄 Git Pull (actualizar desde GitHub)</button>
+      <div id="gitPullStatus" style="font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:6px; text-align:center;"></div>
+    </div>
+  </div>
+
+
+
+
+
+  <div class="cfg-section">
+    <div class="cfg-title">Sistema</div>
+
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
+      <button class="btn" style="padding:10px;background:#e67e22"
+        onclick="if(confirm('Restart logger? Active ride will be saved.')) doRestartLogger()">
+        &#x1F504; Restart Logger
+      </button>
+    </div>
+    <button class="btn-danger" style="width:100%;margin-bottom:4px" onclick="confirmShutdown()">Apagar Pi</button>
+  </div>
+</div>
+
+<!-- PANE NET -->
+<div class="pane content" id="pane-net">
+
+  <!-- Network status -->
+  <div class="cfg-section">
+    <div class="cfg-title">Red activa</div>
+    <div class="net-status">
+      <span class="rdot" id="netDot" style="animation:none"></span>
+      <span id="netLabel">--</span>
+    </div>
+    <div class="net-row" style="margin-top:8px">
+      <div class="btn-net" id="btnWifi" onclick="switchNet('wifi')">WiFi</div>
+      <div class="btn-net" id="btnHotspot" onclick="switchNet('hotspot')">Hotspot</div>
+    </div>
+  </div>
+
+  <!-- Saved networks -->
+  <div class="cfg-section">
+    <div class="cfg-title">Redes guardadas</div>
+    <div id="savedList" style="margin-bottom:4px"></div>
+  </div>
+
+  <!-- Escanear -->
+  <div class="cfg-section">
+    <div class="cfg-title">Escanear redes</div>
+    <button class="btn" style="width:100%;padding:10px;margin-bottom:8px"
+            onclick="doWifiScan(event)">📶 Buscar redes</button>
+    <div id="scanList"></div>
+  </div>
+
+  <!-- Add new network -->
+  <div class="cfg-section">
+    <div class="cfg-title">Agregar red nueva</div>
+    <input id="newSsid" placeholder="Nombre de red (SSID)"
+           style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);
+                  color:#fff;font-family:var(--mono);font-size:11px;padding:8px;margin-bottom:6px">
+    <input id="newPass" type="password" placeholder="Contraseña"
+           style="width:100%;box-sizing:border-box;background:var(--bg);border:1px solid var(--border);
+                  color:#fff;font-family:var(--mono);font-size:11px;padding:8px;margin-bottom:8px">
+    <button class="btn g" style="width:100%;padding:10px" onclick="doAddWifi()">
+      Conectar y guardar
+    </button>
+  </div>
+</div>
+
+
+
+<link rel="stylesheet" href="/static/leaflet.css"/>
+<script src="/static/leaflet.js"></script>
+
+<style>
+/* ── Map pane enhancements ─────────────────────── */
+.map-toolbar{display:flex;gap:4px;padding:6px 8px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.map-toolbar select{flex:1;min-width:120px;background:var(--bg);border:1px solid var(--border);color:#fff;font-family:var(--mono);font-size:10px;padding:4px 6px;border-radius:2px}
+.map-toolbar .btn{padding:4px 8px;font-size:9px;white-space:nowrap}
+.map-toolbar .btn.on{border-color:var(--accent2);color:var(--accent2);background:rgba(245,166,35,.1)}
+.map-toolbar .btn.glow{box-shadow:0 0 6px rgba(232,66,10,.5)}
+.map-metrics{display:flex;gap:2px;padding:3px 8px;background:var(--bg);overflow-x:auto}
+.map-metric{flex:1;min-width:60px;background:var(--panel);border:1px solid var(--border);padding:4px 6px;text-align:center;border-top:2px solid var(--border)}
+.map-metric .mm-label{font-size:7px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;font-family:var(--mono);white-space:nowrap}
+.map-metric .mm-val{font-size:16px;font-weight:900;line-height:1.2;font-family:var(--mono)}
+.map-metric .mm-unit{font-size:8px;color:var(--dim);font-family:var(--mono)}
+.map-legend-bar{display:flex;gap:2px;padding:3px 8px;background:var(--panel);border-bottom:1px solid var(--border);align-items:center;font-family:var(--mono);font-size:8px;color:var(--dim)}
+.map-legend-bar .leg-item{display:flex;align-items:center;gap:3px}
+.map-legend-bar .leg-swatch{width:10px;height:10px;border-radius:1px;flex-shrink:0}
+.map-alt-header{background:var(--panel);border-top:1px solid var(--border);padding:3px 8px 1px;display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:8px;color:var(--dim)}
+.map-alt-header .alt-ctrls{display:flex;gap:4px}
+.map-alt-header .alt-ctrls .btn{font-size:7px;padding:1px 5px}
+.map-cursor-panel{position:fixed;right:10px;top:120px;width:130px;background:rgba(10,10,10,.92);border:1px solid #333;padding:8px;font-family:var(--mono);z-index:1000;border-radius:4px;display:none}
+.map-cursor-panel .cp-line{display:flex;justify-content:space-between;font-size:9px;margin-bottom:2px}
+.map-cursor-panel .cp-label{color:#666}
+.map-cursor-panel .cp-val{color:#fff;font-weight:700}
+.map-3d-toggle{background:var(--panel);border-top:1px solid var(--border);padding:3px 8px;font-family:var(--mono);font-size:8px;color:var(--dim);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.map-3d-toggle:hover{color:#aaa}
+</style>
+
+<div class="pane content" id="pane-map" style="padding:0">
+  <!-- Toolbar -->
+  <div class="map-toolbar">
+    <select id="mapRideSelect">
+      <option value="">-- Selecciona un ride --</option>
+    </select>
+    <button class="btn" onclick="loadMapTrack()" style="border-color:var(--blue);color:var(--blue)">Ver</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+    <button class="btn" id="mapPlayBtn" onclick="toggleTrackReplay()" disabled style="font-size:12px;padding:2px 8px" title="Reproducir track">▶</button>
+    <span style="font-family:var(--mono);font-size:8px;color:var(--dim)" id="mapSpeedLabel">1×</span>
+    <button class="btn" onclick="setTrackSpeed(1)" id="mapSpd1" style="font-size:8px;padding:2px 4px">1×</button>
+    <button class="btn" onclick="setTrackSpeed(2)" id="mapSpd2" style="font-size:8px;padding:2px 4px">2×</button>
+    <button class="btn" onclick="setTrackSpeed(4)" id="mapSpd4" style="font-size:8px;padding:2px 4px">4×</button>
+    <button class="btn" onclick="setTrackSpeed(8)" id="mapSpd8" style="font-size:8px;padding:2px 4px">8×</button>
+    <div style="width:1px;height:20px;background:var(--border);margin:0 2px"></div>
+    <button class="btn" id="mapStyleBtn" onclick="cycleMapStyle()" style="font-size:8px;padding:2px 6px" title="Cambiar estilo de mapa">🌍</button>
+    <button class="btn" id="mapHeatBtn" onclick="toggleHeatmap()" style="font-size:8px;padding:2px 6px" title="Heatmap de velocidad">🔥</button>
+  </div>
+
+  <!-- Metric cards -->
+  <div class="map-metrics" id="mapMetrics">
+    <div class="map-metric" style="border-top-color:#4af">
+      <div class="mm-label">Distancia</div>
+      <div class="mm-val" style="color:#4af" id="mDist">-- <span class="mm-unit">km</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#ff4444">
+      <div class="mm-label">Vel. Max</div>
+      <div class="mm-val" style="color:#ff4444" id="mMaxSpd">-- <span class="mm-unit">km/h</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#2ecc71">
+      <div class="mm-label">Vel. Media</div>
+      <div class="mm-val" style="color:#2ecc71" id="mAvgSpd">-- <span class="mm-unit">km/h</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#f5a623">
+      <div class="mm-label">Desnivel</div>
+      <div class="mm-val" style="color:#f5a623" id="mElev">-- <span class="mm-unit">m</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#a8f">
+      <div class="mm-label">Duración</div>
+      <div class="mm-val" style="color:#a8f" id="mDuration">-- <span class="mm-unit">min</span></div>
+    </div>
+    <div class="map-metric" style="border-top-color:#ff0">
+      <div class="mm-label">GPS Fix</div>
+      <div class="mm-val" style="color:#ff0;font-size:12px" id="mFixInfo">--</div>
+    </div>
+  </div>
+
+  <!-- Info bar + legend -->
+  <div class="map-legend-bar">
+    <span id="mapInfo" style="flex:1;font-size:9px">Sin datos GPS</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#0000FF"></span>0-20</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#00FF00"></span>20-60</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#FFFF00"></span>60-120</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#FF0000"></span>120-160</span>
+    <span class="leg-item"><span class="leg-swatch" style="background:#FF00FF"></span>160+</span>
+  </div>
+
+  <!-- Map -->
+  <div id="mapLeaflet" style="height:calc(35dvh);width:100%"></div>
+
+  <!-- Altitude header with controls -->
+  <div class="map-alt-header">
+    <span>Perfil de altitud · color = velocidad</span>
+    <div class="alt-ctrls">
+      <button class="btn" id="altModeAlt" onclick="setAltMode('alt')" style="border-color:var(--blue);color:var(--blue)">Alt</button>
+      <button class="btn" id="altModeSpd" onclick="setAltMode('spd')">Spd</button>
+      <button class="btn" id="altModeBoth" onclick="setAltMode('both')">Both</button>
+    </div>
+  </div>
+  <div style="background:var(--bg);height:calc(15dvh);padding:4px;position:relative">
+    <canvas id="altitudeChart" style="cursor:crosshair"></canvas>
+    <!-- Cursor vertical line (synced to map) -->
+    <div id="altCursorLine" style="position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.4);pointer-events:none;display:none"></div>
+  </div>
+
+  <!-- Cursor data panel (overlay, shown when hovering alt chart) -->
+  <div class="map-cursor-panel" id="mapCursorPanel">
+    <div class="cp-line"><span class="cp-label">Dist</span><span class="cp-val" id="cpDist">--</span></div>
+    <div class="cp-line"><span class="cp-label">Alt</span><span class="cp-val" id="cpAlt">--</span></div>
+    <div class="cp-line"><span class="cp-label">Vel</span><span class="cp-val" id="cpSpd">--</span></div>
+  </div>
+
+  <!-- 3D track toggle + canvas -->
+  <div class="map-3d-toggle" onclick="toggle3DSection()">
+    <span>3D track · color = speed · drag to rotate · wheel = zoom</span>
+    <span id="map3dArrow">▾</span>
+  </div>
+  <div id="map3dSection" style="background:var(--bg);height:calc(50dvh);padding:4px">
+<div style="position:absolute;top:8px;left:8px;z-index:99;background:rgba(0,0,0,0.8);border-radius:4px;padding:2px 6px;font-size:9px;font-family:monospace;display:flex;align-items:center;gap:3px;pointer-events:none">
+<span style="color:#0000FF">█</span><span>0-20</span>
+<span style="color:#00FF00">█</span><span>20-60</span>
+<span style="color:#FFFF00">█</span><span>60-120</span>
+<span style="color:#FF0000">█</span><span>120-160</span>
+<span style="color:#FF00FF">█</span><span>160+ km/h</span>
+</div>
+    <canvas id="track3d" style="width:100%;height:100%;display:block;touch-action:none;cursor:grab"></canvas>
+  </div>
+</div>
+
+<script src="/static/app.js?v=--LOGGER_VERSION--"></script>
+<script>
+function fitLabels(){
+  document.querySelectorAll('.big-label').forEach(function(el){
+    var card=el.closest('.big-card');if(!card)return;
+    var h=card.offsetHeight-10;
+    var n=el.textContent.trim().length||1;
+    el.style.fontSize=Math.max(10,Math.floor(h/n*0.82))+'px';
+  });
+  document.querySelectorAll('.hs-sm .hs-label,.hs .hs-label').forEach(function(el){
+    var box=el.closest('.hs-sm,.hs');if(!box)return;
+    var h=box.offsetHeight-4;
+    var n=el.textContent.trim().length||1;
+    el.style.fontSize=Math.max(6,Math.floor(h/n*0.82))+'px';
+  });
+}
+window.addEventListener('resize',fitLabels);
+setTimeout(fitLabels,150);
+</script>
+<script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script><script>
+(function(){fetch('/fuel/status').then(function(r){return r.json()}).then(function(d){
+  var el=document.getElementById('fuelFill');if(!el)return;
+  var pct=d.level_pct||0;
+  el.style.width=Math.min(pct,100)+'%';
+  el.style.background=pct>40?'#2ecc71':pct>18?'#f1c40f':'#e74c3c';
+  el.title=(d.level_L!=null?d.level_L.toFixed(1):'?');
+}).catch(function(){})})();
+</script>
+</body>
+</html>

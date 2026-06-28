@@ -1,0 +1,34 @@
+/* ── SHARED HEADER — injected via /static/header.css ────── */
+.hdr{background:var(--panel);border-bottom:2px solid var(--accent);
+     padding:4px 10px;display:flex;flex-direction:column;gap:2px;flex-shrink:0}
+.hdr-row{display:flex;align-items:center;gap:8px;width:100%}
+.hdr-logo{display:flex;align-items:center;justify-content:space-between;width:100%}
+
+.nav-menu{position:relative;flex-shrink:0}
+.nav-menu-btn{font-size:18px;color:var(--dim);cursor:pointer;padding:4px 10px;
+  border:1px solid var(--border);border-radius:2px;background:none;
+  font-family:var(--mono);letter-spacing:0}
+.nav-menu-btn:hover{color:var(--blue);border-color:var(--blue)}
+.nav-menu-drop{display:none;position:absolute;right:0;top:100%;margin-top:4px;
+  background:var(--panel);border:1px solid var(--border);border-radius:3px;
+  padding:4px;min-width:180px;z-index:999}
+.nav-menu-drop.open{display:block}
+.nav-menu-drop a{display:block;font-family:var(--mono);font-size:12px;
+  color:var(--dim);text-decoration:none;padding:10px 14px;border-radius:2px}
+.nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-menu-drop a.active{color:var(--accent);background:rgba(255,255,255,.06)}
+
+.pill-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;display:inline-block}
+.pill-dot.on{background:var(--green);animation:blink 1.4s ease-in-out infinite}
+.pill-dot.yw{background:var(--accent2);animation:blink 2.2s ease-in-out infinite}
+.pill-dot.off{background:#333}
+
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+
+.fuel-bar-track{height:4px;background:#111;width:100%}
+.fuel-bar-fill{height:100%;width:0%;transition:width .8s ease,background .5s}
+
+@media (max-width:600px){
+  .hdr{padding:4px 4px}
+  .hdr-row{gap:4px}
+}

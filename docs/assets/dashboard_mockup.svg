@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 750" font-family="'Share Tech Mono', monospace">
+  <defs>
+    <filter id="s"><feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.4"/></filter>
+  </defs>
+  <!-- Mock phone screen -->
+  <rect width="1100" height="750" fill="#0a0a0b" rx="6"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="1100" height="44" fill="#111114"/>
+  <rect x="0" y="42" width="1100" height="2" fill="#e8420a"/>
+  <text x="12" y="28" fill="#ffffff" font-size="13" font-weight="900" letter-spacing="1">BUELL LOGGER</text>
+  <text x="1080" y="28" text-anchor="end" fill="#2cdd6e" font-size="8">● LIVE</text>
+  
+  <!-- Tabs -->
+  <rect x="0" y="44" width="1100" height="28" fill="#111114"/>
+  <text x="12" y="63" fill="#e8420a" font-size="9" font-weight="700">DASHBOARD</text>
+  <text x="100" y="63" fill="#55555e" font-size="9">Sessions</text>
+  <text x="180" y="63" fill="#55555e" font-size="9">Events</text>
+  <text x="240" y="63" fill="#55555e" font-size="9">VS</text>
+  <text x="270" y="63" fill="#55555e" font-size="9">Launch</text>
+  <text x="330" y="63" fill="#55555e" font-size="9">Tuner</text>
+  <text x="380" y="63" fill="#55555e" font-size="9">Fuel</text>
+  <text x="420" y="63" fill="#55555e" font-size="9">Config</text>
+  
+  <!-- Grid: Widget A -->
+  <rect x="8" y="78" width="540" height="90" rx="4" fill="#111114" stroke="#1e1e24" stroke-width="1" filter="url(#s)"/>
+  <text x="14" y="93" fill="#f5a623" font-size="7" letter-spacing="1">ENGINE</text>
+  <text x="14" y="118" fill="#c8c8cc" font-size="18" font-weight="700">2,994</text>
+  <text x="14" y="134" fill="#55555e" font-size="8">RPM</text>
+  <text x="100" y="118" fill="#c8c8cc" font-size="18" font-weight="700">76.7</text>
+  <text x="100" y="134" fill="#55555e" font-size="8">VSS km/h</text>
+  <text x="190" y="118" fill="#c8c8cc" font-size="18" font-weight="700">34.0</text>
+  <text x="190" y="134" fill="#55555e" font-size="8">TPS %</text>
+  <text x="280" y="118" fill="#c8c8cc" font-size="18" font-weight="700">6.18</text>
+  <text x="280" y="134" fill="#55555e" font-size="8">PW1 ms</text>
+  <text x="370" y="118" fill="#c8c8cc" font-size="18" font-weight="700">132</text>
+  <text x="370" y="134" fill="#55555e" font-size="8">CLT °C</text>
+  <text x="460" y="118" fill="#c8c8cc" font-size="14" font-weight="700">5th</text>
+  <text x="460" y="134" fill="#55555e" font-size="8">GEAR</text>
+  <!-- Mini sparkline bar -->
+  <rect x="14" y="145" width="520" height="12" rx="2" fill="#1e1e24"/>
+  <rect x="14" y="145" width="180" height="12" rx="2" fill="#e8420a" opacity="0.4"/>
+  <rect x="14" y="147" width="150" height="8" rx="2" fill="#e8420a"/>
+  
+  <!-- Grid: Widget B -->
+  <rect x="555" y="78" width="537" height="90" rx="4" fill="#111114" stroke="#1e1e24" stroke-width="1" filter="url(#s)"/>
+  <text x="561" y="93" fill="#f5a623" font-size="7" letter-spacing="1">VE CELLS (12×11)</text>
+  <!-- VE grid mini -->
+  <g transform="translate(561, 100)">
+    <rect x="0" y="0" width="6" height="6" fill="#e8420a" opacity="0.6"/>
+    <rect x="7" y="0" width="6" height="6" fill="#3d9eff" opacity="0.3"/>
+    <rect x="14" y="0" width="6" height="6" fill="#2cdd6e" opacity="0.4"/>
+    <rect x="21" y="0" width="6" height="6" fill="#f5a623" opacity="0.5"/>
+    <rect x="28" y="0" width="6" height="6" fill="#55555e"/>
+    <rect x="35" y="0" width="6" height="6" fill="#55555e"/>
+    <rect x="42" y="0" width="6" height="6" fill="#55555e"/>
+    <rect x="49" y="0" width="6" height="6" fill="#55555e"/>
+    <rect x="0" y="7" width="6" height="6" fill="#e8420a" opacity="0.7"/>
+    <rect x="7" y="7" width="6" height="6" fill="#3d9eff" opacity="0.5"/>
+    <rect x="14" y="7" width="6" height="6" fill="#2cdd6e" opacity="0.6"/>
+    <rect x="21" y="7" width="6" height="6" fill="#f5a623" opacity="0.4"/>
+    <rect x="28" y="7" width="6" height="6" fill="#c8c8cc" opacity="0.2"/>
+    <rect x="35" y="7" width="6" height="6" fill="#55555e"/>
+    <rect x="0" y="14" width="6" height="6" fill="#ff4444" opacity="0.5"/>
+    <rect x="7" y="14" width="6" height="6" fill="#e8420a" opacity="0.4"/>
+    <rect x="14" y="14" width="6" height="6" fill="#f5a623" opacity="0.7"/>
+    <rect x="21" y="14" width="6" height="6" fill="#2cdd6e" opacity="0.5"/>
+    <rect x="28" y="14" width="6" height="6" fill="#c8c8cc" opacity="0.3"/>
+    <text x="0" y="34" fill="#55555e" font-size="6">RPM × TPS heatmap</text>
+    <text x="0" y="44" fill="#55555e" font-size="6">RPM bins: 0-8K · TPS bins: 10-255</text>
+  </g>
+  
+  <!-- Charts area -->
+  <rect x="8" y="175" width="1084" height="200" rx="4" fill="#111114" stroke="#1e1e24" stroke-width="1" filter="url(#s)"/>
+  <text x="14" y="192" fill="#f5a623" font-size="7" letter-spacing="1">CHARTS — MIXTURE/PW (OL)</text>
+  <!-- Chart canvas mock -->
+  <rect x="14" y="200" width="1070" height="168" rx="2" fill="#0a0a0b"/>
+  <!-- Grid lines -->
+  <line x1="14" y1="240" x2="1084" y2="240" stroke="#1e1e24" stroke-width="0.5"/>
+  <line x1="14" y1="280" x2="1084" y2="280" stroke="#1e1e24" stroke-width="0.5"/>
+  <line x1="14" y1="320" x2="1084" y2="320" stroke="#1e1e24" stroke-width="0.5"/>
+  <!-- Fake data lines -->
+  <polyline points="50,330 100,320 150,280 200,240 250,220 300,210 350,200 400,195 450,190 500,188 550,185 600,184" fill="none" stroke="#e8420a" stroke-width="2"/>
+  <polyline points="50,330 100,325 150,290 200,250 250,235 300,225 350,218 400,210 450,205 500,202 550,200 600,198" fill="none" stroke="#3d9eff" stroke-width="1.2" stroke-dasharray="4,2"/>
+  <polyline points="50,340 100,330 150,300 200,265 250,250 300,240 350,232 400,226 450,220 500,218 550,216 600,214" fill="none" stroke="#2cdd6e" stroke-width="1.2" stroke-dasharray="4,2"/>
+  <polyline points="50,270 100,260 150,240 200,220 250,200 300,185 350,175 400,168 450,162 500,158 550,156 600,154" fill="none" stroke="#ffc832" stroke-width="1.5"/>
+  <!-- Legend -->
+  <rect x="14" y="345" width="8" height="8" fill="#e8420a"/>
+  <text x="26" y="353" fill="#c8c8cc" font-size="7">PW1 avg</text>
+  <rect x="80" y="345" width="8" height="8" fill="#3d9eff"/>
+  <text x="92" y="353" fill="#c8c8cc" font-size="7">PW1</text>
+  <rect x="130" y="345" width="8" height="8" fill="#2cdd6e"/>
+  <text x="142" y="353" fill="#c8c8cc" font-size="7">PW2</text>
+  <rect x="185" y="345" width="8" height="8" fill="#ffc832"/>
+  <text x="197" y="353" fill="#c8c8cc" font-size="7">RPM</text>
+  
+  <!-- Bottom: Sessions + Map -->
+  <rect x="8" y="382" width="540" height="175" rx="4" fill="#111114" stroke="#1e1e24" stroke-width="1" filter="url(#s)"/>
+  <text x="14" y="398" fill="#f5a623" font-size="7" letter-spacing="1">SESSIONS</text>
+  <rect x="14" y="405" width="200" height="22" rx="2" fill="#1e1e24"/>
+  <text x="20" y="420" fill="#c8c8cc" font-size="8">27F1A2 (active)  📅 Today</text>
+  <rect x="14" y="432" width="200" height="22" rx="2" fill="#1e1e24" opacity="0.6"/>
+  <text x="20" y="447" fill="#c8c8cc" font-size="8">248AE2  📅 Jun 12</text>
+  <rect x="14" y="456" width="200" height="22" rx="2" fill="#1e1e24" opacity="0.3"/>
+  <text x="20" y="471" fill="#c8c8cc" font-size="8">AC501E  📅 Jun 11</text>
+  <rect x="14" y="480" width="200" height="22" rx="2" fill="#1e1e24" opacity="0.2"/>
+  <text x="20" y="495" fill="#c8c8cc" font-size="8">653DC0  📅 Jun 10</text>
+  <rect x="14" y="504" width="200" height="22" rx="2" fill="#1e1e24" opacity="0.1"/>
+  <text x="20" y="519" fill="#c8c8cc" font-size="8">D7B333  📅 Jun 9</text>
+  
+  <!-- Mini map -->
+  <rect x="230" y="405" width="310" height="145" rx="2" fill="#0d1518"/>
+  <text x="385" y="475" text-anchor="middle" fill="#2cdd6e" font-size="7">GPS TRACK</text>
+  <path d="M280,510 Q300,480 320,470 Q350,460 370,440 Q400,420 430,430 Q460,440 480,460" fill="none" stroke="#e8420a" stroke-width="2" opacity="0.8"/>
+  <circle cx="280" cy="510" r="4" fill="#2cdd6e"/>
+  <circle cx="480" cy="460" r="4" fill="#ff4444"/>
+  
+  <!-- Right bottom: VE Heatmap -->
+  <rect x="555" y="382" width="537" height="175" rx="4" fill="#111114" stroke="#1e1e24" stroke-width="1" filter="url(#s)"/>
+  <text x="561" y="398" fill="#f5a623" font-size="7" letter-spacing="1">VE TAB — FUEL FRONT</text>

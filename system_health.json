@@ -1,0 +1,224 @@
+{
+  "issues": [
+    {
+      "ts": 1780416097.0212002,
+      "type": "bat",
+      "severity": "CRIT",
+      "value": "3.10V",
+      "desc": "Battery critical"
+    },
+    {
+      "ts": 1780416097.0212002,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "4%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1780564958.9976912,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "30%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1780781103.7619162,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "30%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1780784477.154487,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "4%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1780785359.3232722,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "16%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1780786078.5443444,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "29%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1781244201.8913221,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "30%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1781245608.345815,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "20%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1781245909.4942636,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "22%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782060518.8569534,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "30%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782060820.3384879,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "29%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782585627.9754283,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "30%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782585695.3783178,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "0%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782621056.535116,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "0%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782621359.0178845,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "0%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782621661.3732216,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "0%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782622507.4969702,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "5%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782622809.0938609,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "5%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782623109.6491146,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "6%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782623410.8679123,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "6%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782623711.8653705,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "7%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782624012.7093778,
+      "type": "bat_soc",
+      "severity": "CRIT",
+      "value": "9%",
+      "desc": "SOC critical"
+    },
+    {
+      "ts": 1782624204.1122174,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "10%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782624505.2234194,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "13%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782624806.768482,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "15%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782625107.763647,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "18%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782625408.8703268,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "22%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782625710.0601478,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "25%",
+      "desc": "SOC low"
+    },
+    {
+      "ts": 1782626011.466388,
+      "type": "bat_soc",
+      "severity": "WARN",
+      "value": "28%",
+      "desc": "SOC low"
+    }
+  ],
+  "counts": {
+    "batCRIT": 1,
+    "bat_socCRIT": 12,
+    "bat_socWARN": 17
+  },
+  "last_seen": {
+    "batCRIT": 1780416097.0212002,
+    "bat_socCRIT": 1782624012.7093778,
+    "bat_socWARN": 1782626011.466388
+  }
+}

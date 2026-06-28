@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<!-- DEV NOTE: All code, comments, and variable names must be in English. -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Buell Fuel Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0d0d;--panel:#1a1a1a;--border:#2a2a2a;--accent:#e8420a;--green:#2ecc71;--yellow:#f1c40f;--orange:#e67e22;--red:#e74c3c;--blue:#3d9eff;--dim:#666;--text:#e0e0e0;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.hdr{background:var(--panel);border-bottom:2px solid var(--accent);padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.hdr-title{font-size:16px;font-weight:900;letter-spacing:.06em}
+.nav-menu{position:relative;flex-shrink:0}
+.nav-menu-btn{font-size:18px;color:var(--dim);cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:2px;background:none;font-family:var(--mono);letter-spacing:0}
+.nav-menu-btn:hover{color:var(--blue);border-color:var(--blue)}
+.nav-menu-drop{display:none;position:absolute;right:0;top:100%;margin-top:4px;background:var(--panel);border:1px solid var(--border);border-radius:3px;padding:4px;min-width:160px;z-index:999}
+.nav-menu-drop.open{display:block}
+.nav-menu-drop a{display:block;font-family:var(--mono);font-size:15px;color:var(--dim);text-decoration:none;padding:10px 14px;border-radius:2px}
+.nav-menu-drop a:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-menu-drop a.active{color:var(--accent);background:rgba(255,255,255,.06)}
+.content{padding:12px;max-width:520px;margin:0 auto;flex:1;overflow-y:auto;scrollbar-width:none;-ms-overflow-style:none}
+.content::-webkit-scrollbar{display:none}
+.section{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:12px;margin-bottom:10px}
+.section-title{font-size:15px;color:var(--dim);letter-spacing:.15em;text-transform:uppercase;margin-bottom:10px}
+.trip-row{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+.trip-km{font-size:52px;font-weight:900;line-height:1;color:var(--green)}
+.trip-km.reserve-on{color:var(--accent)}
+.trip-unit{font-size:17px;color:var(--dim)}
+.trip-status{font-size:15px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;margin-left:auto}
+.gauge-track{height:24px;background:#111;border:1px solid var(--border);border-radius:4px;overflow:visible;position:relative;margin-bottom:4px}
+.gauge-fill{height:100%;width:0%;transition:width .8s ease,background .8s;border-radius:3px}
+.gauge-reserve-line{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--accent);opacity:.8;border-radius:1px}
+.gauge-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;pointer-events:none}
+.gauge-labels{display:flex;justify-content:space-between;font-size:14px;color:var(--dim);margin-bottom:8px}
+.gauge-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.g-stat{background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:6px;text-align:center}
+.g-stat-val{font-size:16px;font-weight:900;color:var(--text)}
+.g-stat-lbl{font-size:14px;color:var(--dim);margin-top:2px}
+.btn-reserve{width:100%;padding:14px;font-family:var(--mono);font-size:15px;font-weight:900;border:2px solid var(--border);border-radius:4px;background:var(--bg);color:var(--dim);cursor:pointer;transition:all .2s}
+.btn-reserve.active{background:rgba(232,66,10,.15);border-color:var(--accent);color:var(--accent);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,66,10,0)}50%{box-shadow:0 0 0 6px rgba(232,66,10,.2)}}
+.reserve-since{font-size:15px;color:var(--dim);margin-top:5px;text-align:center;min-height:13px}
+.form-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.form-label{font-size:15px;color:var(--dim);width:70px;flex-shrink:0}
+input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:17px;padding:8px;border-radius:2px}
+.full-tank-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px;border:1px solid var(--border);border-radius:3px;cursor:pointer}
+.full-tank-row.on{border-color:var(--green);background:rgba(46,204,113,.08)}
+.full-tank-chk{width:16px;height:16px;accent-color:var(--green);cursor:pointer;flex-shrink:0}
+.full-tank-lbl{font-size:17px;font-weight:700;flex:1}
+.full-tank-hint{font-size:15px;color:var(--dim)}
+.btn{width:100%;padding:12px;font-family:var(--mono);font-size:15px;font-weight:700;border:1px solid;border-radius:3px;cursor:pointer;background:none;text-transform:uppercase}
+.btn-green{color:var(--green);border-color:var(--green)}
+.btn-green:disabled{color:var(--dim);border-color:var(--border);cursor:not-allowed}
+.refuel-item{border-bottom:1px solid var(--border);padding:8px 0}
+.refuel-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:3px}
+.refuel-liters{font-size:20px;font-weight:900;color:var(--blue)}
+.refuel-date{font-size:15px;color:var(--dim)}
+.refuel-sub{font-size:15px;color:var(--dim);display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+.refuel-sub span{color:var(--text)}
+.disc-warn{color:var(--yellow)}
+.empty{font-size:16px;color:var(--dim);text-align:center;padding:16px}
+.status-msg{font-size:15px;color:var(--dim);text-align:center;min-height:14px;margin-top:6px}
+
+.cons-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.sg-group{margin-bottom:3px}
+.sg-hdr{cursor:pointer;background:var(--bg);border:1px solid var(--border);border-radius:3px;transition:border-color .15s;user-select:none;padding:6px 8px}
+.sg-hdr:hover{border-color:var(--accent)}
+.sg-hdr.open{border-color:var(--blue);border-bottom-left-radius:0;border-bottom-right-radius:0}
+.sg-hdr-top{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.sg-arrow{font-size:14px;color:var(--dim);transition:transform .2s;flex-shrink:0}
+.sg-hdr.open .sg-arrow{transform:rotate(90deg)}
+.sg-id{font-size:17px;font-weight:700;color:var(--text);flex-shrink:0}
+.sg-meta{font-size:15px;color:var(--dim);flex:1}
+.sg-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.sg-stat{background:#111;border:1px solid var(--border);border-radius:2px;padding:3px 4px;text-align:center}
+.sg-stat-val{font-size:17px;font-weight:700;line-height:1.3}
+.sg-stat-sfx{font-size:14px;font-weight:400;color:var(--dim);margin-left:1px}
+.sg-rides{display:none;border:1px solid var(--blue);border-top:none;border-radius:0 0 3px 3px;padding:0 0 2px}
+.sg-rides.open{display:block}
+.cons-hdr{display:flex;font-size:14px;color:var(--dim);letter-spacing:.06em;padding:3px 8px;border-bottom:1px solid var(--border)}
+.cons-row{display:flex;align-items:baseline;padding:4px 8px;border-bottom:1px solid var(--border);font-size:17px}
+.cons-row:last-child{border-bottom:none}
+.cons-date{color:var(--dim);font-size:15px;flex:1;min-width:0}
+.cons-km{color:var(--text);width:54px;text-align:right;flex-shrink:0}
+.cons-l{color:var(--blue);width:46px;text-align:right;flex-shrink:0}
+.cons-l100{font-weight:700;width:52px;text-align:right;flex-shrink:0}
+
+/* ── Mobile (≤420px) ─────────────────────────────────────────── */
+@media (max-width:420px){
+  .content{padding:8px}
+  .section{padding:10px}
+  .section-title{font-size:11px;letter-spacing:.08em}
+  .hdr-title{font-size:14px}
+  .trip-km{font-size:46px}
+  .gauge-text{font-size:14px}
+  .gauge-labels{font-size:11px}
+  .g-stat-val{font-size:15px}
+  .g-stat-lbl{font-size:11px}
+  .sg-stat{padding:3px}
+  .sg-stat-val{font-size:13px}
+  .sg-stat-sfx{font-size:10px}
+  .sg-id{font-size:14px}
+  .sg-meta{font-size:11px}
+  .cons-hdr{font-size:11px}
+  .cons-row{font-size:14px}
+  .cons-date{font-size:11px}
+  .cons-km{width:46px}
+  .cons-l{width:38px}
+  .cons-l100{width:44px}
+  .refuel-liters{font-size:18px}
+  .refuel-date{font-size:12px}
+  .refuel-sub{font-size:12px}
+  .full-tank-lbl{font-size:14px}
+  .full-tank-hint{font-size:12px}
+  .form-label{font-size:12px;width:60px}
+  input[type=number],select{font-size:15px}
+}
+.onboard{background:rgba(61,158,255,.07);border:1px solid rgba(61,158,255,.3);
+  border-radius:4px;padding:12px 14px;margin-bottom:10px;display:none}
+.onboard.show{display:block}
+.onboard-title{font-size:13px;font-weight:700;color:#7df;letter-spacing:.12em;margin-bottom:8px;cursor:pointer;-webkit-user-select:none;user-select:none}
+.onboard-title .arrow{display:inline-block;transition:transform .2s;font-size:11px;color:var(--accent);margin-right:4px}
+.onboard.collapsed .onboard-title .arrow{transform:rotate(90deg)}
+.onboard-step{font-size:13px;color:var(--dim);padding:4px 0;display:flex;gap:8px}
+.onboard-step b{color:var(--text);min-width:14px}
+.onboard-note{font-size:11px;color:var(--dim);margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:6px}
+.onboard.collapsed .onboard-step,
+.onboard.collapsed .onboard-note{display:none}
+</style>
+  <link rel="stylesheet" href="/static/header.css">
+</head>
+<body>
+<div class="hdr" id="hdrMain">
+  <div class="hdr-logo" id="hdrLogoRow" style="justify-content:space-between">
+    <div class="hdr-title">FUEL TRACKER <span style="font-weight:400;color:#7df;font-size:13px">--LOGGER_VERSION--</span></div>
+    <div class="nav-menu" id="navMenu">
+    <button class="nav-menu-btn" onclick="document.getElementById('navDrop').classList.toggle('open')">&#9776;</button>
+    <div class="nav-menu-drop" id="navDrop">
+      <a href="/">Dashboard</a>
+      <a href="/session_events">Session Events</a>
+      <a href="/sessions_vs">Sessions VS</a>
+      <a href="/sessions_launch">Launch</a>
+      <a href="/tuner">Tuner</a>
+    <a href="/map-editor">Map Editor</a>
+    <a href="/gps_analysis">GPS Analysis</a>
+      <a href="/errorlog/viz">Errors</a>
+      <a href="/fuel" class="active">Fuel</a>
+    </div>
+  </div>
+</div>
+  </div>
+</div>
+<div class="content">
+
+  <div class="onboard collapsed" id="onboardBanner">
+    <div class="onboard-title"><span class="arrow">▼</span> HOW TO ACTIVATE FUEL TRACKING</div>
+    <div class="onboard-step"><b>1.</b><span>When the <b style="color:var(--accent)">reserve light</b> turns on, press <b>ACTIVATE RESERVE</b> below</span></div>
+    <div class="onboard-step"><b>2.</b><span>Ride normally — the logger counts km and fuel pulse width</span></div>
+    <div class="onboard-step"><b>3.</b><span>Fill up, enter liters, check <b>FULL TANK RESET</b>, press <b>SAVE FILL-UP</b></span></div>
+    <div class="onboard-step"><b>4.</b><span>From the next reserve activation onward, all widgets show live data</span></div>
+    <div class="onboard-note">The system auto-calibrates the injector constant each cycle using the 13.6 L hard window (full→reserve)</div>
+  </div>
+  <div class="section">
+    <div class="section-title">Trip since last reserve</div>
+    <div class="trip-row">
+      <div class="trip-km" id="tripKm">--</div>
+      <div class="trip-unit">km</div>
+      <div class="trip-status" id="tripStatus"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Estimated fuel level</div>
+    <div style="position:relative;margin-top:14px">
+      <div style="position:absolute;top:-12px;font-size:11px;color:var(--accent);left:18.6%;transform:translateX(-50%)">RSV</div>
+      <div class="gauge-track">
+        <div class="gauge-fill" id="gaugeFill"></div>
+        <div class="gauge-reserve-line" style="left:18.6%"></div>
+        <div class="gauge-text" id="gaugeText">--</div>
+      </div>
+    </div>
+    <div class="gauge-labels"><span>0 L</span><span>16.7 L</span></div>
+    <div class="gauge-stats">
+      <div class="g-stat"><div class="g-stat-val" id="gLevelL">--</div><div class="g-stat-lbl">liters est.</div></div>
+      <div class="g-stat"><div class="g-stat-val" id="gLevelPct">--</div><div class="g-stat-lbl">% tank</div></div>
+      <div class="g-stat"><div class="g-stat-val" id="gConsumed">--</div><div class="g-stat-lbl">consumed L</div></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Low fuel indicator</div>
+    <button class="btn-reserve" id="btnReserve" onclick="toggleReserve()">ACTIVATE RESERVE</button>
+    <div class="reserve-since" id="reserveSince"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Record fill-up</div>
+    <div class="form-row">
+      <div class="form-label">Liters</div>
+      <input type="number" id="inpLiters" min="0.5" max="20" step="0.1" placeholder="12.5">
+    </div>
+    <div class="form-row">
+      <div class="form-label">Octane</div>
+      <select id="inpOctane">
+        <option value="87">87</option><option value="89">89</option>
+        <option value="91" selected>91</option><option value="93">93</option><option value="95">95</option>
+      </select>
+    </div>
+    <div class="full-tank-row" id="fullTankRow" onclick="toggleFullTank()">
+      <input type="checkbox" class="full-tank-chk" id="chkFullTank" onclick="event.stopPropagation();toggleFullTank()">
+      <div>
+        <div class="full-tank-lbl">FULL TANK RESET</div>
+        <div class="full-tank-hint">Tank = 16.7 L regardless of calculation — use when estimate is off</div>
+      </div>
+    </div>
+    <button class="btn btn-green" id="btnRefuel" onclick="submitRefuel()">SAVE FILL-UP</button>
+    <div class="status-msg" id="refuelMsg"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Fill-up history</div>
+    <div id="historyList"><div class="empty">Loading...</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Consumption by session</div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:8px;margin-top:-6px">rides ≥5 km · weighted avg</div>
+    <div class="cons-summary">
+      <div class="g-stat"><div class="g-stat-val" id="cAvgL100">--</div><div class="g-stat-lbl">avg L/100</div></div>
+      <div class="g-stat"><div class="g-stat-val" id="cAvgKmL">--</div><div class="g-stat-lbl">avg km/L</div></div>
+      <div class="g-stat"><div class="g-stat-val" id="cTotalKm">--</div><div class="g-stat-lbl">total km</div></div>
+    </div>
+    <div id="consList"><div class="empty">Loading...</div></div>
+  </div>
+
+</div>
+<script>
+const TANK_L = 16.7;
+let _ra = false;
+let _fullTank = false;
+
+async function loadStatus(){
+  try{
+    const r = await fetch('/fuel/status');
+    const d = await r.json();
+    _ra = d.reserve_active;
+    updateTrip(d);
+    updateGauge(d);
+    updateReserveBtn(d);
+    renderHistory(d.refuels || []);
+    const noData = !d.refuels || d.refuels.length === 0;
+    document.getElementById('onboardBanner').classList.toggle('show', noData);
+    document.querySelector('#onboardBanner > .onboard-title').onclick = function(e){
+      document.getElementById('onboardBanner').classList.toggle('collapsed');
+    };
+  }catch(e){ console.warn(e); }
+}
+
+function updateTrip(d){
+  const el = document.getElementById('tripKm');
+  const st = document.getElementById('tripStatus');
+  if(d.trip_km != null){
+    el.textContent = d.trip_km.toFixed(1);
+    el.className = 'trip-km' + (d.reserve_active ? ' reserve-on' : '');
+    st.textContent = d.reserve_active ? 'ON RESERVE' : 'POST-RESERVE';
+    st.style.color = d.reserve_active ? 'var(--accent)' : 'var(--dim)';
+  } else {
+    el.textContent = '--';
+    el.className = 'trip-km';
+    st.textContent = 'ACTIVATE RESERVE TO START';
+  }
+}
+
+function updateGauge(d){
+  const fill = document.getElementById('gaugeFill');
+  const text = document.getElementById('gaugeText');
+  if(d.level_L != null){
+    const pct = Math.min(100, Math.max(0, d.level_pct));
+    fill.style.width = pct + '%';
+    const col = pct > 35 ? '#2ecc71' : pct > 18.6 ? '#f1c40f' : pct > 9 ? '#e67e22' : '#e74c3c';
+    fill.style.background = col;
+    text.textContent = d.level_L.toFixed(1) + ' L';
+    text.style.color = pct < 35 ? '#fff' : '#000';
+    document.getElementById('gLevelL').textContent  = d.level_L.toFixed(2);
+    document.getElementById('gLevelPct').textContent = pct.toFixed(0) + '%';
+    document.getElementById('gConsumed').textContent = d.consumed_since_fill != null ? d.consumed_since_fill.toFixed(2) : '--';
+  } else {
+    fill.style.width = '0%';
+    text.textContent = 'Log a fill-up to start';
+    ['gLevelL','gLevelPct','gConsumed'].forEach(id => document.getElementById(id).textContent = '--');
+  }
+}
+
+function updateReserveBtn(d){
+  const btn   = document.getElementById('btnReserve');
+  const since = document.getElementById('reserveSince');
+  if(d.reserve_active){
+    btn.textContent = 'DEACTIVATE RESERVE';
+    btn.classList.add('active');
+    since.textContent = d.reserve_ts ? 'Active since: ' + fmtDate(d.reserve_ts) : '';
+  } else {
+    btn.textContent = 'ACTIVATE RESERVE';
+    btn.classList.remove('active');
+    since.textContent = d.reserve_ts ? 'Last: ' + fmtDate(d.reserve_ts) : '';
+  }
+}
+
+function toggleFullTank(){
+  _fullTank = !_fullTank;
+  document.getElementById('chkFullTank').checked = _fullTank;
+  document.getElementById('fullTankRow').classList.toggle('on', _fullTank);
+}
+
+async function toggleReserve(){
+  const r = await fetch('/fuel/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:!_ra})});
+  const d = await r.json();
+  _ra = d.reserve_active;
+  updateReserveBtn(d);
+  loadStatus();
+}
+
+async function submitRefuel(){
+  const liters = parseFloat(document.getElementById('inpLiters').value);
+  const octane = parseInt(document.getElementById('inpOctane').value);
+  const msg = document.getElementById('refuelMsg');
+  const btn = document.getElementById('btnRefuel');
+  if(!liters || liters <= 0){ msg.textContent = 'Enter liters'; return; }
+  btn.disabled = true; msg.textContent = 'Calculating...';
+  try{
+    const r = await fetch('/fuel/refuel',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({liters, octane, full_tank: _fullTank})});
+    const d = await r.json();
+    if(d.error){ msg.textContent = 'Error: ' + d.error; return; }
+    document.getElementById('inpLiters').value = '';
+    _fullTank = false;
+    document.getElementById('chkFullTank').checked = false;
+    document.getElementById('fullTankRow').classList.remove('on');
+    const km  = d.km_since_reserve  != null ? d.km_since_reserve.toFixed(1)  + ' km  ' : '';
+    const est = d.estimated_liters   != null ? 'est: ' + d.estimated_liters.toFixed(2) + ' L' : '';
+    const disc = d.discrepancy_L != null ? '  disc: ' + (d.discrepancy_L > 0 ? '+' : '') + d.discrepancy_L.toFixed(2) + ' L' : '';
+    msg.textContent = 'Saved: ' + liters + ' L  ' + km + est + disc;
+    setTimeout(() => { msg.textContent = ''; }, 6000);
+    loadStatus();
+  }catch(e){ msg.textContent = 'Error: ' + e; }
+  finally { btn.disabled = false; }
+}
+
+function renderHistory(refuels){
+  const el = document.getElementById('historyList');
+  if(!refuels.length){ el.innerHTML = '<div class="empty">No fill-ups recorded yet</div>'; return; }
+  el.innerHTML = [...refuels].reverse().map(r => {
+    const parts = [];
+    if(r.km_since_reserve  != null) parts.push('trip <span>' + r.km_since_reserve.toFixed(1) + ' km</span>');
+    if(r.estimated_liters  != null) parts.push('est <span>'  + r.estimated_liters.toFixed(2)  + ' L</span>');
+    if(r.calibration_ratio != null) parts.push('cal x<span>' + r.calibration_ratio.toFixed(3) + '</span>');
+    if(r.discrepancy_L     != null) parts.push('<span class="disc-warn">disc ' + (r.discrepancy_L > 0 ? '+' : '') + r.discrepancy_L.toFixed(2) + ' L</span>');
+    const tag = r.full_tank ? ' <span style="color:var(--green);font-size:11px">FULL</span>' : '';
+    return '<div class="refuel-item">'
+      + '<div class="refuel-top">'
+      + '<span class="refuel-liters">' + r.liters.toFixed(1) + ' L' + tag + '</span>'
+      + '<span class="refuel-date">' + fmtDate(r.ts) + ' · oct ' + r.octane + '</span>'
+      + '</div>'
+      + (parts.length ? '<div class="refuel-sub">' + parts.join(' &nbsp;') + '</div>' : '')
+      + '</div>';
+  }).join('');
+}
+
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString('en',{day:'2-digit',month:'short',year:'2-digit'})
+    + ' ' + d.toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadConsumption(){
+  try{
+    const r = await fetch('/fuel/consumption');
+    const rides = await r.json();
+    renderConsumption(rides);
+  }catch(e){ document.getElementById('consList').innerHTML='<div class="empty">Error loading</div>'; }
+}
+
+function renderConsumption(rides){
+  const el = document.getElementById('consList');
+  if(!rides||!rides.length){ el.innerHTML='<div class="empty">No ride data yet</div>'; return; }
+
+  const valid = rides.filter(r => r.l_per_100 && r.km >= 5);
+  if(valid.length){
+    const totL  = valid.reduce((s,r)=>s+r.liters,0);
+    const totKm = valid.reduce((s,r)=>s+r.km,0);
+    document.getElementById('cAvgL100').textContent = (totL/totKm*100).toFixed(1);
+    document.getElementById('cAvgKmL').textContent  = (totKm/totL).toFixed(1);
+    document.getElementById('cTotalKm').textContent = totKm.toFixed(0);
+  }
+
+  function l100col(v){ return v<7?'var(--green)':v<10?'var(--yellow)':v<14?'var(--orange)':'var(--red)'; }
+
+  const sessMap = new Map();
+  for(const r of rides){
+    if(!sessMap.has(r.session))
+      sessMap.set(r.session,{session:r.session,rides:[],km:0,liters:0,date:r.date});
+    const sg = sessMap.get(r.session);
+    sg.rides.push(r);
+    sg.km     += r.km;
+    sg.liters += r.liters;
+    if(r.date < sg.date) sg.date = r.date;
+  }
+
+  el.innerHTML = [...sessMap.values()].map((sg,i)=>{
+    const l100  = sg.liters>0&&sg.km>0 ? sg.liters/sg.km*100 : null;
+    const l100s = l100 ? l100.toFixed(1) : '--';
+    const col   = l100 ? l100col(l100) : 'var(--dim)';
+    const ds    = new Date(sg.date).toLocaleDateString('en',{day:'2-digit',month:'short',year:'2-digit'});
+    const rideRows = sg.rides.map(r=>{
+      const rds  = new Date(r.date).toLocaleTimeString('en',{hour:'2-digit',minute:'2-digit'});
+      const rnum = (r.ride||'').split('_')[2]||'?';
+      const rl   = r.l_per_100 ? r.l_per_100.toFixed(1) : '--';
+      const rc   = r.l_per_100 ? l100col(r.l_per_100) : 'var(--dim)';
+      return '<div class="cons-row">'
+        +'<span class="cons-date">'+rnum+' · '+rds+'</span>'
+        +'<span class="cons-km">'+r.km.toFixed(1)+'</span>'
+        +'<span class="cons-l">'+r.liters.toFixed(2)+'</span>'
+        +'<span class="cons-l100" style="color:'+rc+'">'+rl+'</span>'
+        +'</div>';
+    }).join('');
+    const first = i===0;
+    return '<div class="sg-group">'
+      +'<div class="sg-hdr'+(first?' open':'')+'" onclick="toggleSessGroup(this)">'
+      +'<div class="sg-hdr-top">'
+      +'<span class="sg-arrow">▶</span>'
+      +'<span class="sg-id">'+sg.session+'</span>'
+      +'<span class="sg-meta">'+ds+' · '+sg.rides.length+' ride'+(sg.rides.length>1?'s':'')+'</span>'
+      +'</div>'
+      +'<div class="sg-stats">'
+      +'<div class="sg-stat">'
+      +'<div class="sg-stat-val">'+sg.km.toFixed(1)+'<span class="sg-stat-sfx"> km</span></div>'
+      +'</div>'
+      +'<div class="sg-stat">'
+      +'<div class="sg-stat-val" style="color:var(--blue)">'+sg.liters.toFixed(2)+'<span class="sg-stat-sfx"> L</span></div>'
+      +'</div>'
+      +'<div class="sg-stat">'
+      +'<div class="sg-stat-val">'
+      +(sg.liters>0&&sg.km>0 ? (sg.km/sg.liters).toFixed(1)+'<span class="sg-stat-sfx"> km/L</span>' : '--')
+      +'</div>'
+      +'</div>'
+      +'<div class="sg-stat">'
+      +'<div class="sg-stat-val" style="color:'+col+'">'+l100s+'<span class="sg-stat-sfx"> L/100</span></div>'
+      +'</div>'
+      +'</div>'
+      +'</div>'
+      +'<div class="sg-rides'+(first?' open':'')+'">'
+      +'<div class="cons-hdr"><span style="flex:1">RIDE · TIME</span>'
+      +'<span style="width:54px;text-align:right">KM</span>'
+      +'<span style="width:46px;text-align:right">L</span>'
+      +'<span style="width:52px;text-align:right">L/100</span></div>'
+      +rideRows
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleSessGroup(hdr){
+  hdr.classList.toggle('open');
+  hdr.nextElementSibling.classList.toggle('open');
+}
+
+
+loadStatus();
+loadConsumption();
+setInterval(loadStatus, 10000);
+</script>
+</body>
+</html>

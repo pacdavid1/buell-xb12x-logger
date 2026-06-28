@@ -1,0 +1,744 @@
+<!-- DEV NOTE: All code, comments, and variable names must be in English. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>GPS Analysis — Buell Logger</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="/static/uPlot.min.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/uPlot.iife.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',Consolas,monospace;
+     height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+#toolbar{display:flex;align-items:center;gap:6px;padding:4px 8px;background:#111116;
+         border-bottom:1px solid #1e1e28;flex-shrink:0;height:40px;flex-wrap:wrap}
+#toolbar a{color:#55555e;font-size:9px;text-decoration:none;white-space:nowrap}
+#toolbar a:hover{color:#aaa}
+#toolbar select{background:#0a0a0b;border:1px solid #2a2a36;color:#c8c8cc;font-family:inherit;
+                font-size:9px;padding:3px 6px;border-radius:2px;flex:1;min-width:140px;max-width:240px}
+.btn{background:transparent;border:1px solid #2a2a36;color:#c8c8cc;font-family:inherit;font-size:9px;
+     padding:3px 8px;border-radius:2px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#555;color:#fff}
+.btn.on{border-color:#3d9eff;color:#3d9eff}
+#statsBar{font-size:8px;color:#55555e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+#qualityStrip{width:100%;height:8px;flex-shrink:0;display:block;cursor:crosshair}
+#mapsRow{flex:1;display:flex;min-height:0}
+#map2d{flex:1;min-width:0}
+#map3d{flex:1;min-width:0;display:block;touch-action:none;cursor:grab;background:#0a0a0b}
+#chartWrap{height:22dvh;flex-shrink:0;background:#0a0a0b;border-top:1px solid #1e1e28;position:relative}
+#chartTitle{position:absolute;top:3px;left:8px;font-size:8px;color:#55555e;z-index:2;pointer-events:none}
+#chartCtrls{position:absolute;top:2px;right:6px;display:flex;gap:3px;z-index:2}
+#statsRow{flex-shrink:0;height:20px;background:#111116;border-top:1px solid #1e1e28;
+          display:flex;align-items:center;gap:0;overflow:hidden}
+.stat-cell{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+           border-right:1px solid #1e1e28;padding:1px 4px;min-width:0}
+.stat-cell:last-child{border-right:none}
+.stat-label{font-size:6px;color:#55555e;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.stat-val{font-size:9px;font-weight:700;white-space:nowrap;line-height:1}
+.leaflet-container{background:#0a0a0b}
+.u-cursor-x,.u-cursor-y{opacity:.4}
+</style>
+</head>
+<body>
+<div id="toolbar">
+  <a href="/">← Dash</a>
+  <span style="font-size:9px;color:#3d9eff;font-weight:700;letter-spacing:.1em;white-space:nowrap">GPS ANALYSIS</span><span style="font-size:8px;color:#55555e;white-space:nowrap">--LOGGER_VERSION--</span>
+  <div style="width:1px;height:20px;background:#2a2a36;flex-shrink:0"></div>
+  <select id="rideSelect"><option value="">-- Select ride --</option></select>
+  <button class="btn" id="loadBtn" onclick="loadData()" style="border-color:#3d9eff;color:#3d9eff">Load</button>
+  <div style="width:1px;height:20px;background:#2a2a36;flex-shrink:0"></div>
+  <button class="btn" id="playBtn" onclick="toggleReplay()" disabled title="Replay ride">▶</button>
+  <button class="btn" onclick="setReplaySpeed(1)" id="spd1" style="font-size:8px;padding:2px 4px">1×</button>
+  <button class="btn" onclick="setReplaySpeed(4)" id="spd4" style="font-size:8px;padding:2px 4px">4×</button>
+  <button class="btn" onclick="setReplaySpeed(10)" id="spd10" style="font-size:8px;padding:2px 4px">10×</button>
+  <div style="width:1px;height:20px;background:#2a2a36;flex-shrink:0"></div>
+  <button class="btn" id="heatBtn" onclick="toggleHeat()" title="Speed heatmap">Heat</button>
+  <button class="btn" id="spinBtn" onclick="toggleSpin()" title="Highlight spin events">Spin</button>
+  <button class="btn" id="btn3DPause" onclick="toggle3DPause()" title="Pause 3D rotation — then click chart to set pivot">3D ⏸</button>
+  <span id="statsBar">Select a ride and press Load</span>
+</div>
+
+<canvas id="qualityStrip" height="8"></canvas>
+
+<div id="mapsRow">
+  <div id="map2d"></div>
+  <canvas id="map3d" touch-action="none"></canvas>
+</div>
+
+<div id="chartWrap">
+  <div id="chartTitle">GPS speed · Wheel speed (VS_KPH) · delta</div>
+  <div id="chartCtrls">
+    <button class="btn on" id="btnGPS" onclick="toggleSeries(0)" style="border-color:#3d9eff;color:#3d9eff">GPS</button>
+    <button class="btn on" id="btnVSS" onclick="toggleSeries(1)" style="border-color:#f5a623;color:#f5a623">VSS</button>
+    <button class="btn on" id="btnDelta" onclick="toggleSeries(2)" style="border-color:#888;color:#888">Δ</button>
+    <button class="btn" onclick="resetZoom()" title="Reset zoom (double-click chart)">⟳</button>
+  </div>
+  <div id="chart" style="width:100%;height:100%"></div>
+</div>
+
+<div id="statsRow">
+  <div class="stat-cell" style="border-top:2px solid #3d9eff">
+    <div class="stat-label">GPS dist</div>
+    <div class="stat-val" id="sGpsDist" style="color:#3d9eff">--</div>
+  </div>
+  <div class="stat-cell" style="border-top:2px solid #f5a623">
+    <div class="stat-label">VSS dist</div>
+    <div class="stat-val" id="sVssDist" style="color:#f5a623">--</div>
+  </div>
+  <div class="stat-cell" style="border-top:2px solid #e74c3c">
+    <div class="stat-label">Max spin Δ</div>
+    <div class="stat-val" id="sMaxSpin" style="color:#e74c3c">--</div>
+  </div>
+  <div class="stat-cell" style="border-top:2px solid #2ecc71">
+    <div class="stat-label">GPS fix</div>
+    <div class="stat-val" id="sFixPct" style="color:#2ecc71">--%</div>
+  </div>
+  <div class="stat-cell" style="border-top:2px solid #a8f">
+    <div class="stat-label">Artifacts</div>
+    <div class="stat-val" id="sArtifacts" style="color:#a8f">--</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ── constants ────────────────────────────────────────────────────
+const T3_MAX_PTS = 1200, T3_TURN_S = 30, T3_IDLE_MS = 3000;
+const MAP_TILES = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+const MAP_ATTR = '&copy; OpenStreetMap contributors &copy; CARTO';
+
+// ── state ────────────────────────────────────────────────────────
+let DATA = null;
+let _map2d = null, _trackLayer = null, _curMarker = null, _heatLayer = null;
+let _t3 = null, _t3raf = null;
+let _uplot = null;
+let _seriesOn = [true, true, true];
+let _showHeat = false, _showSpin = false;
+let _spinMarkers = null;
+let _stripW = 0, _stripCache = null;
+let _replay = false, _replaySpeed = 1, _replayIdx = 0, _replayStartTs = 0, _replayRaf = null, _uplotOverRect = null;
+
+// ── color ────────────────────────────────────────────────────────
+function spd2color(s) {
+  if (s < 20)  return '#0055ff';
+  if (s < 60)  return 'rgb(0,' + Math.round((s-20)/40*255) + ',' + Math.round(255-(s-20)/40*255) + ')';
+  if (s < 120) return 'rgb(' + Math.round((s-60)/60*255) + ',255,0)';
+  if (s < 160) return 'rgb(255,' + Math.round(255-(s-120)/40*255) + ',0)';
+  return '#ff00ff';
+}
+
+// ── ride list ────────────────────────────────────────────────────
+async function loadRideList() {
+  try {
+    const r = await fetch('/rides?t=' + Date.now());
+    const d = await r.json();
+    const sel = document.getElementById('rideSelect');
+    const rides = (d.rides || []).slice().sort((a, b) => (b.opened_utc || '') > (a.opened_utc || '') ? 1 : -1);
+    for (const rd of rides) {
+      const opt = document.createElement('option');
+      opt.value = JSON.stringify({ session: rd.session, ride: rd.ride_num });
+      const dt = rd.opened_utc ? new Date(rd.opened_utc).toLocaleString() : '';
+      opt.textContent = rd.session + ' · Ride ' + rd.ride_num + (dt ? ' · ' + dt : '');
+      sel.appendChild(opt);
+    }
+  } catch(e) { console.warn('loadRideList', e); }
+}
+
+// ── data load ────────────────────────────────────────────────────
+async function loadData() {
+  const sel = document.getElementById('rideSelect');
+  if (!sel.value) { alert('Select a ride first'); return; }
+  const { session, ride } = JSON.parse(sel.value);
+  document.getElementById('statsBar').textContent = 'Loading...';
+  try {
+    const r = await fetch('/gps_analysis_data?session=' + session + '&ride=' + ride + '&t=' + Date.now());
+    const d = await r.json();
+    if (d.error) { document.getElementById('statsBar').textContent = 'Error: ' + d.error; return; }
+    DATA = d;
+    drawAll();
+  } catch(e) {
+    document.getElementById('statsBar').textContent = 'Error: ' + e.message;
+  }
+}
+
+function drawAll() {
+  if (!DATA) return;
+  if (_replay) { _replay = false; if (_replayRaf) cancelAnimationFrame(_replayRaf); _replayRaf = null; }
+  document.getElementById('playBtn').textContent = '▶';
+  document.getElementById('playBtn').classList.remove('on');
+  document.getElementById('playBtn').disabled = false;
+  draw2D();
+  init3D();
+  drawQualityStrip();
+  buildChart();
+  computeStats();
+}
+
+// ── 2D Leaflet map ───────────────────────────────────────────────
+function draw2D() {
+  if (!_map2d) {
+    _map2d = L.map('map2d', { attributionControl: false }).setView([32.5, -116.9], 13);
+    L.tileLayer(MAP_TILES, { maxZoom: 19, attribution: MAP_ATTR }).addTo(_map2d);
+  }
+  if (_trackLayer) { _trackLayer.clearLayers(); }
+  else { _trackLayer = L.layerGroup().addTo(_map2d); }
+  if (_spinMarkers) { _spinMarkers.clearLayers(); } else { _spinMarkers = L.layerGroup().addTo(_map2d); }
+  if (_heatLayer) { _map2d.removeLayer(_heatLayer); _heatLayer = null; }
+
+  const pts = DATA.lats.map((lat, i) => [lat, DATA.lons[i]]).filter(p => p[0] != null && Math.abs(p[0]) > 0.001);
+  for (let i = 0; i < pts.length - 1; i++) {
+    L.polyline([pts[i], pts[i+1]], { color: spd2color(DATA.gps_speed[i] || 0), weight: 3, opacity: 0.85 }).addTo(_trackLayer);
+  }
+  if (pts.length > 1) {
+    L.circleMarker(pts[0], { radius: 6, color: '#00ff88', fillColor: '#00ff88', fillOpacity: 1 }).addTo(_trackLayer).bindPopup('Start');
+    L.circleMarker(pts[pts.length-1], { radius: 6, color: '#ff4444', fillColor: '#ff4444', fillOpacity: 1 }).addTo(_trackLayer).bindPopup('End');
+    _map2d.fitBounds(pts);
+    setTimeout(() => _map2d.invalidateSize(), 50);
+  }
+}
+
+function toggleHeat() {
+  _showHeat = !_showHeat;
+  document.getElementById('heatBtn').classList.toggle('on', _showHeat);
+  if (!DATA || !_map2d) return;
+  if (_heatLayer) { _map2d.removeLayer(_heatLayer); _heatLayer = null; }
+  if (!_showHeat) return;
+  const hpts = DATA.lats.map((lat, i) => {
+    if (lat == null || Math.abs(lat) < 0.001) return null;
+    return [lat, DATA.lons[i], Math.min(1, (DATA.gps_speed[i] || 0) / 160)];
+  }).filter(Boolean);
+  if (window.L.heatLayer) { _heatLayer = L.heatLayer(hpts, { radius: 12, blur: 8, maxZoom: 17 }).addTo(_map2d); }
+}
+
+function toggleSpin() {
+  _showSpin = !_showSpin;
+  document.getElementById('spinBtn').classList.toggle('on', _showSpin);
+  if (!DATA || !_spinMarkers) return;
+  _spinMarkers.clearLayers();
+  if (!_showSpin) return;
+  for (let i = 0; i < DATA.times.length; i++) {
+    const delta = (DATA.vs_kph[i] || 0) - (DATA.gps_speed[i] || 0);
+    const lat = DATA.lats[i]; const lon = DATA.lons[i];
+    if (delta > 8 && lat != null && Math.abs(lat) > 0.001) {
+      L.circleMarker([lat, lon], { radius: 4, color: '#e74c3c', fillColor: '#e74c3c', fillOpacity: 0.8, weight: 1 })
+        .addTo(_spinMarkers)
+        .bindPopup('Spin Δ=' + delta.toFixed(1) + ' km/h · VSS=' + DATA.vs_kph[i].toFixed(0) + ' GPS=' + DATA.gps_speed[i].toFixed(0));
+    }
+  }
+}
+
+// ── GPS quality strip ─────────────────────────────────────────────
+function drawQualityStrip() {
+  const canvas = document.getElementById('qualityStrip');
+  _stripW = canvas.offsetWidth;
+  canvas.width = _stripW;
+  canvas.height = 8;
+  const off = document.createElement('canvas');
+  off.width = _stripW; off.height = 8;
+  const ctx = off.getContext('2d');
+  const dur = DATA.duration_s || 1;
+  const n = DATA.times.length;
+  for (let i = 0; i < n; i++) {
+    const x = Math.round((DATA.times[i] - DATA.times[0]) / dur * _stripW);
+    const w = Math.max(1, i < n - 1 ? Math.round((DATA.times[i+1] - DATA.times[0]) / dur * _stripW) - x : 2);
+    const v = DATA.valid[i];
+    ctx.fillStyle = v === 3 ? '#2ecc71' : v === 2 ? '#f5a623' : '#333';
+    ctx.fillRect(x, 0, w, 8);
+  }
+  _stripCache = off;
+  canvas.getContext('2d').drawImage(off, 0, 0);
+}
+
+function drawStripCursor(idx) {
+  if (!DATA || !_stripW || !_stripCache) return;
+  const canvas = document.getElementById('qualityStrip');
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(_stripCache, 0, 0);
+  const x = Math.round((DATA.times[idx] - DATA.times[0]) / DATA.duration_s * _stripW);
+  ctx.fillStyle = 'rgba(255,255,255,0.7)';
+  ctx.fillRect(x - 1, 0, 2, 8);
+}
+
+// ── uPlot speed chart ─────────────────────────────────────────────
+let _delta = [];
+let _xFull = [0, 1];  // full x range for reset
+
+function buildChart() {
+  const wrap = document.getElementById('chart');
+  if (_uplot) { _uplot.destroy(); _uplot = null; }
+  _delta = DATA.vs_kph.map((v, i) => (v || 0) - (DATA.gps_speed[i] || 0));
+  _xFull = [DATA.times[0], DATA.times[DATA.times.length - 1]];
+  const spdMax = Math.max(20, ...DATA.gps_speed.filter(Boolean), ...DATA.vs_kph.filter(Boolean));
+  const udata = [
+    new Float64Array(DATA.times),
+    new Float64Array(DATA.gps_speed.map(v => v == null ? NaN : v)),
+    new Float64Array(DATA.vs_kph.map(v => v == null ? NaN : v)),
+    new Float64Array(_delta),
+  ];
+  const opts = {
+    width: wrap.clientWidth,
+    height: wrap.clientHeight - 4,
+    cursor: { sync: { key: 'gps_chart' }, drag: { x: true, y: false, dist: 12 } },
+    select: { show: true },
+    legend: { show: false },
+    scales: {
+      x: { time: false },
+      y: { range: [0, spdMax * 1.05] },
+      yd: { range: (u, mn, mx) => [Math.min(-5, mn * 1.1), Math.max(5, mx * 1.1)] },
+    },
+    axes: [
+      { stroke: '#55555e', ticks: { stroke: '#1e1e28' }, grid: { stroke: '#1e1e28' }, font: '9px monospace',
+        values: (u, vals) => vals.map(v => v == null ? '' : v.toFixed(0) + 's') },
+      { scale: 'y', stroke: '#3d9eff', ticks: { stroke: '#1e1e28' }, grid: { stroke: '#1e1e28' },
+        font: '9px monospace', values: (u, vals) => vals.map(v => v == null ? '' : v.toFixed(0)) },
+      { scale: 'yd', side: 1, stroke: '#888', ticks: { show: false }, grid: { show: false },
+        font: '9px monospace', values: (u, vals) => vals.map(v => v == null ? '' : (v > 0 ? '+' : '') + v.toFixed(0)) },
+    ],
+    series: [
+      {},
+      { label: 'GPS km/h', scale: 'y', stroke: '#3d9eff', width: 1.5,
+        points: { show: false },
+        value: (u, v) => v == null ? '--' : v.toFixed(1) + ' km/h' },
+      { label: 'VSS km/h', scale: 'y', stroke: '#f5a623', width: 1.5,
+        points: { show: false },
+        value: (u, v) => v == null ? '--' : v.toFixed(1) + ' km/h' },
+      { label: 'Δ (VSS−GPS)', scale: 'yd', stroke: '#888', width: 1, dash: [4, 3],
+        points: { show: false },
+        value: (u, v) => v == null ? '--' : (v > 0 ? '+' : '') + v.toFixed(1) + ' km/h' },
+    ],
+    hooks: {
+      setCursor: [u => {
+        if (_replay) return;
+        const idx = u.cursor.idx;
+        if (idx == null || !DATA) return;
+        syncCursorToMaps(idx);
+        drawStripCursor(idx);
+        updateLegendText(idx);
+      }],
+      setSelect: [u => {
+        if (u.select.width > 0) {
+          const xMin = u.posToVal(u.select.left, 'x');
+          const xMax = u.posToVal(u.select.left + u.select.width, 'x');
+          u.setScale('x', { min: xMin, max: xMax });
+          u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+        }
+      }],
+    },
+  };
+  _uplot = new uPlot(opts, udata, wrap);
+  wrap.addEventListener('dblclick', resetZoom);
+  if (!wrap._touchBound) {
+    wrap._touchBound = true;
+    let _tpX = null, _tpMin = null, _tpMax = null;
+    wrap.addEventListener('touchstart', e => {
+      if (e.touches.length === 2 && _uplot) {
+        e.preventDefault();
+        _tpX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        _tpMin = _uplot.scales.x.min; _tpMax = _uplot.scales.x.max;
+      }
+    }, { passive: false });
+    wrap.addEventListener('touchmove', e => {
+      if (e.touches.length !== 2 || _tpX == null || !_uplot) return;
+      e.preventDefault();
+      const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const range = _tpMax - _tpMin;
+      const tPerPx = range / wrap.clientWidth;
+      const shift = (_tpX - cx) * tPerPx;
+      let newMin = _tpMin + shift, newMax = _tpMax + shift;
+      if (newMin < _xFull[0]) { newMax += _xFull[0] - newMin; newMin = _xFull[0]; }
+      if (newMax > _xFull[1]) { newMin -= newMax - _xFull[1]; newMax = _xFull[1]; }
+      _uplot.setScale('x', { min: newMin, max: newMax });
+    }, { passive: false });
+    wrap.addEventListener('touchend', () => { _tpX = null; });
+  }
+}
+
+function updateLegendText(idx) {
+  const gspd = DATA.gps_speed[idx] != null ? DATA.gps_speed[idx].toFixed(1) : '--';
+  const vspd = DATA.vs_kph[idx] != null ? DATA.vs_kph[idx].toFixed(1) : '--';
+  const dv = _delta[idx] != null ? ((_delta[idx] > 0 ? '+' : '') + _delta[idx].toFixed(1)) : '--';
+  const t = DATA.times[idx] != null ? DATA.times[idx].toFixed(1) + 's' : '';
+  const fix = DATA.valid[idx] === 3 ? '3D' : DATA.valid[idx] === 2 ? '2D' : 'NO FIX';
+  document.getElementById('chartTitle').textContent =
+    t + '  GPS ' + gspd + ' · VSS ' + vspd + ' · Δ ' + dv + ' km/h · ' + fix;
+}
+
+function resetZoom() {
+  if (!_uplot || !DATA) return;
+  _uplot.setScale('x', { min: _xFull[0], max: _xFull[1] });
+}
+
+function toggleSeries(idx) {
+  if (!_uplot) return;
+  _seriesOn[idx] = !_seriesOn[idx];
+  _uplot.setSeries(idx + 1, { show: _seriesOn[idx] });
+  const ids = ['btnGPS', 'btnVSS', 'btnDelta'];
+  document.getElementById(ids[idx]).classList.toggle('on', _seriesOn[idx]);
+}
+
+// ── replay ──────────────────────────────────────────────────────
+function toggleReplay() {
+  if (!DATA) return;
+  _replay = !_replay;
+  const btn = document.getElementById('playBtn');
+  btn.textContent = _replay ? '⏹' : '▶';
+  btn.classList.toggle('on', _replay);
+  if (_replay) {
+    _replayIdx = 0; _replayStartTs = 0;
+    _uplotOverRect = _uplot && _uplot.over ? _uplot.over.getBoundingClientRect() : null;
+    _replayRaf = requestAnimationFrame(replayLoop);
+  } else {
+    if (_replayRaf) cancelAnimationFrame(_replayRaf);
+    _replayRaf = null;
+  }
+}
+
+function replayLoop(ts) {
+  if (!_replay || !DATA) return;
+  if (_replayStartTs === 0) _replayStartTs = ts;
+  const GAP_S = 1.0;
+  let targetDataTime = DATA.times[0] + (ts - _replayStartTs) / 1000 * _replaySpeed;
+  while (_replayIdx < DATA.times.length - 1) {
+    const nextT = DATA.times[_replayIdx + 1];
+    if (nextT <= targetDataTime) {
+      _replayIdx++;
+    } else if (nextT - DATA.times[_replayIdx] > GAP_S) {
+      // Gap in data: skip it by resetting the clock to start at nextT
+      _replayStartTs = ts - (nextT - DATA.times[0]) * 1000 / _replaySpeed;
+      targetDataTime = nextT;
+      _replayIdx++;
+    } else {
+      break;
+    }
+  }
+  if (_replayIdx >= DATA.times.length - 1) {
+    _replay = false;
+    const btn = document.getElementById('playBtn');
+    btn.textContent = '▶'; btn.classList.remove('on');
+    return;
+  }
+  syncCursorToMaps(_replayIdx);
+  drawStripCursor(_replayIdx);
+  updateLegendText(_replayIdx);
+  if (_uplot && _uplot.over && _uplotOverRect) {
+    const xPx = _uplot.valToPos(DATA.times[_replayIdx], 'x');
+    if (xPx != null && xPx >= 0) {
+      _uplot.over.dispatchEvent(new MouseEvent('mousemove', {
+        clientX: _uplotOverRect.left + xPx, clientY: _uplotOverRect.top + _uplot.over.clientHeight / 2, bubbles: false
+      }));
+    }
+  }
+  _replayRaf = requestAnimationFrame(replayLoop);
+}
+
+function setReplaySpeed(s) {
+  _replaySpeed = s;
+  [['spd1', 1], ['spd4', 4], ['spd10', 10]].forEach(([id, v]) => {
+    document.getElementById(id).classList.toggle('on', v === s);
+  });
+}
+
+// ── cursor → map sync ────────────────────────────────────────────
+function syncCursorToMaps(idx) {
+  const lat = DATA.lats[idx]; const lon = DATA.lons[idx];
+  if (lat == null || Math.abs(lat) < 0.001) return;
+  if (!_curMarker) {
+    _curMarker = L.circleMarker([lat, lon], { radius: 7, color: '#fff', fillColor: '#ffee00', fillOpacity: 0.95, weight: 2 }).addTo(_map2d);
+  } else {
+    _curMarker.setLatLng([lat, lon]);
+  }
+  if (_replay && _map2d && !_map2d.getBounds().contains([lat, lon])) {
+    _map2d.panTo([lat, lon], { animate: false });
+  }
+  if (_t3) {
+    _t3.cursorIdx = Math.round(idx / DATA.times.length * (_t3.pts.length - 1));
+  }
+}
+
+// ── 3D canvas ───────────────────────────────────────────────────
+function init3D() {
+  const canvas = document.getElementById('map3d');
+  if (!canvas || !DATA || DATA.lats.length < 2) return;
+  const lats = DATA.lats, lons = DATA.lons, alts = DATA.alts;
+  const lat0 = lats.reduce((s, v) => s + (v || 0), 0) / lats.length;
+  const lon0 = lons.reduce((s, v) => s + (v || 0), 0) / lons.length;
+  const cosLat = Math.cos(lat0 * Math.PI / 180);
+  const validAlts = alts.filter(v => v != null);
+  const hasAlt = validAlts.length > lats.length * 0.3;
+  const altMin = hasAlt ? Math.min(...validAlts) : 0;
+  const stride = Math.max(1, Math.ceil(DATA.times.length / T3_MAX_PTS));
+  const pts = [], spd = [], dataIdxMap = [];
+  for (let i = 0; i < DATA.times.length; i += stride) {
+    const lat = lats[i], lon = lons[i];
+    if (lat == null || Math.abs(lat) < 0.001) continue;
+    pts.push([(lon - lon0) * 111320 * cosLat,
+              hasAlt && alts[i] != null ? alts[i] - altMin : 0,
+              (lat0 - lat) * 110540]);
+    spd.push(DATA.gps_speed[i] || 0);
+    dataIdxMap.push(i);
+  }
+  let spanX = 0, spanZ = 0, maxY = 0;
+  for (const q of pts) { spanX = Math.max(spanX, Math.abs(q[0])); spanZ = Math.max(spanZ, Math.abs(q[2])); maxY = Math.max(maxY, q[1]); }
+  const span = Math.max(spanX, spanZ) * 2 || 1;
+  const vexag = hasAlt && maxY > 0 ? Math.min(4, Math.max(1, span * 0.15 / maxY)) : 1;
+  const yMid = maxY * vexag / 2;
+  let radius = 1;
+  for (const q of pts) { q[1] = q[1] * vexag - yMid; radius = Math.max(radius, Math.hypot(q[0], q[1], q[2])); }
+  const prev = _t3;
+  _t3 = { pts, spd, dataIdxMap, hasAlt, vexag, radius, floorY: -yMid, cursorIdx: null,
+           ang: prev ? prev.ang : 0.6, tilt: prev ? prev.tilt : 0.5, zoom: prev ? prev.zoom : 1,
+           panX: prev ? prev.panX : 0, panY: prev ? prev.panY : 0,
+           rotPaused: prev ? prev.rotPaused : false, pivot: null,
+           drag: false, shiftDrag: false, lx: 0, ly: 0, lastTouch: 0, lastTs: 0 };
+  if (!canvas._t3bound) { bind3D(canvas); canvas._t3bound = true; }
+  if (!_t3raf) _t3raf = requestAnimationFrame(loop3D);
+}
+
+function bind3D(canvas) {
+  canvas.addEventListener('pointerdown', e => {
+    if (!_t3) return;
+    _t3.drag = true; _t3.shiftDrag = e.ctrlKey;
+    _t3.lx = e.clientX; _t3.ly = e.clientY; _t3.lastTouch = performance.now();
+    try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
+    e.preventDefault();
+  });
+  canvas.addEventListener('pointermove', e => {
+    if (!_t3 || !_t3.drag) return;
+    const dx = e.clientX - _t3.lx, dy = e.clientY - _t3.ly;
+    if (_t3.shiftDrag) {
+      _t3.panX += dx; _t3.panY += dy;
+    } else {
+      _t3.ang += dx * 0.008;
+      _t3.tilt = Math.min(1.45, Math.max(0.05, _t3.tilt + dy * 0.008));
+    }
+    _t3.lx = e.clientX; _t3.ly = e.clientY; _t3.lastTouch = performance.now();
+  });
+  const end = () => { if (_t3) { _t3.drag = false; _t3.lastTouch = performance.now(); } };
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+  canvas.addEventListener('dblclick', e => {
+    if (!_t3 || !DATA) return;
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.clientX - rect.left, cy2 = e.clientY - rect.top;
+    const W = canvas.width, H = canvas.height;
+    // Recompute current projection (must match draw3D exactly)
+    const cosA = Math.cos(_t3.ang), sinA = Math.sin(_t3.ang);
+    const cosT = Math.cos(_t3.tilt), sinT = Math.sin(_t3.tilt);
+    const s = ((Math.min(W, H) / 2 - 20) / _t3.radius) * _t3.zoom;
+    const followPt = (_replay && _t3.cursorIdx != null && _t3.pts[_t3.cursorIdx])
+      ? _t3.pts[_t3.cursorIdx] : _t3.pivot;
+    let ox = _t3.panX, oy = _t3.panY;
+    if (followPt) {
+      const fx = followPt[0] * cosA + followPt[2] * sinA;
+      const fz = -followPt[0] * sinA + followPt[2] * cosA;
+      ox = -fx * s; oy = (followPt[1] * cosT - fz * sinT) * s;
+    }
+    // Find nearest projected point to click
+    let bestDist = Infinity, bestPtsIdx = 0;
+    for (let i = 0; i < _t3.pts.length; i++) {
+      const q = _t3.pts[i];
+      const x1 = q[0] * cosA + q[2] * sinA, z1 = -q[0] * sinA + q[2] * cosA;
+      const px = W / 2 + ox + x1 * s, py = H / 2 + oy - (q[1] * cosT - z1 * sinT) * s;
+      const d = (px - cx) ** 2 + (py - cy2) ** 2;
+      if (d < bestDist) { bestDist = d; bestPtsIdx = i; }
+    }
+    const dataIdx = _t3.dataIdxMap[bestPtsIdx];
+    if (dataIdx == null) return;
+    syncCursorToMaps(dataIdx);
+    drawStripCursor(dataIdx);
+    updateLegendText(dataIdx);
+    if (_uplot && _uplot.over) {
+      const xPx = _uplot.valToPos(DATA.times[dataIdx], 'x');
+      if (xPx != null && xPx >= 0) {
+        const r = _uplot.over.getBoundingClientRect();
+        _uplot.over.dispatchEvent(new MouseEvent('mousemove', {
+          clientX: r.left + xPx, clientY: r.top + _uplot.over.clientHeight / 2, bubbles: false
+        }));
+      }
+    }
+    _t3.pivot = [..._t3.pts[bestPtsIdx]];
+  });
+  canvas.addEventListener('wheel', e => {
+    if (!_t3) return;
+    e.preventDefault();
+    _t3.zoom = Math.min(50, Math.max(0.1, _t3.zoom * (e.deltaY < 0 ? 1.12 : 0.89)));
+    _t3.lastTouch = performance.now();
+  }, { passive: false });
+}
+
+function loop3D(ts) {
+  _t3raf = requestAnimationFrame(loop3D);
+  if (!_t3 || document.hidden) return;
+  const canvas = document.getElementById('map3d');
+  if (!canvas) return;
+  const dt = _t3.lastTs ? Math.min(0.1, (ts - _t3.lastTs) / 1000) : 0;
+  _t3.lastTs = ts;
+  if (!_t3.drag && !_t3.rotPaused && ts - _t3.lastTouch > T3_IDLE_MS) {
+    _t3.ang += (2 * Math.PI / T3_TURN_S) * dt;
+  }
+  draw3D(canvas);
+}
+
+function draw3D(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width < 10 || rect.height < 10) return;
+  if (canvas.width !== Math.round(rect.width))  canvas.width  = Math.round(rect.width);
+  if (canvas.height !== Math.round(rect.height)) canvas.height = Math.round(rect.height);
+  const W = canvas.width, H = canvas.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#0a0a0b'; ctx.fillRect(0, 0, W, H);
+  const cy = Math.cos(_t3.ang), sy = Math.sin(_t3.ang);
+  const cp = Math.cos(_t3.tilt), sp = Math.sin(_t3.tilt);
+  const s = ((Math.min(W, H) / 2 - 20) / _t3.radius) * _t3.zoom;
+  // Priority: replay follow > pivot > manual pan
+  let ox = _t3.panX, oy = _t3.panY;
+  const _followPt = (_replay && _t3.cursorIdx != null && _t3.pts[_t3.cursorIdx])
+    ? _t3.pts[_t3.cursorIdx]
+    : _t3.pivot;
+  if (_followPt) {
+    const fx = _followPt[0] * cy + _followPt[2] * sy, fz = -_followPt[0] * sy + _followPt[2] * cy;
+    ox = -fx * s; oy = (_followPt[1] * cp - fz * sp) * s;
+  }
+  const P = q => {
+    const x1 = q[0] * cy + q[2] * sy, z1 = -q[0] * sy + q[2] * cy;
+    return [W / 2 + ox + x1 * s, H / 2 + oy - (q[1] * cp - z1 * sp) * s];
+  };
+  // Floor shadow
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1.5; ctx.beginPath();
+  for (let i = 0; i < _t3.pts.length; i++) {
+    const v = P([_t3.pts[i][0], _t3.floorY, _t3.pts[i][2]]);
+    i === 0 ? ctx.moveTo(v[0], v[1]) : ctx.lineTo(v[0], v[1]);
+  }
+  ctx.stroke();
+  // Track colored by speed — batch segments by color to minimise stroke() calls
+  const colorSegs = new Map();
+  for (let i = 0; i < _t3.pts.length - 1; i++) {
+    const c = spd2color(_t3.spd[i]);
+    if (!colorSegs.has(c)) colorSegs.set(c, []);
+    colorSegs.get(c).push(i);
+  }
+  ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+  for (const [color, idxs] of colorSegs) {
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    for (const i of idxs) {
+      const va = P(_t3.pts[i]), vb = P(_t3.pts[i + 1]);
+      ctx.moveTo(va[0], va[1]); ctx.lineTo(vb[0], vb[1]);
+    }
+    ctx.stroke();
+  }
+  // Start / end dots
+  const v0 = P(_t3.pts[0]), v1 = P(_t3.pts[_t3.pts.length-1]);
+  ctx.fillStyle = '#00ff88'; ctx.beginPath(); ctx.arc(v0[0], v0[1], 5, 0, 7); ctx.fill();
+  ctx.fillStyle = '#ff4444'; ctx.beginPath(); ctx.arc(v1[0], v1[1], 5, 0, 7); ctx.fill();
+  // Cursor highlight
+  if (_t3.cursorIdx != null) {
+    const vc = P(_t3.pts[_t3.cursorIdx]);
+    ctx.fillStyle = '#ffee00'; ctx.beginPath(); ctx.arc(vc[0], vc[1], 6, 0, 7); ctx.fill();
+  }
+  // Pivot marker
+  if (_t3.pivot) {
+    const vp = P(_t3.pivot);
+    ctx.strokeStyle = '#cc44ff'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(vp[0], vp[1], 10, 0, 7); ctx.stroke();
+    ctx.fillStyle = 'rgba(200,68,255,0.25)'; ctx.fill();
+    // crosshair lines
+    ctx.strokeStyle = 'rgba(200,68,255,0.6)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(vp[0]-14, vp[1]); ctx.lineTo(vp[0]+14, vp[1]); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(vp[0], vp[1]-14); ctx.lineTo(vp[0], vp[1]+14); ctx.stroke();
+  }
+  // Contextual hint
+  ctx.font = '8px monospace';
+  if (_t3.rotPaused && !_t3.pivot) {
+    ctx.fillStyle = '#cc44ff';
+    ctx.fillText('PAUSED  ·  click chart to set pivot point', 8, H - 6);
+  } else if (_t3.rotPaused && _t3.pivot) {
+    ctx.fillStyle = '#cc44ff';
+    ctx.fillText('PIVOT SET  ·  drag to rotate around point', 8, H - 6);
+  } else {
+    ctx.fillStyle = '#333';
+    ctx.fillText('drag=rotate · Ctrl+drag=pan · scroll=zoom · dblclick=mark point', 8, H - 6);
+  }
+  // Top-right info: zoom + alt exaggeration
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#444';
+  ctx.fillText('zoom ×' + _t3.zoom.toFixed(1) +
+    (_t3.hasAlt && _t3.vexag > 1 ? '  alt ×' + _t3.vexag.toFixed(1) : ''), W - 8, 14);
+  ctx.textAlign = 'left';
+  if (!_t3.hasAlt) {
+    ctx.fillStyle = '#444'; ctx.fillText('flat — no altitude data', 8, 14);
+  }
+}
+
+// ── stats ────────────────────────────────────────────────────────
+function computeStats() {
+  if (!DATA) return;
+  let gpsDist = 0, vssDist = 0, maxSpin = 0, fixCount = 0, artifactCount = 0;
+  for (let i = 0; i < DATA.times.length; i++) {
+    const gspd = DATA.gps_speed[i] || 0;
+    const vspd = DATA.vs_kph[i] || 0;
+    const delta = vspd - gspd;
+    if (delta > 8) maxSpin = Math.max(maxSpin, delta);
+    if (delta < -12 && DATA.valid[i] > 0) artifactCount++;
+    if (DATA.valid[i] > 0) fixCount++;
+    if (i > 0) {
+      const dt = DATA.times[i] - DATA.times[i-1];
+      vssDist += (vspd / 3600) * dt;
+      if (DATA.lats[i] != null && DATA.lats[i-1] != null && Math.abs(DATA.lats[i]) > 0.001) {
+        const dLat = (DATA.lats[i] - DATA.lats[i-1]) * 110.54;
+        const dLon = (DATA.lons[i] - DATA.lons[i-1]) * 111.32 * Math.cos(DATA.lats[i] * Math.PI / 180);
+        gpsDist += Math.sqrt(dLat * dLat + dLon * dLon);
+      }
+    }
+  }
+  const fixPct = Math.round(100 * fixCount / DATA.times.length);
+  document.getElementById('sGpsDist').textContent = gpsDist.toFixed(2) + ' km';
+  document.getElementById('sVssDist').textContent = vssDist.toFixed(2) + ' km';
+  document.getElementById('sMaxSpin').textContent = maxSpin > 0 ? '+' + maxSpin.toFixed(1) + ' km/h' : '0';
+  document.getElementById('sFixPct').textContent = fixPct + '%';
+  document.getElementById('sArtifacts').textContent = artifactCount;
+  document.getElementById('statsBar').textContent =
+    DATA.count + ' rows · ' + (DATA.duration_s || 0).toFixed(0) + 's · GPS ' + gpsDist.toFixed(2) +
+    'km · VSS ' + vssDist.toFixed(2) + 'km · max spin Δ' + (maxSpin > 0 ? '+' + maxSpin.toFixed(1) : '0') + ' km/h';
+}
+
+// ── resize ───────────────────────────────────────────────────────
+const ro = new ResizeObserver(() => {
+  if (_map2d) _map2d.invalidateSize();
+  if (_uplot) {
+    const wrap = document.getElementById('chart');
+    _uplot.setSize({ width: wrap.clientWidth, height: wrap.clientHeight - 4 });
+  }
+  _uplotOverRect = null;
+  if (DATA) drawQualityStrip();
+});
+ro.observe(document.getElementById('map2d'));
+ro.observe(document.getElementById('chart'));
+
+// ── 3D rotation pause + pivot ─────────────────────────────────────
+function toggle3DPause() {
+  if (!_t3) return;
+  _t3.rotPaused = !_t3.rotPaused;
+  if (!_t3.rotPaused) _t3.pivot = null;
+  document.getElementById('btn3DPause').classList.toggle('on', _t3.rotPaused);
+  _t3.lastTouch = performance.now();
+}
+
+// Chart click → set pivot when rotation is paused
+document.getElementById('chart').addEventListener('click', () => {
+  if (!_t3 || !_t3.rotPaused || !_uplot || !DATA) return;
+  const dataIdx = _uplot.cursor.idx;
+  if (dataIdx == null) return;
+  const pts3DIdx = Math.round(dataIdx / (DATA.times.length - 1) * (_t3.pts.length - 1));
+  const pt = _t3.pts[pts3DIdx];
+  if (pt) _t3.pivot = [...pt];
+});
+
+// ── init ─────────────────────────────────────────────────────────
+setReplaySpeed(1);
+loadRideList();
+</script>
+</body>
+</html>
