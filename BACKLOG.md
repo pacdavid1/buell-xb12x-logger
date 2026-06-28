@@ -1,5 +1,142 @@
 # BACKLOG — Buell Logger / Tuner
 
+## METODOLOGIA -- Gaps y oportunidades de mejora (2026-06-28)
+
+Analisis de lo que existe en la literatura/industria que no esta implementado.
+El enfoque actual (F7 + DTW + Sessions VS) es sound -- estos son los huecos.
+
+---
+
+### GAP 1 -- Significancia estadistica en comparaciones de celdas
+
+Problema: Sessions VS reporta dpw por celda, pero no sabe si la diferencia es
+real o es ruido (viento, temperatura, trafico, variacion del piloto).
+Podrias estar quemando un mapa "mejor" que en realidad es fluctuacion estadistica.
+
+Lo que existe: test t de Student sobre las muestras dpw por celda.
+Con N eventos en una celda se puede calcular p-value y confidence interval.
+
+- [ ] Agregar N (numero de eventos) por celda al output de Sessions VS
+- [ ] Calcular confidence interval (95%) por celda -- solo proponer cambios donde CI no cruza 0
+- [ ] UI: mostrar celdas con N bajo como "sin datos suficientes" en lugar de propuesta
+- [ ] Definir N minimo por celda antes de aceptar conclusion (baseline: N >= 5 eventos)
+
+Impacto: ALTO -- afecta la confiabilidad de TODAS las propuestas actuales.
+Esfuerzo: BAJO -- los datos ya existen, solo falta el calculo.
+Nombre en literatura: hypothesis testing, t-test for paired samples.
+
+---
+
+### GAP 2 -- Bayesian Optimization para exploracion del mapa
+
+Problema: el ciclo actual es A/B testing (quema mapa completo, compara).
+Un mapa tiene ~312 celdas -- explorar el espacio toma muchas iteraciones.
+
+Lo que existe: Gaussian Process + Bayesian Optimization.
+Mantienes un modelo probabilistico de que celdas estan bien calibradas y cuales
+tienen alta incertidumbre. Cada ride actualiza el modelo. El sistema recomienda
+que celdas explorar primero para maximizar informacion ganada por quema.
+
+- [ ] Research: GPy o scikit-learn GaussianProcessRegressor sobre dpw surface
+- [ ] Modelar incertidumbre por celda: media(dpw) +/- std(dpw) -> surface de confianza
+- [ ] Proponer exploracion activa: "estas 5 celdas tienen mayor Expected Improvement"
+- [ ] Prerequisito: GAP 1 (N minimo) debe estar implementado primero
+
+Impacto: ALTO -- convergencia mucho mas rapida con menos quemas.
+Esfuerzo: ALTO -- requiere modelado estadistico nuevo.
+Nombre en literatura: Bayesian Optimization, Model-Based Calibration (MBC).
+
+---
+
+### GAP 3 -- Acoplamiento de celdas via interpolacion de la ECU
+
+Problema: la ECU interpola entre celdas. Cambiar (3000 RPM, 40% TPS) afecta
+el comportamiento real en celdas vecinas. Sessions VS trata cada celda como
+independiente cuando hay acoplamiento via la funcion de interpolacion de la ECU.
+
+Lo que existe: calibracion con modelos de superficie (kriging, thin-plate splines)
+que propagan cambios respetando la continuidad del mapa.
+
+- [ ] Documentar la funcion de interpolacion exacta del DDFI2 (lineal bilineal?)
+- [ ] Modelar el "footprint" de un cambio de celda sobre celdas vecinas
+- [ ] Ajustar propuestas para compensar spreading: si cambio celda X en +3,
+  celdas vecinas reciben +1.5 implicito -- reducir propuesta de vecinas en consecuencia
+
+Impacto: MEDIO -- evita sobre-correccion en celdas adyacentes.
+Esfuerzo: MEDIO -- necesita documentacion del protocolo DDFI2.
+
+---
+
+### GAP 4 -- GPS altitude / pendiente para normalizar aceleracion
+
+Problema: ddvss (delta VSS) es la metrica de aceleracion. Una pendiente de 2%
+cambia la aceleracion medida mas que muchos cambios de mapa. Comparaciones
+cross-session mezclan condiciones de ruta sin compensar la pendiente.
+
+Lo que existe: el M8N ya esta instalado y transmite altitud NMEA.
+Pendiente = delta_altitude / delta_distance. Correccion: a_corr = a_med + g*sin(theta).
+
+- [ ] Agregar altitude a los campos capturados del GPS en gps/reader.py
+- [ ] Calcular pendiente instantanea en F7 durante el evento de aceleracion
+- [ ] Agregar grade_pct al output del evento F7
+- [ ] En Sessions VS: filtrar o corregir eventos con grade_pct > umbral (ej: > 1.5%)
+- [ ] UI: mostrar grade promedio por evento en session_events.html
+
+Impacto: MEDIO -- mejora la calidad de las comparaciones cross-session.
+Esfuerzo: MEDIO -- GPS ya esta instalado, falta capturar altitude y calcular delta.
+
+---
+
+### GAP 5 -- Criterio de convergencia del mapa
+
+Problema: no hay forma de saber cuando el mapa esta "terminado". El ciclo
+puede continuar indefinidamente sin saber si estas mejorando o girando en circulos.
+
+Lo que existe: medir varianza residual de dpw entre sesiones consecutivas.
+Cuando la varianza deja de reducirse entre quemas, el mapa convergio.
+
+- [ ] Calcular varianza_residual por celda entre sesion N y N-1
+- [ ] Definir metrica global: sum(varianza_residual) sobre todas las celdas activas
+- [ ] Graficar tendencia de convergencia a lo largo de versiones de mapa
+- [ ] Criterio de stop: varianza_residual < threshold durante 3 sesiones consecutivas
+- [ ] UI: indicador de "convergencia del mapa" en el Tuner
+
+Impacto: MEDIO -- saber cuando parar es tan importante como saber que cambiar.
+Esfuerzo: BAJO -- calculo simple sobre los datos que ya existen.
+
+---
+
+### GAP 6 -- Actualizaciones parciales del mapa (learning rate)
+
+Problema: cada quema aplica 100% de la propuesta. Si la propuesta tiene error
+(sesion ruidosa, N bajo), el mapa se sobre-corrige. El ciclo puede oscilar.
+
+Lo que existe: en Iterative Learning Control se usa un learning rate (alpha).
+nuevo_mapa = actual + alpha * (propuesta - actual), donde alpha in (0, 1].
+
+- [ ] Agregar parametro alpha al pipeline de propuesta (default: 0.5)
+- [ ] alpha bajo (0.3) para celdas con N bajo o CI amplio
+- [ ] alpha alto (0.8) para celdas con N alto y CI estrecho
+- [ ] UI: mostrar en Tuner cuanto se aplico vs cuanto se propuso por celda
+- [ ] Conectar con GAP 1: alpha = f(confidence_interval)
+
+Impacto: MEDIO -- estabiliza la convergencia, evita oscilaciones del mapa.
+Esfuerzo: BAJO -- es un multiplicador sobre la propuesta existente.
+Nombre en literatura: Iterative Learning Control (ILC) con forgetting factor.
+
+---
+
+### Prioridad sugerida de implementacion
+
+1. GAP 1 (significancia estadistica) -- ALTA, bajo esfuerzo, impacto inmediato
+2. GAP 5 (convergencia) -- ALTA, bajo esfuerzo, complementa GAP 1
+3. GAP 4 (pendiente GPS) -- MEDIA, sensor ya instalado
+4. GAP 6 (learning rate) -- MEDIA, depende de GAP 1
+5. GAP 3 (acoplamiento celdas) -- MEDIA, necesita investigacion del protocolo
+6. GAP 2 (Bayesian Optimization) -- BAJA ahora, ALTA cuando pipeline madure
+
+---
+
 ## Core refactor (2026-06-14)
 
 ### BL-ECM-01 — Multi-ECU support vía EcmSpy XML (quitar offsets hardcodeados BUEIB)
