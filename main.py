@@ -593,6 +593,36 @@ class BuellLogger:
                 self.logger.warning(
                     f"ECU logger exited (code={exit_code}), cooldown {now-last:.0f}s")
 
+    def _sleep_gps(self):
+        """Send UBX-RXM-PMREQ to put M8N into backup mode (~15uA).
+        Must be called while UART is still accessible (before poweroff).
+        M8N wakes automatically on first UART byte from gpsd at next boot."""
+        import serial as _serial, struct as _struct
+        GPS_PORT = '/dev/ttyS0'
+        GPS_BAUD = 9600
+        try:
+            if self.gps:
+                self.gps.stop()
+            subprocess.run(['sudo', 'systemctl', 'stop', 'gpsd', 'gpsd.socket'],
+                           capture_output=True, timeout=3)
+            import time as _time
+            _time.sleep(0.5)
+            # UBX-RXM-PMREQ: duration=0 (indefinite), flags=0x02 (backup)
+            payload = _struct.pack('<II', 0, 0x02)
+            body    = bytes([0x02, 0x41]) + _struct.pack('<H', len(payload)) + payload
+            ck_a = ck_b = 0
+            for b in body:
+                ck_a = (ck_a + b) & 0xFF
+                ck_b = (ck_b + ck_a) & 0xFF
+            pkt = b'\xb5\x62' + body + bytes([ck_a, ck_b])
+            with _serial.Serial(GPS_PORT, GPS_BAUD, timeout=0.5) as ser:
+                ser.write(pkt)
+                ser.flush()
+                _time.sleep(0.2)
+            self.logger.info("GPS M8N sent to backup mode (15uA)")
+        except Exception as e:
+            self.logger.warning(f"GPS sleep failed (non-critical): {e}")
+
     def shutdown(self):
         self.logger.info("Stopping services...")
 
@@ -601,9 +631,10 @@ class BuellLogger:
         # Stop ECU logger subprocess first — it closes the ride and
         # disconnects the ECU.
         steps = (
+            ("gps-sleep",         self._sleep_gps),
             ("logger-subprocess", lambda: self._stop_logger_subprocess(timeout=10.0)),
-            ("web-server", self.web.stop),
-            ("network-monitor", self.network.stop_monitor),
+            ("web-server",        self.web.stop),
+            ("network-monitor",   self.network.stop_monitor),
         )
         for step_name, step in steps:
             try:

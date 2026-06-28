@@ -21,6 +21,25 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.228] -- 2026-06-27
+
+### feat: GPS M8N backup mode on shutdown -- reduces idle draw from 25mA to ~15uA
+
+Before poweroff, shutdown() now sends UBX-RXM-PMREQ (indefinite backup) to
+the u-blox M8N via /dev/ttyS0. The chip enters backup mode (~15uA) with the
+timepulse LED off. M8N wakes automatically when gpsd restarts at next boot
+(first UART byte triggers wake).
+
+- main.py: _sleep_gps() method -- stops GPS reader, stops gpsd/gpsd.socket,
+  sends UBX-RXM-PMREQ (class=0x02 id=0x41 duration=0 flags=0x02), fenced
+  try/except so failure never blocks poweroff
+- main.py: gps-sleep added as first step in shutdown() steps tuple
+- gps/m8n_config_backup.json: UBX config backup (CFG-PRT, CFG-RATE, CFG-NAV5,
+  CFG-GNSS, MON-VER, CFG-TP5) -- baud=9600, 1Hz, portable nav model
+
+Test confirmed: timepulse LED stops immediately on PMREQ, resumes on gpsd start.
+Power LED stays on (3.3V rail, hardware -- cannot cut in software).
+
 ## [v2.7.227] -- 2026-06-27
 
 ### fix: sysmon thread crash loop -- TypeError in battery shutdown f-string
