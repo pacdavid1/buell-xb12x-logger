@@ -138,6 +138,8 @@ PROMPT_END -->
 - DeepSeek V4 Flash, Codebuff (Buffy)
 
 ## [v2.7.232] -- 2026-06-28
+> **Pi rollback point — commit `b731e67`**
+> If deploy of v2.7.233–v2.7.249 fails: `git reset --hard b731e67 && sudo systemctl restart buell-logger`
 
 ### fix: crisp HiDPI canvas charts in Sessions VS (no more blurry graphs)
 
