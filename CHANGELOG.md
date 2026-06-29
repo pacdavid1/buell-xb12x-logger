@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.241] — 2026-06-28
+### Added
+- GPS Analysis: coordinate display — overlay on 2D map updates lat/lon on chart cursor hover; chart title shows lat/lon at cursor position; click anywhere on 2D map shows popup with exact coordinates
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.240] — 2026-06-28
 ### Added
 - BL-GPS-05: gps/slope_reference.py — differential slope accumulator using within-ride altitude deltas between consecutive GPS bucket transitions (5–40 m segments); per-session GPS offset cancels in the delta so slope converges even when absolute altitude drifts ±10 m; MAD outlier rejection across sessions; canonical segment key with direction sign for bidirectional lookup; GET /slope_reference endpoint (stats, update, coordinate query)

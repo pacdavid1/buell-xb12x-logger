@@ -40,6 +40,10 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',Consolas,mono
 .stat-val{font-size:9px;font-weight:700;white-space:nowrap;line-height:1}
 .leaflet-container{background:#0a0a0b}
 .u-cursor-x,.u-cursor-y{opacity:.4}
+#coordOverlay{position:absolute;bottom:6px;left:6px;z-index:500;
+  background:rgba(10,10,11,0.88);color:#c8c8cc;font-family:'JetBrains Mono',Consolas,monospace;
+  font-size:8px;padding:3px 7px;border-radius:2px;pointer-events:none;
+  border:1px solid #2a2a36;display:none;letter-spacing:.03em}
 </style>
 </head>
 <body>
@@ -64,7 +68,9 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',Consolas,mono
 <canvas id="qualityStrip" height="8"></canvas>
 
 <div id="mapsRow">
-  <div id="map2d"></div>
+  <div id="map2d" style="position:relative">
+    <div id="coordOverlay"></div>
+  </div>
   <canvas id="map3d" touch-action="none"></canvas>
 </div>
 
@@ -193,6 +199,14 @@ function draw2D() {
   if (!_map2d) {
     _map2d = L.map('map2d', { attributionControl: false }).setView([32.5, -116.9], 13);
     L.tileLayer(MAP_TILES, { maxZoom: 19, attribution: MAP_ATTR }).addTo(_map2d);
+    _map2d.on('click', e => {
+      const { lat, lng } = e.latlng;
+      L.popup({ closeButton: false, className: 'coord-popup' })
+        .setLatLng(e.latlng)
+        .setContent('<span style="font-family:monospace;font-size:10px;color:#c8c8cc">' +
+          lat.toFixed(6) + ',&nbsp;' + lng.toFixed(6) + '</span>')
+        .openOn(_map2d);
+    });
   }
   if (_trackLayer) { _trackLayer.clearLayers(); }
   else { _trackLayer = L.layerGroup().addTo(_map2d); }
@@ -469,8 +483,11 @@ function updateLegendText(idx) {
   const dv = _delta[idx] != null ? ((_delta[idx] > 0 ? '+' : '') + _delta[idx].toFixed(1)) : '--';
   const t = DATA.times[idx] != null ? DATA.times[idx].toFixed(1) + 's' : '';
   const fix = DATA.valid[idx] === 3 ? '3D' : DATA.valid[idx] === 2 ? '2D' : 'NO FIX';
+  const lat = DATA.lats[idx]; const lon = DATA.lons[idx];
+  const coord = (lat != null && Math.abs(lat) > 0.001)
+    ? '  · ' + lat.toFixed(5) + ',' + lon.toFixed(5) : '';
   document.getElementById('chartTitle').textContent =
-    t + '  GPS ' + gspd + ' · VSS ' + vspd + ' · Δ ' + dv + ' km/h · ' + fix;
+    t + '  GPS ' + gspd + ' · VSS ' + vspd + ' · Δ ' + dv + ' km/h · ' + fix + coord;
 }
 
 function resetZoom() {
@@ -559,6 +576,15 @@ function setReplaySpeed(s) {
 // ── cursor → map sync ────────────────────────────────────────────
 function syncCursorToMaps(idx) {
   const lat = DATA.lats[idx]; const lon = DATA.lons[idx];
+  const overlay = document.getElementById('coordOverlay');
+  if (overlay) {
+    if (lat != null && Math.abs(lat) > 0.001) {
+      overlay.style.display = 'block';
+      overlay.textContent = lat.toFixed(6) + ',  ' + lon.toFixed(6);
+    } else {
+      overlay.style.display = 'none';
+    }
+  }
   if (lat == null || Math.abs(lat) < 0.001) return;
   if (!_curMarker) {
     _curMarker = L.circleMarker([lat, lon], { radius: 7, color: '#fff', fillColor: '#ffee00', fillOpacity: 0.95, weight: 2 }).addTo(_map2d);
