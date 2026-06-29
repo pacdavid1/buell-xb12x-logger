@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.243] — 2026-06-28
+### Fixed
+- GPS Analysis 3D canvas: render at devicePixelRatio resolution — eliminates blur on HiDPI displays; geometry and pointer events stay in CSS pixels
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.242] — 2026-06-28
 ### Fixed
 - GPS Analysis: load Leaflet from /static/ instead of unpkg CDN — fixes "L is not defined" when offline

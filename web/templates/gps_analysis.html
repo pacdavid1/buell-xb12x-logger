@@ -730,10 +730,15 @@ function loop3D(ts) {
 function draw3D(canvas) {
   const rect = canvas.getBoundingClientRect();
   if (rect.width < 10 || rect.height < 10) return;
-  if (canvas.width !== Math.round(rect.width))  canvas.width  = Math.round(rect.width);
-  if (canvas.height !== Math.round(rect.height)) canvas.height = Math.round(rect.height);
-  const W = canvas.width, H = canvas.height;
+  // Render at physical pixel resolution to avoid blur on HiDPI displays.
+  // All geometry and pointer events stay in CSS pixels (W, H below).
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = Math.round(rect.width), cssH = Math.round(rect.height);
+  if (canvas.width  !== cssW * dpr) { canvas.width  = cssW * dpr; canvas.style.width  = cssW + 'px'; }
+  if (canvas.height !== cssH * dpr) { canvas.height = cssH * dpr; canvas.style.height = cssH + 'px'; }
+  const W = cssW, H = cssH;
   const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#0a0a0b'; ctx.fillRect(0, 0, W, H);
   const cy = Math.cos(_t3.ang), sy = Math.sin(_t3.ang);
   const cp = Math.cos(_t3.tilt), sp = Math.sin(_t3.tilt);
