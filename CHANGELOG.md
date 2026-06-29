@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.242] — 2026-06-28
+### Fixed
+- GPS Analysis: load Leaflet from /static/ instead of unpkg CDN — fixes "L is not defined" when offline
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.241] — 2026-06-28
 ### Added
 - GPS Analysis: coordinate display — overlay on 2D map updates lat/lon on chart cursor hover; chart title shows lat/lon at cursor position; click anywhere on 2D map shows popup with exact coordinates
