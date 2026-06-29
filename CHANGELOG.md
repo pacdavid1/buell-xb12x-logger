@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.236] — 2026-06-28
+### Added
+- GPS Analysis: trusted reference altitude overlay — `/gps_analysis_data` now returns `ref_alts` array (RouteReference lookup per lat/lon); chart gains ALT mode button showing raw GPS alt (blue) vs trusted reference alt (green) + noise delta (red); statsBar shows ref coverage %; RAW/REF/Δm series toggles in alt mode
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.235] — 2026-06-28
 ### Added
 - BL-GPS-03: GPS quality filter (_gps_quality) in F7 — gates altitude use on satellites>=6, epv<5m, mode==3 (newer CSVs); gps_lat/lon/sats/epv/mode added to F7 row dict
