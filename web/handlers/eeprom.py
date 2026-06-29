@@ -384,6 +384,47 @@ class EepromHandlerMixin:
 
         self._json(ref.stats())
 
+    def _handle_slope_reference(self, path=None):
+        """GET /slope_reference                         — stats.
+        GET /slope_reference?update=all                 — rebuild from all sessions.
+        GET /slope_reference?update=<session_id>        — ingest one session.
+        GET /slope_reference?lat1=&lon1=&lat2=&lon2=    — query slope between two points.
+        """
+        from gps.slope_reference import SlopeReference
+        buell_dir = self.server_instance.buell_dir
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        ref = SlopeReference(buell_dir)
+
+        update = params.get('update', [None])[0]
+        if update == 'all':
+            self._json(ref.update_all_sessions(buell_dir))
+            return
+        if update:
+            session_dir = Path(buell_dir) / 'sessions' / update
+            if not session_dir.is_dir():
+                self._json({'error': f'session not found: {update}'})
+                return
+            self._json(ref.update_from_session(session_dir))
+            return
+
+        for key in ('lat1', 'lon1', 'lat2', 'lon2'):
+            if not params.get(key):
+                break
+        else:
+            try:
+                lat1 = float(params['lat1'][0])
+                lon1 = float(params['lon1'][0])
+                lat2 = float(params['lat2'][0])
+                lon2 = float(params['lon2'][0])
+                slope = ref.get_slope_pct(lat1, lon1, lat2, lon2)
+                self._json({'lat1': lat1, 'lon1': lon1, 'lat2': lat2, 'lon2': lon2,
+                            'slope_pct': slope})
+            except ValueError:
+                self._json({'error': 'invalid coordinates'})
+            return
+
+        self._json(ref.stats())
+
     def _handle_msq_download(self, path=None):
         """Serve suggested MSQ for a given session (or active session if none specified)."""
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)

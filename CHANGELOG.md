@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.240] — 2026-06-28
+### Added
+- BL-GPS-05: gps/slope_reference.py — differential slope accumulator using within-ride altitude deltas between consecutive GPS bucket transitions (5–40 m segments); per-session GPS offset cancels in the delta so slope converges even when absolute altitude drifts ±10 m; MAD outlier rejection across sessions; canonical segment key with direction sign for bidirectional lookup; GET /slope_reference endpoint (stats, update, coordinate query)
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.239] — 2026-06-28
 ### Fixed
 - GPS Analysis 3D: reverted to raw GPS altitude for rendering — ref_alts bucket quantization creates visual staircase; ref_alts stays reserved for ALT chart comparison and F7 slope calculation

@@ -114,6 +114,7 @@ class DashboardHandler(
             '/burns':           self._handle_burns_list,
             '/convergence':         self._handle_convergence,
             '/route_reference':     self._handle_route_reference,
+            '/slope_reference':     self._handle_slope_reference,
             '/vdyno':           self._handle_vdyno,
             '/vdyno/compare':   self._handle_vdyno_compare,
             '/vdyno/launch':    self._handle_vdyno_launch,
