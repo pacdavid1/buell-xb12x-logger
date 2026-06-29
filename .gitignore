@@ -22,9 +22,14 @@ __pycache__/
 *.save
 # Estado de red (específico de cada instalación)
 network_state.json
+# Caches de referencia local y aprendizaje (específicos de cada instalación)
+route_reference.json
+slope_reference.json
+gear_profile.json
 # Archivos de debug temporales
 fix_*.py.save
 *.save.*
 web/templates/*.bak*
 fix_*.py
 inbox/
+graphify-out/

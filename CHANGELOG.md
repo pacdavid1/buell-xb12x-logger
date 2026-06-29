@@ -21,7 +21,125 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.249] — 2026-06-29
+### Cleanup
+- Remove dead `CENTERS` constant from `ecu/protocol.py` (was "reference only" after v2.7.248 refactor). Update `gear_detect.py` docstring to correctly describe threshold fallback chain. Add `gear_profile.json` to `.gitignore` and untrack it — it is per-installation learned data, not code.
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.248] — 2026-06-28
+### Refactor
+- Extract gear thresholds to `ecu/gear_calibration.py` as single source of truth. Both `ecu/protocol.py` (live GearFilter) and `web/gear_detect.py` (post-ride) now import `GEAR_THRESHOLDS_LIVE`/`GEAR_THRESHOLDS_DETECT` and `COAST_RATIO_MIN` from this shared module. Eliminates threshold duplication that caused live vs post-ride disagreement when values were updated in only one place.
+### AI
+- Claude Sonnet 4.6 + FreeBuffs
+
+## [v2.7.247] — 2026-06-28
+### Fix
+- GearFilter live gear display: recalibrate CENTERS and THRESHOLDS in `ecu/protocol.py` from 313k samples across all sessions. Previous values [0,75.5,53.8,40.1,33.3,28.7] were off by ~30-40% — gear-5 riding (ratio ~33) was being classified as gear 4 every time the window committed. New CENTERS [0,142.8,76.0,60.1,53.7,33.4] with brute-force THRESHOLDS [106,73,58,47] match actual distributions. Fixes "nunca le atina a la marcha" on live dashboard.
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.246] — 2026-06-28
+### Features
+- BL-GEAR-01: data-driven gear detection — `web/gear_learner.py` rewritten to use ECU-reported `Gear` column as ground truth; finds optimal RPM/VSS ratio threshold between each adjacent gear pair by brute-force minimisation; 92.71% accurate vs 91.41% hardcoded; largest improvement at 2/1 boundary (errors 1101→28, threshold 90→106); works for any bike that reports a Gear column (XB12X, 1125CR, etc.)
+- `GearLearner.learn()` now populates `gear_profile.json` using per-boundary optimisation instead of k-means on raw histogram (k-means was failing due to ECU quantisation artifacts creating multi-modal within-gear distributions)
+- `/gear_profile?learn=1` endpoint triggers re-learning from all sessions
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.245] — 2026-06-28
+### Docs
+- BACKLOG: close BL-GPS-03 (done in slope_reference.py), discard BL-GPS-04 (GPS M8N absolute altitude not suitable — systematic errors from bridges/underpasses do not average out, per-session bias ±10m), document BL-GPS-05 limits (differential slope ±3-5% precision, only reliable for grades ≥4%), update GAP 4 scope accordingly
+- Analysis conclusion: GPS altitude is useful for geographic orientation and coarse slope detection (>4%) only. Absolute altitude reference and sub-3% slope detection are physically impossible with M8N — do not revisit
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.244] — 2026-06-28
+### Fixed
+- GPS Analysis 3D: dblclick pivot hit-test uses rect.width/height (CSS px) instead of canvas.width/height (physical px) — restores accurate pivot selection after HiDPI fix
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.243] — 2026-06-28
+### Fixed
+- GPS Analysis 3D canvas: render at devicePixelRatio resolution — eliminates blur on HiDPI displays; geometry and pointer events stay in CSS pixels
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.242] — 2026-06-28
+### Fixed
+- GPS Analysis: load Leaflet from /static/ instead of unpkg CDN — fixes "L is not defined" when offline
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.241] — 2026-06-28
+### Added
+- GPS Analysis: coordinate display — overlay on 2D map updates lat/lon on chart cursor hover; chart title shows lat/lon at cursor position; click anywhere on 2D map shows popup with exact coordinates
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.240] — 2026-06-28
+### Added
+- BL-GPS-05: gps/slope_reference.py — differential slope accumulator using within-ride altitude deltas between consecutive GPS bucket transitions (5–40 m segments); per-session GPS offset cancels in the delta so slope converges even when absolute altitude drifts ±10 m; MAD outlier rejection across sessions; canonical segment key with direction sign for bidirectional lookup; GET /slope_reference endpoint (stats, update, coordinate query)
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.239] — 2026-06-28
+### Fixed
+- GPS Analysis 3D: reverted to raw GPS altitude for rendering — ref_alts bucket quantization creates visual staircase; ref_alts stays reserved for ALT chart comparison and F7 slope calculation
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.238] — 2026-06-28
+### Fixed
+- GPS Analysis 3D: apply Gaussian moving average (halfWin=10) to merged ref+raw altitude before 3D render — eliminates bucket-boundary staircase artifact from 11m spatial bucketing
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.237] — 2026-06-28
+### Changed
+- GPS Analysis 3D map: uses trusted reference altitude (ref_alts) per point when available, falls back to raw GPS; shows `[trusted alt]` / `[raw GPS alt]` label in top-right corner of 3D canvas
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.236] — 2026-06-28
+### Added
+- GPS Analysis: trusted reference altitude overlay — `/gps_analysis_data` now returns `ref_alts` array (RouteReference lookup per lat/lon); chart gains ALT mode button showing raw GPS alt (blue) vs trusted reference alt (green) + noise delta (red); statsBar shows ref coverage %; RAW/REF/Δm series toggles in alt mode
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.235] — 2026-06-28
+### Added
+- BL-GPS-03: GPS quality filter (_gps_quality) in F7 — gates altitude use on satellites>=6, epv<5m, mode==3 (newer CSVs); gps_lat/lon/sats/epv/mode added to F7 row dict
+- BL-GPS-04: gps/route_reference.py — multi-pass averaged GPS altitude profile with MAD outlier rejection; RouteReference.update_all_sessions() ingested 14 sessions / 171k points / 6182 buckets (95% confident with 3+ passes); GET /route_reference endpoint (stats, update, coordinate query)
+### AI
+- Claude Sonnet 4.6
+
+## [v2.7.233] — 2026-06-28
+
+### Changed
+- **Workflow migration**: local-first development with GitHub as source of truth
+- CLAUDE.md: updated workflow from Pi-SSH to Local -> GitHub -> Pi (git pull)
+- FREEBUFF.md: rewritten for local-first audit (no SSH needed)
+- buell-sessions/CLAUDE.md: rewritten as session data reference
+- All hardcoded /home/pi/buell/ paths replaced with relative paths (__file__ + buell_dir params)
+- web/utils.py: _get_version() uses relative path + utf-8 encoding
+- web/server.py: sys.path.insert + buell_dir fallback use relative paths
+- web/vs_engine.py: sys.path.insert uses relative path
+- network/manager.py: STATE_FILE now configurable via buell_dir
+- web/fuel_tracker.py: FUEL_FILE accepts buell_dir parameter
+- tools/health_journal.py: HEALTH_FILE accepts buell_dir parameter
+- web/handlers/system.py: git_pull cwd uses buell_dir
+- web/handlers/fuel.py: passes buell_dir to fuel_tracker
+- main.py: _get_version() uses relative path + utf-8 encoding
+- Git remote added: origin https://github.com/pacdavid1/buell-xb12x-logger.git
+
+### AI
+- DeepSeek V4 Flash, Codebuff (Buffy)
+
 ## [v2.7.232] -- 2026-06-28
+> **Pi rollback point — commit `b731e67`**
+> If deploy of v2.7.233–v2.7.249 fails: `git reset --hard b731e67 && sudo systemctl restart buell-logger`
 
 ### fix: crisp HiDPI canvas charts in Sessions VS (no more blurry graphs)
 

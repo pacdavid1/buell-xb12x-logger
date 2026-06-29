@@ -9,31 +9,38 @@ from pathlib import Path
 INJECTOR_CC_PER_MS = 0.00533  # 320cc/min / 60000ms per injector
 TANK_TOTAL_L       = 16.7     # XB12X Ulysses total tank capacity
 RESERVE_L          = 3.1      # level at which reserve light activates
-FUEL_FILE = '/home/pi/buell/fuel_tracking.json'
+def _fuel_file(buell_dir: str = '') -> str:
+    if buell_dir:
+        p = Path(buell_dir) / 'fuel_tracking.json'
+    else:
+        p = Path(__file__).resolve().parent.parent / 'fuel_tracking.json'
+    return str(p)
 
 
 # --- avg_l100 cache (recomputed at most every 5 min) ---
 _avg_cache: dict = {"ts": 0.0, "avg_l100": None}
 _AVG_TTL = 300  # seconds
 
-def _load() -> dict:
+def _load(buell_dir: str = '') -> dict:
+    ff = _fuel_file(buell_dir)
     try:
-        with open(FUEL_FILE) as f:
+        with open(ff) as f:
             return json.load(f)
     except Exception:
         return {'reserve_active': False, 'reserve_ts': None, 'refuels': [],
                 'injector_cc_per_ms': INJECTOR_CC_PER_MS}
 
 
-def _save(state: dict) -> None:
-    tmp = FUEL_FILE + '.tmp'
+def _save(state: dict, buell_dir: str = '') -> None:
+    ff = _fuel_file(buell_dir)
+    tmp = ff + '.tmp'
     with open(tmp, 'w') as f:
         json.dump(state, f, indent=2)
-    import os; os.replace(tmp, FUEL_FILE)
+    import os; os.replace(tmp, ff)
 
 
-def toggle_reserve(active: bool, sessions_dir: str = '') -> dict:
-    state = _load()
+def toggle_reserve(active: bool, sessions_dir: str = '', buell_dir: str = '') -> dict:
+    state = _load(buell_dir)
     result: dict = {}
 
     if active:
@@ -71,8 +78,8 @@ def toggle_reserve(active: bool, sessions_dir: str = '') -> dict:
     return result
 
 
-def add_refuel(liters: float, octane: int, sessions_dir: str, full_tank: bool = False) -> dict:
-    state = _load()
+def add_refuel(liters: float, octane: int, sessions_dir: str, full_tank: bool = False, buell_dir: str = '') -> dict:
+    state = _load(buell_dir)
     cc = state['injector_cc_per_ms']
     reserve_ts = state.get('reserve_ts')
     consumed_est, km_est = (None, None)
@@ -113,12 +120,12 @@ def add_refuel(liters: float, octane: int, sessions_dir: str, full_tank: bool = 
 
     state['refuels'].append(entry)
     state['reserve_active'] = False
-    _save(state)
+    _save(state, buell_dir)
     return entry
 
 
-def get_status(sessions_dir: str) -> dict:
-    state = _load()
+def get_status(sessions_dir: str, buell_dir: str = '') -> dict:
+    state = _load(buell_dir)
     cc = state['injector_cc_per_ms']
     refuels = state.get('refuels', [])
     result = {
@@ -285,12 +292,12 @@ def _calc_ride_from_csv(csv_path: str, cc_per_ms: float) -> dict | None:
     }
 
 
-def save_ride_consumption_cache(csv_path: str) -> dict | None:
-    global _avg_cache; _avg_cache['ts'] = 0.0  # invalidate avg cache
+def save_ride_consumption_cache(csv_path: str, buell_dir: str = '') -> dict | None:
+    global _avg_cache; _avg_cache['ts'] = 0.0
 
     """Compute and persist <ride>_consumption.json. Called at ride close."""
     import os
-    cc = _load()['injector_cc_per_ms']
+    cc = _load(buell_dir)['injector_cc_per_ms']
     data = _calc_ride_from_csv(csv_path, cc)
     if data is None:
         return None
@@ -302,9 +309,9 @@ def save_ride_consumption_cache(csv_path: str) -> dict | None:
     return data
 
 
-def calc_ride_consumption(sessions_dir: str, limit: int = 200) -> list:
+def calc_ride_consumption(sessions_dir: str, limit: int = 200, buell_dir: str = '') -> list:
     """Return per-ride consumption (newest first, capped at limit), reading from cache."""
-    cc = _load()['injector_cc_per_ms']
+    cc = _load(buell_dir)['injector_cc_per_ms']
     results = []
     for csv_path in sorted(glob.glob(f'{sessions_dir}/*/ride_*.csv')):
         name = Path(csv_path).stem

@@ -222,6 +222,11 @@ class EepromHandlerMixin:
         body = payload or {}
         maps = body.get('maps', {})
         changes = body.get('changes', [])
+        # GAP 6: ILC learning rate — scale delta by alpha before burning.
+        # alpha=1.0 means apply 100% of proposed change (legacy default).
+        # alpha=0.5 means apply 50%; new_val = orig + alpha*(proposed - orig).
+        alpha = float(body.get('alpha', 1.0))
+        alpha = max(0.1, min(1.0, alpha))
         if not maps and not changes:
             self._json({'error': 'no maps or changes provided'})
             return
@@ -259,13 +264,15 @@ class EepromHandlerMixin:
                     if ri >= len(data) or ci >= len(data[ri]):
                         continue
                     orig = data[ri][ci]
-                    if orig > 0 and abs(val - orig) > orig * 0.15:
+                    # Apply alpha scaling (GAP 6): effective = orig + alpha*(proposed - orig)
+                    effective = orig + alpha * (val - orig) if orig is not None else val
+                    if orig is not None and orig > 0 and abs(effective - orig) > orig * 0.15:
                         self._json({'error': 'cell [' + str(ri) + ',' + str(ci) + '] exceeds +-15%: '
-                                    + str(round(orig, 1)) + ' to ' + str(round(val, 1))})
+                                    + str(round(orig, 1)) + ' to ' + str(round(effective, 1))})
                         return
                     if mk not in maps:
                         maps[mk] = [row[:] for row in data]
-                    maps[mk][ri][ci] = val
+                    maps[mk][ri][ci] = round(effective, 4)
             proposed = encode_eeprom_maps(current_bin, maps, _session_version(eeprom_path))
         except Exception as e:
             self._json({'error': 'encode failed: ' + str(e)})
@@ -307,6 +314,7 @@ class EepromHandlerMixin:
             self._json({'error': 'burn timeout (30s)'})
             return
         result['backup'] = backup_path.name
+        result['alpha_used'] = round(alpha, 2)
         # Burn ledger (VDYNO V0): record lineage parent -> child with the
         # exact cell diff. Must never block the burn response.
         try:
@@ -331,6 +339,111 @@ class EepromHandlerMixin:
         from web.burn_ledger import load_burns
         burns = load_burns(self.server_instance.buell_dir)
         self._json({'ok': True, 'count': len(burns), 'burns': burns[::-1]})
+
+    def _handle_convergence(self, path=None):
+        """GET /convergence — GAP 5 map convergence metric from burn history."""
+        from web.burn_ledger import convergence_report
+        self._json(convergence_report(self.server_instance.buell_dir))
+
+    def _handle_route_reference(self, path=None):
+        """GET /route_reference — stats for the accumulated GPS altitude reference.
+        GET /route_reference?update=all  — rebuild from all sessions.
+        GET /route_reference?update=<session_id>  — ingest one session.
+        GET /route_reference?lat=<f>&lon=<f>  — query trusted altitude for a coordinate.
+        """
+        from gps.route_reference import RouteReference
+        import urllib.parse
+        buell_dir = self.server_instance.buell_dir
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        ref = RouteReference(buell_dir)
+
+        update = params.get('update', [None])[0]
+        if update == 'all':
+            result = ref.update_all_sessions(buell_dir)
+            self._json(result)
+            return
+        if update:
+            session_dir = Path(buell_dir) / 'sessions' / update
+            if not session_dir.is_dir():
+                self._json({'error': f'session not found: {update}'})
+                return
+            result = ref.update_from_session(session_dir)
+            self._json(result)
+            return
+
+        lat_raw = params.get('lat', [None])[0]
+        lon_raw = params.get('lon', [None])[0]
+        if lat_raw and lon_raw:
+            try:
+                lat, lon = float(lat_raw), float(lon_raw)
+                alt = ref.get_altitude(lat, lon)
+                self._json({'lat': lat, 'lon': lon, 'alt_m': alt})
+            except ValueError:
+                self._json({'error': 'invalid lat/lon'})
+            return
+
+        self._json(ref.stats())
+
+    def _handle_slope_reference(self, path=None):
+        """GET /slope_reference                         — stats.
+        GET /slope_reference?update=all                 — rebuild from all sessions.
+        GET /slope_reference?update=<session_id>        — ingest one session.
+        GET /slope_reference?lat1=&lon1=&lat2=&lon2=    — query slope between two points.
+        """
+        from gps.slope_reference import SlopeReference
+        buell_dir = self.server_instance.buell_dir
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        ref = SlopeReference(buell_dir)
+
+        update = params.get('update', [None])[0]
+        if update == 'all':
+            self._json(ref.update_all_sessions(buell_dir))
+            return
+        if update:
+            session_dir = Path(buell_dir) / 'sessions' / update
+            if not session_dir.is_dir():
+                self._json({'error': f'session not found: {update}'})
+                return
+            self._json(ref.update_from_session(session_dir))
+            return
+
+        for key in ('lat1', 'lon1', 'lat2', 'lon2'):
+            if not params.get(key):
+                break
+        else:
+            try:
+                lat1 = float(params['lat1'][0])
+                lon1 = float(params['lon1'][0])
+                lat2 = float(params['lat2'][0])
+                lon2 = float(params['lon2'][0])
+                slope = ref.get_slope_pct(lat1, lon1, lat2, lon2)
+                self._json({'lat1': lat1, 'lon1': lon1, 'lat2': lat2, 'lon2': lon2,
+                            'slope_pct': slope})
+            except ValueError:
+                self._json({'error': 'invalid coordinates'})
+            return
+
+        self._json(ref.stats())
+
+    def _handle_gear_profile(self, path=None):
+        """GET /gear_profile                  -- stats / current thresholds.
+        GET /gear_profile?learn=1             -- relearn from all sessions.
+        GET /gear_profile?learn=1&n_gears=6   -- relearn specifying gear count.
+        """
+        from web.gear_learner import GearLearner
+        buell_dir = self.server_instance.buell_dir
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        learner = GearLearner(buell_dir)
+
+        if params.get('learn', [None])[0]:
+            try:
+                n_gears = int(params.get('n_gears', ['5'])[0])
+            except ValueError:
+                n_gears = 5
+            self._json(learner.learn(buell_dir, n_gears=n_gears))
+            return
+
+        self._json(learner.stats())
 
     def _handle_msq_download(self, path=None):
         """Serve suggested MSQ for a given session (or active session if none specified)."""

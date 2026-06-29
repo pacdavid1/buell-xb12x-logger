@@ -71,21 +71,24 @@ Esfuerzo: MEDIO -- necesita documentacion del protocolo DDFI2.
 
 ### GAP 4 -- GPS altitude / pendiente para normalizar aceleracion
 
+**CONCLUSION (2026-06-28): pendiente GPS util solo para grades >4-5%. Ver BL-GPS-04 y BL-GPS-05.**
+
 Problema: ddvss (delta VSS) es la metrica de aceleracion. Una pendiente de 2%
 cambia la aceleracion medida mas que muchos cambios de mapa. Comparaciones
 cross-session mezclan condiciones de ruta sin compensar la pendiente.
 
-Lo que existe: el M8N ya esta instalado y transmite altitud NMEA.
-Pendiente = delta_altitude / delta_distance. Correccion: a_corr = a_med + g*sin(theta).
+Lo que existe: slope_reference.py (BL-GPS-05, implementado) acumula deltas
+diferenciales de altitud entre bucket transitions. Precision real: ±3-5% despues
+de promediar muchas pasadas. NO detecta pendientes <3-4% de forma confiable.
 
-- [ ] Agregar altitude a los campos capturados del GPS en gps/reader.py
-- [ ] Calcular pendiente instantanea en F7 durante el evento de aceleracion
-- [ ] Agregar grade_pct al output del evento F7
-- [ ] En Sessions VS: filtrar o corregir eventos con grade_pct > umbral (ej: > 1.5%)
-- [ ] UI: mostrar grade promedio por evento en session_events.html
+Implementacion pendiente (solo para grades significativas):
+- [ ] f7.py: consultar SlopeReference.get_slope_pct() para cada evento de aceleracion
+- [ ] Agregar grade_pct al output del evento F7 (None si no hay datos suficientes)
+- [ ] En Sessions VS: mostrar grade_pct por evento, NO filtrar por grade<3% (ruido)
+- [ ] UI: badge de pendiente en session_events.html solo si |grade_pct| >= 4%
 
-Impacto: MEDIO -- mejora la calidad de las comparaciones cross-session.
-Esfuerzo: MEDIO -- GPS ya esta instalado, falta capturar altitude y calcular delta.
+Impacto: MEDIO para rutas con pendientes reales >4%. NULO para rutas planas.
+Esfuerzo: BAJO -- slope_reference.py ya existe, solo falta conectarlo a F7.
 
 ---
 
@@ -140,28 +143,19 @@ Nombre en literatura: Iterative Learning Control (ILC) con forgetting factor.
 ---
 
 ### BL-GEAR-01 — Gear detection multi-bike via auto-clustered ratios
-**Priority:** MEDIUM — decision made 2026-06-28 (auto-cluster data-driven approach)
+**Status: DONE 2026-06-28**
 
-Current GEAR_THRESHOLDS in web/gear_detect.py are hardcoded for XB12X #248AE2.
-They are garbage for the 1125 or any bike with a different sprocket/wheel/tire.
+**Approach taken:** ECU already reports `Gear` column — used it as ground truth instead of unsupervised clustering. `web/gear_learner.py` rewritten to collect (ratio, gear) pairs from all ride CSVs and find the optimal RPM/VSS threshold between each adjacent gear pair by brute-force minimisation of misclassifications.
 
-**Decision: learn ratios from data, do NOT hardcode per-bike tables.**
+**Results vs hardcoded thresholds:**
+- Learned: [47, 58, 73, 106] — Hardcoded: [44, 62, 74, 90]
+- Accuracy: 92.71% learned vs 91.41% hardcoded on 269k samples
+- Biggest win: 2/1 boundary (errors 1101→28); threshold 90 was 16 units too low
+- Connects to BL-ECM-02 (1125CR): algorithm works for any bike with Gear column
 
-Physics: in the RPM-vs-VSS plane each gear is a straight line from the origin;
-its slope is that gear ratio. Cluster the measured ratios -> recover the gears,
-knowing nothing about the bike. Auto-adapts to transmission + sprocket + tire.
+**Why k-means failed:** XB12X ECU quantises RPM/VSS into multiple sub-peaks within a single gear (bins 28, 33, 39, 40 are ALL 5th gear). k-means splits within-gear multi-modes instead of finding gear boundaries. Learning from ECU ground truth bypasses this entirely.
 
-Plan:
-- [ ] Collect samples with di_clutch=0 AND di_neutral=0 AND vss>min
-- [ ] ratio = RPM/VSS per sample -> k-means 1D over the histogram (N gears)
-- [ ] Detect cluster centers, sort high-ratio (1st) to low (top gear)
-- [ ] Store learned ratios per bike_serial in a bike profile (e.g. bike_profiles.json)
-- [ ] Real-time: use learned centers + temporal hysteresis (confirm 3-5 frames
-      before switching) -> stable in-ride readout (fixes the never-atina problem)
-- [ ] Post-ride: same centers, no hysteresis needed
-- [ ] XB12 calibrates now from existing rides; 1125 calibrates on its first
-      logged ride (no manual ratio extraction needed)
-- Connects to BL-ECM-02 (1125CR multi-bike support)
+**Endpoint:** `/gear_profile?learn=1` triggers re-learning from all sessions.
 
 ## SENSORES — Logging multi-rate independiente (idea 2026-06-28)
 
@@ -198,43 +192,64 @@ own atomic timestamp that can serve as a master reference if desired.
 ## GPS — Quality filtering + multi-pass route reference (idea 2026-06-28)
 
 ### BL-GPS-03 — Filter bad GPS fixes before use
-**Priority:** MEDIUM — cheap, fields already in CSV (v2.7.229)
+**Status: DONE (implementado en slope_reference.py v2.7.x)**
 
-Consumer M8N never gives the true value in a single pass; altitude is its worst
-component (5-15m error vs 2.5m horizontal). Same point on ride 6 vs ride 9 of
-session 47BF04 shows different altitudes -- this is sensor noise, not a bug.
+Filtros implementados en gps/slope_reference.py:
+- gps_valid must be True
+- gps_epv <= 5.0m
+- gps_mode >= 3 (3D fix)
+- gps_satellites >= 6
+- Bucket transition required (5-40m) -- excluye fixes en estatico automaticamente
 
-- [ ] Discard fixes with high estimated error: gps_epx/epy/epv above threshold
-- [ ] Require gps_mode == 3 (3D fix) for altitude-dependent analysis
-- [ ] Drop gps_stale rows
-- [ ] Optional: enable SBAS/WAAS in M8N config (differential correction) if the
-      region is covered -- improves single-pass accuracy somewhat
+NOTA: gps_valid=True es unreliable -- el modulo reporta True incluso con 0 sats.
+El filtro de satellites>=6 es la defensa real. No confiar en gps_valid solo.
 
-### BL-GPS-04 — Multi-pass route reference profile (averaged elevation/position)
-**Priority:** MEDIUM — PREREQUISITE for GAP 4 (slope normalization)
+### BL-GPS-04 — Multi-pass route reference profile (altitud absoluta promediada)
+**Status: DESCARTADO (2026-06-28)**
 
-User rides the same routes repeatedly. Random GPS error averages down by sqrt(N)
-across passes taken at different times (different satellite geometry decorrelates
-the bias). Build an averaged "route reference": group points from all passes by
-location (spatial grid or map-matching), average altitude/position -> converges
-to the real route profile.
+**Por que no funciona:** Se implemento route_reference.py con spatial bucketing
+(~11m grid) y MAD outlier rejection. Resultado con 14 sesiones:
 
-NOTE: two GPS units side by side do NOT help -- their errors are correlated
-(same ionosphere, multipath, constellation). Time/repetition decorrelates the
-error, spatial redundancy does not. Do not buy a second GPS for this.
+- Precision alcanzada: ±2-3m en zonas limpias. Insuficiente para pendientes <3%.
+- Errores sistematicos (puentes, pasos subterraneos) NO se promedian -- el error
+  es el mismo en cada pasada, el promedio converge al valor INCORRECTO.
+  Ejemplo real: bucket bajo puente en 32.5312,-116.9003 muestra cluster en
+  79-92m (multipath) + cluster en 59-62m (terreno real). MAD rechaza el cluster
+  correcto porque es minoria. La referencia retorna el valor del puente, no el suelo.
+- Altitud absoluta GPS tiene bias de +-10m por sesion (distinta geometria satelital).
+  Promediar sesiones distintas suma ruidos distintos, no converge a la realidad.
 
-- [ ] Spatial bucketing of GPS points across all rides of a route (grid or
-      map-match to a reference polyline)
-- [ ] Average altitude + position per bucket, weighted by fix quality (BL-GPS-03)
-- [ ] Store route_reference.json (lat/lon/alt grid) per recurring route
-- [ ] Feed averaged altitude into GAP 4 slope calc (reliable grade per segment)
-- [ ] Confidence per bucket = f(n_passes, fix quality) -- like GAP 1 for routes
+**Conclusion:** altitud absoluta GPS M8N no es utilizable para perfil de ruta de
+precision. route_reference.json queda como dato de orientacion geografica (altitud
+aproximada para visualizacion 3D) pero NO como referencia confiable de altitud.
+No retomar este path -- el problema es fisico, no de implementacion.
 
-### BL-GPS-05 — gps_analysis subtab is down (BUG)
-**Priority:** MEDIUM — page currently broken
-URL: http://192.168.100.80:8080/gps_analysis
-- [ ] Investigate why the GPS analysis / map subtab fails to load
-- [ ] Used to compare GPS points across rides (e.g. 47BF04 ride 6 vs ride 9)
+### BL-GPS-05 — Differential slope reference (acumulador de pendiente por delta)
+**Status: IMPLEMENTADO (2026-06-28) -- precision limitada conocida**
+
+Archivo: gps/slope_reference.py
+Storage: buell_dir/slope_reference.json
+Endpoint: /slope_reference
+
+**Como funciona:** en lugar de altitud absoluta, acumula deltas de altitud entre
+transiciones de bucket consecutivas dentro del mismo ride (5-40m). El bias
+absoluto de altitud por sesion se cancela en la diferencia. MAD rejection entre
+pasadas. Resultado con 14 sesiones: 9863 segmentos, 823 con >=3 pasadas.
+
+**Limites conocidos (NO retomar):**
+- Precision real: ±3-5% de pendiente despues de muchas pasadas.
+- Pendientes <3-4%: NO detectables de forma confiable. El ruido del GPS supera
+  la senal en esos rangos.
+- Zonas con Kalman jump visible (paradas largas antes de moverse): filtradas
+  automaticamente por el requisito de bucket transition. El GPS en estatico
+  produce saltos discretos de altitud (Kalman update por cambio de constelacion
+  satelital), pero al estar en el mismo bucket no genera muestras de pendiente.
+- Alta velocidad tiene MAS ruido que estatico (stdev 14.3m vs 6.7m en zona real
+  analizada). La percepcion visual de "mas ruido en estatico" es artefacto de
+  visualizacion: mismo punto x,y con z oscilando es mas obvio que x,y,z moviendose.
+
+**Uso correcto:** conectar a F7 solo para grades |slope_pct| >= 4%. Ignorar
+valores menores -- son ruido. Ver GAP 4 para tareas pendientes de integracion.
 
 ---
 

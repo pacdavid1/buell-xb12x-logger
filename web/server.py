@@ -18,7 +18,7 @@ import zlib
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 import sys as _sys
-_sys.path.insert(0, '/home/pi/buell')
+_sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from ecu.eeprom_params import decode_params as _decode_eeprom_params
 import datetime
 
@@ -112,6 +112,10 @@ class DashboardHandler(
             "/eeprom/propose":  self._handle_eeprom_propose,
             '/eeprom/msq':      self._handle_eeprom_msq,
             '/burns':           self._handle_burns_list,
+            '/convergence':         self._handle_convergence,
+            '/route_reference':     self._handle_route_reference,
+            '/slope_reference':     self._handle_slope_reference,
+            '/gear_profile':        self._handle_gear_profile,
             '/vdyno':           self._handle_vdyno,
             '/vdyno/compare':   self._handle_vdyno_compare,
             '/vdyno/launch':    self._handle_vdyno_launch,
@@ -307,9 +311,9 @@ class DashboardHandler(
 
             "ts":              time.time(),
             "logger_version":  _get_version(),
-            "network_mode":    net.current_mode(),
-            "ip":              net.get_ip(),
-            "switch_status":   net.get_switch_status(),
+            "network_mode":    net.current_mode() if net else "offline",
+            "ip":              net.get_ip() if net else "127.0.0.1",
+            "switch_status":   net.get_switch_status() if net else {},
             "ride_active":     self.server_instance.ride_active,
             "waiting":         not self.server_instance.ride_active,
             "ride_num":        self.server_instance.session.current_ride_num if self.server_instance.session else 0,
@@ -387,7 +391,7 @@ class WebServer:
     def __init__(self, host='0.0.0.0', port=8080, buell_dir=None):
         self.host             = host
         self.port             = port
-        self.buell_dir        = Path(buell_dir) if buell_dir else Path('/home/pi/buell')
+        self.buell_dir        = Path(buell_dir) if buell_dir else Path(__file__).resolve().parent.parent
         self.network          = None
         self._server          = None
         self._thread          = None
@@ -404,6 +408,8 @@ class WebServer:
         self.bike_serial      = None
         self.ecu_identity     = {}   # {name, dbfile, ddfi, remark}
         self.cell_tracker     = None
+        self.session          = None  # set by BuellLogger; None in offline/serve_local mode
+        self.gps              = None  # set by BuellLogger; None in offline/serve_local mode
         self._coverage_targets = dict(self.COVERAGE_TARGETS_DEFAULT)
         self._data_lock = threading.RLock()
         self._rides_cache = None          # cache for _get_rides()

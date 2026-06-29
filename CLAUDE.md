@@ -22,7 +22,24 @@ even if no code was written.
 
 A Raspberry Pi datalogger + web dashboard for tuning a **Buell XB12X** with a DDFI2 ECU.
 No dyno — tuning is entirely data-driven from real street rides.
-Pi is at `192.168.100.80`. Web dashboard at `http://192.168.100.80:8080`.
+
+### Development environment
+
+**Source of truth:** GitHub (`https://github.com/pacdavid1/buell-xb12x-logger`).
+**Local (Windows):** `OneDrive/Escritorio/buell/` — where code is edited and tested.
+**Production target:** Raspberry Pi at `192.168.100.80` — pulls from GitHub.
+
+**Workflow:**
+```
+Local edit → test (serve_local.py) → commit → git push → Pi: git pull
+     ↑                                                    |
+     └────────────── GitHub (canonical) ←─────────────────┘
+```
+
+**Local dashboard:** `http://127.0.0.1:8080` (via `python serve_local.py --serve`)
+**Pi dashboard:** `http://192.168.100.80:8080` or hotspot `http://10.42.0.1:8080`
+
+**Graphify:** Run locally after any commit: `graphify update .`
 
 ## The tuning cycle (core mental model)
 
@@ -168,12 +185,65 @@ until the WB sensor is installed and validated.**
 New tabs are only justified when the workflow is genuinely different.
 A new view mode or button within an existing tab is almost always better.
 
-## Where to work — CRITICAL
+## Where to work — CRITICAL (v2.7.233+)
 
-**All code changes go directly on the Pi (`/home/pi/buell`) via SSH.**
-The Pi is the source of truth. The Windows clone is read-only reference.
-Never make changes in the Windows clone and push to GitHub — that breaks the live
-system and creates sync conflicts with other agents (freebuff).
+**All code changes go locally in `OneDrive/Escritorio/buell/`.**
+GitHub is the canonical source of truth. The Pi is the production target.
+
+### Workflow (GitHub as source of truth)
+
+```
+Local (edit + test)  →  git push  →  GitHub (canonical)  →  Pi: git pull
+    ↑                                                            |
+    └────────────────────────────────────────────────────────────┘
+                          (next session)
+```
+
+**Rules:**
+1. Edit files locally in `OneDrive/Escritorio/buell/`
+2. Test locally with `python serve_local.py --serve` before committing
+3. Commit + push to GitHub from local — **mandatory after every change**
+4. Pi: `git pull` to receive changes
+5. Never edit files directly on the Pi — all changes go through GitHub
+6. Never commit without pushing — local, GitHub, and Pi must stay in sync
+7. If you make local changes without pushing, the Pi falls behind —
+   commit + push immediately after every change
+
+## Model routing — automatic
+
+Before starting any task, evaluate complexity and route accordingly.
+**The user cannot always tell how complex something is — that evaluation is Claude's job.**
+
+### Decision criteria
+
+| Use Sonnet 4.6 | Use Opus 4.8 sub-agent |
+|----------------|------------------------|
+| Feature implementation | Algorithm design (GAPs 1-6) |
+| Bug fixes, refactors | Statistical validity questions |
+| UI changes, CSS, templates | Convergence / learning rate analysis |
+| Git operations, file moves | Multi-ECU architecture decisions |
+| Data pipeline plumbing | "Is this approach mathematically correct?" |
+| Backlog items marked BL-GPS / BL-LOG | BL-GEAR-01 clustering design |
+| Anything with a clear spec | Anything where the spec itself is uncertain |
+
+### How to route
+
+**Sonnet-only (default):** just do the work.
+
+**Opus sub-agent (complex reasoning):** spawn with `model: "opus"` via the Agent
+tool for the analysis/design phase, then implement the result in Sonnet.
+
+```
+Sonnet (you, orchestrating)
+  └─→ Opus sub-agent: "design the convergence criterion for GAP 5"
+        └─→ returns: algorithm, edge cases, mathematical justification
+  └─→ Sonnet implements the returned design
+```
+
+**When in doubt, default to Sonnet.** Spawning Opus unnecessarily wastes the user's
+budget. Only escalate when the task requires reasoning that cannot be verified by
+reading code — i.e., when the correctness of the *approach* (not the implementation)
+is what needs deep analysis.
 
 ## Commit workflow (mandatory order)
 
@@ -181,26 +251,25 @@ system and creates sync conflicts with other agents (freebuff).
 2. git add ALL changed files INCLUDING CHANGELOG.md in the same command
 3. git commit — code + changelog go in the same commit, never separate
 4. git push — mandatory after every commit, no exceptions
-   Without push: Pi and GitHub diverge, no remote backup, version in logger freezes
+   Without push: Pi and GitHub diverge, no remote backup
 5. Never commit code without a CHANGELOG entry in the same commit
 
 ### CHANGELOG format — CRITICAL
 
 New entries go at the TOP of the file, immediately after the header block.
 NEVER use `cat >> CHANGELOG.md` — that appends to the bottom.
-Always use a Python prepend script:
+Use this Python prepend script:
 
 ```python
-path = '/home/pi/buell/CHANGELOG.md'
+path = 'CHANGELOG.md'  # local path (OneDrive/Escritorio/buell/CHANGELOG.md)
 entry = '''
 ## [vX.Y.Z] — YYYY-MM-DD
 ### Changed
 - description
 ### AI
-- Claude Sonnet 4.6, Anthropic
+- DeepSeek V4 Flash, Codebuff (Buffy)
 '''
-with open(path) as f: content = f.read()
-# Find insertion point AFTER PROMPT_END block (never inside the instruction comments)
+with open(path, 'w') as f: content = f.read()
 import re
 prompt_end = 'PROMPT_END -->'
 after_header = content.index(prompt_end) + len(prompt_end)
@@ -214,16 +283,35 @@ with open(path, 'w') as f: f.write(content)
 > Why: if you update the changelog after the commit, the previous commit has no
 > record of what changed. Future sessions see the old entry and get confused.
 
+### After commit — optional Pi deploy
+
+```bash
+ssh pi@192.168.100.80 "cd /home/pi/buell && git pull && sudo systemctl restart buell-logger"
+```
+Only needed when the changes affect ECU serial, EEPROM burn, or main.py.
+CSS/HTML/JS changes only need a browser refresh on the Pi's dashboard.
+
 ## Coding standards (mandatory)
 
-## How to edit files on the Pi — avoid fix_*.py scripts
+## How to edit files
 
-Prefer direct edits over intermediate scripts:
-- Single line change: ssh + sed -i in-place
-- Full file rewrite: ssh + cat with a heredoc
-- Multi-line logic: compact python3 -c inline over SSH
-- Last resort: write to /tmp/script.py, run once, delete immediately
-- Never commit fix_*.py or patch scripts
+**All edits happen locally in `OneDrive/Escritorio/buell/`.**
+No SSH editing. Never commit fix_*.py or patch scripts.
+
+### Local dev flow
+```bash
+cd OneDrive/Escritorio/buell
+# Edit files, then test:
+python serve_local.py --serve
+# Open http://127.0.0.1:8080 in browser
+```
+
+### Deploy to Pi (after commit + push)
+```bash
+ssh pi@192.168.100.80 "cd /home/pi/buell && git pull"
+# If server.py or main.py changed:
+ssh pi@192.168.100.80 "sudo systemctl restart buell-logger"
+```
 
 ## Type hints (mandatory when touching Python files)
 
@@ -261,31 +349,43 @@ There is no gray area. English. Always. Every time.
 - Functions < 50 lines, files < 800 lines (refactor on touch)
 - No mutation — return new objects
 
-## How to restart the server
+## How to run the server
 
+### Local (development)
 ```bash
-# Find PID
-ps aux | grep main.py | grep -v grep
+cd OneDrive/Escritorio/buell
+python serve_local.py --serve
+# Dashboard: http://127.0.0.1:8080
+```
 
-# Kill + restart
-kill <PID>
-cd /home/pi/buell
-nohup python3 main.py --port /dev/ttyECU --sessions-dir /home/pi/buell/sessions --buell-dir /home/pi/buell > /tmp/buell_restart.log 2>&1 &
+### Pi (production)
+```bash
+ssh pi@192.168.100.80 "sudo systemctl restart buell-logger"
+# Dashboard: http://192.168.100.80:8080
+# Or via hotspot: http://10.42.0.1:8080
 
 # Validate
-curl -s http://localhost:8080/live | python3 -c 'import sys,json; print(json.load(sys.stdin).get("session_id","?"))'
+curl -s http://192.168.100.80:8080/live | python3 -c 'import sys,json; print(json.load(sys.stdin).get("session_id","?"))'
 ```
 
 ## Validate after any change
 
+### Local (before commit)
 ```bash
-# Import check (before restart)
-cd /home/pi/buell
-python3 -c "from web.server import WebServer; print('OK')"
-python3 -c "from web.f7 import _f7_load_session_clusters; print('OK')"
+cd OneDrive/Escritorio/buell
+# Import check
+python -c "from web.server import WebServer; print('OK')"
+python -c "from web.f7 import _f7_load_session_clusters; print('OK')"
+# Serve and test
+python serve_local.py
+# Expected: LOCAL DASHBOARD OK -> http://127.0.0.1:8080
+```
 
-# Endpoint check (after restart)
-curl -s 'http://localhost:8080/session_events/data?session=248AE2' | python3 -c \
+### Pi (after deploy)
+```bash
+ssh pi@192.168.100.80 "cd /home/pi/buell && python3 -c 'from web.server import WebServer; print(\"OK\")'"
+# Endpoint check
+curl -s 'http://192.168.100.80:8080/session_events/data?session=248AE2' | python3 -c \
   'import sys,json; d=json.load(sys.stdin); print("clusters:", d.get("n_clusters"), "events:", d.get("n_events"))'
 ```
 
@@ -294,20 +394,20 @@ curl -s 'http://localhost:8080/session_events/data?session=248AE2' | python3 -c 
 
 ### Graphify — codebase knowledge graph
 
-Graphify is installed on the Windows host (not the Pi) to avoid RAM pressure on the Pi Zero 2W.
-It maps the project into a queryable knowledge graph.
+Graphify runs on the Windows host. It maps the project into a queryable knowledge graph.
 
-**Workflow: Pi pushes to GitHub → Windows pulls → graphify update → view graph**
+**Workflow: Local commit/push → graphify update . → view graph**
 
-
+```bash
+cd OneDrive/Escritorio/buell
+graphify update .              # rebuild after commits (no API key needed)
+graphify query "question"      # query without rebuilding
+graphify explain "NodeName"    # explain a node and neighbors
+```
 
 Outputs: graphify-out/graph.html (interactive), graphify-out/GRAPH_REPORT.md
 
-Query the graph: graphify query "what functions read the EEPROM?"
-
 Key god nodes: DashboardHandler (server.py), SessionManager (ecu/session.py), BuellLogger (main.py)
-
-No API key needed for code-only updates.
 
 ## Priority backlog items
 
@@ -316,43 +416,36 @@ No API key needed for code-only updates.
 3. Backlog 7.7 — all-sessions F7 event comparison, rank maps by acceleration win rate
 4. FASE 5.1 — editable VE heatmap cells + burn from browser
 
-## Freebuff - inbox protocol
+## Freebuff - inbox protocol (updated v2.7.233+)
 
 Freebuff is a second AI agent running on the user machine.
-It writes research, audits, and task assignments to the inbox folder below.
+It writes research, audits, and task assignments to a local folder.
 
 ### How it works
 
-1. freebuff writes to /home/pi/buell/inbox/NNN_topic.md via SSH
-2. Claude reads inbox after every commit - process ALL files in order
-3. Claude processes each file:
-   - Code changes -> apply immediately, commit with version bump
+1. freebuff writes to `C:/Users/pacda/freebuff/responses/NNN_topic.md`
+2. Codebuff (Buffy) reads responses after every commit - process ALL files in order
+3. Codebuff processes each file:
+   - Code changes -> apply locally, commit + push, version bump
    - Research findings -> save to BACKLOG.md if not actionable
    - Audits -> add Audited line to CHANGELOG.md
-4. Claude deletes the inbox file after processing (signals done)
-5. Claude reports to user about what was processed
+4. Codebuff deletes the response file after processing (signals done)
+5. Codebuff reports to user about what was processed
 
-### Mandatory: check inbox at these moments
+### Mandatory: check responses at these moments
 
-1. AFTER every git commit - run: ls /home/pi/buell/inbox/
-2. At session start - check inbox before anything else
-3. When user mentions freebuff - check inbox immediately
+1. AFTER every git commit - run: ls C:/Users/pacda/freebuff/responses/
+2. At session start - check responses before anything else
+3. When user mentions freebuff - check responses immediately
 4. At natural pauses while waiting for user input
 
-### Also check: local responses folder
+### Also check: local inbox folder (legacy)
 
-freebuff writes validation/research responses to:
-  C:/Users/pacda/freebuff/responses/
+freebuff used to write to `/home/pi/buell/inbox/` via SSH.
+For sessions where that Pi path is accessible:
+  ssh pi@192.168.100.80 "ls /home/pi/buell/inbox/ 2>/dev/null || echo 'inbox empty'"
 
-Check this folder at session start and after every commit.
-For each .md file found:
-1. Read it
-2. If audit already in CHANGELOG (freebuff inserted it): just delete the file
-3. If audit NOT in CHANGELOG: insert the Audited line, then delete the file
-4. If it has Action items: apply them, commit, then delete the file
-Never leave response files sitting there — freebuff expects Claude to consume and delete them
-
-### Inbox file format
+### Response file format
 
 Files are named NNN_topic.md (e.g. 001_pending_priorities.md).
 Each file starts with a header: # NNN - Topic, then content.
@@ -369,13 +462,12 @@ Before applying ANY freebuff proposal (code fix, architecture, research finding)
 2. **Verify the claim** — if freebuff says line X has bug Y, read the actual line.
    If it says field Z is missing, check the actual code. Never trust the report blindly.
 
-3. **Assess risk** — before changing production code:
+3. **Assess risk** — before changing code:
    - Is this change safe? Could it break something that works?
    - Is it consistent with OL mode constraints (no EGO/AFV dependencies)?
    - Does it respect the coding standards (English, immutable, <50 lines)?
 
 4. **If something seems wrong or risky** — stop and ask the user before proceeding.
-   Example: freebuff proposes X but I see a problem with Y — do you want me to proceed?
 
 5. **Research findings** — treat as input, not commands. If freebuff says
    the root cause is X, verify against the actual code/data before accepting.
@@ -383,9 +475,9 @@ Before applying ANY freebuff proposal (code fix, architecture, research finding)
 ### Processing rules
 
 1. Process files in numeric order (001 before 002)
-2. After processing: delete the file: rm /home/pi/buell/inbox/001_*
+2. After processing: delete the file (rm or del)
 3. If a file needs user decision: keep it, flag to user, wait
-4. Never skip an inbox file - every file is there for a reason
+4. Never skip a response file — every file is there for a reason
 
 ## INST block standard
 
@@ -404,10 +496,10 @@ INST_END -->
 
 ### Audit files from freebuff
 
-When an inbox file has `action: audit`:
-1. Validate each finding against live code on the Pi
+When a response file has `action: audit`:
+1. Validate each finding against the actual local code
 2. If finding is a false positive: note it, no CHANGELOG needed
-3. If finding is a real issue: fix it, add CHANGELOG entry, commit
+3. If finding is a real issue: fix it, add CHANGELOG entry, commit + push
 4. Delete the file after all findings are resolved either way
 
 ### BACKLOG files are plans, not instructions

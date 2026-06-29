@@ -5,9 +5,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>GPS Analysis — Buell Logger</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="/static/leaflet.css">
 <link rel="stylesheet" href="/static/uPlot.min.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/leaflet.js"></script>
 <script src="/static/uPlot.iife.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -40,6 +40,10 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',Consolas,mono
 .stat-val{font-size:9px;font-weight:700;white-space:nowrap;line-height:1}
 .leaflet-container{background:#0a0a0b}
 .u-cursor-x,.u-cursor-y{opacity:.4}
+#coordOverlay{position:absolute;bottom:6px;left:6px;z-index:500;
+  background:rgba(10,10,11,0.88);color:#c8c8cc;font-family:'JetBrains Mono',Consolas,monospace;
+  font-size:8px;padding:3px 7px;border-radius:2px;pointer-events:none;
+  border:1px solid #2a2a36;display:none;letter-spacing:.03em}
 </style>
 </head>
 <body>
@@ -64,16 +68,28 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',Consolas,mono
 <canvas id="qualityStrip" height="8"></canvas>
 
 <div id="mapsRow">
-  <div id="map2d"></div>
+  <div id="map2d" style="position:relative">
+    <div id="coordOverlay"></div>
+  </div>
   <canvas id="map3d" touch-action="none"></canvas>
 </div>
 
 <div id="chartWrap">
   <div id="chartTitle">GPS speed · Wheel speed (VS_KPH) · delta</div>
   <div id="chartCtrls">
-    <button class="btn on" id="btnGPS" onclick="toggleSeries(0)" style="border-color:#3d9eff;color:#3d9eff">GPS</button>
-    <button class="btn on" id="btnVSS" onclick="toggleSeries(1)" style="border-color:#f5a623;color:#f5a623">VSS</button>
-    <button class="btn on" id="btnDelta" onclick="toggleSeries(2)" style="border-color:#888;color:#888">Δ</button>
+    <span id="speedSeriesBtns" style="display:contents">
+      <button class="btn on" id="btnGPS" onclick="toggleSeries(0)" style="border-color:#3d9eff;color:#3d9eff">GPS</button>
+      <button class="btn on" id="btnVSS" onclick="toggleSeries(1)" style="border-color:#f5a623;color:#f5a623">VSS</button>
+      <button class="btn on" id="btnDelta" onclick="toggleSeries(2)" style="border-color:#888;color:#888">Δ</button>
+    </span>
+    <span id="altSeriesBtns" style="display:none">
+      <button class="btn on" id="btnRaw" onclick="toggleAltSeries(0)" style="border-color:#3d9eff;color:#3d9eff">RAW</button>
+      <button class="btn on" id="btnRef" onclick="toggleAltSeries(1)" style="border-color:#2ecc71;color:#2ecc71">REF</button>
+      <button class="btn on" id="btnAltDiff" onclick="toggleAltSeries(2)" style="border-color:#e74c3c;color:#e74c3c">Δm</button>
+    </span>
+    <div style="width:1px;height:12px;background:#2a2a36;display:inline-block;margin:0 2px;vertical-align:middle"></div>
+    <button class="btn on" id="btnSpeedMode" onclick="switchChartMode('speed')" style="border-color:#55555e;color:#55555e;font-size:8px;padding:2px 5px">SPD</button>
+    <button class="btn" id="btnAltMode" onclick="switchChartMode('alt')" style="font-size:8px;padding:2px 5px">ALT</button>
     <button class="btn" onclick="resetZoom()" title="Reset zoom (double-click chart)">⟳</button>
   </div>
   <div id="chart" style="width:100%;height:100%"></div>
@@ -115,6 +131,8 @@ let _map2d = null, _trackLayer = null, _curMarker = null, _heatLayer = null;
 let _t3 = null, _t3raf = null;
 let _uplot = null;
 let _seriesOn = [true, true, true];
+let _altSeriesOn = [true, true, true];
+let _chartMode = 'speed';  // 'speed' | 'alt'
 let _showHeat = false, _showSpin = false;
 let _spinMarkers = null;
 let _stripW = 0, _stripCache = null;
@@ -181,6 +199,14 @@ function draw2D() {
   if (!_map2d) {
     _map2d = L.map('map2d', { attributionControl: false }).setView([32.5, -116.9], 13);
     L.tileLayer(MAP_TILES, { maxZoom: 19, attribution: MAP_ATTR }).addTo(_map2d);
+    _map2d.on('click', e => {
+      const { lat, lng } = e.latlng;
+      L.popup({ closeButton: false, className: 'coord-popup' })
+        .setLatLng(e.latlng)
+        .setContent('<span style="font-family:monospace;font-size:10px;color:#c8c8cc">' +
+          lat.toFixed(6) + ',&nbsp;' + lng.toFixed(6) + '</span>')
+        .openOn(_map2d);
+    });
   }
   if (_trackLayer) { _trackLayer.clearLayers(); }
   else { _trackLayer = L.layerGroup().addTo(_map2d); }
@@ -266,6 +292,7 @@ let _delta = [];
 let _xFull = [0, 1];  // full x range for reset
 
 function buildChart() {
+  if (_chartMode === 'alt') { buildChartAlt(); return; }
   const wrap = document.getElementById('chart');
   if (_uplot) { _uplot.destroy(); _uplot = null; }
   _delta = DATA.vs_kph.map((v, i) => (v || 0) - (DATA.gps_speed[i] || 0));
@@ -355,14 +382,112 @@ function buildChart() {
   }
 }
 
+function switchChartMode(mode) {
+  _chartMode = mode;
+  document.getElementById('btnSpeedMode').classList.toggle('on', mode === 'speed');
+  document.getElementById('btnAltMode').classList.toggle('on', mode === 'alt');
+  document.getElementById('speedSeriesBtns').style.display = mode === 'speed' ? 'contents' : 'none';
+  document.getElementById('altSeriesBtns').style.display = mode === 'alt' ? 'contents' : 'none';
+  if (DATA) buildChart();
+}
+
+function buildChartAlt() {
+  const wrap = document.getElementById('chart');
+  if (_uplot) { _uplot.destroy(); _uplot = null; }
+  const hasRef = DATA.ref_alts && DATA.ref_alts.some(v => v != null);
+  const rawAlts  = DATA.alts.map(v => v == null ? NaN : v);
+  const refAlts  = (DATA.ref_alts || []).map(v => v == null ? NaN : v);
+  const diffAlts = rawAlts.map((r, i) => (isNaN(r) || isNaN(refAlts[i])) ? NaN : r - refAlts[i]);
+  const validRaw = rawAlts.filter(v => !isNaN(v));
+  const validRef = refAlts.filter(v => !isNaN(v));
+  const allAlts  = [...validRaw, ...validRef];
+  const altMin   = allAlts.length ? Math.min(...allAlts) - 8 : 0;
+  const altMax   = allAlts.length ? Math.max(...allAlts) + 8 : 100;
+  const maxDiff  = Math.max(10, ...diffAlts.filter(v => !isNaN(v)).map(Math.abs)) * 1.15;
+  _xFull = [DATA.times[0], DATA.times[DATA.times.length - 1]];
+  const udata = [
+    new Float64Array(DATA.times),
+    new Float64Array(rawAlts),
+    new Float64Array(refAlts),
+    new Float64Array(diffAlts),
+  ];
+  const opts = {
+    width: wrap.clientWidth,
+    height: wrap.clientHeight - 4,
+    cursor: { sync: { key: 'gps_chart' }, drag: { x: true, y: false, dist: 12 } },
+    select: { show: true },
+    legend: { show: false },
+    scales: {
+      x:   { time: false },
+      ya:  { range: [altMin, altMax] },
+      yd2: { range: [-maxDiff, maxDiff] },
+    },
+    axes: [
+      { stroke: '#55555e', ticks: { stroke: '#1e1e28' }, grid: { stroke: '#1e1e28' }, font: '9px monospace',
+        values: (u, vals) => vals.map(v => v == null ? '' : v.toFixed(0) + 's') },
+      { scale: 'ya', stroke: '#3d9eff', ticks: { stroke: '#1e1e28' }, grid: { stroke: '#1e1e28' },
+        font: '9px monospace', values: (u, vals) => vals.map(v => v == null ? '' : v.toFixed(0) + 'm') },
+      { scale: 'yd2', side: 1, stroke: '#e74c3c', ticks: { show: false }, grid: { show: false },
+        font: '9px monospace', values: (u, vals) => vals.map(v => v == null ? '' : (v > 0 ? '+' : '') + v.toFixed(0) + 'm') },
+    ],
+    series: [
+      {},
+      { label: 'Raw GPS alt', scale: 'ya', stroke: '#3d9eff', width: 1.5, points: { show: false },
+        value: (u, v) => v == null ? '--' : v.toFixed(1) + 'm' },
+      { label: 'Ref alt', scale: 'ya', stroke: '#2ecc71', width: 2,
+        dash: hasRef ? undefined : [4, 4], points: { show: false },
+        value: (u, v) => v == null ? (hasRef ? '--' : 'no ref') : v.toFixed(1) + 'm' },
+      { label: 'Δ raw−ref', scale: 'yd2', stroke: '#e74c3c', width: 1, dash: [3, 3], points: { show: false },
+        value: (u, v) => v == null ? '--' : (v > 0 ? '+' : '') + v.toFixed(1) + 'm' },
+    ],
+    hooks: {
+      setCursor: [u => {
+        if (_replay) return;
+        const idx = u.cursor.idx;
+        if (idx == null || !DATA) return;
+        syncCursorToMaps(idx);
+        drawStripCursor(idx);
+        updateLegendText(idx);
+      }],
+      setSelect: [u => {
+        if (u.select.width > 0) {
+          const xMin = u.posToVal(u.select.left, 'x');
+          const xMax = u.posToVal(u.select.left + u.select.width, 'x');
+          u.setScale('x', { min: xMin, max: xMax });
+          u.setSelect({ left: 0, top: 0, width: 0, height: 0 }, false);
+        }
+      }],
+    },
+  };
+  _uplot = new uPlot(opts, udata, wrap);
+  wrap.addEventListener('dblclick', resetZoom);
+  document.getElementById('chartTitle').textContent =
+    hasRef ? 'Raw GPS alt (blue) · Trusted reference alt (green) · Δ noise (red)'
+           : 'Raw GPS alt (blue) · No reference data — run /route_reference?update=all first';
+}
+
 function updateLegendText(idx) {
+  if (_chartMode === 'alt') {
+    const raw  = DATA.alts[idx]                              != null ? DATA.alts[idx].toFixed(1) + 'm' : '--';
+    const ref  = DATA.ref_alts && DATA.ref_alts[idx] != null ? DATA.ref_alts[idx].toFixed(1) + 'm' : '--';
+    const diff = (DATA.alts[idx] != null && DATA.ref_alts && DATA.ref_alts[idx] != null)
+      ? ((DATA.alts[idx] - DATA.ref_alts[idx]) > 0 ? '+' : '') + (DATA.alts[idx] - DATA.ref_alts[idx]).toFixed(1) + 'm'
+      : '--';
+    const t = DATA.times[idx] != null ? DATA.times[idx].toFixed(1) + 's' : '';
+    document.getElementById('chartTitle').textContent =
+      t + '  RAW ' + raw + ' · REF ' + ref + ' · noise Δ ' + diff;
+    return;
+  }
   const gspd = DATA.gps_speed[idx] != null ? DATA.gps_speed[idx].toFixed(1) : '--';
   const vspd = DATA.vs_kph[idx] != null ? DATA.vs_kph[idx].toFixed(1) : '--';
   const dv = _delta[idx] != null ? ((_delta[idx] > 0 ? '+' : '') + _delta[idx].toFixed(1)) : '--';
   const t = DATA.times[idx] != null ? DATA.times[idx].toFixed(1) + 's' : '';
   const fix = DATA.valid[idx] === 3 ? '3D' : DATA.valid[idx] === 2 ? '2D' : 'NO FIX';
+  const lat = DATA.lats[idx]; const lon = DATA.lons[idx];
+  const coord = (lat != null && Math.abs(lat) > 0.001)
+    ? '  · ' + lat.toFixed(5) + ',' + lon.toFixed(5) : '';
   document.getElementById('chartTitle').textContent =
-    t + '  GPS ' + gspd + ' · VSS ' + vspd + ' · Δ ' + dv + ' km/h · ' + fix;
+    t + '  GPS ' + gspd + ' · VSS ' + vspd + ' · Δ ' + dv + ' km/h · ' + fix + coord;
 }
 
 function resetZoom() {
@@ -376,6 +501,14 @@ function toggleSeries(idx) {
   _uplot.setSeries(idx + 1, { show: _seriesOn[idx] });
   const ids = ['btnGPS', 'btnVSS', 'btnDelta'];
   document.getElementById(ids[idx]).classList.toggle('on', _seriesOn[idx]);
+}
+
+function toggleAltSeries(idx) {
+  if (!_uplot) return;
+  _altSeriesOn[idx] = !_altSeriesOn[idx];
+  _uplot.setSeries(idx + 1, { show: _altSeriesOn[idx] });
+  const ids = ['btnRaw', 'btnRef', 'btnAltDiff'];
+  document.getElementById(ids[idx]).classList.toggle('on', _altSeriesOn[idx]);
 }
 
 // ── replay ──────────────────────────────────────────────────────
@@ -443,6 +576,15 @@ function setReplaySpeed(s) {
 // ── cursor → map sync ────────────────────────────────────────────
 function syncCursorToMaps(idx) {
   const lat = DATA.lats[idx]; const lon = DATA.lons[idx];
+  const overlay = document.getElementById('coordOverlay');
+  if (overlay) {
+    if (lat != null && Math.abs(lat) > 0.001) {
+      overlay.style.display = 'block';
+      overlay.textContent = lat.toFixed(6) + ',  ' + lon.toFixed(6);
+    } else {
+      overlay.style.display = 'none';
+    }
+  }
   if (lat == null || Math.abs(lat) < 0.001) return;
   if (!_curMarker) {
     _curMarker = L.circleMarker([lat, lon], { radius: 7, color: '#fff', fillColor: '#ffee00', fillOpacity: 0.95, weight: 2 }).addTo(_map2d);
@@ -461,7 +603,11 @@ function syncCursorToMaps(idx) {
 function init3D() {
   const canvas = document.getElementById('map3d');
   if (!canvas || !DATA || DATA.lats.length < 2) return;
-  const lats = DATA.lats, lons = DATA.lons, alts = DATA.alts;
+  const lats = DATA.lats, lons = DATA.lons;
+  // 3D visualization uses raw GPS altitude — continuous and smooth for rendering.
+  // ref_alts is used only in the ALT chart mode and backend slope calculation.
+  const _usingRef = (DATA.ref_alts || []).some(v => v != null);
+  const alts = DATA.alts;
   const lat0 = lats.reduce((s, v) => s + (v || 0), 0) / lats.length;
   const lon0 = lons.reduce((s, v) => s + (v || 0), 0) / lons.length;
   const cosLat = Math.cos(lat0 * Math.PI / 180);
@@ -487,7 +633,7 @@ function init3D() {
   let radius = 1;
   for (const q of pts) { q[1] = q[1] * vexag - yMid; radius = Math.max(radius, Math.hypot(q[0], q[1], q[2])); }
   const prev = _t3;
-  _t3 = { pts, spd, dataIdxMap, hasAlt, vexag, radius, floorY: -yMid, cursorIdx: null,
+  _t3 = { pts, spd, dataIdxMap, hasAlt, usingRef: _usingRef, vexag, radius, floorY: -yMid, cursorIdx: null,
            ang: prev ? prev.ang : 0.6, tilt: prev ? prev.tilt : 0.5, zoom: prev ? prev.zoom : 1,
            panX: prev ? prev.panX : 0, panY: prev ? prev.panY : 0,
            rotPaused: prev ? prev.rotPaused : false, pivot: null,
@@ -522,7 +668,7 @@ function bind3D(canvas) {
     if (!_t3 || !DATA) return;
     const rect = canvas.getBoundingClientRect();
     const cx = e.clientX - rect.left, cy2 = e.clientY - rect.top;
-    const W = canvas.width, H = canvas.height;
+    const W = Math.round(rect.width), H = Math.round(rect.height);
     // Recompute current projection (must match draw3D exactly)
     const cosA = Math.cos(_t3.ang), sinA = Math.sin(_t3.ang);
     const cosT = Math.cos(_t3.tilt), sinT = Math.sin(_t3.tilt);
@@ -584,10 +730,15 @@ function loop3D(ts) {
 function draw3D(canvas) {
   const rect = canvas.getBoundingClientRect();
   if (rect.width < 10 || rect.height < 10) return;
-  if (canvas.width !== Math.round(rect.width))  canvas.width  = Math.round(rect.width);
-  if (canvas.height !== Math.round(rect.height)) canvas.height = Math.round(rect.height);
-  const W = canvas.width, H = canvas.height;
+  // Render at physical pixel resolution to avoid blur on HiDPI displays.
+  // All geometry and pointer events stay in CSS pixels (W, H below).
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = Math.round(rect.width), cssH = Math.round(rect.height);
+  if (canvas.width  !== cssW * dpr) { canvas.width  = cssW * dpr; canvas.style.width  = cssW + 'px'; }
+  if (canvas.height !== cssH * dpr) { canvas.height = cssH * dpr; canvas.style.height = cssH + 'px'; }
+  const W = cssW, H = cssH;
   const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.fillStyle = '#0a0a0b'; ctx.fillRect(0, 0, W, H);
   const cy = Math.cos(_t3.ang), sy = Math.sin(_t3.ang);
   const cp = Math.cos(_t3.tilt), sp = Math.sin(_t3.tilt);
@@ -665,7 +816,8 @@ function draw3D(canvas) {
   ctx.textAlign = 'right';
   ctx.fillStyle = '#444';
   ctx.fillText('zoom ×' + _t3.zoom.toFixed(1) +
-    (_t3.hasAlt && _t3.vexag > 1 ? '  alt ×' + _t3.vexag.toFixed(1) : ''), W - 8, 14);
+    (_t3.hasAlt && _t3.vexag > 1 ? '  alt ×' + _t3.vexag.toFixed(1) : '') +
+    (_t3.usingRef ? '  [trusted alt]' : '  [raw GPS alt]'), W - 8, 14);
   ctx.textAlign = 'left';
   if (!_t3.hasAlt) {
     ctx.fillStyle = '#444'; ctx.fillText('flat — no altitude data', 8, 14);
@@ -699,9 +851,12 @@ function computeStats() {
   document.getElementById('sMaxSpin').textContent = maxSpin > 0 ? '+' + maxSpin.toFixed(1) + ' km/h' : '0';
   document.getElementById('sFixPct').textContent = fixPct + '%';
   document.getElementById('sArtifacts').textContent = artifactCount;
+  const refCount = DATA.ref_alts ? DATA.ref_alts.filter(v => v != null).length : 0;
+  const refPct = DATA.count > 0 ? Math.round(100 * refCount / DATA.count) : 0;
+  const refStr = refCount > 0 ? ' · ref cov ' + refPct + '%' : ' · no ref data';
   document.getElementById('statsBar').textContent =
     DATA.count + ' rows · ' + (DATA.duration_s || 0).toFixed(0) + 's · GPS ' + gpsDist.toFixed(2) +
-    'km · VSS ' + vssDist.toFixed(2) + 'km · max spin Δ' + (maxSpin > 0 ? '+' + maxSpin.toFixed(1) : '0') + ' km/h';
+    'km · VSS ' + vssDist.toFixed(2) + 'km · max spin Δ' + (maxSpin > 0 ? '+' + maxSpin.toFixed(1) : '0') + ' km/h' + refStr;
 }
 
 // ── resize ───────────────────────────────────────────────────────

@@ -59,8 +59,7 @@ IPC_POLL_S          = 0.25   # how often IPC reader polls live.json
 def _get_version():
     try:
         import re
-        with open("/home/pi/buell/CHANGELOG.md") as f:
-            cl = f.read()
+        cl = (Path(__file__).parent / "CHANGELOG.md").read_text(encoding='utf-8')
         # Skip the instruction block; real entries start after PROMPT_END.
         marker = cl.find("PROMPT_END -->")
         if marker != -1:
@@ -111,7 +110,7 @@ class BuellLogger:
         self._bat_socs        = []
         self._boot_soc        = None
 
-        self.network = NetworkManager()
+        self.network = NetworkManager(buell_dir=self.buell_dir)
         self.web     = WebServer(host='0.0.0.0', port=8080, buell_dir=self.buell_dir)
         # SessionManager in main process is a sync target only (IPC reader writes attrs).
         self.session = SessionManager(self.sessions_dir)
@@ -411,7 +410,7 @@ class BuellLogger:
                 stats['bat_trend']    = 'stable'
                 stats['bat_charging'] = False
 
-            _health_check(stats, True)
+            _health_check(stats, True, buell_dir=str(self.buell_dir))
 
             _soc = stats.get('bat_soc')
             _v   = stats.get('bat_voltage')

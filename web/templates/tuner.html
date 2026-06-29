@@ -105,7 +105,15 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 </div>
 <div class="tabs" id="tabs">
 </div>
-<div class="ps"><div style="display:flex;gap:4px;padding:2px 4px;flex-shrink:0;align-items:center"><button id="burnBtn" onclick="burnStaged()" disabled style="font-family:var(--mn);font-size:8px;font-weight:700;padding:2px 10px;background:#c0392b;color:#fff;border:none;border-radius:2px;cursor:pointer;letter-spacing:.06em;opacity:.4">BURN</button><button id="resetBtn" onclick="resetStaged()" disabled style="font-family:var(--mn);font-size:8px;padding:2px 8px;background:var(--p);color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer;opacity:.4">RESET</button><span id="stageSt" style="font-family:var(--mn);font-size:8px;color:var(--dm)"></span></div><div class="pi" id="pw"></div></div>
+<div class="ps"><div style="display:flex;gap:4px;padding:2px 4px;flex-shrink:0;align-items:center;flex-wrap:wrap">
+<button id="burnBtn" onclick="burnStaged()" disabled style="font-family:var(--mn);font-size:8px;font-weight:700;padding:2px 10px;background:#c0392b;color:#fff;border:none;border-radius:2px;cursor:pointer;letter-spacing:.06em;opacity:.4">BURN</button>
+<button id="resetBtn" onclick="resetStaged()" disabled style="font-family:var(--mn);font-size:8px;padding:2px 8px;background:var(--p);color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer;opacity:.4">RESET</button>
+<span id="stageSt" style="font-family:var(--mn);font-size:8px;color:var(--dm)"></span>
+<span style="font-family:var(--mn);font-size:7px;color:var(--dm);margin-left:6px" title="GAP 6: ILC learning rate. 1.0 = apply 100% of proposed change. 0.5 = apply 50% (safer for uncertain cells).">α</span>
+<input type="range" id="alphaSlider" min="0.1" max="1.0" step="0.05" value="1.0" oninput="updateAlphaLabel()" style="width:55px;accent-color:#e67e22;vertical-align:middle">
+<span id="alphaVal" style="font-family:var(--mn);font-size:8px;color:#e67e22;min-width:28px">1.00</span>
+<span id="convBadge" title="GAP 5: Map convergence (% of cells with delta &lt; 1% across last 3 burns). Click for detail." onclick="showConvDetail()" style="font-family:var(--mn);font-size:7px;font-weight:700;padding:1px 5px;border-radius:2px;background:#555;color:#fff;cursor:pointer;margin-left:4px">CONV --</span>
+</div><div class="pi" id="pw"></div></div>
 <div class="c3bar" style="display:flex;gap:8px;align-items:center;padding:4px 8px;background:var(--p);border:1px solid var(--bd);border-radius:3px;flex-shrink:0">
 <span style="font-family:var(--mn);font-size:8px;color:var(--a2);letter-spacing:.08em;font-weight:700">3D</span>
 <span style="font-family:var(--mn);font-size:7px;color:var(--dm);margin-left:4px">&#916;</span>
@@ -707,21 +715,59 @@ function updateBurnBtn(){
   if(btn){btn.disabled=total===0;btn.style.opacity=total>0?'1':'0.4';btn.textContent=total>0?'BURN ('+total+')':'BURN';}
   if(rst){rst.disabled=total===0;rst.style.opacity=total>0?'1':'0.4';}
 }
+function updateAlphaLabel(){
+  var s=document.getElementById('alphaSlider'),v=document.getElementById('alphaVal');
+  if(!s||!v)return;
+  var a=parseFloat(s.value).toFixed(2);
+  v.textContent=a;
+  v.style.color=a<0.5?'#e74c3c':a<0.8?'#e67e22':'#2ecc71';
+}
+function getAlpha(){var s=document.getElementById('alphaSlider');return s?parseFloat(s.value):1.0;}
 async function burnStaged(){
   var changes=[];
   for(var mk in STAGE)for(var key in STAGE[mk]){var p=key.split(',');changes.push({map:mk,ri:parseInt(p[0]),ci:parseInt(p[1]),val:STAGE[mk][key]});}
   if(!changes.length)return;
-  if(!confirm('Burn '+changes.length+' change'+(changes.length===1?'':'s')+' to EEPROM?'))return;
+  var alpha=getAlpha();
+  var alphaNote=alpha<1.0?' [α='+alpha.toFixed(2)+' — only '+Math.round(alpha*100)+'% of delta applied]':'';
+  if(!confirm('Burn '+changes.length+' change'+(changes.length===1?'':'s')+' to EEPROM?'+alphaNote))return;
   setStageSt('Burning...');
   try{
-    var r=await fetch('/eeprom/burn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({changes:changes})});
+    var r=await fetch('/eeprom/burn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({changes:changes,alpha:alpha})});
     var d=await r.json();
     if(d.error){setStageSt('Burn failed: '+d.error);return;}
     STAGE={};updateBurnBtn();render();
-    setStageSt('Burned '+(d.cells_changed||changes.length)+' cell(s). Reload page to refresh map.');
+    var alphaStr=d.alpha_used&&d.alpha_used<1?' α='+d.alpha_used:'';
+    setStageSt('Burned '+(d.cells_changed||changes.length)+' cell(s)'+alphaStr+'. Reload to refresh map.');
   }catch(e){setStageSt('Error: '+e.message);}
 }
 function resetStaged(){STAGE={};updateBurnBtn();render();setStageSt('');}
+// GAP 5: load convergence badge on page load and refresh every 60s
+function _updateConvBadge(d){
+  var el=document.getElementById('convBadge');if(!el)return;
+  if(!d||d.status==='no_data'){el.textContent='CONV --';el.style.background='#555';return;}
+  var score=d.score!=null?d.score+'%':'--';
+  el.textContent='CONV '+score;
+  el.style.background=d.status==='converged'?'#27ae60':d.status==='converging'?'#e67e22':'#c0392b';
+  el._convData=d;
+}
+function showConvDetail(){
+  var el=document.getElementById('convBadge');
+  var d=el&&el._convData;
+  if(!d){alert('No burn history yet. Convergence tracking starts after first burn.');return;}
+  var lines=['MAP CONVERGENCE — GAP 5','',
+    'Status: '+d.status.toUpperCase(),'Score: '+d.score+'% ('+d.n_converged+'/'+d.n_active_cells+' cells)',
+    'Burns in ledger: '+d.burns,'Threshold: last delta < 1% of cell value for ≥3 burns','',
+    'Worst cells (largest last delta):'];
+  (d.cells||[]).slice(0,8).forEach(function(c){
+    lines.push('  '+c.map+' ['+c.ri+','+c.ci+'] Δ='+c.last_delta+' (thr='+c.threshold+') '+
+      (c.converged?'✓':'✗')+' '+c.trend);
+  });
+  alert(lines.join('\n'));
+}
+(function loadConv(){
+  fetch('/convergence').then(function(r){return r.json();}).then(_updateConvBadge).catch(function(){});
+  setTimeout(loadConv,60000);
+})();
 </script><script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script>
 <script>
 (function(){fetch('/fuel/status').then(function(r){return r.json()}).then(function(d){

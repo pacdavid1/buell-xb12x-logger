@@ -18,7 +18,9 @@ def _session_version(bin_path):
 
 def _get_version():
     try:
-        cl = open("/home/pi/buell/CHANGELOG.md").read()
+        # Derive path from this file's location (works on Windows + Pi alike).
+        # Use utf-8 encoding explicitly (Windows default cp1252 can't decode CHANGELOG.md).
+        cl = (Path(__file__).resolve().parent.parent / "CHANGELOG.md").read_text(encoding='utf-8')
         end_comment = cl.find("-->")
         if end_comment != -1:
             cl = cl[end_comment:]

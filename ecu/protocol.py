@@ -38,11 +38,8 @@ VSS_CPKM25 = 1518.0  # counts per 25km/h — recalibrated vs GPS (ride_015 + rid
 # wider separation between gears. 3s window, outlier filter
 # via median deviation, and cliff detector for fast transitions.
 # VSS_RPM_Ratio in CSV remains unchanged.
-# Calibrated centers: rpm / kph (empirical from real rides)
-# Defined at module level because class-level list comprehensions
-# cannot reference other class-level variables in Python 3.
-CENTERS: list[float] = [0.0, 75.5, 53.8, 40.1, 33.3, 28.7]
-THRESHOLDS: list[float] = [(CENTERS[i] + CENTERS[i+1]) / 2 for i in range(1, 5)]
+# Thresholds and coast guard live in ecu/gear_calibration.py — single source of truth.
+from ecu.gear_calibration import GEAR_THRESHOLDS_LIVE, COAST_RATIO_MIN as _CAL_COAST_MIN
 
 
 
@@ -139,10 +136,7 @@ class GearFilter:
     # Coasting detection — wheel freewheeling with clutch in
     COAST_RPM_MAX   = 1400   # rpm: below this near-idle RPM during decel = likely clutch-in
     COAST_KPH_MIN   = 15.0   # kph: wheel still spinning
-    COAST_RATIO_MIN = CENTERS[5] * 0.80  # ratio physically impossible in any gear (~22.9)
-
-    # THRESHOLDS now defined at module level (must be outside class
-    # due to Python 3 class-level list comprehension scoping rules)
+    COAST_RATIO_MIN = _CAL_COAST_MIN  # minimum physically possible RPM/KPH ratio (from gear_calibration.py)
 
     def __init__(self) -> None:
         self.buffer = collections.deque()
@@ -223,7 +217,7 @@ class GearFilter:
         return self.last_gear
 
     def _ratio_to_gear(self, ratio):
-        for g, thr in enumerate(THRESHOLDS, start=1):
+        for g, thr in enumerate(GEAR_THRESHOLDS_LIVE, start=1):
             if ratio >= thr:
                 return g
         return 5

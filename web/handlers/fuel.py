@@ -14,8 +14,9 @@ class FuelHandlerMixin:
         self._html(html.replace('--LOGGER_VERSION--', _get_version()))
 
     def _handle_fuel_status(self, path=None):
-        sessions_dir = str(self.server_instance.buell_dir / 'sessions')
-        self._json(fuel_tracker.get_status(sessions_dir))
+        buell = self.server_instance.buell_dir
+        sessions_dir = str(buell / 'sessions')
+        self._json(fuel_tracker.get_status(sessions_dir, buell_dir=str(buell)))
 
     def _handle_fuel_reserve(self, path=None):
         try:
@@ -23,8 +24,9 @@ class FuelHandlerMixin:
             active = bool(body.get('active', True))
         except Exception:
             active = True
-        sessions_dir = str(self.server_instance.buell_dir / 'sessions')
-        self._json(fuel_tracker.toggle_reserve(active, sessions_dir))
+        buell = self.server_instance.buell_dir
+        sessions_dir = str(buell / 'sessions')
+        self._json(fuel_tracker.toggle_reserve(active, sessions_dir, buell_dir=str(buell)))
 
     def _handle_fuel_refuel(self, path=None):
         try:
@@ -38,9 +40,11 @@ class FuelHandlerMixin:
         if liters <= 0:
             self._json({'error': 'liters must be > 0'}, 400)
             return
-        sessions_dir = str(self.server_instance.buell_dir / 'sessions')
-        self._json(fuel_tracker.add_refuel(liters, octane, sessions_dir, full_tank))
+        buell = self.server_instance.buell_dir
+        sessions_dir = str(buell / 'sessions')
+        self._json(fuel_tracker.add_refuel(liters, octane, sessions_dir, full_tank, buell_dir=str(buell)))
 
     def _handle_fuel_consumption(self, path=None):
-        sessions_dir = str(self.server_instance.buell_dir / 'sessions')
-        self._json(fuel_tracker.calc_ride_consumption(sessions_dir))
+        buell = self.server_instance.buell_dir
+        sessions_dir = str(buell / 'sessions')
+        self._json(fuel_tracker.calc_ride_consumption(sessions_dir, buell_dir=str(buell)))

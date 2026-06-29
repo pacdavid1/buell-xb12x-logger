@@ -142,11 +142,22 @@ class GpsHandlerMixin:
         except Exception as e:
             return self._json({"error": str(e)}, 500)
 
+        # Enrich with trusted reference altitude from route_reference (BL-GPS-04)
+        ref_alts = [None] * len(times)
+        try:
+            from gps.route_reference import RouteReference
+            ref = RouteReference(buell_dir)
+            for i, (lat, lon) in enumerate(zip(lats, lons)):
+                if lat is not None and lon is not None and abs(lat) > 0.001:
+                    ref_alts[i] = ref.get_altitude(lat, lon)
+        except Exception:
+            pass
+
         duration = times[-1] - times[0] if len(times) > 1 else 0
         return self._json({
             "times": times, "lats": lats, "lons": lons,
             "gps_speed": gps_spd, "vs_kph": vs_kph,
-            "alts": alts, "valid": valid_flags, "sats": sats,
+            "alts": alts, "ref_alts": ref_alts, "valid": valid_flags, "sats": sats,
             "headings": hdgs, "tps": tps_vals,
             "count": len(times), "duration_s": duration,
         })
