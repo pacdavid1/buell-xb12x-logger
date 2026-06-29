@@ -737,8 +737,10 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
     Recomputed when any events file is newer than the cluster cache.
     """
     import csv as _csv
+    from web.gear_learner import GearLearner
     buell_dir = Path(buell_dir)
     sdir      = buell_dir / 'sessions' / session_id
+    _gear_thresholds = GearLearner(buell_dir).get_thresholds()
 
     def _sf(v, default=0.0):
         try:
@@ -766,7 +768,7 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
                     'pw1':    _sf(r['pw1']) * _baro_factor,
                     'pw2':    _sf(r.get('pw2', 0)) * _baro_factor,
                     'gear':          _sf(r.get('Gear', 0)),
-                    'gear_detected':  _detect_gear(rpm, _sf(r.get("VS_KPH", 0)), _sf(r.get("di_neutral", 0))),
+                    'gear_detected':  _detect_gear(rpm, _sf(r.get("VS_KPH", 0)), _sf(r.get("di_neutral", 0)), thresholds=_gear_thresholds),
                     'clt':    _sf(r['CLT']),
                     'ae':      _sf(r.get('Accel_Corr', 100)),
                     'mat':     _sf(r.get('MAT', 0)),

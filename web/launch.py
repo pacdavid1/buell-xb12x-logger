@@ -287,9 +287,11 @@ def match_clusters(clusters_a, clusters_b, rpm_tol=400, spd_tol=12, tps_tol=2.5)
 
 def _compare_sessions(buell_dir, sa, sb):
     from collections import defaultdict
+    from web.gear_learner import GearLearner
 
     RPM_BINS = [800,1200,1600,2000,2400,2800,3200,3600,4000,4400,4800,5200,5600,6000,6400,6800]
     TPS_BINS = [0,5,10,15,20,25,30,35,40,50,60,70,80,90,100,101]
+    _gear_thresholds = GearLearner(buell_dir).get_thresholds()
 
     def bucket(val, bins):
         for i in range(len(bins)-1):
@@ -359,7 +361,7 @@ def _compare_sessions(buell_dir, sa, sb):
                         'wue':  sf(r.get('WUE', 100)),
                         'ae':   sf(r.get('Accel_Corr', 100)),
                         'gear':          sf(r.get('Gear', 0)),
-                        'gear_detected':  _detect_gear(rpm, sf(r.get("VS_KPH", 0)), sf(r.get("di_neutral", 0))),
+                        'gear_detected':  _detect_gear(rpm, sf(r.get("VS_KPH", 0)), sf(r.get("di_neutral", 0)), thresholds=_gear_thresholds),
                         'spd':  sf(r.get('VS_KPH', 0)),
                         'alt':       sf(r.get('gps_alt_m'), None) if r.get('gps_valid','').strip().lower() in ('true','1') else None,
                         'baro_temp': sf(r.get('baro_temp_c', '')),

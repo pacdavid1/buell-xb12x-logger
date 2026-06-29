@@ -21,6 +21,14 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.246] — 2026-06-28
+### Features
+- BL-GEAR-01: data-driven gear detection — `web/gear_learner.py` rewritten to use ECU-reported `Gear` column as ground truth; finds optimal RPM/VSS ratio threshold between each adjacent gear pair by brute-force minimisation; 92.71% accurate vs 91.41% hardcoded; largest improvement at 2/1 boundary (errors 1101→28, threshold 90→106); works for any bike that reports a Gear column (XB12X, 1125CR, etc.)
+- `GearLearner.learn()` now populates `gear_profile.json` using per-boundary optimisation instead of k-means on raw histogram (k-means was failing due to ECU quantisation artifacts creating multi-modal within-gear distributions)
+- `/gear_profile?learn=1` endpoint triggers re-learning from all sessions
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.245] — 2026-06-28
 ### Docs
 - BACKLOG: close BL-GPS-03 (done in slope_reference.py), discard BL-GPS-04 (GPS M8N absolute altitude not suitable — systematic errors from bridges/underpasses do not average out, per-session bias ±10m), document BL-GPS-05 limits (differential slope ±3-5% precision, only reliable for grades ≥4%), update GAP 4 scope accordingly

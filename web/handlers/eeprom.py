@@ -425,6 +425,26 @@ class EepromHandlerMixin:
 
         self._json(ref.stats())
 
+    def _handle_gear_profile(self, path=None):
+        """GET /gear_profile                  -- stats / current thresholds.
+        GET /gear_profile?learn=1             -- relearn from all sessions.
+        GET /gear_profile?learn=1&n_gears=6   -- relearn specifying gear count.
+        """
+        from web.gear_learner import GearLearner
+        buell_dir = self.server_instance.buell_dir
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        learner = GearLearner(buell_dir)
+
+        if params.get('learn', [None])[0]:
+            try:
+                n_gears = int(params.get('n_gears', ['5'])[0])
+            except ValueError:
+                n_gears = 5
+            self._json(learner.learn(buell_dir, n_gears=n_gears))
+            return
+
+        self._json(learner.stats())
+
     def _handle_msq_download(self, path=None):
         """Serve suggested MSQ for a given session (or active session if none specified)."""
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)

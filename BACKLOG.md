@@ -143,28 +143,19 @@ Nombre en literatura: Iterative Learning Control (ILC) con forgetting factor.
 ---
 
 ### BL-GEAR-01 — Gear detection multi-bike via auto-clustered ratios
-**Priority:** MEDIUM — decision made 2026-06-28 (auto-cluster data-driven approach)
+**Status: DONE 2026-06-28**
 
-Current GEAR_THRESHOLDS in web/gear_detect.py are hardcoded for XB12X #248AE2.
-They are garbage for the 1125 or any bike with a different sprocket/wheel/tire.
+**Approach taken:** ECU already reports `Gear` column — used it as ground truth instead of unsupervised clustering. `web/gear_learner.py` rewritten to collect (ratio, gear) pairs from all ride CSVs and find the optimal RPM/VSS threshold between each adjacent gear pair by brute-force minimisation of misclassifications.
 
-**Decision: learn ratios from data, do NOT hardcode per-bike tables.**
+**Results vs hardcoded thresholds:**
+- Learned: [47, 58, 73, 106] — Hardcoded: [44, 62, 74, 90]
+- Accuracy: 92.71% learned vs 91.41% hardcoded on 269k samples
+- Biggest win: 2/1 boundary (errors 1101→28); threshold 90 was 16 units too low
+- Connects to BL-ECM-02 (1125CR): algorithm works for any bike with Gear column
 
-Physics: in the RPM-vs-VSS plane each gear is a straight line from the origin;
-its slope is that gear ratio. Cluster the measured ratios -> recover the gears,
-knowing nothing about the bike. Auto-adapts to transmission + sprocket + tire.
+**Why k-means failed:** XB12X ECU quantises RPM/VSS into multiple sub-peaks within a single gear (bins 28, 33, 39, 40 are ALL 5th gear). k-means splits within-gear multi-modes instead of finding gear boundaries. Learning from ECU ground truth bypasses this entirely.
 
-Plan:
-- [ ] Collect samples with di_clutch=0 AND di_neutral=0 AND vss>min
-- [ ] ratio = RPM/VSS per sample -> k-means 1D over the histogram (N gears)
-- [ ] Detect cluster centers, sort high-ratio (1st) to low (top gear)
-- [ ] Store learned ratios per bike_serial in a bike profile (e.g. bike_profiles.json)
-- [ ] Real-time: use learned centers + temporal hysteresis (confirm 3-5 frames
-      before switching) -> stable in-ride readout (fixes the never-atina problem)
-- [ ] Post-ride: same centers, no hysteresis needed
-- [ ] XB12 calibrates now from existing rides; 1125 calibrates on its first
-      logged ride (no manual ratio extraction needed)
-- Connects to BL-ECM-02 (1125CR multi-bike support)
+**Endpoint:** `/gear_profile?learn=1` triggers re-learning from all sessions.
 
 ## SENSORES — Logging multi-rate independiente (idea 2026-06-28)
 
