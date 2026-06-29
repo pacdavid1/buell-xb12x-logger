@@ -21,6 +21,13 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.245] — 2026-06-28
+### Docs
+- BACKLOG: close BL-GPS-03 (done in slope_reference.py), discard BL-GPS-04 (GPS M8N absolute altitude not suitable — systematic errors from bridges/underpasses do not average out, per-session bias ±10m), document BL-GPS-05 limits (differential slope ±3-5% precision, only reliable for grades ≥4%), update GAP 4 scope accordingly
+- Analysis conclusion: GPS altitude is useful for geographic orientation and coarse slope detection (>4%) only. Absolute altitude reference and sub-3% slope detection are physically impossible with M8N — do not revisit
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.244] — 2026-06-28
 ### Fixed
 - GPS Analysis 3D: dblclick pivot hit-test uses rect.width/height (CSS px) instead of canvas.width/height (physical px) — restores accurate pivot selection after HiDPI fix
