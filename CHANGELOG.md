@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.239] — 2026-06-28
+### Fixed
+- GPS Analysis 3D: reverted to raw GPS altitude for rendering — ref_alts bucket quantization creates visual staircase; ref_alts stays reserved for ALT chart comparison and F7 slope calculation
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.238] — 2026-06-28
 ### Fixed
 - GPS Analysis 3D: apply Gaussian moving average (halfWin=10) to merged ref+raw altitude before 3D render — eliminates bucket-boundary staircase artifact from 11m spatial bucketing
