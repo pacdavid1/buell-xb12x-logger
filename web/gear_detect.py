@@ -2,8 +2,9 @@
 """
 gear_detect.py -- Post-ride gear detection from RPM/VSS ratio.
 
-Thresholds are loaded from ecu/gear_calibration.py (single source of truth).
-Pass an optional thresholds list to override (e.g. from GearLearner).
+Default thresholds come from ecu/gear_calibration.py (single source of truth,
+learned from 313k samples). Pass an optional thresholds list from GearLearner
+to use per-fleet refined thresholds instead.
 """
 from ecu.gear_calibration import GEAR_THRESHOLDS_DETECT
 

@@ -1,1 +1,0 @@
-{"n_gears":5,"n_samples":269445,"samples_per_gear":{"2":25817,"3":20124,"4":50081,"1":3958,"5":169465},"thresholds":[{"limit":47.0,"gear":5,"boundary_errors":3403},{"limit":58.0,"gear":4,"boundary_errors":10981},{"limit":73.0,"gear":3,"boundary_errors":4261},{"limit":106.0,"gear":2,"boundary_errors":996}]}

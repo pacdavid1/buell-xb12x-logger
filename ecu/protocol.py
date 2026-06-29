@@ -38,14 +38,8 @@ VSS_CPKM25 = 1518.0  # counts per 25km/h — recalibrated vs GPS (ride_015 + rid
 # wider separation between gears. 3s window, outlier filter
 # via median deviation, and cliff detector for fast transitions.
 # VSS_RPM_Ratio in CSV remains unchanged.
-# CENTERS: median RPM/KPH per gear, learned from 313k samples across all sessions (2026-06-28).
-# Index 0 = neutral (unused), 1 = gear 1 (lowest, highest ratio) .. 5 = gear 5 (highest, lowest ratio).
-# Defined at module level because class-level list comprehensions
-# cannot reference other class-level variables in Python 3.
-# Thresholds imported from shared module — single source of truth for live and post-ride detection.
+# Thresholds and coast guard live in ecu/gear_calibration.py — single source of truth.
 from ecu.gear_calibration import GEAR_THRESHOLDS_LIVE, COAST_RATIO_MIN as _CAL_COAST_MIN
-
-CENTERS: list[float] = [0.0, 142.8, 76.0, 60.1, 53.7, 33.4]  # median RPM/KPH per gear (reference only)
 
 
 

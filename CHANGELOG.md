@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.249] — 2026-06-29
+### Cleanup
+- Remove dead `CENTERS` constant from `ecu/protocol.py` (was "reference only" after v2.7.248 refactor). Update `gear_detect.py` docstring to correctly describe threshold fallback chain. Add `gear_profile.json` to `.gitignore` and untrack it — it is per-installation learned data, not code.
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.248] — 2026-06-28
 ### Refactor
 - Extract gear thresholds to `ecu/gear_calibration.py` as single source of truth. Both `ecu/protocol.py` (live GearFilter) and `web/gear_detect.py` (post-ride) now import `GEAR_THRESHOLDS_LIVE`/`GEAR_THRESHOLDS_DETECT` and `COAST_RATIO_MIN` from this shared module. Eliminates threshold duplication that caused live vs post-ride disagreement when values were updated in only one place.
