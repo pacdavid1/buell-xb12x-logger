@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.237] — 2026-06-28
+### Changed
+- GPS Analysis 3D map: uses trusted reference altitude (ref_alts) per point when available, falls back to raw GPS; shows `[trusted alt]` / `[raw GPS alt]` label in top-right corner of 3D canvas
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.236] — 2026-06-28
 ### Added
 - GPS Analysis: trusted reference altitude overlay — `/gps_analysis_data` now returns `ref_alts` array (RouteReference lookup per lat/lon); chart gains ALT mode button showing raw GPS alt (blue) vs trusted reference alt (green) + noise delta (red); statsBar shows ref coverage %; RAW/REF/Δm series toggles in alt mode

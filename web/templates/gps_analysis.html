@@ -577,7 +577,11 @@ function syncCursorToMaps(idx) {
 function init3D() {
   const canvas = document.getElementById('map3d');
   if (!canvas || !DATA || DATA.lats.length < 2) return;
-  const lats = DATA.lats, lons = DATA.lons, alts = DATA.alts;
+  const lats = DATA.lats, lons = DATA.lons;
+  // Prefer trusted reference altitude; fall back to raw GPS per point
+  const _refAlts = DATA.ref_alts || [];
+  const _usingRef = _refAlts.some(v => v != null);
+  const alts = DATA.alts.map((v, i) => _refAlts[i] != null ? _refAlts[i] : v);
   const lat0 = lats.reduce((s, v) => s + (v || 0), 0) / lats.length;
   const lon0 = lons.reduce((s, v) => s + (v || 0), 0) / lons.length;
   const cosLat = Math.cos(lat0 * Math.PI / 180);
@@ -603,7 +607,7 @@ function init3D() {
   let radius = 1;
   for (const q of pts) { q[1] = q[1] * vexag - yMid; radius = Math.max(radius, Math.hypot(q[0], q[1], q[2])); }
   const prev = _t3;
-  _t3 = { pts, spd, dataIdxMap, hasAlt, vexag, radius, floorY: -yMid, cursorIdx: null,
+  _t3 = { pts, spd, dataIdxMap, hasAlt, usingRef: _usingRef, vexag, radius, floorY: -yMid, cursorIdx: null,
            ang: prev ? prev.ang : 0.6, tilt: prev ? prev.tilt : 0.5, zoom: prev ? prev.zoom : 1,
            panX: prev ? prev.panX : 0, panY: prev ? prev.panY : 0,
            rotPaused: prev ? prev.rotPaused : false, pivot: null,
@@ -781,7 +785,8 @@ function draw3D(canvas) {
   ctx.textAlign = 'right';
   ctx.fillStyle = '#444';
   ctx.fillText('zoom ×' + _t3.zoom.toFixed(1) +
-    (_t3.hasAlt && _t3.vexag > 1 ? '  alt ×' + _t3.vexag.toFixed(1) : ''), W - 8, 14);
+    (_t3.hasAlt && _t3.vexag > 1 ? '  alt ×' + _t3.vexag.toFixed(1) : '') +
+    (_t3.usingRef ? '  [trusted alt]' : '  [raw GPS alt]'), W - 8, 14);
   ctx.textAlign = 'left';
   if (!_t3.hasAlt) {
     ctx.fillStyle = '#444'; ctx.fillText('flat — no altitude data', 8, 14);
