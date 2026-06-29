@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.248] — 2026-06-28
+### Refactor
+- Extract gear thresholds to `ecu/gear_calibration.py` as single source of truth. Both `ecu/protocol.py` (live GearFilter) and `web/gear_detect.py` (post-ride) now import `GEAR_THRESHOLDS_LIVE`/`GEAR_THRESHOLDS_DETECT` and `COAST_RATIO_MIN` from this shared module. Eliminates threshold duplication that caused live vs post-ride disagreement when values were updated in only one place.
+### AI
+- Claude Sonnet 4.6 + FreeBuffs
+
 ## [v2.7.247] — 2026-06-28
 ### Fix
 - GearFilter live gear display: recalibrate CENTERS and THRESHOLDS in `ecu/protocol.py` from 313k samples across all sessions. Previous values [0,75.5,53.8,40.1,33.3,28.7] were off by ~30-40% — gear-5 riding (ratio ~33) was being classified as gear 4 every time the window committed. New CENTERS [0,142.8,76.0,60.1,53.7,33.4] with brute-force THRESHOLDS [106,73,58,47] match actual distributions. Fixes "nunca le atina a la marcha" on live dashboard.

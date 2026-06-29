@@ -2,14 +2,12 @@
 """
 gear_detect.py -- Post-ride gear detection from RPM/VSS ratio.
 
-Default thresholds are the hardcoded XB12X values (calibrated from session
-248AE2, 96.9% accuracy). Pass a learned thresholds list from GearLearner to
-use data-driven thresholds instead -- preferred when gear_profile.json exists.
+Thresholds are loaded from ecu/gear_calibration.py (single source of truth).
+Pass an optional thresholds list to override (e.g. from GearLearner).
 """
+from ecu.gear_calibration import GEAR_THRESHOLDS_DETECT
 
-# Fallback thresholds for XB12X #248AE2 -- used when no profile is loaded.
-# (ratio_upper_limit, gear) checked in order; first match wins. ratio = RPM/VSS.
-GEAR_THRESHOLDS = [(44, 5), (62, 4), (74, 3), (90, 2)]
+GEAR_THRESHOLDS = list(GEAR_THRESHOLDS_DETECT)
 MIN_RPM = 1500
 MIN_VSS = 5.0
 

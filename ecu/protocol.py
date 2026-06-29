@@ -42,11 +42,10 @@ VSS_CPKM25 = 1518.0  # counts per 25km/h — recalibrated vs GPS (ride_015 + rid
 # Index 0 = neutral (unused), 1 = gear 1 (lowest, highest ratio) .. 5 = gear 5 (highest, lowest ratio).
 # Defined at module level because class-level list comprehensions
 # cannot reference other class-level variables in Python 3.
-CENTERS: list[float] = [0.0, 142.8, 76.0, 60.1, 53.7, 33.4]
-# THRESHOLDS: brute-force optimal boundaries from gear_profile.json (minimise misclassifications).
-# NOT auto-computed as midpoints of CENTERS because gear 3 distribution is wide (p10=37.9, p90=72.9)
-# and simple midpoints underperform the brute-force result.
-THRESHOLDS: list[float] = [106.0, 73.0, 58.0, 47.0]
+# Thresholds imported from shared module — single source of truth for live and post-ride detection.
+from ecu.gear_calibration import GEAR_THRESHOLDS_LIVE, COAST_RATIO_MIN as _CAL_COAST_MIN
+
+CENTERS: list[float] = [0.0, 142.8, 76.0, 60.1, 53.7, 33.4]  # median RPM/KPH per gear (reference only)
 
 
 
@@ -143,10 +142,7 @@ class GearFilter:
     # Coasting detection — wheel freewheeling with clutch in
     COAST_RPM_MAX   = 1400   # rpm: below this near-idle RPM during decel = likely clutch-in
     COAST_KPH_MIN   = 15.0   # kph: wheel still spinning
-    COAST_RATIO_MIN = CENTERS[5] * 0.80  # ratio physically impossible in any gear (~26.7)
-
-    # THRESHOLDS now defined at module level (must be outside class
-    # due to Python 3 class-level list comprehension scoping rules)
+    COAST_RATIO_MIN = _CAL_COAST_MIN  # minimum physically possible RPM/KPH ratio (from gear_calibration.py)
 
     def __init__(self) -> None:
         self.buffer = collections.deque()
@@ -227,7 +223,7 @@ class GearFilter:
         return self.last_gear
 
     def _ratio_to_gear(self, ratio):
-        for g, thr in enumerate(THRESHOLDS, start=1):
+        for g, thr in enumerate(GEAR_THRESHOLDS_LIVE, start=1):
             if ratio >= thr:
                 return g
         return 5

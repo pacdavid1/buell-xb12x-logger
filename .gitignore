@@ -22,6 +22,9 @@ __pycache__/
 *.save
 # Estado de red (específico de cada instalación)
 network_state.json
+# Caches de referencia local
+route_reference.json
+slope_reference.json
 # Archivos de debug temporales
 fix_*.py.save
 *.save.*
