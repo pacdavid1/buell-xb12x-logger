@@ -668,7 +668,7 @@ function bind3D(canvas) {
     if (!_t3 || !DATA) return;
     const rect = canvas.getBoundingClientRect();
     const cx = e.clientX - rect.left, cy2 = e.clientY - rect.top;
-    const W = canvas.width, H = canvas.height;
+    const W = Math.round(rect.width), H = Math.round(rect.height);
     // Recompute current projection (must match draw3D exactly)
     const cosA = Math.cos(_t3.ang), sinA = Math.sin(_t3.ang);
     const cosT = Math.cos(_t3.tilt), sinT = Math.sin(_t3.tilt);

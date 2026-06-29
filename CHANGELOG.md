@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.244] — 2026-06-28
+### Fixed
+- GPS Analysis 3D: dblclick pivot hit-test uses rect.width/height (CSS px) instead of canvas.width/height (physical px) — restores accurate pivot selection after HiDPI fix
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.243] — 2026-06-28
 ### Fixed
 - GPS Analysis 3D canvas: render at devicePixelRatio resolution — eliminates blur on HiDPI displays; geometry and pointer events stay in CSS pixels
