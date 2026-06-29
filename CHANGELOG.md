@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.247] — 2026-06-28
+### Fix
+- GearFilter live gear display: recalibrate CENTERS and THRESHOLDS in `ecu/protocol.py` from 313k samples across all sessions. Previous values [0,75.5,53.8,40.1,33.3,28.7] were off by ~30-40% — gear-5 riding (ratio ~33) was being classified as gear 4 every time the window committed. New CENTERS [0,142.8,76.0,60.1,53.7,33.4] with brute-force THRESHOLDS [106,73,58,47] match actual distributions. Fixes "nunca le atina a la marcha" on live dashboard.
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.246] — 2026-06-28
 ### Features
 - BL-GEAR-01: data-driven gear detection — `web/gear_learner.py` rewritten to use ECU-reported `Gear` column as ground truth; finds optimal RPM/VSS ratio threshold between each adjacent gear pair by brute-force minimisation; 92.71% accurate vs 91.41% hardcoded; largest improvement at 2/1 boundary (errors 1101→28, threshold 90→106); works for any bike that reports a Gear column (XB12X, 1125CR, etc.)
