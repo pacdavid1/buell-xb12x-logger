@@ -595,13 +595,17 @@ class BuellLogger:
     def _sleep_gps(self):
         """Send UBX-RXM-PMREQ to put M8N into backup mode (~15uA).
         Must be called while UART is still accessible (before poweroff).
-        M8N wakes automatically on first UART byte from gpsd at next boot."""
+        M8N wakes automatically on first UART byte from gpsd at next boot.
+        On a plain service restart (no poweroff) we skip the M8N sleep and
+        gpsd stop so gpsd.socket stays alive for the next start."""
+        if self.gps:
+            self.gps.stop()
+        if not self._poweroff_requested:
+            return
         import serial as _serial, struct as _struct
         GPS_PORT = '/dev/ttyS0'
         GPS_BAUD = 9600
         try:
-            if self.gps:
-                self.gps.stop()
             subprocess.run(['sudo', 'systemctl', 'stop', 'gpsd', 'gpsd.socket'],
                            capture_output=True, timeout=3)
             import time as _time

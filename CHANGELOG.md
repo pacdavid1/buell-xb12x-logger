@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.250] — 2026-06-29
+### Fix
+- `main.py _sleep_gps()`: only stop gpsd and send M8N backup-mode command when `_poweroff_requested` is True. On a plain service restart (`systemctl restart buell-logger`) gpsd.socket was being killed, leaving GPS dead on the next start. GPS reader thread is still stopped on both paths.
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.249] — 2026-06-29
 ### Cleanup
 - Remove dead `CENTERS` constant from `ecu/protocol.py` (was "reference only" after v2.7.248 refactor). Update `gear_detect.py` docstring to correctly describe threshold fallback chain. Add `gear_profile.json` to `.gitignore` and untrack it — it is per-installation learned data, not code.
