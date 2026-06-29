@@ -26,7 +26,7 @@ No dyno — tuning is entirely data-driven from real street rides.
 ### Development environment
 
 **Source of truth:** GitHub (`https://github.com/pacdavid1/buell-xb12x-logger`).
-**Local (Windows):** `Downloads/buell-dev/` — where code is edited and tested.
+**Local (Windows):** `Desktop/buell/` — where code is edited and tested.
 **Production target:** Raspberry Pi at `192.168.100.80` — pulls from GitHub.
 
 **Workflow:**
@@ -187,7 +187,7 @@ A new view mode or button within an existing tab is almost always better.
 
 ## Where to work — CRITICAL (v2.7.233+)
 
-**All code changes go locally in `Downloads/buell-dev/`.**
+**All code changes go locally in `Desktop/buell/`.**
 GitHub is the canonical source of truth. The Pi is the production target.
 
 ### Workflow (GitHub as source of truth)
@@ -200,7 +200,7 @@ Local (edit + test)  →  git push  →  GitHub (canonical)  →  Pi: git pull
 ```
 
 **Rules:**
-1. Edit files locally in `Downloads/buell-dev/`
+1. Edit files locally in `Desktop/buell/`
 2. Test locally with `python serve_local.py --serve` before committing
 3. Commit + push to GitHub from local — **mandatory after every change**
 4. Pi: `git pull` to receive changes
@@ -261,7 +261,7 @@ NEVER use `cat >> CHANGELOG.md` — that appends to the bottom.
 Use this Python prepend script:
 
 ```python
-path = 'CHANGELOG.md'  # local path (Downloads/buell-dev/CHANGELOG.md)
+path = 'CHANGELOG.md'  # local path (Desktop/buell/CHANGELOG.md)
 entry = '''
 ## [vX.Y.Z] — YYYY-MM-DD
 ### Changed
@@ -295,12 +295,12 @@ CSS/HTML/JS changes only need a browser refresh on the Pi's dashboard.
 
 ## How to edit files
 
-**All edits happen locally in `Downloads/buell-dev/`.**
+**All edits happen locally in `Desktop/buell/`.**
 No SSH editing. Never commit fix_*.py or patch scripts.
 
 ### Local dev flow
 ```bash
-cd Downloads/buell-dev
+cd Desktop/buell
 # Edit files, then test:
 python serve_local.py --serve
 # Open http://127.0.0.1:8080 in browser
@@ -353,7 +353,7 @@ There is no gray area. English. Always. Every time.
 
 ### Local (development)
 ```bash
-cd Downloads/buell-dev
+cd Desktop/buell
 python serve_local.py --serve
 # Dashboard: http://127.0.0.1:8080
 ```
@@ -372,7 +372,7 @@ curl -s http://192.168.100.80:8080/live | python3 -c 'import sys,json; print(jso
 
 ### Local (before commit)
 ```bash
-cd Downloads/buell-dev
+cd Desktop/buell
 # Import check
 python -c "from web.server import WebServer; print('OK')"
 python -c "from web.f7 import _f7_load_session_clusters; print('OK')"
@@ -399,7 +399,7 @@ Graphify runs on the Windows host. It maps the project into a queryable knowledg
 **Workflow: Local commit/push → graphify update . → view graph**
 
 ```bash
-cd Downloads/buell-dev
+cd Desktop/buell
 graphify update .              # rebuild after commits (no API key needed)
 graphify query "question"      # query without rebuilding
 graphify explain "NodeName"    # explain a node and neighbors

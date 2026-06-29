@@ -2,7 +2,7 @@
 
 > **Leído por:** freebuff (agente de análisis) y Buffy (Codebuff) al inicio.
 > **Propósito:** Definir el ciclo de trabajo, auditoría y reglas para ambos agentes.
-> **Fuente de verdad:** Este archivo en `Downloads/buell-dev/` (local).
+> **Fuente de verdad:** Este archivo en `Desktop/buell/` (local).
 
 ---
 
@@ -19,7 +19,7 @@ I run on the user machine and communicate via the local filesystem.
 freebuff (research) → Buffy (implement) → git push → Pi: git pull
 ```
 
-La fuente de verdad es **local** (`Downloads/buell-dev/`). El Pi es producción.
+La fuente de verdad es **local** (`Desktop/buell/`). El Pi es producción.
 No más SSH para editar código.
 
 ### Phase 1 - Analysis
@@ -45,7 +45,7 @@ No más SSH para editar código.
 ## Audit protocol
 
 After each Buffy commit:
-1. Read `Downloads/buell-dev/CHANGELOG.md` - find the new entry
+1. Read `Desktop/buell/CHANGELOG.md` - find the new entry
 2. Read the changed files locally - confirm code exists
 3. OL check: no EGO_Corr or AFV in new logic
 4. Regression check: adjacent code intact?
@@ -65,17 +65,17 @@ After each Buffy commit:
 | User -> freebuff | Chat directly |
 | Buffy -> freebuff | Via user (verbal) |
 | freebuff -> Buffy | `C:/Users/pacda/freebuff/responses/` |
-| freebuff audits | Local file reads in `Downloads/buell-dev/` |
+| freebuff audits | Local file reads in `Desktop/buell/` |
 
 ## Sources of truth
 
 - **TASKS.md** - my task queue: `C:/Users/pacda/freebuff/TASKS.md`
-- **FREEBUFF.md** - my role definition: `Downloads/buell-dev/FREEBUFF.md` (this file)
-- **BACKLOG.md** - project backlog: `Downloads/buell-dev/BACKLOG.md`
-- **CLAUDE.md** - Buffy instructions: `Downloads/buell-dev/CLAUDE.md`
-- **CHANGELOG.md** - version history: `Downloads/buell-dev/CHANGELOG.md`
+- **FREEBUFF.md** - my role definition: `Desktop/buell/FREEBUFF.md` (this file)
+- **BACKLOG.md** - project backlog: `Desktop/buell/BACKLOG.md`
+- **CLAUDE.md** - Buffy instructions: `Desktop/buell/CLAUDE.md`
+- **CHANGELOG.md** - version history: `Desktop/buell/CHANGELOG.md`
   NOTE: newest entries are at the TOP — use head not tail
-- **Actual code** - always local in `Downloads/buell-dev/`, never trust stale cache
+- **Actual code** - always local in `Desktop/buell/`, never trust stale cache
 
 ## Lessons Learned
 
@@ -88,7 +88,7 @@ Por que paso: Use el source tree del proyecto que tengo cacheado en mi
 contexto, en vez de leer el codigo ACTUAL local.
 
 Protocolo correctivo:
-1. ANTES de reportar un bug, leer el archivo actual local (`Downloads/buell-dev/`)
+1. ANTES de reportar un bug, leer el archivo actual local (`Desktop/buell/`)
 2. No confiar en cache del contexto. El repo local es la fuente de verdad.
 3. Cross-check: si Buffy commitio algo que parece fixear el bug,
    verificar con `git log` antes de reportar.
@@ -111,7 +111,7 @@ Graphify runs on Windows. It maps the project into a queryable knowledge graph.
 
 **Key commands:**
 ```bash
-cd Downloads/buell-dev
+cd Desktop/buell
 graphify update .              # rebuild after pull (no API key needed)
 graphify query "question"      # query the graph without rebuilding
 graphify explain "NodeName"    # explain a node and its neighbors
