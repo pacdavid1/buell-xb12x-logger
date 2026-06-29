@@ -16,6 +16,30 @@ _F7_THRESH  = 0.85  # default DTW threshold
 _F7_EVENTS_V = 7
 _F7_PRE_N       = 10    # pre-break context resample points     # bump when event struct fields change
 
+# BL-GPS-03: GPS quality thresholds
+_GPS_MIN_SATS = 6    # minimum satellites for a reliable fix
+_GPS_EPV_MAX  = 5.0  # maximum vertical error in metres (newer CSVs only)
+
+
+def _gps_quality(row: dict) -> bool:
+    """Return True when a row's GPS fix is trustworthy enough for altitude use.
+
+    Satellite count is always available.  epv / mode are only present in newer
+    CSVs — when absent the satellite count alone gates quality.
+    """
+    if not row.get('gps_valid'):
+        return False
+    epv = row.get('gps_epv', 0) or 0
+    if epv and epv > _GPS_EPV_MAX:
+        return False
+    mode = row.get('gps_mode', 0) or 0
+    if mode and mode < 3:
+        return False
+    sats = row.get('gps_sats', 0) or 0
+    if sats and sats < _GPS_MIN_SATS:
+        return False
+    return True
+
 
 def _f7_resample(series, n=_F7_N):
     L = len(series)
@@ -199,7 +223,7 @@ def _f7_detect_events(rows):
                         tps_curve_norm = _f7_resample([v / _mx for v in _full_tps])
 
                         # GPS slope from stable window (Bucket A terrain context)
-                        _gw = [r for r in win if r.get('gps_valid') and r.get('gps_alt', 0) != 0]
+                        _gw = [r for r in win if _gps_quality(r) and r.get('gps_alt', 0) != 0]
                         if len(_gw) >= 4:
                             _alt_d = _gw[-1]['gps_alt'] - _gw[0]['gps_alt']
                             _t_sp  = _gw[-1]['t'] - _gw[0]['t']
@@ -217,7 +241,7 @@ def _f7_detect_events(rows):
                         _spark_vals= [r['spark']     for r in win if r.get('spark',    0) > 0]
                         _iat_vals  = [r['iat_corr']  for r in win if r.get('iat_corr', 0) > 0]
                         _hum_vals  = [r['humidity']  for r in win if r.get('humidity', 0) > 0]
-                        _alt_vals  = [r['gps_alt']   for r in win if r.get('gps_valid') and r.get('gps_alt', 0) != 0]
+                        _alt_vals  = [r['gps_alt']   for r in win if _gps_quality(r) and r.get('gps_alt', 0) != 0]
                         _gd_vals   = [r['gear_detected'] for r in win if r.get('gear_detected', 0) > 0]
 
                         events.append({
@@ -642,7 +666,7 @@ def _f7_events_from_annotations(sdir, csv_path_map, load_csv_rows_fn):
             _mx = max(_full_tps) if max(_full_tps) > 0 else 1.0
             tps_curve_norm = _f7_resample([v / _mx for v in _full_tps])
 
-            _gw = [r for r in pre_win if r.get('gps_valid') and r.get('gps_alt', 0) != 0]
+            _gw = [r for r in pre_win if _gps_quality(r) and r.get('gps_alt', 0) != 0]
             if len(_gw) >= 4:
                 _alt_d = _gw[-1]['gps_alt'] - _gw[0]['gps_alt']
                 _t_sp  = _gw[-1]['t'] - _gw[0]['t']
@@ -660,7 +684,7 @@ def _f7_events_from_annotations(sdir, csv_path_map, load_csv_rows_fn):
             _iat   = [r['iat_corr']  for r in pre_win if r.get('iat_corr',  0) > 0]
             _hum   = [r['humidity']  for r in pre_win if r.get('humidity',  0) > 0]
             _alt   = [r['gps_alt']   for r in pre_win
-                      if r.get('gps_valid') and r.get('gps_alt', 0) != 0]
+                      if _gps_quality(r) and r.get('gps_alt', 0) != 0]
 
             def _pre_rs(vals):
                 return _f7_resample(vals, _F7_PRE_N) if vals else [0.0] * _F7_PRE_N
@@ -753,6 +777,11 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
                     'baro_valid': _baro_valid,
                     'temp_amb':  _sf(r.get('baro_temp_c', 0)),
                     'gps_alt':   _sf(r.get('gps_alt_m', 0)),
+                    'gps_lat':   _sf(r.get('gps_lat', 0)),
+                    'gps_lon':   _sf(r.get('gps_lon', 0)),
+                    'gps_sats':  _sf(r.get('gps_satellites', 0)),
+                    'gps_epv':   _sf(r.get('gps_epv', 0)),
+                    'gps_mode':  _sf(r.get('gps_mode', 0)),
                     'gps_valid': r.get('gps_valid', '').strip().lower() in ('true', '1'),
                     'fl_fc':  r.get('fl_fuel_cut', '0').strip() in ('1', 'True', 'true'),
                     'fl_eng': r.get('fl_engine_run', '1').strip() in ('1', 'True', 'true'),

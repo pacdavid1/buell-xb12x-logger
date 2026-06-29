@@ -21,6 +21,13 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.235] — 2026-06-28
+### Added
+- BL-GPS-03: GPS quality filter (_gps_quality) in F7 — gates altitude use on satellites>=6, epv<5m, mode==3 (newer CSVs); gps_lat/lon/sats/epv/mode added to F7 row dict
+- BL-GPS-04: gps/route_reference.py — multi-pass averaged GPS altitude profile with MAD outlier rejection; RouteReference.update_all_sessions() ingested 14 sessions / 171k points / 6182 buckets (95% confident with 3+ passes); GET /route_reference endpoint (stats, update, coordinate query)
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.233] — 2026-06-28
 
 ### Changed

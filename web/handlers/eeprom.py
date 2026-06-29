@@ -345,6 +345,45 @@ class EepromHandlerMixin:
         from web.burn_ledger import convergence_report
         self._json(convergence_report(self.server_instance.buell_dir))
 
+    def _handle_route_reference(self, path=None):
+        """GET /route_reference — stats for the accumulated GPS altitude reference.
+        GET /route_reference?update=all  — rebuild from all sessions.
+        GET /route_reference?update=<session_id>  — ingest one session.
+        GET /route_reference?lat=<f>&lon=<f>  — query trusted altitude for a coordinate.
+        """
+        from gps.route_reference import RouteReference
+        import urllib.parse
+        buell_dir = self.server_instance.buell_dir
+        params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        ref = RouteReference(buell_dir)
+
+        update = params.get('update', [None])[0]
+        if update == 'all':
+            result = ref.update_all_sessions(buell_dir)
+            self._json(result)
+            return
+        if update:
+            session_dir = Path(buell_dir) / 'sessions' / update
+            if not session_dir.is_dir():
+                self._json({'error': f'session not found: {update}'})
+                return
+            result = ref.update_from_session(session_dir)
+            self._json(result)
+            return
+
+        lat_raw = params.get('lat', [None])[0]
+        lon_raw = params.get('lon', [None])[0]
+        if lat_raw and lon_raw:
+            try:
+                lat, lon = float(lat_raw), float(lon_raw)
+                alt = ref.get_altitude(lat, lon)
+                self._json({'lat': lat, 'lon': lon, 'alt_m': alt})
+            except ValueError:
+                self._json({'error': 'invalid lat/lon'})
+            return
+
+        self._json(ref.stats())
+
     def _handle_msq_download(self, path=None):
         """Serve suggested MSQ for a given session (or active session if none specified)."""
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
