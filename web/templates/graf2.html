@@ -77,13 +77,6 @@
   .grp{color:var(--dim);font-size:9px;letter-spacing:2px;margin:10px 0 4px;text-transform:uppercase}
   .sig{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:3px;cursor:pointer}
   .sig:hover{background:var(--panel2)}
-  /* ---- floating cursor readout ---- */
-  #cur-readout{position:fixed;right:8px;top:70px;z-index:20;background:rgba(12,12,16,.93);border:1px solid #2a2a2e;border-radius:4px;padding:5px 8px;font:9px/1.5 var(--mono);color:#999;pointer-events:none;min-width:110px;max-height:60vh;overflow-y:auto;display:none;transition:left .12s,right .12s}
-  #cur-readout .cr-t{color:var(--accent);font-weight:700;border-bottom:1px solid #222;margin-bottom:2px;padding-bottom:2px}
-  #cur-readout .cr-r{display:flex;gap:5px;align-items:center}
-  #cur-readout .cr-d{width:6px;height:6px;border-radius:2px;flex:none}
-  #cur-readout .cr-k{flex:1;color:#666;max-width:90px;overflow:hidden;text-overflow:ellipsis}
-  #cur-readout .cr-v{font-weight:700;color:#ddd;text-align:right;min-width:28px}
   .sig.on{background:rgba(232,66,10,.12)}
   .sig .dot{width:9px;height:9px;border-radius:2px;flex:none}
   .sig .k{flex:1}
@@ -159,7 +152,6 @@
     </div>
   </div>
 
-  <div id="cur-readout"></div>
   <script src="/static/uPlot.iife.min.js"></script>
   <script src="/static/graf2.js"></script>
 </body>

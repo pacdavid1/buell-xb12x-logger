@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.252] — 2026-06-30
+### Fix
+- BL-GRAF-03: removed floating #cur-readout panel from GRAF2 (was rendering full-width due to CSS conflict); cursor values now shown inline in block header chips only.
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.251] — 2026-06-30
 ### Changed
 - BACKLOG.md: BL-ECM-01 marked DONE — validated that ecm_defs.py, version_resolver.py, rt_defs.py are all implemented and in production. XML-driven decode/encode/pages/RT vars confirmed. Residual low-priority item extracted as BL-ECM-01-RESIDUAL (RPM_BINS/LOAD_BINS hardcoded in protocol.py — no corruption risk, affects only CSV cell headers for non-BUEIB).
