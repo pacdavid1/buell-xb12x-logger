@@ -21,6 +21,14 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.251] — 2026-06-30
+### Changed
+- BACKLOG.md: BL-ECM-01 marked DONE — validated that ecm_defs.py, version_resolver.py, rt_defs.py are all implemented and in production. XML-driven decode/encode/pages/RT vars confirmed. Residual low-priority item extracted as BL-ECM-01-RESIDUAL (RPM_BINS/LOAD_BINS hardcoded in protocol.py — no corruption risk, affects only CSV cell headers for non-BUEIB).
+- BACKLOG.md: BL-ECM-03 (revert EEPROM version guard) marked DONE — already implemented per CHANGELOG.
+- BACKLOG.md: removed duplicate BL-ECM-03 entry. Updated BL-ECM-02 and BL-XPR-01 dependency notes to reflect BL-ECM-01 completion.
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.250] — 2026-06-29
 ### Fix
 - `main.py _sleep_gps()`: only stop gpsd and send M8N backup-mode command when `_poweroff_requested` is True. On a plain service restart (`systemctl restart buell-logger`) gpsd.socket was being killed, leaving GPS dead on the next start. GPS reader thread is still stopped on both paths.

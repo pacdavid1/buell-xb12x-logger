@@ -255,33 +255,30 @@ valores menores -- son ruido. Ver GAP 4 para tareas pendientes de integracion.
 
 ## Core refactor (2026-06-14)
 
-### BL-ECM-01 — Multi-ECU support vía EcmSpy XML (quitar offsets hardcodeados BUEIB)
-**Priority:** 🔴 MÁXIMA — CORAZÓN DEL PROYECTO
-**Plan completo:** ver [BACKLOG_ECM_DEFS.md](BACKLOG_ECM_DEFS.md)
+### BL-ECM-01 — Multi-ECU support vía EcmSpy XML ✅ DONE (2026-06-30)
+**Validado:** ecu/ecm_defs.py, ecu/version_resolver.py, ecu/rt_defs.py implementados y en producción.
 
-> **Por qué es lo más importante:** sin esto el logger SOLO sirve para una BUEIB (la XB12X
-> del autor). Es lo que convierte el proyecto de "mi herramienta personal" en algo que
-> sirve para CUALQUIER Buell con DDFI2. Es el norte del proyecto, va por encima de features.
+- decode_eeprom_maps() / encode_eeprom_maps() — XML-driven, multi-firmware, burn guard ✅
+- RT_VARIABLES — cargados desde rtdata.xml en import time (DDFI-2 y DDFI-3) ✅
+- EEPROM pages — get_eeprom_pages(version) desde ecm_defs, no hardcodeadas ✅
+- version_resolver.py — resuelve version_string → XML correcto ✅
+- BL-ECM-02 (DDFI-3 frame 135 bytes) ✅
+- 14 firmwares con XML en ecu_defs/ ✅
 
-Hoy el 100% de los offsets de EEPROM y RT params están hardcodeados para el firmware
-BUEIB. Hay 14 XMLs de EcmSpy en `ecu_defs/` y **217 entradas críticas difieren de offset
-entre firmwares** (solo 10 comparten offset). Conectar cualquier otra ECU (BUE1D, BUEWD,
-etc.) rompe TODO el pipeline (valores en vivo + burns de EEPROM).
+**Residual LOW (no bloqueador):** `RPM_BINS` / `LOAD_BINS` en ecu/protocol.py líneas 356-357
+siguen siendo valores BUEIB hardcodeados. CellTracker tiene `set_bins()` y los actualiza
+al leer el EEPROM, pero el CSV header y el estado inicial del tracker arrancan con bins BUEIB.
+Solo impacta la cobertura de celdas en el CSV para non-BUEIB — no hay riesgo de corrupción.
+Ver BL-ECM-01-RESIDUAL más abajo.
 
-**Riesgo de seguridad (crítico):** `encode_eeprom_maps()` escribe en offsets fijos de
-BUEIB; con otra ECU (p.ej. BUE1D, mapa en 2072 vs 870) **podría CORROMPER la EEPROM al
-quemar**. La validación pre-write es lo primero a blindar en la migración.
-
-Plan en 4–6 fases (parser XML EcmSpy → pages dinámicas → bins dinámicos → UI agnóstica
-de dimensiones → validación de burn). Abiertos: RT_VARIABLES (frame 107 bytes) NO está
-en los XMLs (investigar si cambia entre firmwares); compat hacia atrás de rides viejos
-guardados con bins BUEIB. Tablas de los 14 firmwares, inventario de hardcodeos
-(ecu/eeprom.py ~68 offsets, connection.py BUEIB_PAGES, protocol.py RPM/LOAD_BINS) y el
-plan por fases están en BACKLOG_ECM_DEFS.md. Prompt de análisis de arquitectura para un
-arquitecto IA en inbox/prompt_para_claude.md.
+### BL-ECM-01-RESIDUAL — RPM_BINS / LOAD_BINS hardcodeados en protocol.py
+**Priority:** 🟢 LOW — no hay riesgo de corrupción, solo cobertura incorrecta de celdas CSV en non-BUEIB
+- [ ] Reemplazar constantes RPM_BINS / LOAD_BINS (protocol.py:356-357) por valores leídos del EEPROM
+- [ ] CellTracker ya tiene set_bins() — solo falta que el CSV header también use los bins dinámicos
+- [ ] Prerequisito natural: tener una sesión real con non-BUEIB para validar
 
 ### BL-ECM-02 — Multi-bike DDFI3 support (1125CR, un Pi por moto)
-**Priority:** 🟡 MEDIA — depende de BL-ECM-01 completado
+**Priority:** 🟡 MEDIA
 **Decisión arquitectural (2026-06-20):** UN solo software integrado, capas firmware-aware.
 No dos codebases separados. El refactor XML-driven de BL-ECM-01 ya es la base correcta.
 
@@ -311,7 +308,7 @@ IAC @119/120, Load Front @7, AFV Front @128, EGO Front @130.
 **Próximo paso:** parsear rtdata.xml → generar RT_VARIABLES_DDFI3 en protocol.py.
 
 **Orden de ejecución sugerido:**
-1. Completar BL-ECM-01 (B3→B4→C) — da EEPROM read/burn multi-firmware
+1. ~~BL-ECM-01~~ — completado ✅
 2. Resolver el ADX para DDFI3 (investigación) — desbloquea live logging
 3. BL-ECM-02 propiamente: extender sessions VS + F7 para Speed-Density
 4. UI para 2nd Fuel Map y tablas MAP-sensor
@@ -1798,61 +1795,7 @@ Pendiente:
 - [ ] Corregir versión (no v2.7.156) y hacer commit + push + pull en Pi
 - [ ] Eliminar inbox/changelog_gps_fase2.md después del commit
 
-## [BL-ECM-03] — Revert EEPROM version guard
-**Prioridad:** CRÍTICA — seguridad de quema
-
-### Problema
- escribe bytes RAW de una sesión previa sin validar que la versión
-del ECU donador coincide con el ECU actualmente conectado. Si BUEIB (offset 870) se revierte
-a un ECU BUECB (offset 802), el mapa de combustible queda corrompido silenciosamente.
-
-### Solución
-1. Leer versión live del ECU:  → 
-2. Leer versión del target session:  → 
-3. Resolver ambas con  → comparar 
-4a. Si  coincide → proceder normal (mismo XML = mismos offsets)
-4b. Si mismo gen (ej. ambos DDFI-2, mismas dims 12×13) → decode con XML donador + re-encode con XML destino (opción segura)
-4c. Si distinta generación (DDFI-2 vs DDFI-3, dims distintas) → BLOQUEAR con error claro
-5. El burn normal ya es seguro (usa  con XML correcto)
-
-### Cross-version burn (feature relacionado)
-Caso: mapa de BUEIB a BUECB. Como dims coinciden (12×13), el transfer por valor ya funciona:
- → maps dict → 
-Esto es exactamente lo que hace el burn normal. Solo el revert usa bytes raw.
-
-### Archivos a modificar
-- :  líneas 132-191
-- Agregar helper  que lee 
-
-## [BL-ECM-03] — Revert EEPROM version guard
-**Prioridad:** CRITICA — seguridad de quema
-
-### Problema
-_handle_eeprom_revert escribe bytes RAW de una sesion previa sin validar que la version
-del ECU donador coincide con el ECU actualmente conectado. Si BUEIB (offset 870) se revierte
-a un ECU BUECB (offset 802), el mapa de combustible queda corrompido silenciosamente.
-
-### Solucion
-1. Leer version live del ECU: /tmp/buell/ecu_init.json -> version
-2. Leer version del target session: sessions/<id>/session_metadata.json -> version_string
-3. Resolver ambas con resolve_ecu() -> comparar dbfile
-4a. Si dbfile coincide -> proceder normal (mismo XML = mismos offsets)
-4b. Si mismo gen (ej. ambos DDFI-2, dims 12x13) -> decode con XML donador + re-encode con XML destino
-4c. Si distinta generacion (DDFI-2 vs DDFI-3, dims distintas) -> BLOQUEAR con error claro
-
-### Cross-version burn safe path
-decode(source_blob, source_version) -> maps dict -> encode_eeprom_maps(dest_blob, maps, dest_version)
-Funciona cuando rows x cols coinciden. El burn normal ya hace esto. Solo revert usa bytes raw.
-
-### Archivos a modificar
-- web/handlers/eeprom.py: _handle_eeprom_revert() lineas 132-191
-- Agregar helper _live_ecu_version(ipc_dir) que lee ecu_init.json
-- Helper: misma generacion = mismo (rows, cols) en fuel_front segun XML
-
-### Contexto: offsets por version (fuel_front)
-DDFI-2: BUEIB/B2RIB=870, BUEGB=862, BUECB=802, dims=12x13
-DDFI-1: BUEIA=744, BUEKA=760, BUEGC=788, dims=12x13
-DDFI-3: BUEOD/BUEWD/BUEYD=1816, BUE1D/BUEZD=2072, BUE2D=2328, BUE3D=2408, dims=16x20
+## BL-ECM-03 — Revert EEPROM version guard ✅ DONE (implementado, ver CHANGELOG v2.7.x)
 
 
 ### BL-XPR-01 — Dedicated XPR/Session map editor page
@@ -1875,8 +1818,7 @@ remotamente o conectando directo a la moto.
 - XPR loader (código actualmente en tuner.html — recuperar de git si se necesita)
 
 **Dependencias:**
-- BL-ECM-01 Phase C obligatorio antes de implementar burn — sin el guard por firmware
-  encode_eeprom_maps() puede corromper EEPROM en una ECU no-BUEIB
+- ~~BL-ECM-01 Phase C~~ — burn guard ya implementado (encode XML-driven + version check)
 - Definir: ¿con qué se compara el XPR cargado? ¿EEPROM en vivo del Pi? ¿Otra sesión?
   Esta pregunta debe responderse antes de diseñar la UI
 
@@ -1935,7 +1877,7 @@ Para DDFI-2 BUEIB: 4 mapas. Para DDFI-3: los que apliquen según XML.
 La página es agnóstica de firmware — renderiza lo que el backend devuelve.
 
 **Dependencias:**
-- BL-ECM-01 Phase C (burn guard) antes de habilitar BURN en producción
+- ~~BL-ECM-01 Phase C~~ — burn guard ya implementado
 - `/tuner/maps` endpoint ya funciona y devuelve formato correcto
 - `/eeprom/burn` endpoint ya existe
 - Lógica de STAGE y click-to-edit ya existe en tuner.html — reutilizar
