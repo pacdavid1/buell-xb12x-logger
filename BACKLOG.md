@@ -92,22 +92,10 @@ Esfuerzo: BAJO -- slope_reference.py ya existe, solo falta conectarlo a F7.
 
 ---
 
-### GAP 5 -- Criterio de convergencia del mapa
-
-Problema: no hay forma de saber cuando el mapa esta "terminado". El ciclo
-puede continuar indefinidamente sin saber si estas mejorando o girando en circulos.
-
-Lo que existe: medir varianza residual de dpw entre sesiones consecutivas.
-Cuando la varianza deja de reducirse entre quemas, el mapa convergio.
-
-- [ ] Calcular varianza_residual por celda entre sesion N y N-1
-- [ ] Definir metrica global: sum(varianza_residual) sobre todas las celdas activas
-- [ ] Graficar tendencia de convergencia a lo largo de versiones de mapa
-- [ ] Criterio de stop: varianza_residual < threshold durante 3 sesiones consecutivas
-- [ ] UI: indicador de "convergencia del mapa" en el Tuner
-
-Impacto: MEDIO -- saber cuando parar es tan importante como saber que cambiar.
-Esfuerzo: BAJO -- calculo simple sobre los datos que ya existen.
+### GAP 5 -- Criterio de convergencia del mapa ✅ DONE v2.7.253 (2026-06-30)
+compute_convergence() en vs_engine.py. GET /convergence?sessions=A,B,C,D.
+Residual variance = mean(dpw_eff²) por par. converged=True cuando últimos 3 pares < 0.002.
+- [ ] UI: indicador de convergencia en Tuner (pendiente, datos disponibles vía endpoint)
 
 ---
 
@@ -333,25 +321,8 @@ killed and restarted the logger mid-request. Cached pairs respond fine.
 Fix ideas: stream CSV parsing in _compare_sessions (chunked rows instead of
 full-file lists), or precompute VS cache in background after each session close.
 
-### BL-GRAF-03 — GRAF2: remove floating cursor readout, inline values in lane headers
-**Priority:** MEDIUM
-**Pages:** GRAF2 (graf2.html)
-
-**Bug:** `#cur-readout` floating panel stretches full width across the screen.
-CSS is `position:fixed; right:8px; top:70px` but renders spanning left-to-right.
-
-**Proposed fix (user decision):** Remove the floating window entirely.
-Display cursor values inline in each lane's header row — the header already has
-space for signal name + current value at cursor position. Each lane shows its own
-value; no need for a centralized panel. If the user wants to compare two signals,
-they can create a lane that holds both and read them side by side.
-
-**Implementation sketch:**
-- Delete `#cur-readout` div and its CSS block
-- On uPlot cursor move, for each lane update a `<span class="lane-cur-val">` in
-  that lane's header with the current value formatted to the signal's precision
-- When cursor leaves the chart area, clear all lane-cur-val spans
-- No cross-lane aggregation needed — each lane owns its readout
+### BL-GRAF-03 — GRAF2: remove floating cursor readout ✅ DONE v2.7.252 (2026-06-30)
+Removed #cur-readout panel (-32 lines). Cursor values shown inline in block header chips.
 
 ### BL-UX-07 — Dashboard Graf: gráficas configurables con multi-señal overlay
 **Priority:** MEDIUM
