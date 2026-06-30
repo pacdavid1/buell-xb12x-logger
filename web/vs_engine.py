@@ -174,6 +174,83 @@ def _eeprom_to_msq(eeprom, session=''):
     return '\n'.join(lines)
 
 
+CONVERGENCE_THRESHOLD = 0.002  # ~0.2% PW diff; pairs below this are considered converged
+
+
+def _pair_residual_variance(buell_dir: Path, sa: str, sb: str) -> dict:
+    """Compute residual variance of dpw_eff for one consecutive session pair.
+
+    Returns a dict with keys: session_a, session_b, residual_variance, n_cells, converged.
+    residual_variance and converged are None when fewer than 3 valid cells exist.
+    """
+    try:
+        result = _compare_sessions_cached(buell_dir, sa, sb)
+    except Exception:
+        return {"session_a": sa, "session_b": sb, "residual_variance": None, "n_cells": 0, "converged": None}
+
+    delta = result.get("delta", [])
+    values = [row["dpw_eff"] for row in delta if row.get("dpw_eff") is not None]
+    n = len(values)
+
+    if n < 3:
+        return {"session_a": sa, "session_b": sb, "residual_variance": None, "n_cells": n, "converged": None}
+
+    variance = sum(v * v for v in values) / n
+    return {
+        "session_a": sa,
+        "session_b": sb,
+        "residual_variance": round(variance, 6),
+        "n_cells": n,
+        "converged": variance < CONVERGENCE_THRESHOLD,
+    }
+
+
+def _count_trailing_converged(pairs: list) -> int:
+    """Count how many recent consecutive pairs have converged=True (from the end)."""
+    count = 0
+    for pair in reversed(pairs):
+        if pair.get("converged") is True:
+            count += 1
+        else:
+            break
+    return count
+
+
+def compute_convergence(buell_dir: str, session_ids: list) -> dict:
+    """Compute map convergence across consecutive session pairs.
+
+    Args:
+        buell_dir: Root directory of the buell project (str or Path).
+        session_ids: Ordered list of session IDs (oldest first). Minimum 2.
+
+    Returns:
+        Dict with keys: pairs, global_variance, converged, threshold, consecutive_converged.
+    """
+    buell_path = Path(buell_dir)
+    pairs = [
+        _pair_residual_variance(buell_path, session_ids[i], session_ids[i + 1])
+        for i in range(len(session_ids) - 1)
+    ]
+
+    # global_variance: mean of last min(3, n_pairs) valid residual_variances
+    recent = [p["residual_variance"] for p in pairs[-3:] if p["residual_variance"] is not None]
+    global_variance = round(sum(recent) / len(recent), 6) if recent else None
+
+    consecutive_converged = _count_trailing_converged(pairs)
+    # Overall converged: last 3 consecutive pairs all converged (or all pairs if fewer than 3)
+    n_check = min(3, len(pairs))
+    tail = pairs[-n_check:] if n_check else []
+    converged = bool(tail) and all(p.get("converged") is True for p in tail)
+
+    return {
+        "pairs": pairs,
+        "global_variance": global_variance,
+        "converged": converged,
+        "threshold": CONVERGENCE_THRESHOLD,
+        "consecutive_converged": consecutive_converged,
+    }
+
+
 def _compare_sessions_cached(buell_dir, sa, sb):
     import json as _json
     def _meta(sid):

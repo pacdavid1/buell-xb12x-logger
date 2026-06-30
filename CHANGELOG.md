@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.253] — 2026-06-30
+### Added
+- GAP 5: compute_convergence() in vs_engine.py — residual variance of dpw_eff across consecutive session pairs. GET /convergence?sessions=A,B,C,D returns per-pair variance and global convergence status. Threshold 0.002 (~0.2% PW diff); converged=True when last 3 consecutive pairs are below threshold.
+### AI
+- Claude Sonnet 4.6
+
 ## [v2.7.252] — 2026-06-30
 ### Fix
 - BL-GRAF-03: removed floating #cur-readout panel from GRAF2 (was rendering full-width due to CSS conflict); cursor values now shown inline in block header chips only.

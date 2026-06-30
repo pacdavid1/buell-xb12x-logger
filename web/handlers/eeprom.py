@@ -341,9 +341,21 @@ class EepromHandlerMixin:
         self._json({'ok': True, 'count': len(burns), 'burns': burns[::-1]})
 
     def _handle_convergence(self, path=None):
-        """GET /convergence — GAP 5 map convergence metric from burn history."""
-        from web.burn_ledger import convergence_report
-        self._json(convergence_report(self.server_instance.buell_dir))
+        """GET /convergence?sessions=A,B,C — GAP 5 residual variance convergence across session pairs."""
+        import urllib.parse
+        from web.vs_engine import compute_convergence
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        raw = qs.get('sessions', [''])[0].strip()
+        session_ids = [s.strip() for s in raw.split(',') if s.strip()]
+        if len(session_ids) < 2:
+            self._json({'error': 'sessions param requires at least 2 session IDs (comma-separated)'}, 400)
+            return
+        try:
+            result = compute_convergence(self.server_instance.buell_dir, session_ids)
+            self._json(result)
+        except Exception as e:
+            import traceback
+            self._json({'error': str(e), 'trace': traceback.format_exc()}, 500)
 
     def _handle_route_reference(self, path=None):
         """GET /route_reference — stats for the accumulated GPS altitude reference.
