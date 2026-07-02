@@ -213,6 +213,7 @@ EDGE | fase6_unified_proposal | burns_json | gated_by
 EDGE | vs_gap1_significance | fase6_unified_proposal | gated_by
 
 EDGE | ui_tuner | eeprom_bin | feeds_into
+EDGE | eeprom_bin | ui_map_editor | feeds_into
 EDGE | ui_map_editor | eeprom_bin | feeds_into
 EDGE | eeprom_bin | burns_json | computed_from
 EDGE | burns_json | vs_gap5_convergence | not_consumed_by

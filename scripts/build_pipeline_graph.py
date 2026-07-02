@@ -96,6 +96,7 @@ def parse(doc_text: str):
 # as a normal forward step, not a loop.
 FORCED_LOOP_EDGES = {
     ("ui_tuner", "eeprom_bin"),        # QUEMAR write-back closes LOG->...->QUEMAR->LOG
+    ("ui_map_editor", "eeprom_bin"),   # same pattern: reads then writes back
     ("vdyno_fase_v4", "burns_json"),   # a new proposal becomes a new burn, same pattern
 }
 
