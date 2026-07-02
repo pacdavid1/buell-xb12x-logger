@@ -122,10 +122,17 @@ Fan_Duty_Pct, and spark1-spark2 / pw2/pw1 divergence signal this regime.
 Any Sessions VS or F7 sample during thermal protection measures ECU
 self-defense, not the map. These samples are currently mixed into deltas.
 
-### Action
-1. Add exclusion filter: skip samples where fl_hot=1 or fan_on
-2. Or stratify: separate hot vs cool strata
-3. Bonus: reverse-engineer DDFI-2 undocumented hot-protection logic
+### Action (DECISION 2026-07-02: stratify, do NOT exclude — BACKLOG_VDYNO.md rule 7)
+1. ~~Add exclusion filter~~ REJECTED: on an air-cooled Buell, normal operation
+   is 160-220°C and KTemp_Fan_On is a user-editable EEPROM byte — excluding
+   "hot" samples could discard a large share of valid data and would hide a
+   map that wins specifically in the hot regime.
+2. Stratify: hot-vs-hot and cool-vs-cool comparisons; cross-stratum deltas
+   reported separately with a warning, never silently pooled or dropped.
+3. FIRST measure the flag's real effect with existing data (PW/spark step at
+   matched RPM×TPS buckets within one session, fl_hot=1 vs 0 at similar CLT)
+   — empirical analysis launched 2026-07-02, results pending.
+4. Bonus: reverse-engineer DDFI-2 undocumented hot-protection logic
 
 ---
 

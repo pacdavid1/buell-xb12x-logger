@@ -151,6 +151,24 @@ instrumento DIFERENCIAL, igual que toda la filosofía Sessions VS.
      sueltas — varios caminos de procesamiento tienden a converger al mismo
      resultado o casi; el valor está en no comprometerse con una única
      normalización/fusión antes de tener evidencia real de cuál rinde mejor.
+7. **ESTRATIFICAR, NO EXCLUIR (2026-07-02).** Nunca descartar data por estar
+   "fuera del ideal" — separar en estratos y comparar dentro de cada estrato.
+   Caso que originó la regla: el "filtro térmico" (BL-DI-06) proponía excluir
+   muestras con fl_hot=1/do_fan=1; pero en una Buell aire-enfriada la
+   operación normal es 160-220°C, el umbral del fan (KTemp_Fan_On) es un
+   byte EDITABLE de la EEPROM (no una verdad física), y un mapa podría ganar
+   precisamente en el régimen caliente — excluir borraría ese hallazgo.
+   Reglas derivadas:
+   - Antes de filtrar cualquier señal, MEDIR su efecto real con la data
+     existente (¿el flag cambia PW/spark en celdas matched, o es dogma?).
+   - hot-vs-hot y cool-vs-cool comparan; hot-vs-cool se reporta separado
+     con advertencia, nunca se mezcla silenciosamente ni se tira.
+   - La ÚNICA data que se descarta por completo es la que no contiene
+     información física (ej. EGO_Corr/AFV con el sensor desconectado:
+     constante 100.0 — un cable que no existe no es un estrato).
+   - Cálculos duales baratos se hacen y se documenta si convergen (ej.
+     gear por RPM/VSS y por VSS/RPM: matemáticamente recíprocos, pero el
+     ruido se comporta distinto cerca de VSS≈0 — verificar, no asumir).
 
 ### BL-VD-06 — Instructor de evidencia (confirmado por el usuario)
 **Priority:** HIGH — "eso estaría de lujo"

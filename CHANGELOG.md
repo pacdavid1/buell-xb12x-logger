@@ -21,6 +21,13 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.260] — 2026-07-02
+### Changed
+- BACKLOG_VDYNO.md design rule 7 added: STRATIFY, DON'T EXCLUDE. Never discard data for being "outside the ideal" — split into strata and compare within-stratum. Triggered by the thermal-filter debate: fl_hot/do_fan exclusion (BL-DI-06) would throw away potentially large amounts of valid air-cooled-Buell operating data (normal head temp 160-220°C, fan threshold is an editable EEPROM byte) and would hide a map that wins specifically in the hot regime. Only physically information-free signals get fully dropped (e.g. EGO_Corr/AFV locked at 100.0 with the sensor disconnected). Cheap dual computations (gear via RPM/VSS and VSS/RPM) get done both ways and documented.
+- BACKLOG_DATASET_INSIGHTS.md BL-DI-06 updated: exclusion option rejected, stratification chosen; empirical measurement of the flag's actual PW/spark effect (matched-bucket, within-session) launched before wiring anything.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.259] — 2026-07-02
 ### Added
 - BACKLOG.md BL-BUG-04 — confirmed /tuner/burn 404 (Map Editor burn button) filed as a proper backlog bug, HIGH priority, flagged as needing a branch (touches an EEPROM burn path) per CLAUDE.md's git branch policy.
