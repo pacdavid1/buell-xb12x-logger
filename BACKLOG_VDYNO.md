@@ -115,6 +115,29 @@ instrumento DIFERENCIAL, igual que toda la filosofía Sessions VS.
    GRIS/inconcluso. El veredicto nunca se fuerza. Evaluar con datos reales.
 5. **dv/dt ruidoso:** asumido, se resuelve cuando haya datos (candidatos:
    Savitzky-Golay, fusión VSS+GPS spd, mediana de múltiples pulls).
+6. **Múltiples caminos de procesamiento sobre el mismo raw data (2026-07-01).**
+   El raw data (CSV por ride) es el mismo sin importar cómo se procese después —
+   distintas normalizaciones, fusiones o pesos de confianza son "recetas"
+   distintas sobre los mismos ingredientes, no teorías en competencia que haya
+   que elegir de antemano. Generar varias propuestas candidatas es barato
+   (cómputo en la Pi, segundos por ride); **validar una propuesta no es
+   barato** — requiere quemar la EEPROM real y salir a andar, un experimento
+   a la vez (regla 1). Por eso: el cómputo puede explorar en paralelo, la
+   quemada nunca. Reglas:
+   - Cada propuesta candidata debe cargar el mismo rigor estadístico (piso
+     de ruido regla 4, significancia GAP1 cuando aplique) — comparar una
+     receta con estadística contra una sin ella no es válido.
+   - Caminos que se descartan durante la exploración quedan documentados
+     con la RAZÓN del descarte (no solo el resultado en el JSON) — nota de
+     una línea en esta sección o comentario `# ABANDONED: razón, fecha` en
+     el código. Un JSON de resultado dice qué se probó, no por qué se dejó
+     de desarrollar.
+   - El burn ledger ya soporta un mapa padre con múltiples hijos (log
+     append-only por hash) — no hace falta rediseñarlo para ramificar.
+   - Expectativa realista: no se trata de generar decenas de propuestas
+     sueltas — varios caminos de procesamiento tienden a converger al mismo
+     resultado o casi; el valor está en no comprometerse con una única
+     normalización/fusión antes de tener evidencia real de cuál rinde mejor.
 
 ### BL-VD-06 — Instructor de evidencia (confirmado por el usuario)
 **Priority:** HIGH — "eso estaría de lujo"

@@ -21,6 +21,16 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.255] — 2026-07-02
+### Added
+- docs/PIPELINE_DATA_FLOW.md — structured data-flow inventory (68 nodes, 102 edges) of the full tuning pipeline: raw signals -> JSON artifacts -> analysis stages -> UI pages, tagged by reliability (ACTIVE_VALID/ACTIVE_UNVALIDATED/INACTIVE_NOISE/CAPTURED_UNUSED/DESIGN_ONLY). Documents that `_merge_maps` (the only working PROPONER path today) never checks `dpw_eff_sig` (GAP1 significance), that `rider_notes` and most GRAF2 annotation types are captured but never read downstream, and that `f7.py`/`launch.py` baro-normalize PW unconditionally (reconciled against CLAUDE.md's Alpha-N doctrine via BACKLOG.md task 006 -- not a bug, but the reconciliation isn't written down in CLAUDE.md itself).
+- scripts/build_pipeline_graph.py + docs/pipeline_graph.html — standalone left-to-right layered DAG viewer generated from PIPELINE_DATA_FLOW.md, no charting library. Longest-path layering with DFS cycle-breaking (loop-back edges arced separately), barycenter row ordering to reduce line crossings, draggable nodes with localStorage-persisted positions, click-to-select with full transitive upstream/downstream highlight (BFS both directions), reliability filters.
+- .graphifyignore — excludes CHANGELOG.md (noise) and sessions/ (ride data, not code — was inflating the graphify code graph from ~2.9k to ~29k nodes) from `graphify update .`
+### Changed
+- BACKLOG_VDYNO.md — added design decision #6: multiple processing paths over the same raw data are valid to explore in parallel (cheap to compute on the Pi), but validation (burning + riding) stays serial and human-gated; abandoned paths must be documented with the reason, not just left silent.
+### AI
+- Claude Sonnet 5, Anthropic
+
 ## [v2.7.253] — 2026-06-30
 ### Added
 - GAP 5: compute_convergence() in vs_engine.py — residual variance of dpw_eff across consecutive session pairs. GET /convergence?sessions=A,B,C,D returns per-pair variance and global convergence status. Threshold 0.002 (~0.2% PW diff); converged=True when last 3 consecutive pairs are below threshold.

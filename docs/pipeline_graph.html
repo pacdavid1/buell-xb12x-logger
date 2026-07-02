@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<!-- DEV NOTE: All code, comments, and variable names must be in English. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Pipeline Data Flow — Buell Logger</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --panel: #111114; --accent: #e8420a; --fg: #d8d8dc; --muted: #7a7a80;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background: var(--bg); color: var(--fg);
+          font-family: 'Share Tech Mono', 'Consolas', monospace; overflow: hidden; }
+  #topbar { position: fixed; top:0; left:0; right:0; height:56px; background: var(--panel);
+             border-bottom: 1px solid #222; display:flex; align-items:center; gap:16px;
+             padding: 0 16px; z-index: 10; }
+  #topbar h1 { font-size: 14px; color: var(--accent); margin:0; letter-spacing:1px;
+                white-space:nowrap; }
+  #legend { display:flex; gap:10px; flex-wrap:wrap; font-size:11px; }
+  .legend-item { display:flex; align-items:center; gap:4px; cursor:pointer; opacity:1;
+                   user-select:none; padding:2px 6px; border-radius:4px; }
+  .legend-item.off { opacity:0.3; }
+  .swatch { width:10px; height:10px; border-radius:2px; display:inline-block; }
+  #edge-legend { position:fixed; top:64px; left:8px; background:var(--panel); border:1px solid #222;
+                   padding:8px 10px; font-size:10px; z-index:9; border-radius:4px; }
+  #edge-legend .row { display:flex; align-items:center; gap:6px; margin:3px 0; }
+  #edge-legend .line { width:22px; height:0; border-top-width:2px; border-top-style:solid; }
+  #canvas-wrap { position:absolute; top:56px; left:0; right:340px; bottom:0; overflow:hidden;
+                  cursor:grab; }
+  #canvas-wrap.dragging { cursor:grabbing; }
+  #sidepanel { position:fixed; top:56px; right:0; bottom:0; width:340px; background:var(--panel);
+                border-left:1px solid #222; padding:16px; overflow-y:auto; font-size:12px; }
+  #sidepanel h2 { font-size:13px; color: var(--accent); margin-top:0; word-break:break-all; }
+  #sidepanel .field { margin-bottom:10px; }
+  #sidepanel .field-label { color: var(--muted); font-size:10px; text-transform:uppercase; }
+  #sidepanel .edge-row { font-size:11px; padding:3px 4px; cursor:pointer; border-radius:3px; }
+  #sidepanel .edge-row:hover { background:#1c1c22; }
+  #sidepanel .muted { color: var(--muted); font-size:11px; }
+  .node { cursor:grab; }
+  .node text.type-label { font-size:8px; letter-spacing:1px; }
+  .node text.node-label { font-size:10px; fill: var(--fg); }
+  .node.dim { opacity: 0.12; }
+  .node.hi rect:first-of-type { stroke-width:3; }
+  .node.upstream rect:first-of-type { filter: drop-shadow(0 0 5px #4a9eff); }
+  .node.downstream rect:first-of-type { filter: drop-shadow(0 0 5px #e8420a); }
+  .edge { transition: opacity 0.15s; }
+  .edge.dim { opacity: 0.05 !important; }
+  .edge.hi { opacity: 1 !important; stroke-width: 3 !important; }
+  #hint { position:fixed; bottom:8px; left:8px; font-size:10px; color: var(--muted); z-index:10; }
+  #zoomctl { position:fixed; bottom:8px; right:352px; z-index:10; display:flex; gap:6px; }
+  #zoomctl button { background:var(--panel); color:var(--fg); border:1px solid #333;
+                      width:26px; height:26px; cursor:pointer; }
+  #zoomctl button#reset-layout { width:auto; padding:0 8px; font-size:10px; }
+</style>
+</head>
+<body>
+<div id="topbar">
+  <h1>PIPELINE DATA FLOW</h1>
+  <div id="legend"></div>
+</div>
+<div id="edge-legend"><div class="row"><span class="line" style="border-top-color:#9a9aa0;border-top-style:solid;"></span>computed_from / feeds_into — real data flow</div>
+<div class="row"><span class="line" style="border-top-color:#4a9eff;border-top-style:solid;"></span>displayed_in — reaches a UI page</div>
+<div class="row"><span class="line" style="border-top-color:#e8b923;border-top-style:dashed;"></span>gated_by — intended gate/dependency</div>
+<div class="row"><span class="line" style="border-top-color:#ff5c5c;border-top-style:dashed;"></span>not_consumed_by — documented GAP: exists, nothing reads it</div>
+<div class="row"><span class="line" style="border-top-color:#b06fe0;border-top-style:dashed;"></span>feedback loop (e.g. QUEMAR → new session → LOG)</div></div>
+<div id="canvas-wrap"><defs><marker id="arrow-9a9aa0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#9a9aa0"></path></marker><marker id="arrow-ff5c5c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ff5c5c"></path></marker><marker id="arrow-e8b923" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8b923"></path></marker><marker id="arrow-4a9eff" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4a9eff"></path></marker><marker id="arrow-b06fe0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b06fe0"></path></marker></defs>
+<svg id="graph-svg" xmlns="http://www.w3.org/2000/svg" width="4520" height="1864" viewBox="0 0 4520 1864">
+<g id="pan-group">
+<path class="edge" data-src="raw_ecu_core" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 77.0 C 310 77.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_core --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_fuel" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 161.0 C 310 161.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_fuel --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_spark" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 245.0 C 310 245.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_spark --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_ego_afv" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 1001.0 C 310 1001.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_ego_afv --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_enrich" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 329.0 C 310 329.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_enrich --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_temp" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 1337.0 C 310 1337.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_temp --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_batt" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 413.0 C 310 413.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_batt --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_o2adc" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 497.0 C 310 497.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_o2adc --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_flags" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 1421.0 C 310 1421.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_flags --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_diag" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 581.0 C 310 581.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_diag --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_dirty_bytes" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 665.0 C 310 665.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_dirty_bytes --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_gps" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 1169.0 C 310 1169.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_gps --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_env_baro" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 1589.0 C 310 1589.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_env_baro --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_env_humidity" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 749.0 C 310 749.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_env_humidity --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_sys_health" data-dst="ride_csv" data-label="computed_from" data-back="0" d="M 270 833.0 C 310 833.0, 290 77.0, 330 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_sys_health --[computed_from]--&gt; ride_csv</title></path>
+<path class="edge" data-src="ride_csv" data-dst="cell_tracker" data-label="feeds_into" data-back="0" d="M 550 77.0 C 590 77.0, 570 161.0, 610 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[feeds_into]--&gt; cell_tracker</title></path>
+<path class="edge" data-src="cell_tracker" data-dst="ride_summary_json" data-label="computed_from" data-back="0" d="M 830 161.0 C 870 161.0, 850 77.0, 890 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>cell_tracker --[computed_from]--&gt; ride_summary_json</title></path>
+<path class="edge" data-src="ride_summary_json" data-dst="tuning_report_json" data-label="feeds_into" data-back="0" d="M 1110 77.0 C 1150 77.0, 1130 245.0, 1170 245.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_summary_json --[feeds_into]--&gt; tuning_report_json</title></path>
+<path class="edge" data-src="raw_ecu_ego_afv" data-dst="tuning_report_json" data-label="feeds_into" data-back="0" d="M 270 1001.0 C 720.0 1001.0, 720.0 245.0, 1170 245.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_ego_afv --[feeds_into]--&gt; tuning_report_json</title></path>
+<path class="edge" data-src="tuning_report_json" data-dst="suggested_msq" data-label="computed_from" data-back="0" d="M 1390 245.0 C 2680.0 245.0, 2680.0 77.0, 3970 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>tuning_report_json --[computed_from]--&gt; suggested_msq</title></path>
+<path class="edge" data-src="eeprom_decoded_json" data-dst="suggested_msq" data-label="feeds_into" data-back="0" d="M 3910 77.0 C 3950 77.0, 3930 77.0, 3970 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>eeprom_decoded_json --[feeds_into]--&gt; suggested_msq</title></path>
+<path class="edge" data-src="ride_summary_json" data-dst="objectives_json" data-label="feeds_into" data-back="0" d="M 1110 77.0 C 1150 77.0, 1130 77.0, 1170 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_summary_json --[feeds_into]--&gt; objectives_json</title></path>
+<path class="edge" data-src="ride_csv" data-dst="fuel_consumption_cache" data-label="computed_from" data-back="0" d="M 550 77.0 C 590 77.0, 570 497.0, 610 497.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[computed_from]--&gt; fuel_consumption_cache</title></path>
+<path class="edge" data-src="ride_csv" data-dst="ride_errorlog_json" data-label="feeds_into" data-back="0" d="M 550 77.0 C 590 77.0, 570 329.0, 610 329.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[feeds_into]--&gt; ride_errorlog_json</title></path>
+<path class="edge" data-src="ride_csv" data-dst="f7_event_detect" data-label="feeds_into" data-back="0" d="M 550 77.0 C 860.0 77.0, 860.0 329.0, 1170 329.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[feeds_into]--&gt; f7_event_detect</title></path>
+<path class="edge" data-src="raw_gps" data-dst="f7_event_detect" data-label="feeds_into" data-back="0" d="M 270 1169.0 C 720.0 1169.0, 720.0 329.0, 1170 329.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_gps --[feeds_into]--&gt; f7_event_detect</title></path>
+<path class="edge" data-src="raw_env_baro" data-dst="f7_event_detect" data-label="feeds_into" data-back="0" d="M 270 1589.0 C 720.0 1589.0, 720.0 329.0, 1170 329.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_env_baro --[feeds_into]--&gt; f7_event_detect</title></path>
+<path class="edge" data-src="f7_event_detect" data-dst="ride_f7events_json" data-label="computed_from" data-back="0" d="M 1390 329.0 C 1430 329.0, 1410 77.0, 1450 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>f7_event_detect --[computed_from]--&gt; ride_f7events_json</title></path>
+<path class="edge" data-src="ride_f7events_json" data-dst="f7_dtw_cluster" data-label="feeds_into" data-back="0" d="M 1670 77.0 C 1710 77.0, 1690 77.0, 1730 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_f7events_json --[feeds_into]--&gt; f7_dtw_cluster</title></path>
+<path class="edge" data-src="ride_annotations_json" data-dst="f7_pilot_marked" data-label="feeds_into" data-back="0" d="M 270 1253.0 C 310 1253.0, 290 161.0, 330 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_annotations_json --[feeds_into]--&gt; f7_pilot_marked</title></path>
+<path class="edge" data-src="f7_pilot_marked" data-dst="session_f7clusters_json" data-label="feeds_into" data-back="0" d="M 550 161.0 C 1280.0 161.0, 1280.0 77.0, 2010 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>f7_pilot_marked --[feeds_into]--&gt; session_f7clusters_json</title></path>
+<path class="edge" data-src="f7_dtw_cluster" data-dst="session_f7clusters_json" data-label="computed_from" data-back="0" d="M 1950 77.0 C 1990 77.0, 1970 77.0, 2010 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>f7_dtw_cluster --[computed_from]--&gt; session_f7clusters_json</title></path>
+<path class="edge" data-src="session_f7clusters_json" data-dst="f7_cross_session_match" data-label="feeds_into" data-back="0" d="M 2230 77.0 C 2270 77.0, 2250 77.0, 2290 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>session_f7clusters_json --[feeds_into]--&gt; f7_cross_session_match</title></path>
+<path class="edge" data-src="f7_cross_session_match" data-dst="ui_session_events" data-label="displayed_in" data-back="0" d="M 2510 77.0 C 2550 77.0, 2530 77.0, 2570 77.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>f7_cross_session_match --[displayed_in]--&gt; ui_session_events</title></path>
+<path class="edge" data-src="ride_csv" data-dst="vs_baro_normalize" data-label="feeds_into" data-back="0" d="M 550 77.0 C 590 77.0, 570 581.0, 610 581.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[feeds_into]--&gt; vs_baro_normalize</title></path>
+<path class="edge" data-src="raw_env_baro" data-dst="vs_baro_normalize" data-label="feeds_into" data-back="0" d="M 270 1589.0 C 440.0 1589.0, 440.0 581.0, 610 581.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_env_baro --[feeds_into]--&gt; vs_baro_normalize</title></path>
+<path class="edge" data-src="vs_baro_normalize" data-dst="vs_classify" data-label="feeds_into" data-back="0" d="M 830 581.0 C 1000.0 581.0, 1000.0 413.0, 1170 413.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>vs_baro_normalize --[feeds_into]--&gt; vs_classify</title></path>
+<path class="edge" data-src="raw_ecu_flags" data-dst="vs_classify" data-label="feeds_into" data-back="0" d="M 270 1421.0 C 720.0 1421.0, 720.0 413.0, 1170 413.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_flags --[feeds_into]--&gt; vs_classify</title></path>
+<path class="edge" data-src="raw_ecu_temp" data-dst="vs_classify" data-label="feeds_into" data-back="0" d="M 270 1337.0 C 720.0 1337.0, 720.0 413.0, 1170 413.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_ecu_temp --[feeds_into]--&gt; vs_classify</title></path>
+<path class="edge" data-src="vs_classify" data-dst="vs_cell_index" data-label="feeds_into" data-back="0" d="M 1390 413.0 C 1430 413.0, 1410 161.0, 1450 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>vs_classify --[feeds_into]--&gt; vs_cell_index</title></path>
+<path class="edge" data-src="vs_cell_index" data-dst="vs_gap1_significance" data-label="feeds_into" data-back="0" d="M 1670 161.0 C 1710 161.0, 1690 161.0, 1730 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>vs_cell_index --[feeds_into]--&gt; vs_gap1_significance</title></path>
+<path class="edge" data-src="vs_gap1_significance" data-dst="sessions_vs_cache" data-label="computed_from" data-back="0" d="M 1950 161.0 C 2260.0 161.0, 2260.0 161.0, 2570 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>vs_gap1_significance --[computed_from]--&gt; sessions_vs_cache</title></path>
+<path class="edge" data-src="vs_cell_index" data-dst="sessions_vs_cache" data-label="computed_from" data-back="0" d="M 1670 161.0 C 2120.0 161.0, 2120.0 161.0, 2570 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>vs_cell_index --[computed_from]--&gt; sessions_vs_cache</title></path>
+<path class="edge" data-src="launch_detect" data-dst="sessions_vs_cache" data-label="feeds_into" data-back="0" d="M 1390 161.0 C 1980.0 161.0, 1980.0 161.0, 2570 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>launch_detect --[feeds_into]--&gt; sessions_vs_cache</title></path>
+<path class="edge" data-src="f7_cross_session_match" data-dst="sessions_vs_cache" data-label="feeds_into" data-back="0" d="M 2510 77.0 C 2550 77.0, 2530 161.0, 2570 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>f7_cross_session_match --[feeds_into]--&gt; sessions_vs_cache</title></path>
+<path class="edge" data-src="sessions_vs_cache" data-dst="ui_sessions_vs" data-label="displayed_in" data-back="0" d="M 2790 161.0 C 2830 161.0, 2810 161.0, 2850 161.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>sessions_vs_cache --[displayed_in]--&gt; ui_sessions_vs</title></path>
+<path class="edge" data-src="sessions_vs_cache" data-dst="vs_gap5_convergence" data-label="feeds_into" data-back="0" d="M 2790 161.0 C 2830 161.0, 2810 77.0, 2850 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>sessions_vs_cache --[feeds_into]--&gt; vs_gap5_convergence</title></path>
+<path class="edge" data-src="vs_gap5_convergence" data-dst="ui_tuner" data-label="displayed_in" data-back="0" d="M 3070 77.0 C 3110 77.0, 3090 77.0, 3130 77.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>vs_gap5_convergence --[displayed_in]--&gt; ui_tuner</title></path>
+<path class="edge" data-src="route_reference_json" data-dst="ui_gps_analysis" data-label="displayed_in" data-back="0" d="M 830 413.0 C 870 413.0, 850 329.0, 890 329.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>route_reference_json --[displayed_in]--&gt; ui_gps_analysis</title></path>
+<path class="edge" data-src="ride_csv" data-dst="slope_reference_json" data-label="computed_from" data-back="0" d="M 550 77.0 C 590 77.0, 570 77.0, 610 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[computed_from]--&gt; slope_reference_json</title></path>
+<path class="edge" data-src="ride_csv" data-dst="route_reference_json" data-label="computed_from" data-back="0" d="M 550 77.0 C 590 77.0, 570 413.0, 610 413.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[computed_from]--&gt; route_reference_json</title></path>
+<path class="edge" data-src="ride_csv" data-dst="launch_detect" data-label="feeds_into" data-back="0" d="M 550 77.0 C 860.0 77.0, 860.0 161.0, 1170 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[feeds_into]--&gt; launch_detect</title></path>
+<path class="edge" data-src="launch_detect" data-dst="launch_cluster" data-label="feeds_into" data-back="0" d="M 1390 161.0 C 1430 161.0, 1410 245.0, 1450 245.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>launch_detect --[feeds_into]--&gt; launch_cluster</title></path>
+<path class="edge" data-src="launch_cluster" data-dst="launch_cross_match" data-label="feeds_into" data-back="0" d="M 1670 245.0 C 1710 245.0, 1690 245.0, 1730 245.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>launch_cluster --[feeds_into]--&gt; launch_cross_match</title></path>
+<path class="edge" data-src="launch_cross_match" data-dst="ui_sessions_launch" data-label="displayed_in" data-back="0" d="M 1950 245.0 C 1990 245.0, 1970 329.0, 2010 329.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>launch_cross_match --[displayed_in]--&gt; ui_sessions_launch</title></path>
+<path class="edge" data-src="launch_cluster" data-dst="vdyno_physics" data-label="feeds_into" data-back="0" d="M 1670 245.0 C 1710 245.0, 1690 329.0, 1730 329.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>launch_cluster --[feeds_into]--&gt; vdyno_physics</title></path>
+<path class="edge" data-src="ride_csv" data-dst="vdyno_physics" data-label="feeds_into" data-back="0" d="M 550 77.0 C 1140.0 77.0, 1140.0 329.0, 1730 329.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[feeds_into]--&gt; vdyno_physics</title></path>
+<path class="edge" data-src="raw_env_baro" data-dst="vdyno_physics" data-label="feeds_into" data-back="0" d="M 270 1589.0 C 1000.0 1589.0, 1000.0 329.0, 1730 329.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>raw_env_baro --[feeds_into]--&gt; vdyno_physics</title></path>
+<path class="edge" data-src="vdyno_physics" data-dst="ride_vdyno_json" data-label="computed_from" data-back="0" d="M 1950 329.0 C 1990 329.0, 1970 245.0, 2010 245.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>vdyno_physics --[computed_from]--&gt; ride_vdyno_json</title></path>
+<path class="edge" data-src="vdyno_physics" data-dst="ride_vdyno_rows_json" data-label="computed_from" data-back="0" d="M 1950 329.0 C 1990 329.0, 1970 413.0, 2010 413.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>vdyno_physics --[computed_from]--&gt; ride_vdyno_rows_json</title></path>
+<path class="edge" data-src="ride_vdyno_json" data-dst="vdyno_compare" data-label="feeds_into" data-back="0" d="M 2230 245.0 C 2270 245.0, 2250 161.0, 2290 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_vdyno_json --[feeds_into]--&gt; vdyno_compare</title></path>
+<path class="edge" data-src="vdyno_compare" data-dst="ui_sessions_vs" data-label="displayed_in" data-back="0" d="M 2510 161.0 C 2680.0 161.0, 2680.0 161.0, 2850 161.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>vdyno_compare --[displayed_in]--&gt; ui_sessions_vs</title></path>
+<path class="edge" data-src="vdyno_compare" data-dst="ui_launch_power" data-label="displayed_in" data-back="0" d="M 2510 161.0 C 2550 161.0, 2530 245.0, 2570 245.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>vdyno_compare --[displayed_in]--&gt; ui_launch_power</title></path>
+<path class="edge" data-src="ride_vdyno_rows_json" data-dst="ui_dashboard" data-label="displayed_in" data-back="0" d="M 2230 413.0 C 2270 413.0, 2250 245.0, 2290 245.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>ride_vdyno_rows_json --[displayed_in]--&gt; ui_dashboard</title></path>
+<path class="edge" data-src="ride_csv" data-dst="gear_learner_fit" data-label="feeds_into" data-back="0" d="M 550 77.0 C 590 77.0, 570 245.0, 610 245.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_csv --[feeds_into]--&gt; gear_learner_fit</title></path>
+<path class="edge" data-src="gear_learner_fit" data-dst="gear_profile_json" data-label="computed_from" data-back="0" d="M 830 245.0 C 870 245.0, 850 161.0, 890 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>gear_learner_fit --[computed_from]--&gt; gear_profile_json</title></path>
+<path class="edge" data-src="gear_profile_json" data-dst="f7_event_detect" data-label="feeds_into" data-back="0" d="M 1110 161.0 C 1150 161.0, 1130 329.0, 1170 329.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>gear_profile_json --[feeds_into]--&gt; f7_event_detect</title></path>
+<path class="edge" data-src="gear_profile_json" data-dst="vs_classify" data-label="feeds_into" data-back="0" d="M 1110 161.0 C 1150 161.0, 1130 413.0, 1170 413.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>gear_profile_json --[feeds_into]--&gt; vs_classify</title></path>
+<path class="edge" data-src="gear_profile_json" data-dst="launch_detect" data-label="feeds_into" data-back="0" d="M 1110 161.0 C 1150 161.0, 1130 161.0, 1170 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>gear_profile_json --[feeds_into]--&gt; launch_detect</title></path>
+<path class="edge" data-src="eeprom_bin" data-dst="eeprom_decoded_json" data-label="computed_from" data-back="0" d="M 3630 77.0 C 3670 77.0, 3650 77.0, 3690 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>eeprom_bin --[computed_from]--&gt; eeprom_decoded_json</title></path>
+<path class="edge" data-src="eeprom_bin" data-dst="vs_merge_maps" data-label="feeds_into" data-back="0" d="M 3630 77.0 C 3670 77.0, 3650 161.0, 3690 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>eeprom_bin --[feeds_into]--&gt; vs_merge_maps</title></path>
+<path class="edge" data-src="sessions_vs_cache" data-dst="vs_merge_maps" data-label="feeds_into" data-back="0" d="M 2790 161.0 C 3240.0 161.0, 3240.0 161.0, 3690 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>sessions_vs_cache --[feeds_into]--&gt; vs_merge_maps</title></path>
+<path class="edge" data-src="vs_merge_maps" data-dst="ui_tuner" data-label="displayed_in" data-back="1" d="M 3910 161.0 C 3950 221.0, 3090 137.0, 3130 77.0" stroke="#b06fe0" stroke-width="2.2" stroke-dasharray="9,5" fill="none" opacity="0.6" marker-end="url(#arrow-b06fe0)"><title>vs_merge_maps --[displayed_in]--&gt; ui_tuner</title></path>
+<path class="edge" data-src="fase6_unified_proposal" data-dst="burns_json" data-label="gated_by" data-back="0" d="M 2230 161.0 C 2960.0 161.0, 2960.0 245.0, 3690 245.0" stroke="#e8b923" stroke-width="2.2" stroke-dasharray="7,4" fill="none" opacity="0.6" marker-end="url(#arrow-e8b923)"><title>fase6_unified_proposal --[gated_by]--&gt; burns_json</title></path>
+<path class="edge" data-src="vs_gap1_significance" data-dst="fase6_unified_proposal" data-label="gated_by" data-back="0" d="M 1950 161.0 C 1990 161.0, 1970 161.0, 2010 161.0" stroke="#e8b923" stroke-width="2.2" stroke-dasharray="7,4" fill="none" opacity="0.6" marker-end="url(#arrow-e8b923)"><title>vs_gap1_significance --[gated_by]--&gt; fase6_unified_proposal</title></path>
+<path class="edge" data-src="ui_tuner" data-dst="eeprom_bin" data-label="feeds_into" data-back="0" d="M 3350 77.0 C 3390 77.0, 3370 77.0, 3410 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ui_tuner --[feeds_into]--&gt; eeprom_bin</title></path>
+<path class="edge" data-src="ui_map_editor" data-dst="eeprom_bin" data-label="feeds_into" data-back="0" d="M 270 917.0 C 1840.0 917.0, 1840.0 77.0, 3410 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ui_map_editor --[feeds_into]--&gt; eeprom_bin</title></path>
+<path class="edge" data-src="eeprom_bin" data-dst="burns_json" data-label="computed_from" data-back="0" d="M 3630 77.0 C 3670 77.0, 3650 245.0, 3690 245.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>eeprom_bin --[computed_from]--&gt; burns_json</title></path>
+<path class="edge" data-src="burns_json" data-dst="vdyno_fase_v4" data-label="feeds_into" data-back="0" d="M 3910 245.0 C 3950 245.0, 3930 161.0, 3970 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>burns_json --[feeds_into]--&gt; vdyno_fase_v4</title></path>
+<path class="edge" data-src="ride_vdyno_json" data-dst="vdyno_fase_v4" data-label="feeds_into" data-back="0" d="M 2230 245.0 C 3100.0 245.0, 3100.0 161.0, 3970 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>ride_vdyno_json --[feeds_into]--&gt; vdyno_fase_v4</title></path>
+<path class="edge" data-src="sessions_vs_cache" data-dst="vdyno_fase_v4" data-label="feeds_into" data-back="0" d="M 2790 161.0 C 3380.0 161.0, 3380.0 161.0, 3970 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>sessions_vs_cache --[feeds_into]--&gt; vdyno_fase_v4</title></path>
+<path class="edge" data-src="vdyno_fase_v4" data-dst="burns_json" data-label="gated_by" data-back="1" d="M 4190 161.0 C 4230 221.0, 3650 305.0, 3690 245.0" stroke="#b06fe0" stroke-width="2.2" stroke-dasharray="9,5" fill="none" opacity="0.6" marker-end="url(#arrow-b06fe0)"><title>vdyno_fase_v4 --[gated_by]--&gt; burns_json</title></path>
+<path class="edge" data-src="ride_annotations_json" data-dst="ui_graf2" data-label="displayed_in" data-back="0" d="M 270 1253.0 C 310 1253.0, 290 245.0, 330 245.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>ride_annotations_json --[displayed_in]--&gt; ui_graf2</title></path>
+<path class="edge" data-src="live_json" data-dst="ui_dashboard" data-label="displayed_in" data-back="0" d="M 270 1505.0 C 1280.0 1505.0, 1280.0 245.0, 2290 245.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>live_json --[displayed_in]--&gt; ui_dashboard</title></path>
+<path class="edge" data-src="ride_errorlog_json" data-dst="ui_errorlog_viz" data-label="displayed_in" data-back="0" d="M 830 329.0 C 870 329.0, 850 245.0, 890 245.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>ride_errorlog_json --[displayed_in]--&gt; ui_errorlog_viz</title></path>
+<path class="edge" data-src="fuel_consumption_cache" data-dst="ui_fuel" data-label="displayed_in" data-back="0" d="M 830 497.0 C 870 497.0, 850 413.0, 890 413.0" stroke="#4a9eff" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-4a9eff)"><title>fuel_consumption_cache --[displayed_in]--&gt; ui_fuel</title></path>
+<path class="edge" data-src="session_metadata_json" data-dst="ui_tuner" data-label="feeds_into" data-back="0" d="M 270 1085.0 C 1700.0 1085.0, 1700.0 77.0, 3130 77.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>session_metadata_json --[feeds_into]--&gt; ui_tuner</title></path>
+<path class="edge" data-src="session_metadata_json" data-dst="ui_sessions_vs" data-label="feeds_into" data-back="0" d="M 270 1085.0 C 1560.0 1085.0, 1560.0 161.0, 2850 161.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>session_metadata_json --[feeds_into]--&gt; ui_sessions_vs</title></path>
+<path class="edge" data-src="session_metadata_json" data-dst="ui_dashboard" data-label="feeds_into" data-back="0" d="M 270 1085.0 C 1280.0 1085.0, 1280.0 245.0, 2290 245.0" stroke="#9a9aa0" stroke-width="1.6" fill="none" opacity="0.6" marker-end="url(#arrow-9a9aa0)"><title>session_metadata_json --[feeds_into]--&gt; ui_dashboard</title></path>
+<path class="edge" data-src="raw_imu" data-dst="ride_csv" data-label="not_consumed_by" data-back="0" d="M 270 1673.0 C 310 1673.0, 290 77.0, 330 77.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>raw_imu --[not_consumed_by]--&gt; ride_csv</title></path>
+<path class="edge" data-src="raw_ecu_batt" data-dst="vs_cell_index" data-label="not_consumed_by" data-back="0" d="M 270 413.0 C 860.0 413.0, 860.0 161.0, 1450 161.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>raw_ecu_batt --[not_consumed_by]--&gt; vs_cell_index</title></path>
+<path class="edge" data-src="slope_reference_json" data-dst="f7_event_detect" data-label="not_consumed_by" data-back="0" d="M 830 77.0 C 1000.0 77.0, 1000.0 329.0, 1170 329.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>slope_reference_json --[not_consumed_by]--&gt; f7_event_detect</title></path>
+<path class="edge" data-src="vs_gap1_significance" data-dst="vs_merge_maps" data-label="not_consumed_by" data-back="0" d="M 1950 161.0 C 2820.0 161.0, 2820.0 161.0, 3690 161.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>vs_gap1_significance --[not_consumed_by]--&gt; vs_merge_maps</title></path>
+<path class="edge" data-src="vs_merge_maps" data-dst="fase6_unified_proposal" data-label="not_consumed_by" data-back="0" d="M 3910 161.0 C 3950 161.0, 1970 161.0, 2010 161.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>vs_merge_maps --[not_consumed_by]--&gt; fase6_unified_proposal</title></path>
+<path class="edge" data-src="session_f7clusters_json" data-dst="fase6_unified_proposal" data-label="not_consumed_by" data-back="0" d="M 2230 77.0 C 2270 77.0, 1970 161.0, 2010 161.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>session_f7clusters_json --[not_consumed_by]--&gt; fase6_unified_proposal</title></path>
+<path class="edge" data-src="vs_gap5_convergence" data-dst="fase6_unified_proposal" data-label="not_consumed_by" data-back="0" d="M 3070 77.0 C 3110 77.0, 1970 161.0, 2010 161.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>vs_gap5_convergence --[not_consumed_by]--&gt; fase6_unified_proposal</title></path>
+<path class="edge" data-src="burns_json" data-dst="vs_gap5_convergence" data-label="not_consumed_by" data-back="0" d="M 3910 245.0 C 3950 245.0, 2810 77.0, 2850 77.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>burns_json --[not_consumed_by]--&gt; vs_gap5_convergence</title></path>
+<path class="edge" data-src="rider_notes_field" data-dst="fase6_unified_proposal" data-label="not_consumed_by" data-back="0" d="M 270 1757.0 C 1140.0 1757.0, 1140.0 161.0, 2010 161.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>rider_notes_field --[not_consumed_by]--&gt; fase6_unified_proposal</title></path>
+<path class="edge" data-src="rider_notes_field" data-dst="ui_dashboard" data-label="not_consumed_by" data-back="0" d="M 270 1757.0 C 1280.0 1757.0, 1280.0 245.0, 2290 245.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>rider_notes_field --[not_consumed_by]--&gt; ui_dashboard</title></path>
+<path class="edge" data-src="ride_annotations_json" data-dst="vs_cell_index" data-label="not_consumed_by" data-back="0" d="M 270 1253.0 C 860.0 1253.0, 860.0 161.0, 1450 161.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>ride_annotations_json --[not_consumed_by]--&gt; vs_cell_index</title></path>
+<path class="edge" data-src="ride_annotations_json" data-dst="vdyno_physics" data-label="not_consumed_by" data-back="0" d="M 270 1253.0 C 1000.0 1253.0, 1000.0 329.0, 1730 329.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>ride_annotations_json --[not_consumed_by]--&gt; vdyno_physics</title></path>
+<path class="edge" data-src="raw_imu" data-dst="ui_gps_analysis" data-label="not_consumed_by" data-back="0" d="M 270 1673.0 C 580.0 1673.0, 580.0 329.0, 890 329.0" stroke="#ff5c5c" stroke-width="2.2" stroke-dasharray="3,3" fill="none" opacity="0.6" marker-end="url(#arrow-ff5c5c)"><title>raw_imu --[not_consumed_by]--&gt; ui_gps_analysis</title></path>
+<g class="node" data-id="raw_ecu_core" data-x="50" data-y="50" data-reliability="ACTIVE_VALID" data-note="Alpha-N inputs: TPS+RPM drive fueling; VS_KPH from calibrated VSS counts; Gear from GearFilter (statistical, 3s window)" data-fileref="ecu/protocol.py:CSV_COLUMNS (RPM,Load,TPD,TPS_10Bit,TPS_pct,VS_KPH,Gear)" data-type="raw_signal" transform="translate(50,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">RAW</text><text x="8" y="34" class="node-label">raw_ecu_core</text><title>raw_ecu_core [ACTIVE_VALID]
+ecu/protocol.py:CSV_COLUMNS (RPM,Load,TPD,TPS_10Bit,TPS_pct,VS_KPH,Gear)
+Alpha-N inputs: TPS+RPM drive fueling; VS_KPH from calibrated VSS counts; Gear from GearFilter (statistical, 3s window)</title></g>
+<g class="node" data-id="raw_ecu_fuel" data-x="50" data-y="134" data-reliability="ACTIVE_VALID" data-note="Injector pulse-width — &quot;what the injector actually did&quot;; primary physics signal for F7 and Sessions VS" data-fileref="ecu/protocol.py:CSV_COLUMNS (pw1,pw2,veCurr1_RAW,veCurr2_RAW)" data-type="raw_signal" transform="translate(50,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">RAW</text><text x="8" y="34" class="node-label">raw_ecu_fuel</text><title>raw_ecu_fuel [ACTIVE_VALID]
+ecu/protocol.py:CSV_COLUMNS (pw1,pw2,veCurr1_RAW,veCurr2_RAW)
+Injector pulse-width — &quot;what the injector actually did&quot;; primary physics signal for F7 and Sessions VS</title></g>
+<g class="node" data-id="raw_ecu_spark" data-x="50" data-y="218" data-reliability="ACTIVE_VALID" data-note="Read/logged and diffed (dspk1/dspk2) in Sessions VS, not yet fed into any spark-tuning stage (no spark FASE 6 equivalent exists)" data-fileref="ecu/protocol.py:CSV_COLUMNS (spark1,spark2)" data-type="raw_signal" transform="translate(50,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">RAW</text><text x="8" y="34" class="node-label">raw_ecu_spark</text><title>raw_ecu_spark [ACTIVE_VALID]
+ecu/protocol.py:CSV_COLUMNS (spark1,spark2)
+Read/logged and diffed (dspk1/dspk2) in Sessions VS, not yet fed into any spark-tuning stage (no spark FASE 6 equivalent exists)</title></g>
+<g class="node" data-id="raw_ecu_ego_afv" data-x="50" data-y="974" data-reliability="INACTIVE_NOISE" data-note="Locked at 100.0 always — narrowband EGO physically disconnected, OL mode. Rule: no feature may depend on these until WB sensor installed" data-fileref="ecu/protocol.py:CSV_COLUMNS (EGO_Corr,AFV)" data-type="raw_signal" transform="translate(50,974)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#6b6b70" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#6b6b70" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#6b6b70">RAW</text><text x="8" y="34" class="node-label">raw_ecu_ego_afv</text><title>raw_ecu_ego_afv [INACTIVE_NOISE]
+ecu/protocol.py:CSV_COLUMNS (EGO_Corr,AFV)
+Locked at 100.0 always — narrowband EGO physically disconnected, OL mode. Rule: no feature may depend on these until WB sensor installed</title></g>
+<g class="node" data-id="raw_ecu_enrich" data-x="50" data-y="302" data-reliability="ACTIVE_VALID" data-note="ECU-generated (not O2-derived); WUE/AE used as CellTracker validity filters" data-fileref="ecu/protocol.py:CSV_COLUMNS (WUE,Accel_Corr,Decel_Corr,WOT_Corr,Idle_Corr,OL_Corr)" data-type="raw_signal" transform="translate(50,302)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">RAW</text><text x="8" y="34" class="node-label">raw_ecu_enrich</text><title>raw_ecu_enrich [ACTIVE_VALID]
+ecu/protocol.py:CSV_COLUMNS (WUE,Accel_Corr,Decel_Corr,WOT_Corr,Idle_Corr,OL_Corr)
+ECU-generated (not O2-derived); WUE/AE used as CellTracker validity filters</title></g>
+<g class="node" data-id="raw_ecu_temp" data-x="50" data-y="1310" data-reliability="ACTIVE_VALID" data-note="CLT gates tuning validity (&gt;=70C) and classify() flavor (BITTER if &lt;170F); MAT logged, only descriptive today" data-fileref="ecu/protocol.py:CSV_COLUMNS (CLT,MAT)" data-type="raw_signal" transform="translate(50,1310)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">RAW</text><text x="8" y="34" class="node-label">raw_ecu_temp</text><title>raw_ecu_temp [ACTIVE_VALID]
+ecu/protocol.py:CSV_COLUMNS (CLT,MAT)
+CLT gates tuning validity (&gt;=70C) and classify() flavor (BITTER if &lt;170F); MAT logged, only descriptive today</title></g>
+<g class="node" data-id="raw_ecu_batt" data-x="50" data-y="386" data-reliability="CAPTURED_UNUSED" data-note="Logged every sample; used only as RideErrorLog context. BL-DI-01 (BACKLOG_DATASET_INSIGHTS): injector dead-time varies 0.1-0.2ms/V with Batt_V — same magnitude as dpw deltas Sessions VS treats as map differences. Not yet used as a cell-matching confounder correction" data-fileref="ecu/protocol.py:CSV_COLUMNS (Batt_V)" data-type="raw_signal" transform="translate(50,386)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#4a9eff" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#4a9eff" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#4a9eff">RAW</text><text x="8" y="34" class="node-label">raw_ecu_batt</text><title>raw_ecu_batt [CAPTURED_UNUSED]
+ecu/protocol.py:CSV_COLUMNS (Batt_V)
+Logged every sample; used only as RideErrorLog context. BL-DI-01 (BACKLOG_DATASET_INSIGHTS): injector dead-time varies 0.1-0.2ms/V with Batt_V — same magnitude as dpw deltas Sessions VS treats as map differences. Not yet used as a cell-matching confounder correction</title></g>
+<g class="node" data-id="raw_ecu_o2adc" data-x="50" data-y="470" data-reliability="CAPTURED_UNUSED" data-note="Raw ADC logged and aggregated (o2_adc_avg) in tuning_report cells, but tuning_report itself is INACTIVE_NOISE downstream" data-fileref="ecu/protocol.py:CSV_COLUMNS (O2_ADC)" data-type="raw_signal" transform="translate(50,470)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#4a9eff" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#4a9eff" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#4a9eff">RAW</text><text x="8" y="34" class="node-label">raw_ecu_o2adc</text><title>raw_ecu_o2adc [CAPTURED_UNUSED]
+ecu/protocol.py:CSV_COLUMNS (O2_ADC)
+Raw ADC logged and aggregated (o2_adc_avg) in tuning_report cells, but tuning_report itself is INACTIVE_NOISE downstream</title></g>
+<g class="node" data-id="raw_ecu_flags" data-x="50" data-y="1394" data-reliability="ACTIVE_VALID" data-note="fl_wot/fl_decel/fl_fuel_cut/fl_hot gate CellTracker validity, F7 event trimming, VDYNO segment extraction, launch detection" data-fileref="ecu/protocol.py:decode_rt_packet (fl_*, do_*, di_* bit flags)" data-type="raw_signal" transform="translate(50,1394)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">RAW</text><text x="8" y="34" class="node-label">raw_ecu_flags</text><title>raw_ecu_flags [ACTIVE_VALID]
+ecu/protocol.py:decode_rt_packet (fl_*, do_*, di_* bit flags)
+fl_wot/fl_decel/fl_fuel_cut/fl_hot gate CellTracker validity, F7 event trimming, VDYNO segment extraction, launch detection</title></g>
+<g class="node" data-id="raw_ecu_diag" data-x="50" data-y="554" data-reliability="CAPTURED_UNUSED" data-note="Diagnostic counters logged, no downstream consumer; IDEAS.md IDEA-005 proposes fault-mining, not implemented" data-fileref="ecu/protocol.py:CSV_COLUMNS (CDiag0-4,HDiag0-4)" data-type="raw_signal" transform="translate(50,554)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#4a9eff" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#4a9eff" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#4a9eff">RAW</text><text x="8" y="34" class="node-label">raw_ecu_diag</text><title>raw_ecu_diag [CAPTURED_UNUSED]
+ecu/protocol.py:CSV_COLUMNS (CDiag0-4,HDiag0-4)
+Diagnostic counters logged, no downstream consumer; IDEAS.md IDEA-005 proposes fault-mining, not implemented</title></g>
+<g class="node" data-id="raw_ecu_dirty_bytes" data-x="50" data-y="638" data-reliability="CAPTURED_UNUSED" data-note="Serial-corruption forensics logged per-row; consumed only informally (manual debugging), no automated report" data-fileref="ecu/protocol.py:CSV_COLUMNS (dirty_byte_hex,dirty_byte_name,forensic_event)" data-type="raw_signal" transform="translate(50,638)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#4a9eff" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#4a9eff" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#4a9eff">RAW</text><text x="8" y="34" class="node-label">raw_ecu_dirty_bytes</text><title>raw_ecu_dirty_bytes [CAPTURED_UNUSED]
+ecu/protocol.py:CSV_COLUMNS (dirty_byte_hex,dirty_byte_name,forensic_event)
+Serial-corruption forensics logged per-row; consumed only informally (manual debugging), no automated report</title></g>
+<g class="node" data-id="raw_gps" data-x="50" data-y="1142" data-reliability="ACTIVE_UNVALIDATED" data-note="Absolute altitude has ~±10m per-session bias (documented in gps/slope_reference.py docstring); quality-gated via gps_epv/mode/sats (_gps_quality / _is_quality_fix) before any use" data-fileref="gps/reader.py -&gt; CSV_COLUMNS (gps_lat,gps_lon,gps_alt_m,gps_speed_kmh,gps_heading,gps_satellites,gps_valid,gps_mode,gps_epx,gps_epy,gps_epv,gps_snr_avg,gps_heading_rate,gps_turning,gps_stale)" data-type="sensor" transform="translate(50,1142)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">SENSOR</text><text x="8" y="34" class="node-label">raw_gps</text><title>raw_gps [ACTIVE_UNVALIDATED]
+gps/reader.py -&gt; CSV_COLUMNS (gps_lat,gps_lon,gps_alt_m,gps_speed_kmh,gps_heading,gps_satellites,gps_valid,gps_mode,gps_epx,gps_epy,gps_epv,gps_snr_avg,gps_heading_rate,gps_turning,gps_stale)
+Absolute altitude has ~±10m per-session bias (documented in gps/slope_reference.py docstring); quality-gated via gps_epv/mode/sats (_gps_quality / _is_quality_fix) before any use</title></g>
+<g class="node" data-id="raw_env_baro" data-x="50" data-y="1562" data-reliability="ACTIVE_UNVALIDATED" data-note="Used for VDYNO SAE J1349 air-density correction (bug-fixed v2.7.163+) AND for a PW baro-normalization in f7.py/launch.py that contradicts CLAUDE.md's explicit &quot;do NOT normalize PW by baro for DDFI2 Alpha-N&quot; rule — see gap section" data-fileref="sensors (baro) -&gt; CSV_COLUMNS (baro_hPa,baro_temp_c)" data-type="sensor" transform="translate(50,1562)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">SENSOR</text><text x="8" y="34" class="node-label">raw_env_baro</text><title>raw_env_baro [ACTIVE_UNVALIDATED]
+sensors (baro) -&gt; CSV_COLUMNS (baro_hPa,baro_temp_c)
+Used for VDYNO SAE J1349 air-density correction (bug-fixed v2.7.163+) AND for a PW baro-normalization in f7.py/launch.py that contradicts CLAUDE.md's explicit &quot;do NOT normalize PW by baro for DDFI2 Alpha-N&quot; rule — see gap section</title></g>
+<g class="node" data-id="raw_env_humidity" data-x="50" data-y="722" data-reliability="CAPTURED_UNUSED" data-note="Logged and averaged into F7 event context (humidity_avg) but not read by any comparison or proposal logic" data-fileref="sensors/aht20.py -&gt; CSV_COLUMNS (humidity_pct)" data-type="sensor" transform="translate(50,722)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#4a9eff" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#4a9eff" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#4a9eff">SENSOR</text><text x="8" y="34" class="node-label">raw_env_humidity</text><title>raw_env_humidity [CAPTURED_UNUSED]
+sensors/aht20.py -&gt; CSV_COLUMNS (humidity_pct)
+Logged and averaged into F7 event context (humidity_avg) but not read by any comparison or proposal logic</title></g>
+<g class="node" data-id="raw_sys_health" data-x="50" data-y="806" data-reliability="ACTIVE_VALID" data-note="System health telemetry, consumed by system_health.json / Dashboard only, not tuning-relevant by design" data-fileref="main.py -&gt; CSV_COLUMNS (ttl_pct,cpu_pct,cpu_temp,mem_pct,buf_in)" data-type="sensor" transform="translate(50,806)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">SENSOR</text><text x="8" y="34" class="node-label">raw_sys_health</text><title>raw_sys_health [ACTIVE_VALID]
+main.py -&gt; CSV_COLUMNS (ttl_pct,cpu_pct,cpu_temp,mem_pct,buf_in)
+System health telemetry, consumed by system_health.json / Dashboard only, not tuning-relevant by design</title></g>
+<g class="node" data-id="raw_imu" data-x="50" data-y="1646" data-reliability="DESIGN_ONLY" data-note="BACKLOG_MAPA_3D / IDEAS reference MPU6050 vibration (FASE 3) and lean-angle analytics (BL-DI-09) — no IMU hardware/fields exist yet in the schema" data-fileref="(not present in CSV_COLUMNS)" data-type="sensor" transform="translate(50,1646)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#b06fe0" stroke-width="2" stroke-dasharray="5,3"></rect><rect width="220" height="16" rx="6" fill="#b06fe0" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#b06fe0">SENSOR</text><text x="8" y="34" class="node-label">raw_imu</text><title>raw_imu [DESIGN_ONLY]
+(not present in CSV_COLUMNS)
+BACKLOG_MAPA_3D / IDEAS reference MPU6050 vibration (FASE 3) and lean-angle analytics (BL-DI-09) — no IMU hardware/fields exist yet in the schema</title></g>
+<g class="node" data-id="ride_csv" data-x="330" data-y="50" data-reliability="ACTIVE_VALID" data-note="One row per ECU frame (~8Hz); source of truth for every downstream analysis stage" data-fileref="ecu/session.py:SessionManager._open_csv_part / write_sample" data-type="json_artifact" transform="translate(330,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">ride_csv</text><title>ride_csv [ACTIVE_VALID]
+ecu/session.py:SessionManager._open_csv_part / write_sample
+One row per ECU frame (~8Hz); source of truth for every downstream analysis stage</title></g>
+<g class="node" data-id="ride_summary_json" data-x="890" data-y="50" data-reliability="ACTIVE_UNVALIDATED" data-note="Per-cell (RPM×Load) time/EGO/CLT/AFV aggregation from live CellTracker snapshot; drives objectives.json coverage %, health_score; ego_avg fields inside are NOISE (OL mode)" data-fileref="ecu/session.py:close_current_ride" data-type="json_artifact" transform="translate(890,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">JSON</text><text x="8" y="34" class="node-label">ride_summary_json</text><title>ride_summary_json [ACTIVE_UNVALIDATED]
+ecu/session.py:close_current_ride
+Per-cell (RPM×Load) time/EGO/CLT/AFV aggregation from live CellTracker snapshot; drives objectives.json coverage %, health_score; ego_avg fields inside are NOISE (OL mode)</title></g>
+<g class="node" data-id="session_metadata_json" data-x="50" data-y="1058" data-reliability="ACTIVE_VALID" data-note="checksum, version_string, total_rides/samples, rpm_min/max_seen — read by nearly every handler (tuner sessions list, sessions_vs, vdyno)" data-fileref="ecu/session.py:_load_or_create / _save_metadata" data-type="json_artifact" transform="translate(50,1058)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">session_metadata_json</text><title>session_metadata_json [ACTIVE_VALID]
+ecu/session.py:_load_or_create / _save_metadata
+checksum, version_string, total_rides/samples, rpm_min/max_seen — read by nearly every handler (tuner sessions list, sessions_vs, vdyno)</title></g>
+<g class="node" data-id="rider_notes_field" data-x="50" data-y="1730" data-reliability="CAPTURED_UNUSED" data-note="Field is initialized empty on every new session. No write endpoint exists anywhere in web/server.py or handlers/. No read/UI consumer either. Proposed in BACKLOG.md (&quot;agregar campo rider_notes... opciones normal/knock_heard&quot;) but never wired end-to-end — fully dead on both sides" data-fileref="ecu/session.py:_load_or_create (session_metadata[&quot;rider_notes&quot;]=[])" data-type="annotation" transform="translate(50,1730)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#4a9eff" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#4a9eff" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#4a9eff">ANNOTATION</text><text x="8" y="34" class="node-label">rider_notes_field</text><title>rider_notes_field [CAPTURED_UNUSED]
+ecu/session.py:_load_or_create (session_metadata[&quot;rider_notes&quot;]=[])
+Field is initialized empty on every new session. No write endpoint exists anywhere in web/server.py or handlers/. No read/UI consumer either. Proposed in BACKLOG.md (&quot;agregar campo rider_notes... opciones normal/knock_heard&quot;) but never wired end-to-end — fully dead on both sides</title></g>
+<g class="node" data-id="ride_annotations_json" data-x="50" data-y="1226" data-reliability="ACTIVE_UNVALIDATED" data-note="Rider marks time regions with type in {launch, diagnostic, note} (unclassified = amber warning in UI). Full CRUD via POST /annotations" data-fileref="web/server.py:_handle_post_annotations / _handle_annotations, captured via GRAF2 (web/static/graf2.js:annotationsPlugin)" data-type="annotation" transform="translate(50,1226)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">ANNOTATION</text><text x="8" y="34" class="node-label">ride_annotations_json</text><title>ride_annotations_json [ACTIVE_UNVALIDATED]
+web/server.py:_handle_post_annotations / _handle_annotations, captured via GRAF2 (web/static/graf2.js:annotationsPlugin)
+Rider marks time regions with type in {launch, diagnostic, note} (unclassified = amber warning in UI). Full CRUD via POST /annotations</title></g>
+<g class="node" data-id="eeprom_bin" data-x="3410" data-y="50" data-reliability="ACTIVE_VALID" data-note="Always present per session; canonical source for map decode (do NOT require eeprom_decoded.json per CLAUDE.md data-reuse rule)" data-fileref="ecu/session.py:save_eeprom" data-type="json_artifact" transform="translate(3410,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">eeprom_bin</text><title>eeprom_bin [ACTIVE_VALID]
+ecu/session.py:save_eeprom
+Always present per session; canonical source for map decode (do NOT require eeprom_decoded.json per CLAUDE.md data-reuse rule)</title></g>
+<g class="node" data-id="eeprom_decoded_json" data-x="3690" data-y="50" data-reliability="ACTIVE_VALID" data-note="Multi-firmware map decode (fuel_front/rear, spark_front/rear, axes); optional cache, not required" data-fileref="ecu/eeprom.py:decode_eeprom_maps / decode_eeprom_maps_full (XML-driven via ecu/ecm_defs.py)" data-type="json_artifact" transform="translate(3690,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">eeprom_decoded_json</text><title>eeprom_decoded_json [ACTIVE_VALID]
+ecu/eeprom.py:decode_eeprom_maps / decode_eeprom_maps_full (XML-driven via ecu/ecm_defs.py)
+Multi-firmware map decode (fuel_front/rear, spark_front/rear, axes); optional cache, not required</title></g>
+<g class="node" data-id="ride_errorlog_json" data-x="610" data-y="302" data-reliability="ACTIVE_VALID" data-note="Serial exceptions, dirty bytes, bad checksums, ECU timeouts/resets — diagnostic only, feeds errorlog_viz.html, not the tuning cycle" data-fileref="ecu/session.py:RideErrorLog.flush" data-type="json_artifact" transform="translate(610,302)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">ride_errorlog_json</text><title>ride_errorlog_json [ACTIVE_VALID]
+ecu/session.py:RideErrorLog.flush
+Serial exceptions, dirty bytes, bad checksums, ECU timeouts/resets — diagnostic only, feeds errorlog_viz.html, not the tuning cycle</title></g>
+<g class="node" data-id="tuning_report_json" data-x="1170" data-y="218" data-reliability="INACTIVE_NOISE" data-note="Runs on EVERY ride close regardless of OL mode; computes ego_avg-based VE &quot;suggestions&quot; that are meaningless with EGO_Corr locked at 100. CLAUDE.md explicitly marks this ⛔ INACTIVE, yet the computation still executes and writes a file every ride" data-fileref="ecu/session.py:_update_tuning_report" data-type="json_artifact" transform="translate(1170,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#6b6b70" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#6b6b70" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#6b6b70">JSON</text><text x="8" y="34" class="node-label">tuning_report_json</text><title>tuning_report_json [INACTIVE_NOISE]
+ecu/session.py:_update_tuning_report
+Runs on EVERY ride close regardless of OL mode; computes ego_avg-based VE &quot;suggestions&quot; that are meaningless with EGO_Corr locked at 100. CLAUDE.md explicitly marks this ⛔ INACTIVE, yet the computation still executes and writes a file every ride</title></g>
+<g class="node" data-id="suggested_msq" data-x="3970" data-y="50" data-reliability="INACTIVE_NOISE" data-note="Auto-generated from tuning_report suggestions — inherits the same EGO-based noise; a burnable MSQ file built entirely from a signal that doesn't exist in OL mode" data-fileref="ecu/session.py:_generate_suggested_msq" data-type="json_artifact" transform="translate(3970,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#6b6b70" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#6b6b70" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#6b6b70">JSON</text><text x="8" y="34" class="node-label">suggested_msq</text><title>suggested_msq [INACTIVE_NOISE]
+ecu/session.py:_generate_suggested_msq
+Auto-generated from tuning_report suggestions — inherits the same EGO-based noise; a burnable MSQ file built entirely from a signal that doesn't exist in OL mode</title></g>
+<g class="node" data-id="ride_f7events_json" data-x="1450" data-y="50" data-reliability="ACTIVE_VALID" data-note="Cached per ride, regenerated when CSV is newer or schema version (_F7_EVENTS_V) bumps" data-fileref="web/f7.py:_f7_load_session_clusters (per-ride cache)" data-type="json_artifact" transform="translate(1450,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">ride_f7events_json</text><title>ride_f7events_json [ACTIVE_VALID]
+web/f7.py:_f7_load_session_clusters (per-ride cache)
+Cached per ride, regenerated when CSV is newer or schema version (_F7_EVENTS_V) bumps</title></g>
+<g class="node" data-id="session_f7clusters_json" data-x="2010" data-y="50" data-reliability="ACTIVE_VALID" data-note="DTW-clustered accel/decel events (A/D prefixes) + pilot-marked clusters (P prefix, from launch annotations)" data-fileref="web/f7.py:_f7_load_session_clusters" data-type="json_artifact" transform="translate(2010,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">session_f7clusters_json</text><title>session_f7clusters_json [ACTIVE_VALID]
+web/f7.py:_f7_load_session_clusters
+DTW-clustered accel/decel events (A/D prefixes) + pilot-marked clusters (P prefix, from launch annotations)</title></g>
+<g class="node" data-id="ride_vdyno_json" data-x="2010" data-y="218" data-reliability="ACTIVE_UNVALIDATED" data-note="Per-RPM-bin HP/torque from WOT segments; differential instrument (A-vs-B meaningful, absolute HP approximate); constants mass_kg/CdA/Crr/rho are fixed config defaults, not calibrated per BL-DI-03 (coastdown fitting still [PLAN])" data-fileref="web/vdyno.py:compute_ride" data-type="json_artifact" transform="translate(2010,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">JSON</text><text x="8" y="34" class="node-label">ride_vdyno_json</text><title>ride_vdyno_json [ACTIVE_UNVALIDATED]
+web/vdyno.py:compute_ride
+Per-RPM-bin HP/torque from WOT segments; differential instrument (A-vs-B meaningful, absolute HP approximate); constants mass_kg/CdA/Crr/rho are fixed config defaults, not calibrated per BL-DI-03 (coastdown fitting still [PLAN])</title></g>
+<g class="node" data-id="ride_vdyno_rows_json" data-x="2010" data-y="386" data-reliability="ACTIVE_UNVALIDATED" data-note="Sparse per-row HP/torque overlay for ride chart, same physics/caveats as ride_vdyno_json" data-fileref="web/vdyno.py:compute_ride_rows" data-type="json_artifact" transform="translate(2010,386)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">JSON</text><text x="8" y="34" class="node-label">ride_vdyno_rows_json</text><title>ride_vdyno_rows_json [ACTIVE_UNVALIDATED]
+web/vdyno.py:compute_ride_rows
+Sparse per-row HP/torque overlay for ride chart, same physics/caveats as ride_vdyno_json</title></g>
+<g class="node" data-id="sessions_vs_cache" data-x="2570" data-y="134" data-reliability="ACTIVE_UNVALIDATED" data-note="Cell-level A-vs-B delta cache; GAP1 Welch 95% CI (dpw_eff_sig) computed here but NOT yet consumed by any downstream gating (see gap section); contaminated by unaddressed Batt_V/thermal confounders (BACKLOG_DATASET_INSIGHTS Phase A, all [PLAN])" data-fileref="web/vs_engine.py:_compare_sessions_cached (CACHE_VERSION=9)" data-type="json_artifact" transform="translate(2570,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">JSON</text><text x="8" y="34" class="node-label">sessions_vs_cache</text><title>sessions_vs_cache [ACTIVE_UNVALIDATED]
+web/vs_engine.py:_compare_sessions_cached (CACHE_VERSION=9)
+Cell-level A-vs-B delta cache; GAP1 Welch 95% CI (dpw_eff_sig) computed here but NOT yet consumed by any downstream gating (see gap section); contaminated by unaddressed Batt_V/thermal confounders (BACKLOG_DATASET_INSIGHTS Phase A, all [PLAN])</title></g>
+<g class="node" data-id="slope_reference_json" data-x="610" data-y="50" data-reliability="CAPTURED_UNUSED" data-note="Differential GPS altitude accumulator (BL-GPS-05); only updated via manual GET /slope_reference?update=... — no automatic trigger on ride close; get_slope_pct() is never called from f7.py or vs_engine.py despite GAP4 backlog explicitly proposing this wiring" data-fileref="gps/slope_reference.py:SlopeReference._save" data-type="json_artifact" transform="translate(610,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#4a9eff" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#4a9eff" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#4a9eff">JSON</text><text x="8" y="34" class="node-label">slope_reference_json</text><title>slope_reference_json [CAPTURED_UNUSED]
+gps/slope_reference.py:SlopeReference._save
+Differential GPS altitude accumulator (BL-GPS-05); only updated via manual GET /slope_reference?update=... — no automatic trigger on ride close; get_slope_pct() is never called from f7.py or vs_engine.py despite GAP4 backlog explicitly proposing this wiring</title></g>
+<g class="node" data-id="gear_profile_json" data-x="890" data-y="134" data-reliability="ACTIVE_VALID" data-note="Data-driven RPM/VSS ratio thresholds, learned from ECU-reported Gear column across all sessions; consumed by gear_detect.detect_gear via thresholds param" data-fileref="web/gear_learner.py:GearLearner._save" data-type="json_artifact" transform="translate(890,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">gear_profile_json</text><title>gear_profile_json [ACTIVE_VALID]
+web/gear_learner.py:GearLearner._save
+Data-driven RPM/VSS ratio thresholds, learned from ECU-reported Gear column across all sessions; consumed by gear_detect.detect_gear via thresholds param</title></g>
+<g class="node" data-id="burns_json" data-x="3690" data-y="218" data-reliability="ACTIVE_VALID" data-note="Append-only parent→child checksum lineage with per-cell diffs; only written after a verified burn, never writes to ECU itself" data-fileref="web/burn_ledger.py:record_burn" data-type="json_artifact" transform="translate(3690,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">burns_json</text><title>burns_json [ACTIVE_VALID]
+web/burn_ledger.py:record_burn
+Append-only parent→child checksum lineage with per-cell diffs; only written after a verified burn, never writes to ECU itself</title></g>
+<g class="node" data-id="route_reference_json" data-x="610" data-y="386" data-reliability="ACTIVE_UNVALIDATED" data-note="Enriches gps_analysis handler output with trusted reference altitude (BL-GPS-04); separate accumulator from slope_reference, also manually triggered" data-fileref="gps/route_reference.py (GPS altitude trust reference)" data-type="json_artifact" transform="translate(610,386)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">JSON</text><text x="8" y="34" class="node-label">route_reference_json</text><title>route_reference_json [ACTIVE_UNVALIDATED]
+gps/route_reference.py (GPS altitude trust reference)
+Enriches gps_analysis handler output with trusted reference altitude (BL-GPS-04); separate accumulator from slope_reference, also manually triggered</title></g>
+<g class="node" data-id="live_json" data-x="50" data-y="1478" data-reliability="ACTIVE_VALID" data-note="Live RT state polled every 0.25s by the Dashboard; not persisted for analysis, ephemeral" data-fileref="main.py (IPC) -&gt; web/server.py:_get_live/_handle_live_json" data-type="json_artifact" transform="translate(50,1478)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">live_json</text><title>live_json [ACTIVE_VALID]
+main.py (IPC) -&gt; web/server.py:_get_live/_handle_live_json
+Live RT state polled every 0.25s by the Dashboard; not persisted for analysis, ephemeral</title></g>
+<g class="node" data-id="objectives_json" data-x="1170" data-y="50" data-reliability="ACTIVE_VALID" data-note="Static config of RPM/Load coverage goals; drives Dashboard &quot;objectives&quot; progress bars" data-fileref="objectives.json + ecu/session.py cell_targets coverage check" data-type="json_artifact" transform="translate(1170,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">objectives_json</text><title>objectives_json [ACTIVE_VALID]
+objectives.json + ecu/session.py cell_targets coverage check
+Static config of RPM/Load coverage goals; drives Dashboard &quot;objectives&quot; progress bars</title></g>
+<g class="node" data-id="fuel_consumption_cache" data-x="610" data-y="470" data-reliability="ACTIVE_VALID" data-note="Persisted per ride close to avoid CSV re-scan; feeds fuel.html, not the tuning cycle" data-fileref="web/fuel_tracker.py:save_ride_consumption_cache" data-type="json_artifact" transform="translate(610,470)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">JSON</text><text x="8" y="34" class="node-label">fuel_consumption_cache</text><title>fuel_consumption_cache [ACTIVE_VALID]
+web/fuel_tracker.py:save_ride_consumption_cache
+Persisted per ride close to avoid CSV re-scan; feeds fuel.html, not the tuning cycle</title></g>
+<g class="node" data-id="cell_tracker" data-x="610" data-y="134" data-reliability="ACTIVE_VALID" data-note="Live per-cell bilinear-weighted accumulation (seconds, ego, valid_seconds, flavor_counts); runs every sample during a ride" data-fileref="ecu/session.py:CellTracker.update" data-type="analysis_stage" transform="translate(610,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">cell_tracker</text><title>cell_tracker [ACTIVE_VALID]
+ecu/session.py:CellTracker.update
+Live per-cell bilinear-weighted accumulation (seconds, ego, valid_seconds, flavor_counts); runs every sample during a ride</title></g>
+<g class="node" data-id="f7_event_detect" data-x="1170" data-y="302" data-reliability="ACTIVE_VALID" data-note="Stable-bucket-then-break detector (rolling std over 3s); pure PW/TPS physics, no EGO dependency" data-fileref="web/f7.py:_f7_detect_events" data-type="analysis_stage" transform="translate(1170,302)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">f7_event_detect</text><title>f7_event_detect [ACTIVE_VALID]
+web/f7.py:_f7_detect_events
+Stable-bucket-then-break detector (rolling std over 3s); pure PW/TPS physics, no EGO dependency</title></g>
+<g class="node" data-id="f7_dtw_cluster" data-x="1730" data-y="50" data-reliability="ACTIVE_VALID" data-note="Complete-linkage DTW clustering on PW curves, sub-divided by Bucket-A consistency (gear/RPM/VSS/TPS)" data-fileref="web/f7.py:_f7_cluster / _f7_dtw" data-type="analysis_stage" transform="translate(1730,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">f7_dtw_cluster</text><title>f7_dtw_cluster [ACTIVE_VALID]
+web/f7.py:_f7_cluster / _f7_dtw
+Complete-linkage DTW clustering on PW curves, sub-divided by Bucket-A consistency (gear/RPM/VSS/TPS)</title></g>
+<g class="node" data-id="f7_cross_session_match" data-x="2290" data-y="50" data-reliability="ACTIVE_VALID" data-note="TPS-curve DTW matches clusters across sessions; PW delta at matched points is the &quot;which map accelerates better&quot; signal" data-fileref="web/f7.py:_f7_match_cross_session" data-type="analysis_stage" transform="translate(2290,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">f7_cross_session_match</text><title>f7_cross_session_match [ACTIVE_VALID]
+web/f7.py:_f7_match_cross_session
+TPS-curve DTW matches clusters across sessions; PW delta at matched points is the &quot;which map accelerates better&quot; signal</title></g>
+<g class="node" data-id="f7_pilot_marked" data-x="330" data-y="134" data-reliability="ACTIVE_VALID" data-note="Builds F7-shaped events directly from type=launch annotations (F7 Phase 2.2, &quot;juntas pero no revueltas&quot; — pooled but tagged separately, P-prefix clusters)" data-fileref="web/f7.py:_f7_events_from_annotations" data-type="analysis_stage" transform="translate(330,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">f7_pilot_marked</text><title>f7_pilot_marked [ACTIVE_VALID]
+web/f7.py:_f7_events_from_annotations
+Builds F7-shaped events directly from type=launch annotations (F7 Phase 2.2, &quot;juntas pero no revueltas&quot; — pooled but tagged separately, P-prefix clusters)</title></g>
+<g class="node" data-id="vs_classify" data-x="1170" data-y="386" data-reliability="ACTIVE_UNVALIDATED" data-note="Buckets every sample into SWEET/SPICY_TIPIN/SPICY_TIPOUT/SPICY_WOT/SALTY_UP/SALTY_DOWN/BITTER; does NOT exclude fl_hot/do_fan thermal-protection samples (BL-DI-06, [PLAN]) or correct for Batt_V (BL-DI-01, [PLAN])" data-fileref="web/launch.py:classify()" data-type="analysis_stage" transform="translate(1170,386)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">ANALYSIS</text><text x="8" y="34" class="node-label">vs_classify</text><title>vs_classify [ACTIVE_UNVALIDATED]
+web/launch.py:classify()
+Buckets every sample into SWEET/SPICY_TIPIN/SPICY_TIPOUT/SPICY_WOT/SALTY_UP/SALTY_DOWN/BITTER; does NOT exclude fl_hot/do_fan thermal-protection samples (BL-DI-06, [PLAN]) or correct for Batt_V (BL-DI-01, [PLAN])</title></g>
+<g class="node" data-id="vs_baro_normalize" data-x="610" data-y="554" data-reliability="INACTIVE_NOISE" data-note="Applies Speed-Density-style baro correction to PW before every Sessions VS comparison, directly contradicting CLAUDE.md's Alpha-N rule (&quot;do NOT normalize PW by baro for DDFI2&quot;). Feeds dpw1/dpw2/dpw_eff — the metrics the OL reliability table calls ✅ VALID [contradicts doctrine]" data-fileref="web/launch.py:load_csv (pw1_norm/pw2_norm = pw * REF_BARO/baro)" data-type="analysis_stage" transform="translate(610,554)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#6b6b70" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#6b6b70" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#6b6b70">ANALYSIS</text><text x="8" y="34" class="node-label">vs_baro_normalize</text><title>vs_baro_normalize [INACTIVE_NOISE]
+web/launch.py:load_csv (pw1_norm/pw2_norm = pw * REF_BARO/baro)
+Applies Speed-Density-style baro correction to PW before every Sessions VS comparison, directly contradicting CLAUDE.md's Alpha-N rule (&quot;do NOT normalize PW by baro for DDFI2&quot;). Feeds dpw1/dpw2/dpw_eff — the metrics the OL reliability table calls ✅ VALID [contradicts doctrine]</title></g>
+<g class="node" data-id="vs_cell_index" data-x="1450" data-y="134" data-reliability="ACTIVE_UNVALIDATED" data-note="Welford-online per-cell mean/std for pw/spark/afv/dvss/pw_eff; MIN_N=5 gate; feeds GAP1 significance calc" data-fileref="web/launch.py:build_index()" data-type="analysis_stage" transform="translate(1450,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">ANALYSIS</text><text x="8" y="34" class="node-label">vs_cell_index</text><title>vs_cell_index [ACTIVE_UNVALIDATED]
+web/launch.py:build_index()
+Welford-online per-cell mean/std for pw/spark/afv/dvss/pw_eff; MIN_N=5 gate; feeds GAP1 significance calc</title></g>
+<g class="node" data-id="vs_gap1_significance" data-x="1730" data-y="134" data-reliability="ACTIVE_UNVALIDATED" data-note="dpw_eff_se/ci_lo/ci_hi/dpw_eff_sig computed per cell (v2.7.230); UI attenuates non-significant cells in sessions_vs.html, but CI treats autocorrelated samples as independent N (acknowledged optimistic in BACKLOG.md GAP1 remaining item)" data-fileref="web/launch.py:_compare_sessions (Welch 95% CI block)" data-type="analysis_stage" transform="translate(1730,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">ANALYSIS</text><text x="8" y="34" class="node-label">vs_gap1_significance</text><title>vs_gap1_significance [ACTIVE_UNVALIDATED]
+web/launch.py:_compare_sessions (Welch 95% CI block)
+dpw_eff_se/ci_lo/ci_hi/dpw_eff_sig computed per cell (v2.7.230); UI attenuates non-significant cells in sessions_vs.html, but CI treats autocorrelated samples as independent N (acknowledged optimistic in BACKLOG.md GAP1 remaining item)</title></g>
+<g class="node" data-id="vs_gap5_convergence" data-x="2850" data-y="50" data-reliability="ACTIVE_VALID" data-note="DONE v2.7.253. Residual variance of dpw_eff across consecutive session pairs; converged when last 3 pairs &lt; 0.002 threshold. Not yet surfaced in Tuner UI (badge pending)" data-fileref="web/vs_engine.py:compute_convergence" data-type="analysis_stage" transform="translate(2850,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">vs_gap5_convergence</text><title>vs_gap5_convergence [ACTIVE_VALID]
+web/vs_engine.py:compute_convergence
+DONE v2.7.253. Residual variance of dpw_eff across consecutive session pairs; converged when last 3 pairs &lt; 0.002 threshold. Not yet surfaced in Tuner UI (badge pending)</title></g>
+<g class="node" data-id="vs_merge_maps" data-x="3690" data-y="134" data-reliability="ACTIVE_UNVALIDATED" data-note="Current PROPONER mechanism: per-cell winner-take-cell between two eeprom maps based on SWEET/SPICY_WOT flavor sign of dpw_eff/ddvss. Does NOT check dpw_eff_sig (GAP1 significance) before picking a winner — the gate that should exist is not wired" data-fileref="web/vs_engine.py:_merge_maps" data-type="analysis_stage" transform="translate(3690,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">ANALYSIS</text><text x="8" y="34" class="node-label">vs_merge_maps</text><title>vs_merge_maps [ACTIVE_UNVALIDATED]
+web/vs_engine.py:_merge_maps
+Current PROPONER mechanism: per-cell winner-take-cell between two eeprom maps based on SWEET/SPICY_WOT flavor sign of dpw_eff/ddvss. Does NOT check dpw_eff_sig (GAP1 significance) before picking a winner — the gate that should exist is not wired</title></g>
+<g class="node" data-id="launch_detect" data-x="1170" data-y="134" data-reliability="ACTIVE_VALID" data-note="Legacy dtps&gt;8 threshold detector (CLAUDE.md: &quot;old approach... Everything new should use F7&quot;); still the only source for cluster_launches/vdyno_launch" data-fileref="web/launch.py:detect_launches" data-type="analysis_stage" transform="translate(1170,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">launch_detect</text><title>launch_detect [ACTIVE_VALID]
+web/launch.py:detect_launches
+Legacy dtps&gt;8 threshold detector (CLAUDE.md: &quot;old approach... Everything new should use F7&quot;); still the only source for cluster_launches/vdyno_launch</title></g>
+<g class="node" data-id="launch_cluster" data-x="1450" data-y="218" data-reliability="ACTIVE_VALID" data-note="Groups launches by pre-conditions only (gear/rpm/tps), outcome metrics intentionally excluded from clustering to avoid bias" data-fileref="web/launch.py:cluster_launches" data-type="analysis_stage" transform="translate(1450,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">launch_cluster</text><title>launch_cluster [ACTIVE_VALID]
+web/launch.py:cluster_launches
+Groups launches by pre-conditions only (gear/rpm/tps), outcome metrics intentionally excluded from clustering to avoid bias</title></g>
+<g class="node" data-id="launch_cross_match" data-x="1730" data-y="218" data-reliability="ACTIVE_VALID" data-note="Matches launch clusters across sessions by Euclidean distance in (rpm,spd,tps); feeds sessions_launch.html (being migrated to F7 per backlog 7.8)" data-fileref="web/launch.py:match_clusters" data-type="analysis_stage" transform="translate(1730,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">launch_cross_match</text><title>launch_cross_match [ACTIVE_VALID]
+web/launch.py:match_clusters
+Matches launch clusters across sessions by Euclidean distance in (rpm,spd,tps); feeds sessions_launch.html (being migrated to F7 per backlog 7.8)</title></g>
+<g class="node" data-id="vdyno_physics" data-x="1730" data-y="302" data-reliability="ACTIVE_UNVALIDATED" data-note="F=ma+drag+rolling; SAE J1349 correction applied (bug-fixed v2.7.163, was silently skipped due to IAT vs IAT_Corr field-name mismatch); mass_kg/CdA/Crr are fixed config, not measured (BL-DI-03 coastdown calibration still [PLAN])" data-fileref="web/vdyno.py:_seg_physics" data-type="analysis_stage" transform="translate(1730,302)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">ANALYSIS</text><text x="8" y="34" class="node-label">vdyno_physics</text><title>vdyno_physics [ACTIVE_UNVALIDATED]
+web/vdyno.py:_seg_physics
+F=ma+drag+rolling; SAE J1349 correction applied (bug-fixed v2.7.163, was silently skipped due to IAT vs IAT_Corr field-name mismatch); mass_kg/CdA/Crr are fixed config, not measured (BL-DI-03 coastdown calibration still [PLAN])</title></g>
+<g class="node" data-id="vdyno_compare" data-x="2290" data-y="134" data-reliability="DESIGN_ONLY" data-note="Returns delta_kw/delta_hp/delta_pct per RPM bin with NO noise-floor gating and no VERDE/ROJO/GRIS verdict — BACKLOG_VDYNO.md's noise-floor rule (&quot;measure ride-to-ride variance within the same map first, only declare VERDE/ROJO if [partial]" data-fileref="web/vdyno.py:compare_sessions" data-type="analysis_stage" transform="translate(2290,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#b06fe0" stroke-width="2" stroke-dasharray="5,3"></rect><rect width="220" height="16" rx="6" fill="#b06fe0" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#b06fe0">ANALYSIS</text><text x="8" y="34" class="node-label">vdyno_compare</text><title>vdyno_compare [DESIGN_ONLY]
+web/vdyno.py:compare_sessions
+Returns delta_kw/delta_hp/delta_pct per RPM bin with NO noise-floor gating and no VERDE/ROJO/GRIS verdict — BACKLOG_VDYNO.md's noise-floor rule (&quot;measure ride-to-ride variance within the same map first, only declare VERDE/ROJO if [partial]</title></g>
+<g class="node" data-id="vdyno_fase_v4" data-x="3970" data-y="134" data-reliability="DESIGN_ONLY" data-note="Autonomous proposal engine combining vdyno + VS cells + burn ledger causal history; explicitly documents that autonomous burning stays OUT of scope even at V4 — human always loads/burns the proposal manually" data-fileref="BACKLOG_VDYNO.md &quot;FASE V4 — Optimizador Iterativo de Mapas (el norte completo)&quot;" data-type="analysis_stage" transform="translate(3970,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#b06fe0" stroke-width="2" stroke-dasharray="5,3"></rect><rect width="220" height="16" rx="6" fill="#b06fe0" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#b06fe0">ANALYSIS</text><text x="8" y="34" class="node-label">vdyno_fase_v4</text><title>vdyno_fase_v4 [DESIGN_ONLY]
+BACKLOG_VDYNO.md &quot;FASE V4 — Optimizador Iterativo de Mapas (el norte completo)&quot;
+Autonomous proposal engine combining vdyno + VS cells + burn ledger causal history; explicitly documents that autonomous burning stays OUT of scope even at V4 — human always loads/burns the proposal manually</title></g>
+<g class="node" data-id="gear_learner_fit" data-x="610" data-y="218" data-reliability="ACTIVE_VALID" data-note="Brute-force per-boundary threshold fit from ECU-reported Gear ground truth, bike-agnostic" data-fileref="web/gear_learner.py:GearLearner._fit" data-type="analysis_stage" transform="translate(610,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">ANALYSIS</text><text x="8" y="34" class="node-label">gear_learner_fit</text><title>gear_learner_fit [ACTIVE_VALID]
+web/gear_learner.py:GearLearner._fit
+Brute-force per-boundary threshold fit from ECU-reported Gear ground truth, bike-agnostic</title></g>
+<g class="node" data-id="fase6_unified_proposal" data-x="2010" data-y="134" data-reliability="DESIGN_ONLY" data-note="The unified F7 + Sessions VS -&gt; EEPROM proposal engine described as the core of PROPONER does not exist yet; _merge_maps is a stand-in" data-fileref="CLAUDE.md priority backlog #1, BACKLOG.md &quot;FASE 6 -- Propuesta de mapa desde Sessions VS&quot;" data-type="analysis_stage" transform="translate(2010,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#b06fe0" stroke-width="2" stroke-dasharray="5,3"></rect><rect width="220" height="16" rx="6" fill="#b06fe0" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#b06fe0">ANALYSIS</text><text x="8" y="34" class="node-label">fase6_unified_proposal</text><title>fase6_unified_proposal [DESIGN_ONLY]
+CLAUDE.md priority backlog #1, BACKLOG.md &quot;FASE 6 -- Propuesta de mapa desde Sessions VS&quot;
+The unified F7 + Sessions VS -&gt; EEPROM proposal engine described as the core of PROPONER does not exist yet; _merge_maps is a stand-in</title></g>
+<g class="node" data-id="ui_dashboard" data-x="2290" data-y="218" data-reliability="ACTIVE_VALID" data-note="LOG stage — live ECU data, session/ride management, VE tab burn UI, fuel status widget" data-fileref="web/templates/index.html" data-type="ui_page" transform="translate(2290,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">UI</text><text x="8" y="34" class="node-label">ui_dashboard</text><title>ui_dashboard [ACTIVE_VALID]
+web/templates/index.html
+LOG stage — live ECU data, session/ride management, VE tab burn UI, fuel status widget</title></g>
+<g class="node" data-id="ui_session_events" data-x="2570" data-y="50" data-reliability="ACTIVE_VALID" data-note="ACOTAR + COMPARAR(events) — F7 cluster browser, cross-session ΔPW/ΔVSS" data-fileref="web/templates/session_events.html" data-type="ui_page" transform="translate(2570,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">UI</text><text x="8" y="34" class="node-label">ui_session_events</text><title>ui_session_events [ACTIVE_VALID]
+web/templates/session_events.html
+ACOTAR + COMPARAR(events) — F7 cluster browser, cross-session ΔPW/ΔVSS</title></g>
+<g class="node" data-id="ui_sessions_vs" data-x="2850" data-y="134" data-reliability="ACTIVE_UNVALIDATED" data-note="COMPARAR(cells) — SWEET/SPICY/BITTER delta grid, attenuates non-significant (dpw_eff_sig=False) cells, embeds VDYNO compare tab" data-fileref="web/templates/sessions_vs.html" data-type="ui_page" transform="translate(2850,134)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">UI</text><text x="8" y="34" class="node-label">ui_sessions_vs</text><title>ui_sessions_vs [ACTIVE_UNVALIDATED]
+web/templates/sessions_vs.html
+COMPARAR(cells) — SWEET/SPICY/BITTER delta grid, attenuates non-significant (dpw_eff_sig=False) cells, embeds VDYNO compare tab</title></g>
+<g class="node" data-id="ui_tuner" data-x="3130" data-y="50" data-reliability="ACTIVE_UNVALIDATED" data-note="PROPONER — map diff/merge UI, convergence badge (GAP5), burn trigger" data-fileref="web/templates/tuner.html" data-type="ui_page" transform="translate(3130,50)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">UI</text><text x="8" y="34" class="node-label">ui_tuner</text><title>ui_tuner [ACTIVE_UNVALIDATED]
+web/templates/tuner.html
+PROPONER — map diff/merge UI, convergence badge (GAP5), burn trigger</title></g>
+<g class="node" data-id="ui_map_editor" data-x="50" data-y="890" data-reliability="ACTIVE_VALID" data-note="Manual cell-by-cell VE map edit + burn, independent of the auto-proposal path" data-fileref="web/templates/map-editor.html" data-type="ui_page" transform="translate(50,890)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">UI</text><text x="8" y="34" class="node-label">ui_map_editor</text><title>ui_map_editor [ACTIVE_VALID]
+web/templates/map-editor.html
+Manual cell-by-cell VE map edit + burn, independent of the auto-proposal path</title></g>
+<g class="node" data-id="ui_sessions_launch" data-x="2010" data-y="302" data-reliability="ACTIVE_UNVALIDATED" data-note="Being migrated to consume F7 clusters instead of legacy detect_launches (backlog 7.8, not done)" data-fileref="web/templates/sessions_launch.html" data-type="ui_page" transform="translate(2010,302)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">UI</text><text x="8" y="34" class="node-label">ui_sessions_launch</text><title>ui_sessions_launch [ACTIVE_UNVALIDATED]
+web/templates/sessions_launch.html
+Being migrated to consume F7 clusters instead of legacy detect_launches (backlog 7.8, not done)</title></g>
+<g class="node" data-id="ui_launch_power" data-x="2570" data-y="218" data-reliability="ACTIVE_UNVALIDATED" data-note="VDYNO launch-cluster HP/torque view" data-fileref="web/templates/launch_power.html" data-type="ui_page" transform="translate(2570,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#e8b923" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#e8b923" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#e8b923">UI</text><text x="8" y="34" class="node-label">ui_launch_power</text><title>ui_launch_power [ACTIVE_UNVALIDATED]
+web/templates/launch_power.html
+VDYNO launch-cluster HP/torque view</title></g>
+<g class="node" data-id="ui_errorlog_viz" data-x="890" data-y="218" data-reliability="ACTIVE_VALID" data-note="Diagnostic tool, explicitly NOT part of the tuning cycle per CLAUDE.md" data-fileref="web/templates/errorlog_viz.html" data-type="ui_page" transform="translate(890,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">UI</text><text x="8" y="34" class="node-label">ui_errorlog_viz</text><title>ui_errorlog_viz [ACTIVE_VALID]
+web/templates/errorlog_viz.html
+Diagnostic tool, explicitly NOT part of the tuning cycle per CLAUDE.md</title></g>
+<g class="node" data-id="ui_gps_analysis" data-x="890" data-y="302" data-reliability="ACTIVE_VALID" data-note="3D replay + 2D Leaflet + quality-strip cache; consumes /gps_analysis_data" data-fileref="web/templates/gps_analysis.html" data-type="ui_page" transform="translate(890,302)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">UI</text><text x="8" y="34" class="node-label">ui_gps_analysis</text><title>ui_gps_analysis [ACTIVE_VALID]
+web/templates/gps_analysis.html
+3D replay + 2D Leaflet + quality-strip cache; consumes /gps_analysis_data</title></g>
+<g class="node" data-id="ui_graf2" data-x="330" data-y="218" data-reliability="ACTIVE_VALID" data-note="uPlot pro telemetry viewer; the actual annotation-capture surface (region markers, type selector)" data-fileref="web/templates/graf2.html" data-type="ui_page" transform="translate(330,218)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">UI</text><text x="8" y="34" class="node-label">ui_graf2</text><title>ui_graf2 [ACTIVE_VALID]
+web/templates/graf2.html
+uPlot pro telemetry viewer; the actual annotation-capture surface (region markers, type selector)</title></g>
+<g class="node" data-id="ui_fuel" data-x="890" data-y="386" data-reliability="ACTIVE_VALID" data-note="Consumption/reserve/refuel tracking, independent of the tuning cycle" data-fileref="web/templates/fuel.html" data-type="ui_page" transform="translate(890,386)"><rect width="220" height="54" rx="6" fill="#15151a" stroke="#3ddc84" stroke-width="2" ></rect><rect width="220" height="16" rx="6" fill="#3ddc84" opacity="0.18"></rect><text x="8" y="12" class="type-label" fill="#3ddc84">UI</text><text x="8" y="34" class="node-label">ui_fuel</text><title>ui_fuel [ACTIVE_VALID]
+web/templates/fuel.html
+Consumption/reserve/refuel tracking, independent of the tuning cycle</title></g>
+</g></svg></div>
+<div id="sidepanel"><p style="color:var(--muted)">Click a node to inspect it — the panel lists
+exactly what feeds it and what it feeds. Drag a node to reposition it (saved automatically).
+Two-finger scroll / wheel pans; pinch or Ctrl+wheel zooms.</p></div>
+<div id="zoomctl"><button id="zin">+</button><button id="zout">-</button><button id="zreset">1:1</button>
+<button id="reset-layout">reset positions</button></div>
+<div id="hint">source: docs/PIPELINE_DATA_FLOW.md — regenerate with scripts/build_pipeline_graph.py</div>
+<script>
+const RELIABILITY_COLOR = {"ACTIVE_VALID": "#3ddc84", "ACTIVE_UNVALIDATED": "#e8b923", "INACTIVE_NOISE": "#6b6b70", "CAPTURED_UNUSED": "#4a9eff", "DESIGN_ONLY": "#b06fe0"};
+const legend = document.getElementById('legend');
+const active = new Set(Object.keys(RELIABILITY_COLOR));
+for (const [rel, color] of Object.entries(RELIABILITY_COLOR)) {
+  const el = document.createElement('div');
+  el.className = 'legend-item';
+  el.dataset.rel = rel;
+  el.innerHTML = `<span class="swatch" style="background:${color}"></span>${rel}`;
+  el.onclick = () => {
+    if (active.has(rel)) { active.delete(rel); el.classList.add('off'); }
+    else { active.add(rel); el.classList.remove('off'); }
+    applyFilter();
+  };
+  legend.appendChild(el);
+}
+
+function applyFilter() {
+  document.querySelectorAll('.node').forEach(n => {
+    n.style.display = active.has(n.dataset.reliability) ? '' : 'none';
+  });
+}
+
+const svg = document.getElementById('graph-svg');
+const wrap = document.getElementById('canvas-wrap');
+const sidepanel = document.getElementById('sidepanel');
+const BOX_W = 220, BOX_H = 54;
+const LS_KEY = 'buell_pipeline_graph_pos_v1';
+
+const nodeById = {};
+document.querySelectorAll('.node').forEach(n => { nodeById[n.dataset.id] = n; });
+
+let scale = 0.85, panX = 40, panY = 0;
+function applyTransform() {
+  document.getElementById('pan-group').setAttribute('transform',
+    `translate(${panX},${panY}) scale(${scale})`);
+}
+applyTransform();
+
+// ---- canvas pan/zoom (two-finger scroll = pan, pinch/ctrl+wheel = zoom) ----
+let panning = false, lastX = 0, lastY = 0;
+wrap.addEventListener('mousedown', e => {
+  if (e.target.closest('.node')) return; // node drag handles itself
+  panning = true; lastX = e.clientX; lastY = e.clientY; wrap.classList.add('dragging');
+});
+window.addEventListener('mouseup', () => { panning = false; wrap.classList.remove('dragging'); });
+window.addEventListener('mousemove', e => {
+  if (!panning) return;
+  panX += (e.clientX - lastX); panY += (e.clientY - lastY);
+  lastX = e.clientX; lastY = e.clientY;
+  applyTransform();
+});
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) {
+    const dy = Math.max(-60, Math.min(60, e.deltaY));
+    const factor = Math.exp(-dy * 0.012);
+    scale = Math.min(3, Math.max(0.15, scale * factor));
+  } else {
+    panX -= e.deltaX;
+    panY -= e.deltaY;
+  }
+  applyTransform();
+}, {passive: false});
+document.getElementById('zin').onclick = () => { scale = Math.min(3, scale*1.2); applyTransform(); };
+document.getElementById('zout').onclick = () => { scale = Math.max(0.15, scale/1.2); applyTransform(); };
+document.getElementById('zreset').onclick = () => { scale=0.85; panX=40; panY=0; applyTransform(); };
+document.getElementById('reset-layout').onclick = () => { localStorage.removeItem(LS_KEY); location.reload(); };
+
+// ---- edge geometry (mirrors the Python layout math) ----
+function anchorRight(n) { return [+n.dataset.x + BOX_W, +n.dataset.y + BOX_H/2]; }
+function anchorLeft(n)  { return [+n.dataset.x, +n.dataset.y + BOX_H/2]; }
+function pathFor(x1, y1, x2, y2, isBack) {
+  if (isBack) {
+    const dy = 60;
+    return `M ${x1} ${y1} C ${x1+40} ${y1+dy}, ${x2-40} ${y2+dy}, ${x2} ${y2}`;
+  }
+  const dx = Math.max(40, (x2 - x1) / 2);
+  return `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
+}
+function updateEdgesFor(nodeId) {
+  document.querySelectorAll('.edge').forEach(edge => {
+    if (edge.dataset.src !== nodeId && edge.dataset.dst !== nodeId) return;
+    const s = nodeById[edge.dataset.src], d = nodeById[edge.dataset.dst];
+    if (!s || !d) return;
+    const [x1, y1] = anchorRight(s);
+    const [x2, y2] = anchorLeft(d);
+    edge.setAttribute('d', pathFor(x1, y1, x2, y2, edge.dataset.back === '1'));
+  });
+}
+
+// ---- drag-to-reposition, persisted per node id in localStorage ----
+function saveLayout() {
+  const data = {};
+  document.querySelectorAll('.node').forEach(n => { data[n.dataset.id] = [+n.dataset.x, +n.dataset.y]; });
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
+}
+(function restoreLayout() {
+  const raw = localStorage.getItem(LS_KEY);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    document.querySelectorAll('.node').forEach(n => {
+      const saved = data[n.dataset.id];
+      if (!saved) return;
+      n.dataset.x = saved[0]; n.dataset.y = saved[1];
+      n.setAttribute('transform', `translate(${saved[0]},${saved[1]})`);
+    });
+    document.querySelectorAll('.node').forEach(n => updateEdgesFor(n.dataset.id));
+  } catch (err) { /* ignore corrupt saved layout */ }
+})();
+
+let dragNode = null, dragStart = null, dragMoved = false;
+document.querySelectorAll('.node').forEach(n => {
+  n.addEventListener('mousedown', e => {
+    e.stopPropagation();
+    dragNode = n; dragMoved = false;
+    dragStart = { mx: e.clientX, my: e.clientY, x: +n.dataset.x, y: +n.dataset.y };
+    n.style.cursor = 'grabbing';
+  });
+});
+window.addEventListener('mousemove', e => {
+  if (!dragNode) return;
+  const dx = (e.clientX - dragStart.mx) / scale;
+  const dy = (e.clientY - dragStart.my) / scale;
+  if (Math.abs(dx) > 2 || Math.abs(dy) > 2) dragMoved = true;
+  const nx = dragStart.x + dx, ny = dragStart.y + dy;
+  dragNode.dataset.x = nx; dragNode.dataset.y = ny;
+  dragNode.setAttribute('transform', `translate(${nx},${ny})`);
+  updateEdgesFor(dragNode.dataset.id);
+});
+window.addEventListener('mouseup', () => {
+  if (dragNode) {
+    dragNode.style.cursor = 'grab';
+    if (dragMoved) saveLayout();
+    else selectNode(dragNode.dataset.id);
+    dragNode = null;
+  }
+});
+
+// ---- full-graph adjacency for transitive (multi-hop) ancestor/descendant highlight ----
+// "not_consumed_by" edges are excluded here on purpose: they document an
+// ABSENCE of flow, so nothing should be considered "reached" through them.
+const succAdj = {}, predAdj = {};
+document.querySelectorAll('.node').forEach(n => { succAdj[n.dataset.id] = []; predAdj[n.dataset.id] = []; });
+document.querySelectorAll('.edge').forEach(e => {
+  if (e.dataset.label === 'not_consumed_by') return;
+  const s = e.dataset.src, d = e.dataset.dst;
+  if (succAdj[s]) succAdj[s].push(d);
+  if (predAdj[d]) predAdj[d].push(s);
+});
+function bfs(startId, adj) {
+  const visited = new Set([startId]);
+  const queue = [startId];
+  while (queue.length) {
+    const u = queue.shift();
+    for (const v of (adj[u] || [])) {
+      if (!visited.has(v)) { visited.add(v); queue.push(v); }
+    }
+  }
+  visited.delete(startId);
+  return visited;
+}
+
+// ---- selection: full upstream/downstream chain highlighted, immediate edges listed by name ----
+function selectNode(id) {
+  const n = nodeById[id];
+  if (!n) return;
+  const ancestors = bfs(id, predAdj);     // everything upstream, any number of hops
+  const descendants = bfs(id, succAdj);   // everything downstream, any number of hops
+  const relevant = new Set([id, ...ancestors, ...descendants]);
+
+  document.querySelectorAll('.node').forEach(x => {
+    x.classList.remove('hi', 'dim', 'upstream', 'downstream');
+    const xid = x.dataset.id;
+    if (xid === id) { x.classList.add('hi'); return; }
+    if (ancestors.has(xid)) x.classList.add('upstream');
+    else if (descendants.has(xid)) x.classList.add('downstream');
+    else x.classList.add('dim');
+  });
+  document.querySelectorAll('.edge').forEach(x => {
+    const direct = x.dataset.src === id || x.dataset.dst === id;
+    const chained = relevant.has(x.dataset.src) && relevant.has(x.dataset.dst);
+    x.classList.toggle('hi', direct || chained);
+    x.classList.toggle('dim', !(direct || chained));
+  });
+
+  const out = [], inn = [];
+  document.querySelectorAll('.edge').forEach(x => {
+    if (x.dataset.src === id) out.push({to: x.dataset.dst, label: x.dataset.label});
+    if (x.dataset.dst === id) inn.push({from: x.dataset.src, label: x.dataset.label});
+  });
+  const fmt = (label) => label === 'not_consumed_by' ? '⚠ NOT USED by' : label;
+  const rowHtml = (other, label) =>
+    `<div class="edge-row" data-jump="${other}">${fmt(label)} → <b>${other}</b></div>`;
+  const outHtml = out.length ? out.map(o => rowHtml(o.to, o.label)).join('') : '<div class="muted">(nothing)</div>';
+  const inHtml = inn.length ? inn.map(o => rowHtml(o.from, o.label)).join('') : '<div class="muted">(nothing)</div>';
+
+  sidepanel.innerHTML = `
+    <h2>${id}</h2>
+    <div class="field"><div class="field-label">type</div>${n.dataset.type}</div>
+    <div class="field"><div class="field-label">reliability</div>
+      <span style="color:${RELIABILITY_COLOR[n.dataset.reliability] || '#888'}">${n.dataset.reliability}</span></div>
+    <div class="field"><div class="field-label">source</div>${n.dataset.fileref}</div>
+    <div class="field"><div class="field-label">note</div>${n.dataset.note}</div>
+    <div class="field"><div class="field-label" style="color:#4a9eff">full upstream chain — ${ancestors.size} node(s)</div>
+      everything that eventually feeds this, any number of hops (glowing blue on canvas)</div>
+    <div class="field"><div class="field-label" style="color:#e8420a">full downstream chain — ${descendants.size} node(s)</div>
+      everything this eventually affects, any number of hops (glowing orange on canvas)</div>
+    <div class="field"><div class="field-label">← feeds INTO this directly (${inn.length})</div>${inHtml}</div>
+    <div class="field"><div class="field-label">this feeds → directly (${out.length})</div>${outHtml}</div>
+  `;
+  sidepanel.querySelectorAll('.edge-row').forEach(row => {
+    row.onclick = () => selectNode(row.dataset.jump);
+  });
+}
+</script>
+</body>
+</html>
