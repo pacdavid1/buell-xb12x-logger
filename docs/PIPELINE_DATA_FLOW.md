@@ -90,7 +90,7 @@ NODE | vs_baro_normalize   | analysis_stage | web/launch.py:load_csv (pw1_norm/p
 NODE | vs_cell_index       | analysis_stage | web/launch.py:build_index()          | ACTIVE_UNVALIDATED | Welford-online per-cell mean/std for pw/spark/afv/dvss/pw_eff; MIN_N=5 gate; feeds GAP1 significance calc
 NODE | vs_gap1_significance | analysis_stage | web/launch.py:_compare_sessions (Welch 95% CI block) | ACTIVE_UNVALIDATED | dpw_eff_se/ci_lo/ci_hi/dpw_eff_sig computed per cell (v2.7.230); UI attenuates non-significant cells in sessions_vs.html, but CI treats autocorrelated samples as independent N (acknowledged optimistic in BACKLOG.md GAP1 remaining item)
 NODE | vs_gap5_convergence | analysis_stage | web/vs_engine.py:compute_convergence | ACTIVE_VALID    | DONE v2.7.253. Residual variance of dpw_eff across consecutive session pairs; converged when last 3 pairs < 0.002 threshold. Not yet surfaced in Tuner UI (badge pending)
-NODE | vs_merge_maps       | analysis_stage | web/vs_engine.py:_merge_maps         | ACTIVE_UNVALIDATED | Current PROPONER mechanism: per-cell winner-take-cell between two eeprom maps based on SWEET/SPICY_WOT flavor sign of dpw_eff/ddvss. Does NOT check dpw_eff_sig (GAP1 significance) before picking a winner — the gate that should exist is not wired
+NODE | vs_merge_maps       | analysis_stage | web/vs_engine.py:_merge_maps         | ACTIVE_UNVALIDATED | Current PROPONER mechanism: per-cell winner-take-cell between two eeprom maps. v2.7.256: eco (SWEET/dpw_eff) side now gated by dpw_eff_sig (GAP1) — non-significant cells are skipped instead of assigned a side (validated: 3/25 cells on 91B225 vs 248AE2). sport (SPICY_WOT/ddvss) side still ungated — no GAP1-equivalent CI exists for ddvss yet
 NODE | launch_detect       | analysis_stage | web/launch.py:detect_launches        | ACTIVE_VALID    | Legacy dtps>8 threshold detector (CLAUDE.md: "old approach... Everything new should use F7"); still the only source for cluster_launches/vdyno_launch
 NODE | launch_cluster      | analysis_stage | web/launch.py:cluster_launches       | ACTIVE_VALID    | Groups launches by pre-conditions only (gear/rpm/tps), outcome metrics intentionally excluded from clustering to avoid bias
 NODE | launch_cross_match  | analysis_stage | web/launch.py:match_clusters         | ACTIVE_VALID    | Matches launch clusters across sessions by Euclidean distance in (rpm,spd,tps); feeds sessions_launch.html (being migrated to F7 per backlog 7.8)
@@ -203,7 +203,7 @@ EDGE | gear_profile_json | launch_detect | feeds_into
 EDGE | eeprom_bin | eeprom_decoded_json | computed_from
 EDGE | eeprom_bin | vs_merge_maps | feeds_into
 EDGE | sessions_vs_cache | vs_merge_maps | feeds_into
-EDGE | vs_gap1_significance | vs_merge_maps | not_consumed_by
+EDGE | vs_gap1_significance | vs_merge_maps | gated_by
 EDGE | vs_merge_maps | ui_tuner | displayed_in
 EDGE | vs_merge_maps | fase6_unified_proposal | not_consumed_by
 EDGE | session_f7clusters_json | fase6_unified_proposal | not_consumed_by

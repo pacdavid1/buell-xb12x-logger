@@ -53,14 +53,26 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
     except Exception:
         delta=[]
     ci={}
+    skipped_insig=0
     for r in delta:
         if r['na']<MN or r['nb']<MN: continue
         fl=r['flavor']
         if fl not in ('SWEET','SPICY_WOT'): continue
         key=(bk(r['rpm_lo'],RB),bk(r['tps_lo'],TB))
         if key not in ci: ci[key]={'eco':None,'sport':None}
-        if fl=='SWEET': ci[key]['eco']='A' if r.get('dpw_eff',0)<0 else 'B'
-        elif fl=='SPICY_WOT': ci[key]['sport']='A' if r['ddvss']<0 else 'B'
+        if fl=='SWEET':
+            # GAP1 gate: only pick an eco winner when the Welch 95% CI on
+            # dpw_eff does not cross zero. Without this, a cell could win
+            # purely from ride-to-ride noise (see BACKLOG.md GAP 1).
+            if not r.get('dpw_eff_sig', False):
+                skipped_insig+=1
+                continue
+            ci[key]['eco']='A' if r.get('dpw_eff',0)<0 else 'B'
+        elif fl=='SPICY_WOT':
+            # ddvss has no GAP1-equivalent significance test yet, so the
+            # sport winner is still picked from raw sign — gating this needs
+            # its own CI calculation (not built; see BACKLOG.md GAP 1).
+            ci[key]['sport']='A' if r['ddvss']<0 else 'B'
     def winner(key):
         info=ci.get(key)
         if not info: return None
@@ -99,7 +111,8 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
     return {
         'attributable':attr,'changed':ac,
         'unchanged':[k for k in FK+SK if k not in ac],
-        'mode':mode,'cells_with_data':len(ci),'maps':result
+        'mode':mode,'cells_with_data':len(ci),
+        'skipped_insignificant':skipped_insig,'maps':result
     }
 
 def _fmtk(n):

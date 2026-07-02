@@ -21,6 +21,12 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.256] — 2026-07-02
+### Fixed
+- web/vs_engine.py `_merge_maps` — GAP 1 significance now actually gates the only working PROPONER path. Previously a cell's eco (SWEET) winner was picked from the raw sign of `dpw_eff` alone; now cells where `dpw_eff_sig=False` (Welch 95% CI crosses zero) are skipped entirely instead of picking a side from noise. New `skipped_insignificant` count in the response. Validated against real data (91B225 vs 248AE2): 3 of 25 cells with data were previously assigned a winner from a non-significant delta. The `sport` (SPICY_WOT/ddvss) side is NOT gated — no GAP1-equivalent CI exists for ddvss yet, noted inline as a follow-up (BACKLOG.md GAP 1 remaining item).
+### AI
+- Claude Sonnet 5, Anthropic
+
 ## [v2.7.255] — 2026-07-02
 ### Added
 - docs/PIPELINE_DATA_FLOW.md — structured data-flow inventory (68 nodes, 102 edges) of the full tuning pipeline: raw signals -> JSON artifacts -> analysis stages -> UI pages, tagged by reliability (ACTIVE_VALID/ACTIVE_UNVALIDATED/INACTIVE_NOISE/CAPTURED_UNUSED/DESIGN_ONLY). Documents that `_merge_maps` (the only working PROPONER path today) never checks `dpw_eff_sig` (GAP1 significance), that `rider_notes` and most GRAF2 annotation types are captured but never read downstream, and that `f7.py`/`launch.py` baro-normalize PW unconditionally (reconciled against CLAUDE.md's Alpha-N doctrine via BACKLOG.md task 006 -- not a bug, but the reconciliation isn't written down in CLAUDE.md itself).
