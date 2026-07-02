@@ -146,6 +146,7 @@ EDGE | raw_ecu_ego_afv | tuning_report_json | feeds_into
 EDGE | tuning_report_json | suggested_msq | computed_from
 EDGE | eeprom_decoded_json | suggested_msq | feeds_into
 EDGE | ride_summary_json | objectives_json | feeds_into
+EDGE | objectives_json | ui_dashboard | displayed_in
 EDGE | ride_csv | fuel_consumption_cache | computed_from
 EDGE | ride_csv | ride_errorlog_json | feeds_into
 
