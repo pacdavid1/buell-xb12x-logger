@@ -88,6 +88,18 @@ def parse(doc_text: str):
     return nodes, edges
 
 
+# Edges that are semantically the "feedback" side of a cycle, even when DFS
+# traversal order would have picked a different (technically valid but less
+# intuitive) edge to break. E.g. ui_tuner -> eeprom_bin is the QUEMAR
+# write-back that closes the LOG->...->QUEMAR->LOG cycle; without this,
+# DFS order alone might instead arc vs_merge_maps -> ui_tuner, which reads
+# as a normal forward step, not a loop.
+FORCED_LOOP_EDGES = {
+    ("ui_tuner", "eeprom_bin"),        # QUEMAR write-back closes LOG->...->QUEMAR->LOG
+    ("vdyno_fase_v4", "burns_json"),   # a new proposal becomes a new burn, same pattern
+}
+
+
 def break_cycles(node_ids, succ):
     """DFS-based back-edge detection. Returns set of (u, v) back edges."""
     WHITE, GRAY, BLACK = 0, 1, 2
@@ -119,7 +131,12 @@ def compute_layers(nodes, flow_edges):
             succ[e["src"]].append(e["dst"])
             pred[e["dst"]].append(e["src"])
 
-    back_edges = break_cycles(node_ids, succ)
+    forced = {(s, d) for (s, d) in FORCED_LOOP_EDGES if s in nodes and d in nodes}
+    # Remove forced-loop edges before DFS so they can't also get "naturally"
+    # detected, and so removing them can legitimately break the cycle they're
+    # part of instead of leaving DFS to pick some other edge in it.
+    succ_minus_forced = {n: [v for v in succ[n] if (n, v) not in forced] for n in node_ids}
+    back_edges = break_cycles(node_ids, succ_minus_forced) | forced
     acyc_pred = {n: [p for p in pred[n] if (p, n) not in back_edges] for n in node_ids}
     acyc_succ = {n: [s for s in succ[n] if (n, s) not in back_edges] for n in node_ids}
 
