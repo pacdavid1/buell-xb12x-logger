@@ -111,28 +111,44 @@ from data already on disk.
 
 ---
 
-## BL-DI-06 — Thermal protection stratum contamination (HIGH)
+## BL-DI-06 — Thermal protection stratum contamination (REFUTED BY DATA)
 **Tags:** bug, correction, sessions-vs, f7
-**Status:** [PLAN]
+**Status:** [CLOSED 2026-07-02 — premise empirically false; kept documented per BACKLOG_VDYNO.md rules 6/7]
 
-### Finding
+### Original claim
 The rear cylinder runs hotter and triggers ECU protection (enrichment,
-timing retard) not modeled anywhere in pipeline. fl_hot, do_fan,
-Fan_Duty_Pct, and spark1-spark2 / pw2/pw1 divergence signal this regime.
-Any Sessions VS or F7 sample during thermal protection measures ECU
-self-defense, not the map. These samples are currently mixed into deltas.
+timing retard) not modeled anywhere in pipeline; fl_hot/do_fan samples
+measure ECU self-defense, not the map, and should be excluded.
 
-### Action (DECISION 2026-07-02: stratify, do NOT exclude — BACKLOG_VDYNO.md rule 7)
-1. ~~Add exclusion filter~~ REJECTED: on an air-cooled Buell, normal operation
-   is 160-220°C and KTemp_Fan_On is a user-editable EEPROM byte — excluding
-   "hot" samples could discard a large share of valid data and would hide a
-   map that wins specifically in the hot regime.
-2. Stratify: hot-vs-hot and cool-vs-cool comparisons; cross-stratum deltas
-   reported separately with a warning, never silently pooled or dropped.
-3. FIRST measure the flag's real effect with existing data (PW/spark step at
-   matched RPM×TPS buckets within one session, fl_hot=1 vs 0 at similar CLT)
-   — empirical analysis launched 2026-07-02, results pending.
-4. Bonus: reverse-engineer DDFI-2 undocumented hot-protection logic
+### What the data actually showed (89 rides, 14 sessions, 391,508 samples)
+- **fl_hot is NOT a protection flag — it's a "warmed-up" indicator.**
+  Flags6 bit 3 (protocol.py:305); flips ON at CLT median ~65°C, matching
+  the EEPROM "Hot Start Condition" param (45°C, offset 156). fl_hot=1
+  covers **95.1% of ALL samples** (fl_hot=0 = cold start, CLT mean 35°C).
+  The proposed exclusion filter would have discarded 95% of the dataset.
+- **No thermal-protection fueling/spark step exists in the warm regime:**
+  matched RPM×TPS buckets, CLT band 200-240°C vs 140-180°C (163 buckets,
+  ΔCLT +51°C): pw1 median +0.58% IQR [-3.12,+2.84]; spark +0.01°
+  IQR [-0.17,+0.15]. No enrichment, no retard.
+- **Real protection never engages in the entire dataset:** soft limit is
+  280°C (gated RPM≥3500 + TPS≥80), hard limit 295°C (spark cut). Max CLT
+  ever recorded = 280°C (one single sample). BUEIB.xml contains NO
+  hot-enrichment fuel table — only Warmup Enrichment (exhausted ~140°C).
+- **do_fan has a real but electrical effect:** fan-on at matched buckets
+  drops Batt_V by −0.19V → pw1 +2.31% IQR [-0.39,+4.71] (injector
+  dead-time path). fl_hot and do_fan are independent signals (only 33.7%
+  overlap). User's fan thresholds: On=220°C, Off=180°C.
+
+### Resulting actions
+1. No thermal exclusion, no thermal stratification — CLT-band matching
+   adds ≤±3% noise reduction at best; a warm-up inclusion gate (CLT≥80°C
+   or fl_hot=1) is sufficient and the pipeline effectively has it already.
+2. The REAL confounder confirmed here is Batt_V (fan-induced −0.19V ≈ +2%
+   PW) → folded into BL-DI-01, which is now the single highest-value
+   hygiene item, with empirical priors attached.
+3. This item stands as the first applied case of BACKLOG_VDYNO.md rule 7
+   (measure before filtering): the "one-line filter" would have quietly
+   destroyed the dataset.
 
 ---
 

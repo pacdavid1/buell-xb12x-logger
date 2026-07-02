@@ -21,6 +21,14 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.261] — 2026-07-02
+### Changed
+- BL-DI-06 (thermal protection contamination) CLOSED AS REFUTED by empirical analysis of all 89 rides / 391,508 samples: fl_hot is a warmed-up indicator (Flags6 bit 3, flips at CLT ~65°C, matches EEPROM "Hot Start Condition" 45°C), not a protection flag — it covers 95.1% of all samples, so the proposed exclusion filter would have silently discarded 95% of the dataset. No thermal fueling/spark step exists anywhere in the warm regime (pw1 +0.58% median across a +51°C CLT band; spark +0.01°); real protection (soft 280°C / hard 295°C) never engaged in the entire dataset (max CLT ever = 280°C, one sample). Tombstone kept in BACKLOG_DATASET_INSIGHTS.md per design rules 6/7.
+- BL-DI-01 (Batt_V confounder) upgraded with empirical priors from the same analysis: fan-on drops Batt_V −0.19V and shifts pw1 +2.31% (IQR −0.39/+4.71) at matched warm cells — same order as the dpw deltas the pipeline treats as map signal. Now the single confirmed highest-value hygiene item.
+- docs/PIPELINE_DATA_FLOW.md updated accordingly (vs_classify and raw_ecu_batt notes, gap-to-north-star section); pipeline graph regenerated.
+### AI
+- Claude Fable 5, Anthropic
+
 ## [v2.7.260] — 2026-07-02
 ### Changed
 - BACKLOG_VDYNO.md design rule 7 added: STRATIFY, DON'T EXCLUDE. Never discard data for being "outside the ideal" — split into strata and compare within-stratum. Triggered by the thermal-filter debate: fl_hot/do_fan exclusion (BL-DI-06) would throw away potentially large amounts of valid air-cooled-Buell operating data (normal head temp 160-220°C, fan threshold is an editable EEPROM byte) and would hide a map that wins specifically in the hot regime. Only physically information-free signals get fully dropped (e.g. EGO_Corr/AFV locked at 100.0 with the sensor disconnected). Cheap dual computations (gear via RPM/VSS and VSS/RPM) get done both ways and documented.

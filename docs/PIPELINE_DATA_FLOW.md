@@ -38,7 +38,7 @@ NODE | raw_ecu_spark       | raw_signal | ecu/protocol.py:CSV_COLUMNS (spark1,sp
 NODE | raw_ecu_ego_afv     | raw_signal | ecu/protocol.py:CSV_COLUMNS (EGO_Corr,AFV)                          | INACTIVE_NOISE | Locked at 100.0 always — narrowband EGO physically disconnected, OL mode. Rule: no feature may depend on these until WB sensor installed
 NODE | raw_ecu_enrich      | raw_signal | ecu/protocol.py:CSV_COLUMNS (WUE,Accel_Corr,Decel_Corr,WOT_Corr,Idle_Corr,OL_Corr) | ACTIVE_VALID | ECU-generated (not O2-derived); WUE/AE used as CellTracker validity filters
 NODE | raw_ecu_temp        | raw_signal | ecu/protocol.py:CSV_COLUMNS (CLT,MAT)                              | ACTIVE_VALID   | CLT gates tuning validity (>=70C) and classify() flavor (BITTER if <170F); MAT logged, only descriptive today
-NODE | raw_ecu_batt        | raw_signal | ecu/protocol.py:CSV_COLUMNS (Batt_V)                               | CAPTURED_UNUSED | Logged every sample; used only as RideErrorLog context. BL-DI-01 (BACKLOG_DATASET_INSIGHTS): injector dead-time varies 0.1-0.2ms/V with Batt_V — same magnitude as dpw deltas Sessions VS treats as map differences. Not yet used as a cell-matching confounder correction
+NODE | raw_ecu_batt        | raw_signal | ecu/protocol.py:CSV_COLUMNS (Batt_V)                               | CAPTURED_UNUSED | Logged every sample; used only as RideErrorLog context. BL-DI-01: injector dead-time varies with Batt_V — EMPIRICALLY CONFIRMED 2026-07-02: fan-on drops Batt_V −0.19V and shifts pw1 +2.31% (IQR -0.39/+4.71) at matched warm cells — same order as the dpw deltas Sessions VS treats as map differences. Highest-value pending hygiene fix; not yet used as a cell-matching confounder correction
 NODE | raw_ecu_o2adc       | raw_signal | ecu/protocol.py:CSV_COLUMNS (O2_ADC)                               | CAPTURED_UNUSED | Raw ADC logged and aggregated (o2_adc_avg) in tuning_report cells, but tuning_report itself is INACTIVE_NOISE downstream
 NODE | raw_ecu_flags       | raw_signal | ecu/protocol.py:decode_rt_packet (fl_*, do_*, di_* bit flags)      | ACTIVE_VALID   | fl_wot/fl_decel/fl_fuel_cut/fl_hot gate CellTracker validity, F7 event trimming, VDYNO segment extraction, launch detection
 NODE | raw_ecu_diag        | raw_signal | ecu/protocol.py:CSV_COLUMNS (CDiag0-4,HDiag0-4)                    | CAPTURED_UNUSED | Diagnostic counters logged, no downstream consumer; IDEAS.md IDEA-005 proposes fault-mining, not implemented
@@ -85,7 +85,7 @@ NODE | f7_event_detect     | analysis_stage | web/f7.py:_f7_detect_events       
 NODE | f7_dtw_cluster      | analysis_stage | web/f7.py:_f7_cluster / _f7_dtw     | ACTIVE_VALID    | Complete-linkage DTW clustering on PW curves, sub-divided by Bucket-A consistency (gear/RPM/VSS/TPS)
 NODE | f7_cross_session_match | analysis_stage | web/f7.py:_f7_match_cross_session | ACTIVE_VALID  | TPS-curve DTW matches clusters across sessions; PW delta at matched points is the "which map accelerates better" signal
 NODE | f7_pilot_marked     | analysis_stage | web/f7.py:_f7_events_from_annotations | ACTIVE_VALID | Builds F7-shaped events directly from type=launch annotations (F7 Phase 2.2, "juntas pero no revueltas" — pooled but tagged separately, P-prefix clusters)
-NODE | vs_classify         | analysis_stage | web/launch.py:classify()            | ACTIVE_UNVALIDATED | Buckets every sample into SWEET/SPICY_TIPIN/SPICY_TIPOUT/SPICY_WOT/SALTY_UP/SALTY_DOWN/BITTER; does NOT exclude fl_hot/do_fan thermal-protection samples (BL-DI-06, [PLAN]) or correct for Batt_V (BL-DI-01, [PLAN])
+NODE | vs_classify         | analysis_stage | web/launch.py:classify()            | ACTIVE_UNVALIDATED | Buckets every sample into SWEET/SPICY_TIPIN/SPICY_TIPOUT/SPICY_WOT/SALTY_UP/SALTY_DOWN/BITTER; thermal-exclusion concern REFUTED 2026-07-02 (fl_hot is a warmed-up flag covering 95% of samples, no protection step exists in the data — BL-DI-06 closed); the remaining real confounder is Batt_V (BL-DI-01, [PLAN], now with empirical prior: fan-on −0.19V ≈ +2% PW)
 NODE | vs_baro_normalize   | analysis_stage | web/launch.py:load_csv (pw1_norm/pw2_norm = pw * REF_BARO/baro) | INACTIVE_NOISE (contradicts doctrine) | Applies Speed-Density-style baro correction to PW before every Sessions VS comparison, directly contradicting CLAUDE.md's Alpha-N rule ("do NOT normalize PW by baro for DDFI2"). Feeds dpw1/dpw2/dpw_eff — the metrics the OL reliability table calls ✅ VALID
 NODE | vs_cell_index       | analysis_stage | web/launch.py:build_index()          | ACTIVE_UNVALIDATED | Welford-online per-cell mean/std for pw/spark/afv/dvss/pw_eff; MIN_N=5 gate; feeds GAP1 significance calc
 NODE | vs_gap1_significance | analysis_stage | web/launch.py:_compare_sessions (Welch 95% CI block) | ACTIVE_UNVALIDATED | dpw_eff_se/ci_lo/ci_hi/dpw_eff_sig computed per cell (v2.7.230); UI attenuates non-significant cells in sessions_vs.html, but CI treats autocorrelated samples as independent N (acknowledged optimistic in BACKLOG.md GAP1 remaining item)
@@ -262,11 +262,12 @@ a baro-normalization of injector pulse-width that is applied unconditionally in 
 and `f7.py` and directly contradicts CLAUDE.md's own Alpha-N doctrine ("do NOT normalize PW
 by baro for DDFI2 — it is not Speed Density"); this is the metric the OL reliability table
 calls `dpw_eff == dpw` and marks `✅ VALID`, so the table's own premise is compromised by code
-that predates or bypassed that written rule. On top of that, none of BACKLOG_DATASET_INSIGHTS'
-Phase A hygiene items are implemented — Batt_V confounder correction, thermal-protection
-sample exclusion (`fl_hot`/`do_fan`), and per-sample density normalization are all `[PLAN]` —
-so every dpw/dpw_eff comparison mixes electrical and thermal noise into what's presented as a
-map-calibration signal. GAP1's Welch confidence interval is computed and shown in the UI;
+that predates or bypassed that written rule. Of BACKLOG_DATASET_INSIGHTS' Phase A hygiene
+items, the thermal one was **refuted by measurement on 2026-07-02** (fl_hot is a warmed-up
+flag covering 95% of samples; no protection fueling/spark step exists anywhere in 391k
+samples — BL-DI-06 closed), which leaves **Batt_V (BL-DI-01) as the single real confirmed
+confounder** (fan-induced −0.19V ≈ +2% PW at matched cells, same order as the dpw deltas the
+pipeline treats as map signal) plus density normalization, both still `[PLAN]`. GAP1's Welch confidence interval is computed and shown in the UI;
 as of v2.7.256 it also gates the eco/SWEET side of `_merge_maps` (non-significant cells are
 skipped instead of assigned a winner) — the sport/SPICY_WOT side (`ddvss`) is still ungated
 because no GAP1-equivalent confidence interval exists for it yet.
@@ -285,9 +286,9 @@ ledger causal history, is explicitly a "not yet started" design document that it
 autonomous burning permanently out of scope — a human always stays in the loop for QUEMAR.
 Given all this, the single shortest path to the north star is not FASE V4 — it's finishing
 what's already half-built: (1) fix or deliberately remove the baro PW-normalization so Sessions
-VS measures what CLAUDE.md says it measures, (2) implement BACKLOG_DATASET_INSIGHTS Phase A
-(Batt_V regression + thermal filter — both described as "one-afternoon script" / "one-line
-filter"), (3) wire `dpw_eff_sig` as an actual gate in `_merge_maps` so PROPONER stops
+VS measures what CLAUDE.md says it measures, (2) implement the Batt_V regression (BL-DI-01,
+"one-afternoon script" — the thermal filter half of Phase A was refuted by data 2026-07-02
+and is no longer pending), (3) wire `dpw_eff_sig` as an actual gate in `_merge_maps` so PROPONER stops
 proposing changes it cannot statistically justify, and only then (4) build FASE 6 as the
 convergence-aware, significance-gated successor to `_merge_maps`. Everything else — GAP2
 Bayesian optimization, VDYNO FASE V4, wideband integration — depends on that foundation being
