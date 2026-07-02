@@ -21,6 +21,13 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.257] — 2026-07-02
+### Added
+- docs/pipeline_layout.json — manual node arrangement for the pipeline graph viewer, exported from the browser and committed so it's not only living in localStorage. scripts/build_pipeline_graph.py now loads it automatically (LAYOUT_OVERRIDE) and prefers it over the computed layout.
+- pipeline_graph.html: export/import layout buttons (download/upload the arrangement as JSON), a save-status indicator on every drag, a confirm() dialog before "reset positions", a toggle to show all connection lines at full brightness regardless of selection, and a collapsible info panel.
+### AI
+- Claude Sonnet 5, Anthropic
+
 ## [v2.7.256] — 2026-07-02
 ### Fixed
 - web/vs_engine.py `_merge_maps` — GAP 1 significance now actually gates the only working PROPONER path. Previously a cell's eco (SWEET) winner was picked from the raw sign of `dpw_eff` alone; now cells where `dpw_eff_sig=False` (Welch 95% CI crosses zero) are skipped entirely instead of picking a side from noise. New `skipped_insignificant` count in the response. Validated against real data (91B225 vs 248AE2): 3 of 25 cells with data were previously assigned a winner from a non-significant delta. The `sport` (SPICY_WOT/ddvss) side is NOT gated — no GAP1-equivalent CI exists for ddvss yet, noted inline as a follow-up (BACKLOG.md GAP 1 remaining item).

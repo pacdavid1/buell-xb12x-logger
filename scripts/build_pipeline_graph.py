@@ -12,6 +12,7 @@ consistent with the project's "no charting libraries" convention.
 Re-run this after editing docs/PIPELINE_DATA_FLOW.md to refresh the view:
     python scripts/build_pipeline_graph.py
 """
+import json
 import re
 import sys
 from collections import defaultdict, deque
@@ -19,6 +20,10 @@ from pathlib import Path
 
 DOC = Path(__file__).resolve().parent.parent / "docs" / "PIPELINE_DATA_FLOW.md"
 OUT = Path(__file__).resolve().parent.parent / "docs" / "pipeline_graph.html"
+# Optional: exported from the "export layout" button in the HTML viewer and
+# dropped here. When present, its positions win over the computed layout so
+# a manual arrangement survives regeneration (and can be committed to git).
+LAYOUT_OVERRIDE = Path(__file__).resolve().parent.parent / "docs" / "pipeline_layout.json"
 
 FLOW_LABELS = {"computed_from", "feeds_into", "displayed_in", "gated_by"}
 GAP_LABELS = {"not_consumed_by"}
@@ -165,6 +170,15 @@ def order_layers(nodes, cols, flow_edges, iterations=8):
     return cols
 
 
+def load_layout_override():
+    if not LAYOUT_OVERRIDE.exists():
+        return {}
+    try:
+        return json.loads(LAYOUT_OVERRIDE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
 def assign_positions(nodes, layer, flow_edges, col_w=280, row_h=84, pad=50):
     cols = defaultdict(list)
     decl_order = {n: i for i, n in enumerate(nodes.keys())}
@@ -179,10 +193,19 @@ def assign_positions(nodes, layer, flow_edges, col_w=280, row_h=84, pad=50):
     for c, ns in cols.items():
         for i, n in enumerate(ns):
             pos[n] = (c * col_w + pad, i * row_h + pad)
+
+    overrides = load_layout_override()
+    max_x = max_y = 0
+    for nid, xy in overrides.items():
+        if nid in nodes and isinstance(xy, (list, tuple)) and len(xy) == 2:
+            pos[nid] = (xy[0], xy[1])
+    for x, y in pos.values():
+        max_x, max_y = max(max_x, x), max(max_y, y)
+
     max_col = max(cols.keys()) if cols else 0
     max_rows = max((len(ns) for ns in cols.values()), default=0)
-    width = (max_col + 1) * col_w + pad * 2 + 220
-    height = max_rows * row_h + pad * 2
+    width = max((max_col + 1) * col_w + pad * 2 + 220, max_x + 300)
+    height = max(max_rows * row_h + pad * 2, max_y + 150)
     return pos, width, height
 
 
@@ -308,10 +331,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   #edge-legend .row {{ display:flex; align-items:center; gap:6px; margin:3px 0; }}
   #edge-legend .line {{ width:22px; height:0; border-top-width:2px; border-top-style:solid; }}
   #canvas-wrap {{ position:absolute; top:56px; left:0; right:340px; bottom:0; overflow:hidden;
-                  cursor:grab; }}
+                  cursor:grab; transition: right 0.15s; }}
   #canvas-wrap.dragging {{ cursor:grabbing; }}
+  #canvas-wrap.panel-hidden {{ right:0; }}
   #sidepanel {{ position:fixed; top:56px; right:0; bottom:0; width:340px; background:var(--panel);
-                border-left:1px solid #222; padding:16px; overflow-y:auto; font-size:12px; }}
+                border-left:1px solid #222; padding:16px; overflow-y:auto; font-size:12px;
+                transition: transform 0.15s; }}
+  #sidepanel.hidden {{ transform: translateX(340px); }}
+  #panel-toggle {{ background:var(--panel); color:var(--fg); border:1px solid #333;
+                    font-size:10px; padding:4px 8px; cursor:pointer; margin-left:auto; }}
+  #showall-toggle {{ font-size:11px; display:flex; align-items:center; gap:5px; cursor:pointer;
+                      user-select:none; }}
   #sidepanel h2 {{ font-size:13px; color: var(--accent); margin-top:0; word-break:break-all; }}
   #sidepanel .field {{ margin-bottom:10px; }}
   #sidepanel .field-label {{ color: var(--muted); font-size:10px; text-transform:uppercase; }}
@@ -328,17 +358,25 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .edge {{ transition: opacity 0.15s; }}
   .edge.dim {{ opacity: 0.05 !important; }}
   .edge.hi {{ opacity: 1 !important; stroke-width: 3 !important; }}
+  body.show-all .edge {{ opacity: 1 !important; }}
+  body.show-all .node.dim {{ opacity: 1; }}
   #hint {{ position:fixed; bottom:8px; left:8px; font-size:10px; color: var(--muted); z-index:10; }}
   #zoomctl {{ position:fixed; bottom:8px; right:352px; z-index:10; display:flex; gap:6px; }}
   #zoomctl button {{ background:var(--panel); color:var(--fg); border:1px solid #333;
                       width:26px; height:26px; cursor:pointer; }}
-  #zoomctl button#reset-layout {{ width:auto; padding:0 8px; font-size:10px; }}
+  #zoomctl button#reset-layout {{ width:auto; padding:0 8px; font-size:10px; color:#ff5c5c;
+                                   border-color:#5a2020; }}
+  #zoomctl button.safe {{ width:auto; padding:0 8px; font-size:10px; }}
+  #save-status {{ font-size:10px; color: var(--muted); opacity:0.4; transition: opacity 0.3s;
+                   align-self:center; }}
 </style>
 </head>
 <body>
 <div id="topbar">
   <h1>PIPELINE DATA FLOW</h1>
   <div id="legend"></div>
+  <label id="showall-toggle"><input type="checkbox" id="showall-check"> show ALL connections at full brightness</label>
+  <button id="panel-toggle">hide info panel</button>
 </div>
 <div id="edge-legend">{edge_legend_html}</div>
 <div id="canvas-wrap">{svg}</div>
@@ -346,6 +384,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 exactly what feeds it and what it feeds. Drag a node to reposition it (saved automatically).
 Two-finger scroll / wheel pans; pinch or Ctrl+wheel zooms.</p></div>
 <div id="zoomctl"><button id="zin">+</button><button id="zout">-</button><button id="zreset">1:1</button>
+<button id="export-layout" class="safe" title="Download current node positions as a JSON file">export layout ⬇</button>
+<label class="safe" style="background:var(--panel); border:1px solid #333; padding:0 8px;
+  font-size:10px; cursor:pointer; display:inline-flex; align-items:center;">
+  import layout ⬆<input id="import-layout-file" type="file" accept="application/json" style="display:none">
+</label>
+<span id="save-status"></span>
 <button id="reset-layout">reset positions</button></div>
 <div id="hint">source: docs/PIPELINE_DATA_FLOW.md — regenerate with scripts/build_pipeline_graph.py</div>
 <script>
@@ -412,10 +456,58 @@ wrap.addEventListener('wheel', e => {{
   }}
   applyTransform();
 }}, {{passive: false}});
+document.getElementById('showall-check').addEventListener('change', e => {{
+  document.body.classList.toggle('show-all', e.target.checked);
+}});
+document.getElementById('panel-toggle').onclick = () => {{
+  const hidden = sidepanel.classList.toggle('hidden');
+  wrap.classList.toggle('panel-hidden', hidden);
+  document.getElementById('panel-toggle').textContent = hidden ? 'show info panel' : 'hide info panel';
+}};
 document.getElementById('zin').onclick = () => {{ scale = Math.min(3, scale*1.2); applyTransform(); }};
 document.getElementById('zout').onclick = () => {{ scale = Math.max(0.15, scale/1.2); applyTransform(); }};
 document.getElementById('zreset').onclick = () => {{ scale=0.85; panX=40; panY=0; applyTransform(); }};
-document.getElementById('reset-layout').onclick = () => {{ localStorage.removeItem(LS_KEY); location.reload(); }};
+document.getElementById('reset-layout').onclick = () => {{
+  const ok = confirm('This discards your saved node positions and reloads the computed ' +
+    'layout. This cannot be undone unless you already exported a backup with ' +
+    '"export layout". Continue?');
+  if (!ok) return;
+  localStorage.removeItem(LS_KEY);
+  location.reload();
+}};
+
+document.getElementById('export-layout').onclick = () => {{
+  const data = {{}};
+  document.querySelectorAll('.node').forEach(n => {{ data[n.dataset.id] = [+n.dataset.x, +n.dataset.y]; }});
+  const blob = new Blob([JSON.stringify(data, null, 2)], {{type: 'application/json'}});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'pipeline_layout.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}};
+
+document.getElementById('import-layout-file').addEventListener('change', e => {{
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {{
+    try {{
+      const data = JSON.parse(reader.result);
+      document.querySelectorAll('.node').forEach(n => {{
+        const saved = data[n.dataset.id];
+        if (!saved) return;
+        n.dataset.x = saved[0]; n.dataset.y = saved[1];
+        n.setAttribute('transform', `translate(${{saved[0]}},${{saved[1]}})`);
+      }});
+      document.querySelectorAll('.node').forEach(n => updateEdgesFor(n.dataset.id));
+      saveLayout();
+      alert('Layout imported from file and saved.');
+    }} catch (err) {{ alert('Could not read that file as a layout JSON: ' + err.message); }}
+  }};
+  reader.readAsText(file);
+  e.target.value = '';
+}});
 
 // ---- edge geometry (mirrors the Python layout math) ----
 function anchorRight(n) {{ return [+n.dataset.x + BOX_W, +n.dataset.y + BOX_H/2]; }}
@@ -444,6 +536,13 @@ function saveLayout() {{
   const data = {{}};
   document.querySelectorAll('.node').forEach(n => {{ data[n.dataset.id] = [+n.dataset.x, +n.dataset.y]; }});
   localStorage.setItem(LS_KEY, JSON.stringify(data));
+  const status = document.getElementById('save-status');
+  if (status) {{
+    status.textContent = 'saved to browser ' + new Date().toLocaleTimeString();
+    status.style.opacity = '1';
+    clearTimeout(saveLayout._t);
+    saveLayout._t = setTimeout(() => {{ status.style.opacity = '0.4'; }}, 2500);
+  }}
 }}
 (function restoreLayout() {{
   const raw = localStorage.getItem(LS_KEY);
