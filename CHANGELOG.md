@@ -21,6 +21,15 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.259] — 2026-07-02
+### Added
+- BACKLOG.md BL-BUG-04 — confirmed /tuner/burn 404 (Map Editor burn button) filed as a proper backlog bug, HIGH priority, flagged as needing a branch (touches an EEPROM burn path) per CLAUDE.md's git branch policy.
+### Changed
+- BACKLOG_VDYNO.md design rule 1 clarified: human-in-the-loop means review + approve/reject, not manual per-cell value authoring. The user does not want to decide cell deltas by hand — that has no basis beyond the data the system already processes. Human's active role is choosing what to analyze/compute (with AI) and approving or rejecting the system's proposal before burn.
+- BACKLOG.md FASE 5.1 (manual VE cell editor) scoped explicitly as an exception/override tool, not the primary tuning workflow — the primary workflow is FASE 6 / VDYNO computing and proposing values, human reviews and approves.
+### AI
+- Claude Sonnet 5, Anthropic
+
 ## [v2.7.258] — 2026-07-02
 ### Fixed
 - docs/PIPELINE_DATA_FLOW.md — systematic validation pass against actual code (all json_artifact/ui_page/analysis_stage nodes fully traced, raw signals spot-checked). Added 12 missing edges and corrected 3 wrong ones, including flipping `objectives_json <-> ride_summary_json` (config feeds the ride-close computation, not the reverse) and replacing two edges that pointed at functions never actually called (`f7_cross_session_match -> ui_session_events`, `vdyno_compare -> ui_launch_power`).

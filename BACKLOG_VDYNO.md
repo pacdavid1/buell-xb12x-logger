@@ -97,11 +97,24 @@ instrumento DIFERENCIAL, igual que toda la filosofía Sessions VS.
 
 ## DECISIONES DE DISEÑO (usuario, 2026-06-11) — REGLAS DURAS
 
-1. **HUMAN-IN-THE-LOOP OBLIGATORIO.** El sistema JAMÁS escribe la EEPROM
-   solo. Antes de quemar cualquier cambio SIEMPRE pregunta al usuario.
+1. **HUMAN-IN-THE-LOOP = REVISIÓN Y APROBACIÓN, NO AUTORÍA DE VALORES.**
+   (Aclarado 2026-07-02 — misma regla de siempre, precisada porque FASE 5.1
+   se prestaba a leerse como "el usuario edita celdas a mano".)
+   El sistema JAMÁS escribe la EEPROM solo. Pero el usuario tampoco decide
+   a mano cuánto subir o bajar una celda — no tiene más base que la data,
+   y la data es exactamente lo que el sistema ya procesa. El rol humano es:
+     (a) decidir QUÉ información calcular / qué análisis construir, en
+         colaboración con la IA (nuevas señales, nuevos cruces, nuevas
+         iteraciones de propuesta) — esto SÍ es trabajo activo del usuario;
+     (b) REVISAR la propuesta completa antes de quemarla (heatmap de diff,
+         confianza por celda, qué cambió y por qué);
+     (c) aprobar o rechazar la quemada — un click, no una edición celda
+         por celda.
+   El editor manual celda-por-celda (FASE 5.1 en BACKLOG.md) es herramienta
+   de excepción/override, NO el camino principal de tuning.
    El pipeline automático termina en: PROPUESTA VISIBLE EN EL TAB VE,
-   y el usuario la carga/quema manualmente. La quemada autónoma queda
-   explícitamente FUERA de alcance (también en FASE V4).
+   y el usuario la aprueba/quema. La quemada autónoma queda explícitamente
+   FUERA de alcance (también en FASE V4).
 2. **Cada propuesta = checksum/map_id NUEVO.** Así el burn ledger registra
    la genealogía padre → hijo sin ambigüedad y el veredicto sabe
    exactamente qué comparar contra qué.

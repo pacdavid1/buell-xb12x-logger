@@ -321,6 +321,23 @@ killed and restarted the logger mid-request. Cached pairs respond fine.
 Fix ideas: stream CSV parsing in _compare_sessions (chunked rows instead of
 full-file lists), or precompute VS cache in background after each session close.
 
+### BL-BUG-04 — Map Editor burn endpoint missing (/tuner/burn 404)
+**Priority:** HIGH — burn is a core safety-relevant feature, currently non-functional
+**Found:** 2026-07-02 (systematic pipeline-doc validation pass; confirmed live)
+
+`web/templates/map-editor.html` POSTs to `/tuner/burn` on the burn button.
+That route does not exist in `web/server.py`'s routing table — only `/burns`
+(GET, list) and `/eeprom/burn` are registered. Confirmed live against
+`serve_local.py`: `curl -X POST http://127.0.0.1:8080/tuner/burn` returns
+`404 {"error": "unknown endpoint"}`. Fails safe (nothing gets written to
+EEPROM) but the Map Editor's burn button does not work at all today.
+
+Fix: wire `/tuner/burn` to the same logic `/eeprom/burn` already uses, or
+point the frontend at `/eeprom/burn` directly if the request/response shapes
+match. **Touches an EEPROM burn path — requires a branch per CLAUDE.md git
+branch policy, not a direct commit to main, and explicit user approval
+before starting.**
+
 ### BL-GRAF-03 — GRAF2: remove floating cursor readout ✅ DONE v2.7.252 (2026-06-30)
 Removed #cur-readout panel (-32 lines). Cursor values shown inline in block header chips.
 
@@ -785,6 +802,13 @@ VE/spark map updates based on observed engine response vs expected ECU output.
 
 **Goal:** replace EcmSpy entirely for day-to-day tuning. Edit any named EEPROM
 parameter directly from the dashboard (phone or browser), burn to ECU via Pi.
+
+**Scope clarification (2026-07-02, see BACKLOG_VDYNO.md design rule 1):** the
+cell-by-cell manual editor below is an exception/override tool (correcting a
+bad cell, emergency tweak), NOT the primary tuning workflow. The primary path
+is the system computing and proposing 100% of the values (FASE 6 / VDYNO);
+the user's job is choosing what to analyze and approving/rejecting the
+proposal, not typing numbers into cells.
 
 ### Context
 
