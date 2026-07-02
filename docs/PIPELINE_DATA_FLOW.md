@@ -45,7 +45,7 @@ NODE | raw_ecu_diag        | raw_signal | ecu/protocol.py:CSV_COLUMNS (CDiag0-4,
 NODE | raw_ecu_dirty_bytes | raw_signal | ecu/protocol.py:CSV_COLUMNS (dirty_byte_hex,dirty_byte_name,forensic_event) | CAPTURED_UNUSED | Serial-corruption forensics logged per-row; consumed only informally (manual debugging), no automated report
 NODE | raw_gps             | sensor     | gps/reader.py -> CSV_COLUMNS (gps_lat,gps_lon,gps_alt_m,gps_speed_kmh,gps_heading,gps_satellites,gps_valid,gps_mode,gps_epx,gps_epy,gps_epv,gps_snr_avg,gps_heading_rate,gps_turning,gps_stale) | ACTIVE_UNVALIDATED | Absolute altitude has ~±10m per-session bias (documented in gps/slope_reference.py docstring); quality-gated via gps_epv/mode/sats (_gps_quality / _is_quality_fix) before any use
 NODE | raw_env_baro        | sensor     | sensors (baro) -> CSV_COLUMNS (baro_hPa,baro_temp_c)               | ACTIVE_UNVALIDATED | Used for VDYNO SAE J1349 air-density correction (bug-fixed v2.7.163+) AND for a PW baro-normalization in f7.py/launch.py that contradicts CLAUDE.md's explicit "do NOT normalize PW by baro for DDFI2 Alpha-N" rule — see gap section
-NODE | raw_env_humidity    | sensor     | sensors/aht20.py -> CSV_COLUMNS (humidity_pct)                    | CAPTURED_UNUSED | Logged and averaged into F7 event context (humidity_avg) but not read by any comparison or proposal logic
+NODE | raw_env_humidity    | sensor     | sensors/aht20.py -> CSV_COLUMNS (humidity_pct)                    | CAPTURED_UNUSED | Logged and averaged into F7 event context (humidity_avg) AND into Sessions VS env stats (_env_stats() in web/launch.py, embedded in sessions_vs_cache as sa.env/sb.env) — but in both places it is descriptive metadata only, never read by any delta comparison, gating, or proposal logic
 NODE | raw_sys_health      | sensor     | main.py -> CSV_COLUMNS (ttl_pct,cpu_pct,cpu_temp,mem_pct,buf_in)  | ACTIVE_VALID   | System health telemetry, consumed by system_health.json / Dashboard only, not tuning-relevant by design
 NODE | raw_imu             | sensor     | (not present in CSV_COLUMNS)                                       | DESIGN_ONLY    | BACKLOG_MAPA_3D / IDEAS reference MPU6050 vibration (FASE 3) and lean-angle analytics (BL-DI-09) — no IMU hardware/fields exist yet in the schema
 ```
@@ -59,7 +59,7 @@ NODE | session_metadata_json | json_artifact | ecu/session.py:_load_or_create / 
 NODE | rider_notes_field   | annotation    | ecu/session.py:_load_or_create (session_metadata["rider_notes"]=[]) | CAPTURED_UNUSED | Field is initialized empty on every new session. No write endpoint exists anywhere in web/server.py or handlers/. No read/UI consumer either. Proposed in BACKLOG.md ("agregar campo rider_notes... opciones normal/knock_heard") but never wired end-to-end — fully dead on both sides
 NODE | ride_annotations_json | annotation | web/server.py:_handle_post_annotations / _handle_annotations, captured via GRAF2 (web/static/graf2.js:annotationsPlugin) | ACTIVE_UNVALIDATED | Rider marks time regions with type in {launch, diagnostic, note} (unclassified = amber warning in UI). Full CRUD via POST /annotations
 NODE | eeprom_bin          | json_artifact | ecu/session.py:save_eeprom                                         | ACTIVE_VALID    | Always present per session; canonical source for map decode (do NOT require eeprom_decoded.json per CLAUDE.md data-reuse rule)
-NODE | eeprom_decoded_json | json_artifact | ecu/eeprom.py:decode_eeprom_maps / decode_eeprom_maps_full (XML-driven via ecu/ecm_defs.py) | ACTIVE_VALID | Multi-firmware map decode (fuel_front/rear, spark_front/rear, axes); optional cache, not required
+NODE | eeprom_decoded_json | json_artifact | ecu/eeprom.py:decode_eeprom_maps / decode_eeprom_maps_full (XML-driven via ecu/ecm_defs.py) | ACTIVE_VALID | Multi-firmware map decode (fuel_front/rear, spark_front/rear, axes); optional cache, not required. VERIFIED: no current code path writes sessions/*/eeprom_decoded.json (decode_eeprom_maps* only returns an in-memory dict) — every consumer (_update_tuning_report, _generate_suggested_msq, /eeprom/msq) reads it opportunistically if present but nothing in the pipeline creates it anymore, so on a fresh session this file simply does not exist
 NODE | ride_errorlog_json  | json_artifact | ecu/session.py:RideErrorLog.flush                                   | ACTIVE_VALID    | Serial exceptions, dirty bytes, bad checksums, ECU timeouts/resets — diagnostic only, feeds errorlog_viz.html, not the tuning cycle
 NODE | tuning_report_json  | json_artifact | ecu/session.py:_update_tuning_report                                | INACTIVE_NOISE  | Runs on EVERY ride close regardless of OL mode; computes ego_avg-based VE "suggestions" that are meaningless with EGO_Corr locked at 100. CLAUDE.md explicitly marks this ⛔ INACTIVE, yet the computation still executes and writes a file every ride
 NODE | suggested_msq       | json_artifact | ecu/session.py:_generate_suggested_msq                              | INACTIVE_NOISE  | Auto-generated from tuning_report suggestions — inherits the same EGO-based noise; a burnable MSQ file built entirely from a signal that doesn't exist in OL mode
@@ -73,7 +73,7 @@ NODE | gear_profile_json   | json_artifact | web/gear_learner.py:GearLearner._sa
 NODE | burns_json          | json_artifact | web/burn_ledger.py:record_burn                                     | ACTIVE_VALID    | Append-only parent→child checksum lineage with per-cell diffs; only written after a verified burn, never writes to ECU itself
 NODE | route_reference_json | json_artifact | gps/route_reference.py (GPS altitude trust reference)              | ACTIVE_UNVALIDATED | Enriches gps_analysis handler output with trusted reference altitude (BL-GPS-04); separate accumulator from slope_reference, also manually triggered
 NODE | live_json           | json_artifact | main.py (IPC) -> web/server.py:_get_live/_handle_live_json          | ACTIVE_VALID    | Live RT state polled every 0.25s by the Dashboard; not persisted for analysis, ephemeral
-NODE | objectives_json     | json_artifact | objectives.json + ecu/session.py cell_targets coverage check        | ACTIVE_VALID    | Static config of RPM/Load coverage goals; drives Dashboard "objectives" progress bars
+NODE | objectives_json     | json_artifact | objectives.json + ecu/session.py cell_targets coverage check        | ACTIVE_VALID    | Static config of RPM/Load coverage goals; drives Dashboard "objectives" progress bars. CAVEAT (verified in code): the live-polling render path is currently broken — web/server.py:_get_live() hardcodes `"objectives": []` in every /live.json response, and app.js's only other objectives source (`lastData.raw_objectives`) is never assigned anywhere, so renderObjectives() always receives an empty list while riding. The cell_targets DO reach the UI correctly through one path: close_current_ride() embeds a computed "objectives" list into ride_summary_json, and viewing a closed ride via /ride/<file> (app.js viewSelectedRides) surfaces it. So the edge is real but only fires post-ride, not live as the note implies
 NODE | fuel_consumption_cache | json_artifact | web/fuel_tracker.py:save_ride_consumption_cache                  | ACTIVE_VALID    | Persisted per ride close to avoid CSV re-scan; feeds fuel.html, not the tuning cycle
 ```
 
@@ -105,10 +105,10 @@ NODE | fase6_unified_proposal | analysis_stage | CLAUDE.md priority backlog #1, 
 
 ```
 NODE | ui_dashboard        | ui_page | web/templates/index.html            | ACTIVE_VALID | LOG stage — live ECU data, session/ride management, VE tab burn UI, fuel status widget
-NODE | ui_session_events   | ui_page | web/templates/session_events.html   | ACTIVE_VALID | ACOTAR + COMPARAR(events) — F7 cluster browser, cross-session ΔPW/ΔVSS
+NODE | ui_session_events   | ui_page | web/templates/session_events.html   | ACTIVE_VALID | ACOTAR + COMPARAR(events) — F7 cluster browser. CAVEAT (verified in code): despite the CLAUDE.md tuning-cycle table describing this page as doing cross-session ΔPW/ΔVSS, the template only has a single session selector and calls /session_events/data?session=<ONE id>, which returns _f7_load_session_clusters() (single-session clusters only) — there is no cluster_a_id/delta_pw/f7_matches rendering anywhere in the template. Cross-session F7 matching (_f7_match_cross_session) is real but is wired into Sessions VS (web/launch.py:_compare_sessions), not this page
 NODE | ui_sessions_vs      | ui_page | web/templates/sessions_vs.html      | ACTIVE_UNVALIDATED | COMPARAR(cells) — SWEET/SPICY/BITTER delta grid, attenuates non-significant (dpw_eff_sig=False) cells, embeds VDYNO compare tab
 NODE | ui_tuner            | ui_page | web/templates/tuner.html            | ACTIVE_UNVALIDATED | PROPONER — map diff/merge UI, convergence badge (GAP5), burn trigger
-NODE | ui_map_editor       | ui_page | web/templates/map-editor.html       | ACTIVE_VALID | Manual cell-by-cell VE map edit + burn, independent of the auto-proposal path
+NODE | ui_map_editor       | ui_page | web/templates/map-editor.html       | ACTIVE_VALID | Manual cell-by-cell VE map edit + burn, independent of the auto-proposal path. CAVEAT (verified in code): burnStaged() in map-editor.html POSTs to /tuner/burn, but no such route is registered in web/server.py's do_POST routing table (only /eeprom/burn exists, used by tuner.html and the Dashboard VE tab) — as currently wired, burning from this page returns "unknown endpoint" (404), so the write side of this page is broken
 NODE | ui_sessions_launch  | ui_page | web/templates/sessions_launch.html  | ACTIVE_UNVALIDATED | Being migrated to consume F7 clusters instead of legacy detect_launches (backlog 7.8, not done)
 NODE | ui_launch_power     | ui_page | web/templates/launch_power.html     | ACTIVE_UNVALIDATED | VDYNO launch-cluster HP/torque view
 NODE | ui_errorlog_viz     | ui_page | web/templates/errorlog_viz.html     | ACTIVE_VALID | Diagnostic tool, explicitly NOT part of the tuning cycle per CLAUDE.md
@@ -143,9 +143,10 @@ EDGE | ride_csv | cell_tracker | feeds_into
 EDGE | cell_tracker | ride_summary_json | computed_from
 EDGE | ride_summary_json | tuning_report_json | feeds_into
 EDGE | raw_ecu_ego_afv | tuning_report_json | feeds_into
+EDGE | eeprom_decoded_json | tuning_report_json | feeds_into
 EDGE | tuning_report_json | suggested_msq | computed_from
 EDGE | eeprom_decoded_json | suggested_msq | feeds_into
-EDGE | ride_summary_json | objectives_json | feeds_into
+EDGE | objectives_json | ride_summary_json | feeds_into
 EDGE | objectives_json | ui_dashboard | displayed_in
 EDGE | ride_csv | fuel_consumption_cache | computed_from
 EDGE | ride_csv | ride_errorlog_json | feeds_into
@@ -159,7 +160,7 @@ EDGE | ride_annotations_json | f7_pilot_marked | feeds_into
 EDGE | f7_pilot_marked | session_f7clusters_json | feeds_into
 EDGE | f7_dtw_cluster | session_f7clusters_json | computed_from
 EDGE | session_f7clusters_json | f7_cross_session_match | feeds_into
-EDGE | f7_cross_session_match | ui_session_events | displayed_in
+EDGE | session_f7clusters_json | ui_session_events | displayed_in
 
 EDGE | ride_csv | vs_baro_normalize | feeds_into
 EDGE | raw_env_baro | vs_baro_normalize | feeds_into
@@ -167,12 +168,18 @@ EDGE | vs_baro_normalize | vs_classify | feeds_into
 EDGE | raw_ecu_flags | vs_classify | feeds_into
 EDGE | raw_ecu_temp | vs_classify | feeds_into
 EDGE | vs_classify | vs_cell_index | feeds_into
+EDGE | vs_baro_normalize | vs_cell_index | feeds_into
 EDGE | raw_ecu_batt | vs_cell_index | not_consumed_by
+EDGE | raw_env_humidity | sessions_vs_cache | feeds_into
 EDGE | vs_cell_index | vs_gap1_significance | feeds_into
 EDGE | vs_gap1_significance | sessions_vs_cache | computed_from
 EDGE | vs_cell_index | sessions_vs_cache | computed_from
 EDGE | launch_detect | sessions_vs_cache | feeds_into
+EDGE | launch_cluster | sessions_vs_cache | feeds_into
+EDGE | launch_cross_match | sessions_vs_cache | feeds_into
+EDGE | eeprom_bin | sessions_vs_cache | feeds_into
 EDGE | f7_cross_session_match | sessions_vs_cache | feeds_into
+EDGE | sessions_vs_cache | ui_sessions_launch | displayed_in
 EDGE | sessions_vs_cache | ui_sessions_vs | displayed_in
 EDGE | sessions_vs_cache | vs_gap5_convergence | feeds_into
 EDGE | vs_gap5_convergence | ui_tuner | displayed_in
@@ -192,7 +199,7 @@ EDGE | vdyno_physics | ride_vdyno_json | computed_from
 EDGE | vdyno_physics | ride_vdyno_rows_json | computed_from
 EDGE | ride_vdyno_json | vdyno_compare | feeds_into
 EDGE | vdyno_compare | ui_sessions_vs | displayed_in
-EDGE | vdyno_compare | ui_launch_power | displayed_in
+EDGE | vdyno_physics | ui_launch_power | displayed_in
 EDGE | ride_vdyno_rows_json | ui_dashboard | displayed_in
 
 EDGE | ride_csv | gear_learner_fit | feeds_into
@@ -215,6 +222,8 @@ EDGE | vs_gap1_significance | fase6_unified_proposal | gated_by
 EDGE | ui_tuner | eeprom_bin | feeds_into
 EDGE | eeprom_bin | ui_map_editor | feeds_into
 EDGE | ui_map_editor | eeprom_bin | feeds_into
+EDGE | eeprom_bin | ui_dashboard | feeds_into
+EDGE | ui_dashboard | eeprom_bin | feeds_into
 EDGE | eeprom_bin | burns_json | computed_from
 EDGE | burns_json | vs_gap5_convergence | not_consumed_by
 EDGE | burns_json | vdyno_fase_v4 | feeds_into
@@ -257,13 +266,16 @@ that predates or bypassed that written rule. On top of that, none of BACKLOG_DAT
 Phase A hygiene items are implemented — Batt_V confounder correction, thermal-protection
 sample exclusion (`fl_hot`/`do_fan`), and per-sample density normalization are all `[PLAN]` —
 so every dpw/dpw_eff comparison mixes electrical and thermal noise into what's presented as a
-map-calibration signal. GAP1's Welch confidence interval is computed and shown in the UI, but
-it is not consumed as a gate anywhere: `_merge_maps` (the only working PROPONER path today)
-picks cell winners purely from the sign of `dpw_eff`/`ddvss`, ignoring `dpw_eff_sig` entirely.
+map-calibration signal. GAP1's Welch confidence interval is computed and shown in the UI;
+as of v2.7.256 it also gates the eco/SWEET side of `_merge_maps` (non-significant cells are
+skipped instead of assigned a winner) — the sport/SPICY_WOT side (`ddvss`) is still ungated
+because no GAP1-equivalent confidence interval exists for it yet.
 Third, **designed but not built**: FASE 6 (the unified F7 + Sessions VS → EEPROM proposal
-engine) does not exist — `_merge_maps` is a manual per-cell heuristic stand-in with no
-significance gating, no convergence-rate coupling (GAP5 exists and works but isn't wired to
-proposal magnitude), and no learning-rate dampening (GAP6, not started). VDYNO's noise-floor
+engine) does not exist — `_merge_maps` is a manual per-cell heuristic stand-in with
+significance gating on only one of its two sides, no convergence-rate coupling (GAP5 exists
+and works but isn't wired to proposal magnitude), and no learning-rate dampening
+(GAP6, partially implemented as an alpha multiplier in the burn handler, not yet tied to
+confidence). VDYNO's noise-floor
 rule (declare VERDE/ROJO only when `|ΔHP|` exceeds the ride-to-ride variance floor within the
 same map) is fully specified in BACKLOG_VDYNO.md but `compare_sessions()` in `vdyno.py` returns
 raw deltas with no such gate. VDYNO's physical constants (`mass_kg`, `CdA`, `Crr`) are static
@@ -282,7 +294,44 @@ Bayesian optimization, VDYNO FASE V4, wideband integration — depends on that f
 trustworthy first, which is exactly the sequencing CLAUDE.md itself already states as strategy
 ("the pipeline must work and be trusted before adding a new signal source").
 
-## 5. Graphify markdown ingestion — findings (report only, not applied)
+## 5b. UI terminal nodes are not all the same kind of "dead end" (2026-07-02)
+
+The 12 nodes with an incoming edge but no outgoing one split into two unrelated categories,
+and conflating them was misleading. **Human-terminal by design (9 of 12, all `ui_*` pages):**
+data reaches a human via the UI and the human closes the loop out-of-band — burning a map,
+choosing the next ride, forming a judgment about which map is better. This is not a gap; it's
+`BACKLOG_VDYNO.md` design rule 1 (human-in-the-loop mandatory) working as intended. The graph
+only tracks machine-to-machine flow, so it can't show "the rider read this and acted on it" —
+that's real information flow, just not automatable data flow. **Genuinely wasted (the other
+3):** `slope_reference_json` and `suggested_msq` reach nobody, human or machine — no UI
+displays them, no analysis reads them. The actionable gap this distinction surfaces isn't
+"connect the UI nodes to something" — it's that the human's verdict formed while looking at
+`ui_launch_power`/`ui_sessions_vs`/`ui_tuner` currently has nowhere to be written back down.
+`rider_notes_field` was meant to be exactly that capture point and was never wired; `BL-VD-05`
+(automatic post-ride verdict) and `BL-VD-06` (evidence instructor) are the formal version of
+the same missing link.
+
+## 5c. Additional findings from the 2026-07-02 systematic validation pass
+
+- **Likely bug:** `web/templates/map-editor.html` POSTs to `/tuner/burn` on burn — that route
+  does not exist anywhere in `web/server.py`'s routing table (only `/burns` GET and
+  `/eeprom/burn` are registered). The Map Editor's burn button appears to 404 silently
+  (fails safe — nothing gets written — but the feature does not work). Needs a live check,
+  not just static reading, before filing as confirmed.
+- **Stale/dead code:** `/live` in `web/server.py` hardcodes `"objectives": []` in every
+  response; `web/static/app.js:535` renders that dead field, but the dashboard's actual
+  objectives display appears to be driven by a separate `raw_objectives` field
+  (`app.js:1494-1527`) populated through a different path. The `/live` field looks like an
+  abandoned earlier attempt, not (as first suspected) a broken user-facing feature.
+- **Duplicate implementations, both flagged, neither removed (needs a human call):**
+  `web/route_reference.py:build_slope_grid` duplicates what `gps/route_reference.py` does
+  live and appears unused; `web/burn_ledger.py:convergence_report` is a second, unwired GAP5
+  implementation — `GET /convergence` actually calls `web/vs_engine.py:compute_convergence`.
+- `ui_session_events` does not do cross-session comparison despite `CLAUDE.md`'s own tuning-cycle
+  table implying it does — cross-session matching (`f7_cross_session_match`) actually feeds
+  Sessions VS, not this page. Worth a CLAUDE.md correction separately.
+
+## 6. Graphify markdown ingestion — findings (report only, not applied)
 
 `graphify-out/manifest.json` was inspected directly (no `.graphify/`, `graphify.config.*`, or
 any other graphify config file exists anywhere in the repo or under the user's home directory —

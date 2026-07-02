@@ -21,6 +21,18 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.258] — 2026-07-02
+### Fixed
+- docs/PIPELINE_DATA_FLOW.md — systematic validation pass against actual code (all json_artifact/ui_page/analysis_stage nodes fully traced, raw signals spot-checked). Added 12 missing edges and corrected 3 wrong ones, including flipping `objectives_json <-> ride_summary_json` (config feeds the ride-close computation, not the reverse) and replacing two edges that pointed at functions never actually called (`f7_cross_session_match -> ui_session_events`, `vdyno_compare -> ui_launch_power`).
+- Updated the stale "GAP1 not consumed as a gate" claim in the gap-to-north-star section — v2.7.256 already fixed this for the eco/SWEET side.
+### Found (not fixed — needs a live check / human call)
+- `web/templates/map-editor.html` POSTs to `/tuner/burn`, which has no matching route in `web/server.py` — the Map Editor burn button likely 404s silently. Needs live verification before filing as a confirmed bug.
+- `/live` in `web/server.py` hardcodes `"objectives": []`; the dashboard's real objectives display appears to be driven by a separate `raw_objectives` field instead — looks like dead code from an earlier attempt, not a broken feature.
+- Two duplicate/unused implementations: `web/route_reference.py:build_slope_grid` (duplicates `gps/route_reference.py`) and `web/burn_ledger.py:convergence_report` (a second, unwired GAP5 — the real one is `vs_engine.compute_convergence`).
+- `ui_session_events` does not do cross-session comparison despite CLAUDE.md's tuning-cycle table implying it does.
+### AI
+- Claude Sonnet 5, Anthropic
+
 ## [v2.7.257] — 2026-07-02
 ### Added
 - docs/pipeline_layout.json — manual node arrangement for the pipeline graph viewer, exported from the browser and committed so it's not only living in localStorage. scripts/build_pipeline_graph.py now loads it automatically (LAYOUT_OVERRIDE) and prefers it over the computed layout.
