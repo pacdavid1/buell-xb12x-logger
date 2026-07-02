@@ -313,11 +313,12 @@ the same missing link.
 
 ## 5c. Additional findings from the 2026-07-02 systematic validation pass
 
-- **Likely bug:** `web/templates/map-editor.html` POSTs to `/tuner/burn` on burn — that route
-  does not exist anywhere in `web/server.py`'s routing table (only `/burns` GET and
-  `/eeprom/burn` are registered). The Map Editor's burn button appears to 404 silently
-  (fails safe — nothing gets written — but the feature does not work). Needs a live check,
-  not just static reading, before filing as confirmed.
+- **CONFIRMED bug (live-tested 2026-07-02):** `web/templates/map-editor.html` POSTs to
+  `/tuner/burn` on burn. `curl -X POST http://127.0.0.1:8080/tuner/burn` against a running
+  `serve_local.py` returns `404 {"error": "unknown endpoint"}`. The Map Editor's burn button
+  fails safe (nothing gets written to EEPROM) but does not work at all. Fix touches an EEPROM
+  burn path — per CLAUDE.md's git branch policy this needs a branch, not a direct commit to
+  main, and explicit user approval before starting.
 - **Stale/dead code:** `/live` in `web/server.py` hardcodes `"objectives": []` in every
   response; `web/static/app.js:535` renders that dead field, but the dashboard's actual
   objectives display appears to be driven by a separate `raw_objectives` field
