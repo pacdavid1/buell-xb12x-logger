@@ -21,6 +21,26 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.264] — 2026-07-03
+### Added
+- IDEAS.md: IDEA-029 — three no-wideband virtual-combustion-sensor paths from freebuff's
+  China prior-art sweep (task_006): NN virtual lambda (viable only with a lambda ground
+  truth to train on — freebuff missed the chicken-and-egg), crankshaft-fluctuation analysis
+  (out of reach at our ~10 Hz serial rate; cheap per-cell RPM-jitter proxy proposed instead),
+  ion current sensing (spark plug as combustion probe, hardware project). Second literature
+  pool (Chinese) also found nothing resembling F7's DTW event pairing — reinforces IDEA-028.
+### Changed
+- Processed and cleared the freebuff response backlog: task_001-005 (gear detection
+  research, 2026-06-28) verified as already fully consumed by v2.7.246/v2.7.248
+  (ecu/gear_calibration.py single source of truth + web/gear_learner.py) — files deleted;
+  task_006 consumed as IDEA-029 above.
+- freebuff instruction files (TASKS.md header, _prompt.txt, _format.txt) updated to the
+  post-v2.7.233 workflow: read the LOCAL repo on the Windows host (GitHub canonical),
+  Pi is pull-only deploy target, audits go to response files — never edit CHANGELOG/any
+  file on the Pi; fixed stale graphify path/invocation and added Tailscale IP.
+### AI
+- Claude Fable 5, Anthropic (freebuff research inputs: task_001-006)
+
 ## [v2.7.263] — 2026-07-03
 ### Added
 - IDEAS.md: IDEA-028 — prior art comparison against published MBC/system-ID work

@@ -331,6 +331,37 @@ quantification and safety-constrained search, not the on-road premise itself.
 this ever gets written up (forum post, short paper) or when deciding priority between
 GAP 5-style convergence stats vs. new signal sources.
 
+### IDEA-029 — Virtual combustion sensors: three no-wideband paths (freebuff task_006, China sweep)
+**Señal:** RPM, PW, TPS, CLT, baro/IAT already logged; ion current would need new hardware.
+**Técnica:** Three veins surfaced by the China prior-art sweep (freebuff task_006, confidence MEDIUM):
+1. **Neural-network virtual lambda** (Elman/RNN estimating AFR from MAP/RPM/IAT/PW) —
+   SAE 2005-24-058, SAE 2006-01-1348, Richter 2008, Turkson 2016 (survey). Academically
+   validated with roughly our signal set. **The catch freebuff did not flag:** training
+   requires measured lambda as ground truth — chicken-and-egg without a wideband. Only
+   viable trained on borrowed/public dyno data (transfer quality unknown) or after a
+   temporary wideband session, at which point it becomes a way to KEEP the wideband's
+   knowledge after removing the sensor. That reframing is the actually useful version.
+2. **Crankshaft speed fluctuation analysis** (misfire/combustion-quality/cylinder balance
+   from RPM micro-variation). As published it needs crank-tooth-resolution sampling; our
+   serial stream is ~10 Hz, so the published method is out of reach. Cheap degraded proxy
+   worth one experiment: per-cell RPM stability statistics (jitter within stable buckets)
+   as a combustion-roughness signal — zero new hardware, data already on disk.
+3. **Ion current sensing** (spark plug as combustion probe — CN112160842B): pre-ignition,
+   knock, AFR estimation. ~$50-100 module on the ignition coil; DIY designs exist in
+   rusEFI/Speeduino communities (task 011 will probe those). A hardware project, but it
+   is direct per-cycle combustion feedback without touching the exhaust.
+**Aplica a:** the absolute rich/lean direction gap — the whole current pipeline is relative
+comparison (map A vs map B); these are the candidate paths to an absolute mixture signal,
+alongside the density-as-lambda-sweep idea (IDEA-025).
+**Dato clave:** Chinese motorcycle OEM calibration is entirely closed (Bosch/Delphi
+toolchains, no publications), and post-Guo-IV every domestic bike is closed-loop — the
+open-loop knowledge there lives in tuning forums, which copy Western methods. Also: the
+sweep found no Chinese work resembling F7's DTW event pairing, reinforcing IDEA-028's
+differentiator claim from a second literature pool.
+**Requiere:** (1) RPM-stability proxy: nothing, one analysis script; (2) NN-VLS: a lambda
+ground-truth source first; (3) ion sensing: hardware R&D. Full source list preserved in
+freebuff task_006 response (processed 2026-07-03, see CHANGELOG v2.7.264).
+
 ## Descartadas
 
 ## Convertidas a BACKLOG
