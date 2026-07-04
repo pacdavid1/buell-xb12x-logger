@@ -77,6 +77,68 @@ def _f7_delta_to_cells(f7_matches):
     return out
 
 
+_GP_MIN_POINTS = 10
+
+
+def _gpr_make_training_data(delta, flavor='SWEET', min_n=10):
+    """Extract (rpm_lo, tps_lo) -> dpw_eff training points for one flavor.
+
+    Includes ALL rows with enough samples, significant or not -- GAP1's
+    hard significance gate is bypassed here on purpose. The GP's
+    heteroscedastic noise (dpw_eff_se^2 per point) lets it naturally trust
+    noisy cells less instead of excluding them outright.
+    """
+    X, y, noise = [], [], []
+    for r in delta:
+        if r.get('na', 0) < min_n or r.get('nb', 0) < min_n:
+            continue
+        if r.get('flavor') != flavor:
+            continue
+        se = r.get('dpw_eff_se')
+        if se is None:
+            continue
+        X.append([r['rpm_lo'], r['tps_lo']])
+        y.append(r.get('dpw_eff', 0))
+        noise.append(max(se, 1e-3) ** 2)
+    return X, y, noise
+
+
+def _gpr_predict_grid(delta, flavor='SWEET'):
+    """Fit a GP on flavor's delta rows, predict mean/std at every
+    RPM_BINS x TPS_BINS grid center. Returns {} (caller must fall back to
+    discrete logic) when scikit-learn is unavailable or there isn't enough
+    training data.
+    """
+    X, y, noise = _gpr_make_training_data(delta, flavor)
+    if len(X) < _GP_MIN_POINTS:
+        return {}
+    try:
+        import numpy as np
+        from sklearn.gaussian_process import GaussianProcessRegressor
+        from sklearn.gaussian_process.kernels import Matern, ConstantKernel
+    except ImportError:
+        return {}
+    kernel = ConstantKernel(1.0) * Matern(
+        length_scale=[2000, 20],
+        length_scale_bounds=[(500, 5000), (5, 50)],
+        nu=2.5,
+    )
+    gpr = GaussianProcessRegressor(kernel=kernel, alpha=np.array(noise), n_restarts_optimizer=5, random_state=42)
+    try:
+        gpr.fit(np.array(X), np.array(y))
+    except Exception:
+        return {}
+    grid_rpm = [(RPM_BINS[i] + RPM_BINS[i + 1]) / 2 for i in range(len(RPM_BINS) - 1)]
+    grid_tps = [(TPS_BINS[j] + TPS_BINS[j + 1]) / 2 for j in range(len(TPS_BINS) - 1)]
+    points = [(gr, gt) for gr in grid_rpm for gt in grid_tps]
+    means, stds = gpr.predict(np.array(points), return_std=True)
+    out = {}
+    for (gr, gt), mean, std in zip(points, means, stds):
+        key = (_bin_index(gr, RPM_BINS), _bin_index(gt, TPS_BINS))
+        out[key] = {'mean': float(mean), 'std': float(std)}
+    return out
+
+
 def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
     RB=RPM_BINS
     TB=TPS_BINS
@@ -142,6 +204,14 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
             # sport winner is still picked from raw sign — gating this needs
             # its own CI calculation (not built; see BACKLOG.md GAP 1).
             ci[key]['sport']='A' if r['ddvss']<0 else 'B'
+    filled_by_gp=0
+    for key,g in _gpr_predict_grid(delta,'SWEET').items():
+        if key in ci: continue  # never override a cell that already has real votes
+        margin=1.96*g['std']
+        lo,hi=g['mean']-margin,g['mean']+margin
+        if not (lo>0 or hi<0): continue  # GP posterior CI crosses zero -- leave unfilled
+        ci[key]={'eco':'A' if g['mean']<0 else 'B','sport':None,'gp_filled':True}
+        filled_by_gp+=1
     def winner(key):
         info=ci.get(key)
         if not info: return None
@@ -182,7 +252,7 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
         'unchanged':[k for k in FK+SK if k not in ac],
         'mode':mode,'cells_with_data':len(ci),
         'skipped_insignificant':skipped_insig,'fused_with_f7':fused_with_f7,
-        'maps':result
+        'filled_by_gp':filled_by_gp,'maps':result
     }
 
 def _fmtk(n):

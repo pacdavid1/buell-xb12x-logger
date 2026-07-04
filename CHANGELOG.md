@@ -21,6 +21,32 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.274] — 2026-07-04
+### Added
+- `requirements.txt`: added `scikit-learn==1.9.0` for FASE 6 Phase 3 (GP Regression).
+  Not required for the logger's live path, only the proposal engine's gap-filling — flagged
+  to check install time/RAM footprint on the Pi's first install.
+### Changed
+- BACKLOG_PROPOSAL_V2.md Phase 3 implemented, narrower in scope than originally planned:
+  `web/vs_engine.py` gained `_gpr_make_training_data()` and `_gpr_predict_grid()` (Matern
+  5/2 kernel, heteroscedastic noise from GAP1's `dpw_eff_se`), used in `_merge_maps()` to
+  fill ONLY cells with zero real vs_delta votes — it never overrides an already-decided
+  cell from Phases 1-2. A GP-filled cell must still pass a 95% CI test on its own posterior
+  before being used (same statistical bar as GAP1, applied to the smoothed surface).
+  Training intentionally includes non-significant cells too (GAP1's hard gate is bypassed
+  for GP training only) since the heteroscedastic noise term is what lets the GP trust
+  noisy cells appropriately instead of a binary include/exclude.
+  Fixed a real bug found during validation: this sklearn version requires `alpha` and the
+  fit/predict arrays as `numpy.ndarray`, not plain Python lists (raises
+  `InvalidParameterError` otherwise).
+- Validated on real local data (91B225/248AE2): 204 candidate empty cells, all correctly
+  rejected by the GP's own uncertainty (not enough spatial coverage in this small dataset
+  to extrapolate confidently) — `filled_by_gp=0`, the safe outcome. Confirmed the actual
+  fill path works via a synthetic tight cluster of consistent points injected around a real
+  gap — `filled_by_gp=4` in that case. No regression on cell counts from Phases 1-2.
+### AI
+- Claude Sonnet 5, Anthropic (plan: freebuff BACKLOG_PROPOSAL_V2.md Phase 3)
+
 ## [v2.7.273] — 2026-07-03
 ### Changed
 - docs/pipeline_layout.json updated with the user's latest manual node arrangement

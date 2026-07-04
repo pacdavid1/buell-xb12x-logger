@@ -139,7 +139,36 @@ if f7_sign != vs_sign:
 
 ---
 
-## Phase 3 — GP Regression in `_merge_maps`
+## Phase 3 — GP Regression in `_merge_maps` — ✅ DONE (v2.7.274, 2026-07-03)
+
+**Scope deviation from the original task list, with rationale:** the plan described GP
+Regression as replacing `_merge_maps()`'s discrete winner-take-all entirely. Implemented
+scope is narrower and safer: GP is used ONLY to fill cells that have NO real vs_delta vote
+at all (never visited in either session) -- it never overrides a cell that already has a
+discrete/fused verdict from Phases 1-2. This directly targets the "no interpolation into
+empty cells" gap from the research without touching or re-validating the already-tested
+significant-cell logic. Training data intentionally includes ALL valid SWEET cells
+(significant or not) with `dpw_eff_se^2` as heteroscedastic noise -- GAP1's hard
+significance gate is bypassed for GP training on purpose, since noise-weighting is the
+GP's whole advantage over a binary gate. A GP-filled cell must itself pass a 95%-CI test
+on the POSTERIOR (mean +/- 1.96*std doesn't cross zero) before being used, so it's not
+introducing an unvetted proposal path -- same statistical bar as GAP1, applied to the
+smoothed surface instead of the raw two-sample data.
+
+**Bug found and fixed during validation:** this sklearn version (1.9.0) requires `alpha`
+(and the fit/predict arrays) to be `numpy.ndarray`, not plain Python lists --
+`GaussianProcessRegressor(alpha=[...])` raises `InvalidParameterError`. Wrapped all
+GP inputs in `np.array()`.
+
+**Validated:** real local data (91B225/248AE2, 21 SWEET training points) produced 204
+candidate empty cells, all correctly REJECTED (GP posterior std ~1.1-1.4, essentially the
+prior -- not enough spatial coverage to extrapolate confidently) -- `filled_by_gp=0`, exactly
+the safe outcome wanted on sparse data. Confirmed the fill path itself works with a
+synthetic tight cluster of consistent points around a real gap (monkeypatched
+`_compare_sessions_cached`): `filled_by_gp=4`. No regression on either real pair (same
+`cells_with_data`/`skipped_insignificant` as Phases 1-2).
+
+
 
 **Why:** The current `_merge_maps()` does discrete winner-take-all per cell (pick A or B). No interpolation, no uncertainty, no spatial coherence. Research (Tietze 2015, TU Darmstadt) confirms GP Regression is the state of the art for engine map modeling — it gives a principled continuous surface with per-cell posterior variance. It directly replaces the separate interpolation + smoothing steps that don't exist yet as standalone modules.
 
