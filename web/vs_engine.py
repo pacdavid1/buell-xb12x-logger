@@ -22,14 +22,66 @@ def _maps_differ(a,b):
             if abs(a[i][j]-b[i][j])>0.5: return True
     return False
 
+
+RPM_BINS=[800,1200,1600,2000,2400,2800,3200,3600,4000,4400,4800,5200,5600,6000,6400,6800]
+TPS_BINS=[0,5,10,15,20,25,30,35,40,50,60,70,80,90,100,101]
+
+
+def _bin_index(v,bins):
+    for i in range(len(bins)-1):
+        if bins[i]<=v<bins[i+1]: return i
+    return len(bins)-2
+
+
+def _zone_by_tps_peak(tps_peak):
+    """WOT: trust VS only (few F7 WOT events). MID: F7+VS fusion.
+    LIGHT: F7 preferred (VS is poor at low TPS)."""
+    if tps_peak>=85: return 'WOT'
+    if tps_peak>=40: return 'MID'
+    return 'LIGHT'
+
+
+def _f7_delta_to_cells(f7_matches):
+    """Map F7 cross-session matches to EEPROM cells using the same RPM/TPS
+    binning as vs_delta.
+
+    Approximation: each match is filed under ONE cell keyed by
+    (bucket_a rpm_center, max tps_peak reached) -- the RPM at the start of
+    the pull and the throttle position actually reached during it -- not a
+    per-instant curve-resolution mapping. delta_pw is a resampled curve
+    over the whole event; we use its mean as a single scalar, on the same
+    ms scale as vs_delta's dpw_eff (both baro-normalized, both B-minus-A).
+    """
+    buckets={}
+    for m in f7_matches:
+        ba=m.get('bucket_a') or {}
+        bb=m.get('bucket_b') or {}
+        rpm_center=ba.get('rpm_center')
+        delta_pw=m.get('delta_pw') or []
+        if rpm_center is None or not delta_pw:
+            continue
+        tps_peak=max(ba.get('tps_peak',0), bb.get('tps_peak',0))
+        key=(_bin_index(rpm_center,RPM_BINS),_bin_index(tps_peak,TPS_BINS))
+        b=buckets.setdefault(key,{'deltas':[],'tps_dtw':[],'tps_peak':tps_peak})
+        b['deltas'].append(sum(delta_pw)/len(delta_pw))
+        b['tps_dtw'].append(m.get('tps_dtw',0))
+    out={}
+    for key,b in buckets.items():
+        n=len(b['deltas'])
+        out[key]={
+            'f7_delta': sum(b['deltas'])/n,
+            'n_matches': n,
+            'confidence': round(min(1.0,n/2)*(sum(b['tps_dtw'])/n),3),
+            'zone': _zone_by_tps_peak(b['tps_peak']),
+        }
+    return out
+
+
 def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
-    RB=[800,1200,1600,2000,2400,2800,3200,3600,4000,4400,4800,5200,5600,6000,6400,6800]
-    TB=[0,5,10,15,20,25,30,35,40,50,60,70,80,90,100,101]
+    RB=RPM_BINS
+    TB=TPS_BINS
     MN=10
-    def bk(v,bs):
-        for i in range(len(bs)-1):
-            if bs[i]<=v<bs[i+1]: return i
-        return len(bs)-2
+    bk=_bin_index
     ep_a=buell_dir/'sessions'/sa/'eeprom.bin'
     ep_b=buell_dir/'sessions'/sb/'eeprom.bin'
     if not ep_a.exists() or not ep_b.exists():
@@ -50,10 +102,13 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
     try:
         vd=_compare_sessions_cached(buell_dir,sa,sb)
         delta=vd.get('delta',[])
+        f7_cells=_f7_delta_to_cells(vd.get('f7_matches',[]))
     except Exception:
         delta=[]
+        f7_cells={}
     ci={}
     skipped_insig=0
+    fused_with_f7=0
     for r in delta:
         if r['na']<MN or r['nb']<MN: continue
         fl=r['flavor']
@@ -67,7 +122,21 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
             if not r.get('dpw_eff_sig', False):
                 skipped_insig+=1
                 continue
-            ci[key]['eco']='A' if r.get('dpw_eff',0)<0 else 'B'
+            vs_delta=r.get('dpw_eff',0)
+            f7c=f7_cells.get(key)
+            if f7c and f7c['zone']!='WOT' and f7c['confidence']>0:
+                f7_delta=f7c['f7_delta']
+                if (vs_delta<0)!=(f7_delta<0):
+                    # Signs disagree: bias toward the richer verdict (higher
+                    # PW = more fuel = safer in open-loop without a wideband).
+                    fused=max(vs_delta,f7_delta)
+                else:
+                    w=f7c['confidence']
+                    fused=(vs_delta+f7_delta*w)/(1.0+w)
+                fused_with_f7+=1
+                ci[key]['eco']='A' if fused<0 else 'B'
+            else:
+                ci[key]['eco']='A' if vs_delta<0 else 'B'
         elif fl=='SPICY_WOT':
             # ddvss has no GAP1-equivalent significance test yet, so the
             # sport winner is still picked from raw sign — gating this needs
@@ -112,7 +181,8 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
         'attributable':attr,'changed':ac,
         'unchanged':[k for k in FK+SK if k not in ac],
         'mode':mode,'cells_with_data':len(ci),
-        'skipped_insignificant':skipped_insig,'maps':result
+        'skipped_insignificant':skipped_insig,'fused_with_f7':fused_with_f7,
+        'maps':result
     }
 
 def _fmtk(n):

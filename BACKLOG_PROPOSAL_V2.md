@@ -76,7 +76,27 @@ print(f'DDTW matches: {len(m)} vs former {N} (check before/after)')
 
 ---
 
-## Phase 2 — F7 + VS Zone Fusion
+## Phase 2 — F7 + VS Zone Fusion — ✅ DONE (v2.7.272, 2026-07-03)
+
+**Deviations from the original task list, with rationale:**
+- Binning key uses `bucket_a.rpm_center` + `max(tps_peak)` (not bucket_a's tps_center) so the
+  zone classification and the cell key are driven by the same throttle value — binning by the
+  pre-event stable TPS while classifying zone by peak TPS would file a WOT pull under a cruise
+  cell while treating it with WOT zone rules, which is incoherent.
+- `w_vs` is fixed at 1.0 (not a separate confidence formula) since vs_delta already passed the
+  GAP1 significance gate before fusion is considered — that gate IS its confidence signal.
+- CACHE_VERSION was NOT bumped — the raw cached data shape (`delta`, `f7_matches`) didn't
+  change, only how `_merge_maps` (uncached) interprets it. `_F7_EVENTS_V` was bumped instead
+  (8→9) because `f7.py`'s cluster `bucket_a` summary gained a new `tps_peak` field.
+- Validated with synthetic injected F7 matches (monkeypatched `_compare_sessions_cached`)
+  rather than only real data — locally available sessions have exactly one real F7
+  cross-session match total, and it lands in the WOT zone (correctly excluded by design), so
+  it couldn't exercise the MID-zone fusion path. Confirmed both branches (agreeing signs →
+  weighted average; conflicting signs → rich-bias max) fire correctly against a real target
+  cell from 47BF04 vs 248AE2. Also confirmed zero regression on 91B225 vs 248AE2 (still
+  25 cells / 3 skipped, `fused_with_f7=0` since 91B225 has no F7 clusters at all).
+
+
 
 **Why:** `_merge_maps()` currently uses only `vs_delta` from Sessions VS. But F7 already produces cross-session event matches (`delta_pw`, `delta_vss`) that measure acceleration performance per cluster. The research (FASE 6.1 in BACKLOG.md) says to fuse F7 and VS by zone: WOT (tps_peak >= 85%) → VS only, Mid (40-85%) → weighted fusion, Light (< 40%) → F7 only. This is the single biggest missed opportunity in the current pipeline.
 

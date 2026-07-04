@@ -13,7 +13,7 @@ from pathlib import Path
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
 _F7_THRESH  = 0.85  # default DTW threshold
-_F7_EVENTS_V = 8    # v8: cross-session TPS matching uses derivative DTW (DDTW)
+_F7_EVENTS_V = 9    # v9: bucket_a summary carries tps_peak (used for F7+VS zone fusion)
 _F7_PRE_N       = 10    # pre-break context resample points     # bump when event struct fields change
 
 # BL-GPS-03: GPS quality thresholds
@@ -409,6 +409,7 @@ def _f7_cluster(events, threshold=_F7_THRESH):
         ba_ok = _f7_ba_consistent(ev)
         idxs  = sorted(idx_set)
         scores = [mat[ii][jj] for ii in idxs for jj in idxs if ii < jj]
+        peaks = [e.get('tps_peak', 0) for e in ev]
         ba_summary = {
             'gear':       int(round(sum(gears) / len(gears))),
             'rpm_center': round(sum(rpms) / len(rpms), 0),
@@ -417,6 +418,7 @@ def _f7_cluster(events, threshold=_F7_THRESH):
             'tps_range':  round(max(tpss) - min(tpss), 1),
             'vss_center': round(sum(vsss) / len(vsss), 1),
             'vss_range':  round(max(vsss) - min(vsss), 1),
+            'tps_peak':   round(max(peaks), 1) if peaks else 0.0,
         }
         clusters.append({
             'cluster_id':     f'C{cid:03d}',

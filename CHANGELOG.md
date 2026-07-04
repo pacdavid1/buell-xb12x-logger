@@ -21,6 +21,36 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.272] — 2026-07-03
+### Changed
+- BACKLOG_PROPOSAL_V2.md Phase 2 implemented: F7 + VS zone fusion in `web/vs_engine.py`.
+  Added `RPM_BINS`/`TPS_BINS` module-level constants and `_bin_index()` (hoisted out of
+  `_merge_maps`, which now references them instead of duplicating the bin edges),
+  `_zone_by_tps_peak()` (WOT >=85 / MID 40-85 / LIGHT <40), and `_f7_delta_to_cells()`
+  which maps F7 cross-session matches (`web/launch.py`'s `result['f7_matches']`) to the
+  same RPM/TPS cells `_merge_maps` already uses, keyed by bucket_a's rpm_center + the
+  peak TPS actually reached during the pull (not the pre-event stable TPS, so the zone
+  classification and the cell key agree on which throttle value they mean).
+  `_merge_maps`'s SWEET/eco winner now fuses `dpw_eff` (Sessions VS) with `f7_delta` when
+  a MID or LIGHT zone F7 match exists for that cell and passes GAP1 significance: weighted
+  average when both signals agree on sign, rich-bias (max of the two, favoring more fuel)
+  when they conflict — matching the project's "err rich, not lean" open-loop safety stance.
+  WOT-zone F7 matches are excluded from this fusion by design (VS is the trusted signal
+  there; SPICY_WOT/sport winner logic is unchanged). Added `f7_delta_to_cells`'s `bucket_a`
+  dependency: `web/f7.py` cluster summaries now carry `tps_peak` (max across cluster
+  members); bumped `_F7_EVENTS_V` 8→9 to invalidate caches missing that field.
+- `web/f7.py`: cluster `bucket_a` summary gained a `tps_peak` field (max of member events'
+  own `tps_peak`), needed for Phase 2's zone classification.
+- Validated: real data only had one F7 cross-session match locally (47BF04 vs 248AE2,
+  correctly landing in the WOT zone and therefore correctly excluded from eco fusion).
+  Exercised the actual MID-zone fusion code path with a synthetic match injected at a real
+  significant SWEET cell (monkeypatched `_compare_sessions_cached`) — confirmed both the
+  agreeing-sign weighted-average branch and the conflicting-sign rich-bias branch fire
+  correctly. Confirmed zero regression on the 91B225 vs 248AE2 pair (still 25 cells with
+  data / 3 skipped insignificant, `fused_with_f7=0` since that session has no F7 clusters).
+### AI
+- Claude Sonnet 5, Anthropic (plan: freebuff BACKLOG_PROPOSAL_V2.md Phase 2)
+
 ## [v2.7.271] — 2026-07-03
 ### Changed
 - BACKLOG_PROPOSAL_V2.md Phase 1 implemented: `web/f7.py` cross-session TPS matching
