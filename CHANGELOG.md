@@ -21,6 +21,19 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.273] — 2026-07-03
+### Changed
+- docs/pipeline_layout.json updated with the user's latest manual node arrangement
+  (exported via the graph viewer's "export layout" button).
+- scripts/build_pipeline_graph.py / docs/pipeline_graph.html: clicking empty canvas space
+  (or a line, since edges aren't independently clickable) now clears node/edge selection,
+  restoring full visibility and resetting the side panel — previously nothing happened on
+  background click, so a selected node's dimming of unrelated nodes/edges stayed stuck until
+  another node was clicked. Click-vs-pan is distinguished by movement threshold (>3px),
+  same pattern already used for node-drag-vs-click.
+### AI
+- Claude Sonnet 5, Anthropic
+
 ## [v2.7.272] — 2026-07-03
 ### Changed
 - BACKLOG_PROPOSAL_V2.md Phase 2 implemented: F7 + VS zone fusion in `web/vs_engine.py`.

@@ -436,6 +436,7 @@ function applyFilter() {{
 const svg = document.getElementById('graph-svg');
 const wrap = document.getElementById('canvas-wrap');
 const sidepanel = document.getElementById('sidepanel');
+const DEFAULT_PANEL_HTML = sidepanel.innerHTML;
 const BOX_W = 220, BOX_H = 54;
 const LS_KEY = 'buell_pipeline_graph_pos_v1';
 
@@ -449,15 +450,28 @@ function applyTransform() {{
 }}
 applyTransform();
 
+// ---- clear node/edge selection, restoring full visibility ----
+function clearSelection() {{
+  document.querySelectorAll('.node').forEach(x => x.classList.remove('hi', 'dim', 'upstream', 'downstream'));
+  document.querySelectorAll('.edge').forEach(x => x.classList.remove('hi', 'dim'));
+  sidepanel.innerHTML = DEFAULT_PANEL_HTML;
+}}
+
 // ---- canvas pan/zoom (two-finger scroll = pan, pinch/ctrl+wheel = zoom) ----
-let panning = false, lastX = 0, lastY = 0;
+let panning = false, lastX = 0, lastY = 0, panStartX = 0, panStartY = 0, panMoved = false;
 wrap.addEventListener('mousedown', e => {{
   if (e.target.closest('.node')) return; // node drag handles itself
-  panning = true; lastX = e.clientX; lastY = e.clientY; wrap.classList.add('dragging');
+  panning = true; lastX = e.clientX; lastY = e.clientY;
+  panStartX = e.clientX; panStartY = e.clientY; panMoved = false;
+  wrap.classList.add('dragging');
 }});
-window.addEventListener('mouseup', () => {{ panning = false; wrap.classList.remove('dragging'); }});
+window.addEventListener('mouseup', () => {{
+  if (panning && !panMoved) clearSelection(); // click on empty space/edge, not a pan drag
+  panning = false; wrap.classList.remove('dragging');
+}});
 window.addEventListener('mousemove', e => {{
   if (!panning) return;
+  if (Math.abs(e.clientX - panStartX) > 3 || Math.abs(e.clientY - panStartY) > 3) panMoved = true;
   panX += (e.clientX - lastX); panY += (e.clientY - lastY);
   lastX = e.clientX; lastY = e.clientY;
   applyTransform();
