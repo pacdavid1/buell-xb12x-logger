@@ -467,6 +467,42 @@ GPR tutorial) enough to judge whether `scikit-learn`'s GaussianProcessRegressor 
 whether this needs a proper GP library; prototype on one map pair (91B225 vs 248AE2, the same
 pair already used to validate GAP1) before deciding whether it replaces or augments GAP1.
 
+### IDEA-032 — Brazilian flex-fuel virtual sensor: the reusable pattern, corrected for our actual constraint (freebuff task_009)
+**Señal:** structurally, whatever we already use as a "correction magnitude" — dpw_eff between
+two known maps — not a new signal.
+**Técnica:** freebuff task_009 (Japan+India+Brazil, intensive) called Brazil's mass-production
+virtual ethanol-content sensor (2003-present) "the single most important finding of the entire
+research batch." The mechanism: on refuel, the ECU watches how much long-term fuel trim (LTFT)
+correction the narrowband O2 feedback loop demands to hold stoichiometric, and maps that
+correction magnitude to an ethanol percentage (small correction = mostly gasoline, large =
+mostly ethanol), cross-checked against knock behavior (ethanol's higher octane resists knock at
+advanced timing).
+**Freebuff's overclaim, corrected:** its own comparison table admits the mechanism's input is
+"O2 feedback + LTFT" — i.e. it requires a *working closed-loop narrowband sensor* as the error
+signal. This project has no O2 feedback of any kind (EGO_Corr/AFV locked at 100.0, sensor
+physically disconnected). So the specific algorithm does not transfer; our problem is strictly
+harder than Brazil's (they infer one unknown FROM a working sensor, we have no sensor at all).
+**What actually transfers is the pattern, not the algorithm:** "turn a correction/deviation
+magnitude into a classification of an unmeasured property" is exactly what SWEET/SPICY/BITTER
+already does — except our correction signal is dpw_eff (the fueling difference between two
+*known* map states) instead of LTFT (the fueling difference between one map and a *live O2
+target*). Brazil substitutes a live sensor for the reference point; we substitute a second
+already-driven map. Production-proof that the general pattern works at scale is worth having,
+but it does not hand us a shortcut — it validates a design choice we already made independently.
+**Secondary items from the same task, same caveat pattern as IDEA-029/030/031 (assume O2 present):**
+Japanese MPC for transient AFR (Takiyama 2015/2017, JSAE) — same F7-relevant transient-window
+framing as the Chinese/German transient-AFR findings, but again modeled around a working O2
+loop; Indian multi-gas exhaust analysis (CO%/HC%/CO2% from a portable analyzer instead of a
+wideband) — the one finding here that's a genuinely different *hardware* alternative rather
+than a pure-software inference, worth a line in a future hardware-options list alongside ion
+current and voltage-divider spark sensing (IDEA-029 item 4).
+**Dato clave:** fifth region searched (after English/US, China, Russia, Germany), fifth time no
+automated cross-session log-comparison tool was found anywhere. The novelty claim in IDEA-028
+keeps getting more load-bearing evidence, not less.
+**Riesgo de las citas:** same standing caveat — SAE numbers (2017-36-0241, 2011-36-0057,
+2008-36-0262) and JSAE DOIs not independently verified to exist as cited.
+**Requiere:** nothing to build — this is a corrected positioning note, not a new technique.
+
 ## Descartadas
 
 ## Convertidas a BACKLOG

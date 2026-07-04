@@ -21,6 +21,21 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.267] — 2026-07-03
+### Added
+- IDEAS.md IDEA-032: Brazilian flex-fuel virtual ethanol sensor (freebuff task_009, Japan+
+  India+Brazil) recorded with a correction to freebuff's own overclaim — the algorithm needs
+  a working closed-loop O2 sensor as its error signal, which this project does not have, so
+  it does not transfer directly. What transfers is the pattern (turn a correction magnitude
+  into a classification of an unmeasured property), which SWEET/SPICY/BITTER already
+  implements using dpw_eff (map-vs-map) instead of LTFT (map-vs-live-O2-target) as the
+  reference. Also logged: Japanese transient-AFR MPC (same O2-present caveat) and Indian
+  multi-gas exhaust analysis as a genuinely different hardware alternative to wideband.
+  Fifth literature pool (after English, China, Russia, Germany) with no automated
+  cross-session log-comparison prior art found.
+### AI
+- Claude Sonnet 5, Anthropic (freebuff research input: task_009)
+
 ## [v2.7.266] — 2026-07-03
 ### Added
 - IDEAS.md IDEA-030: RPM-only torque/manifold-pressure observer (freebuff task_006,
