@@ -21,6 +21,25 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.269] — 2026-07-03
+### Changed
+- Processed freebuff's self-initiated re-evaluation of tasks 006-009 against the ZERO-O2
+  constraint (unprompted — it re-scored its own earlier findings after reading the standing
+  feedback added to TASKS.md). Confirms the feedback loop is working: its downgrades of the
+  Brazilian flex-fuel sensor and Russian STFT/LTFT scaling to LOW independently match the
+  corrections already recorded in IDEA-032/029.
+- IDEAS.md IDEA-029 item 1: added a second reframe from that re-evaluation — retrain the
+  Elman-RNN architecture on our own SWEET/SPICY/BITTER labels instead of AFR, sidestepping
+  the ground-truth problem. Noted precisely what this becomes (a dpw_eff smoother/generalizer,
+  redundant with IDEA-031's GPR unless a real comparison shows the NN adds something GPR can't).
+- IDEA-030: corrected a category error in freebuff's re-evaluation — it listed "VDYNO relative
+  comparison" as newly undervalued work to prioritize; VDYNO-as-relative-comparator is BL-VD-10,
+  already built, not a pending implementation item.
+- IDEA-031: corrected freebuff's "software-only, zero cost" framing of GPR — zero hardware
+  cost, but the modeling/prototyping/validation work is real effort, not free.
+### AI
+- Claude Sonnet 5, Anthropic (freebuff research input: unprompted 006-009 re-evaluation)
+
 ## [v2.7.268] — 2026-07-03
 ### Added
 - IDEAS.md IDEA-033: swap F7's DTW for derivative-based DTW (DDTW) — freebuff task_010

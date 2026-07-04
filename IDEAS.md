@@ -365,6 +365,15 @@ plus the Russian gray-literature sweep (task_007) surfaced four veins:
    wideband. Only viable on borrowed dyno data (transfer quality unknown) or after a
    temporary wideband session, at which point it becomes a way to KEEP the wideband's
    knowledge after removing the sensor. That reframing is the actually useful version.
+   **Second reframe (freebuff's self-initiated re-evaluation, unprompted, 2026-07-03):**
+   retrain the same Elman-RNN *architecture* on our own SWEET/SPICY/BITTER labels instead of
+   AFR — sidesteps the ground-truth problem entirely since the labels are self-generated.
+   **Worth being precise about what this actually is:** it stops being a virtual AFR sensor
+   at that point and becomes a *smoother/generalizer* over our existing dpw_eff classification
+   — the same job GPR (item below, IDEA-031) already does with a cleaner uncertainty story.
+   Not a wasted idea, but redundant with IDEA-031 unless the NN's ability to use nonlinear
+   combinations of RPM/TPS/CLT/baro as inputs (which GPR can also do with the right kernel)
+   turns out to matter in practice — a real comparison, not an assumption either way.
 2. **Transient AFR / fuel-film (wall-wetting) modeling during throttle transients** —
    task_006 flagged LSTM models specifically for the transient window where a physical O2
    sensor has 0.5-2s transport lag; separately flagged EKF fuel-puddle models for
@@ -451,6 +460,11 @@ thermal efficiency) — VDYNO must stay a *relative* comparator ("did this cell'
 down after the map change") exactly as BL-VD-10 already uses it, never a path to an absolute
 AFR number. Confirms an existing design choice was already the correct one; flagging so nobody
 is tempted to over-extend VDYNO into absolute mixture estimation later.
+**Correction to freebuff's self-initiated re-evaluation (2026-07-03):** that pass listed "VDYNO
+relative comparison" as an "undervalued, prioritize now" implementation item. That's a category
+error worth naming — VDYNO-as-relative-comparator isn't new work to schedule, it's BL-VD-10,
+already built. The only actual action item here is the caution above (don't extend it to
+absolute AFR), not a fresh implementation task.
 
 ### IDEA-031 — Gaussian Process Regression as the map-proposal surface (replaces/extends GAP1's discrete binning)
 **Señal:** whatever cells already feed `_merge_maps`/GAP1 today (dpw_eff per RPM×TPS bin) — GPR
@@ -479,6 +493,9 @@ but has not been fetched/verified independently.
 GPR tutorial) enough to judge whether `scikit-learn`'s GaussianProcessRegressor is sufficient or
 whether this needs a proper GP library; prototype on one map pair (91B225 vs 248AE2, the same
 pair already used to validate GAP1) before deciding whether it replaces or augments GAP1.
+**Correction to freebuff's self-initiated re-evaluation (2026-07-03):** that pass called this
+"software-only, zero cost." It's zero *hardware* cost, but the modeling/prototyping/validation
+work above is real effort — keep the honest scoping from this entry, not the "zero cost" framing.
 
 ### IDEA-032 — Brazilian flex-fuel virtual sensor: the reusable pattern, corrected for our actual constraint (freebuff task_009)
 **Señal:** structurally, whatever we already use as a "correction magnitude" — dpw_eff between
