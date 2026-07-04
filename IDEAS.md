@@ -585,6 +585,36 @@ then remove it" framing — same idea, now with a concrete existing tool to comp
 **Requiere:** nothing to build — this is the positioning note that ties the whole research batch
 together. Useful as the intro paragraph if any of this work is ever written up.
 
+### IDEA-035 — The error signal might be PER-CYLINDER and mechanical: V-twin dynamics as the sensorless substitute
+**Señal:** RPM (per-cylinder attribution via crank angle), vibration (BAS_ADC or a new IMU),
+pw1/pw2 + spark1/spark2 already split per cylinder.
+**Técnica:** IDEA-034 named the frontier as "find a substitute for the AFR-error signal without an
+O2 sensor." This idea sharpens it with the engine's actual geometry: it's a **45° V-twin with
+uneven firing** (single crankpin, ~315°/405° between power strokes), so the two combustion events
+happen at DISTINCT, KNOWN crank angles. That opens two sensorless, per-cylinder channels the
+earlier (inline-engine-centric) research under-weighted:
+1. **Crankshaft speed fluctuation, attributed per cylinder** — because the firing angles are
+   distinct, a dip/kick in instantaneous RPM can be tied to front vs rear. A weak/lean cylinder
+   should show a shallower kick. This is IDEA-029 item 3 (CSF) but upgraded from "combustion
+   roughness, whole engine" to "which HEAD is weak." Open question freebuff task 015 must answer:
+   is our ~10 Hz serial RPM hopelessly too coarse (almost certainly yes for per-firing), and what
+   would a crank-trigger GPIO tap buy.
+2. **Vibration signature** (freebuff task 016) — V-twin vibration is dominated by firing events at
+   known angles; a cheap IMU could carry per-cylinder combustion strength / misfire.
+**Por qué importa:** the whole pipeline (dpw_eff, GAP1, GP, proposal.py) currently averages the two
+cylinders into one number and picks one A/B winner — see BL-VS-PERCYL. But the hardware has separate
+fuel_front/fuel_rear + spark_front/spark_rear maps, the factory already runs them different, and the
+rear head runs hotter (air-cooled). So the missing error signal isn't just "AFR" — it's plausibly
+"which of the two heads is off, and by how much," which a V-twin's mechanics can expose in ways an
+inline-4 can't. This reframes the sensorless problem around THIS engine instead of generic autotuning.
+**Dato clave — the map→PW transfer function (measured 2026-07-04, 248AE2, 69 cells):**
+`pw1_base ≈ 0.055 × fuel_map − 1.38 ms`, R²=0.95 — linear but AFFINE. So per-cylinder proposals in
+"% of map" ≠ "% of PW" (amplification ~2× at low load, ~1× at high load). Recorded in BACKLOG.md.
+**Requiere:** freebuff research batch 2 (tasks 014-017: cylinder-asymmetry physics, per-cylinder CSF,
+vibration sensing, how other twins do per-cylinder trim). Then BL-VS-PERCYL (the code split) gives us
+somewhere to put a per-cylinder signal once we have one. Rider notes (vibration/behavior) are the
+zero-cost human channel that validates any of these without a wideband. Builds on [[project-pipeline-dataflow]].
+
 ## Descartadas
 
 ## Convertidas a BACKLOG

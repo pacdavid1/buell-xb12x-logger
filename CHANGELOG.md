@@ -21,6 +21,17 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.278] — 2026-07-04
+### Added
+- IDEAS.md IDEA-035: reframe the sensorless "missing error signal" (IDEA-034) around this
+  engine's actual geometry — a 45° uneven-firing V-twin whose two combustion events happen at
+  distinct known crank angles, opening per-cylinder crank-speed-fluctuation and vibration
+  channels that inline-engine research under-weighted. Queued freebuff research batch 2
+  (tasks 014-017: cylinder-asymmetry physics, per-cylinder CSF, vibration sensing, how other
+  twins do per-cylinder trim) in freebuff/TASKS.md.
+### AI
+- Claude Opus 4.8, Anthropic
+
 ## [v2.7.277] — 2026-07-04
 ### Added
 - `ecu/ecm_defs.py`: `decode_batt_correction()` + `deadtime_ms()` — decode the ECU's own
