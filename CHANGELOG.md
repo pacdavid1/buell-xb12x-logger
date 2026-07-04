@@ -21,6 +21,40 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.268] — 2026-07-03
+### Added
+- IDEAS.md IDEA-033: swap F7's DTW for derivative-based DTW (DDTW) — freebuff task_010
+  (global academic sweep) flagged DDTW as the vehicle-telemetry standard for cross-session
+  alignment robust to sensor drift. Verified against actual code: `web/f7.py:_f7_dtw`
+  (lines 65-79) uses plain amplitude DTW (`abs(a[i-1] - b[j-1])`), confirming this is a real
+  gap, not something already covered. Concrete, same-day, low-effort item — the single most
+  actionable finding of the whole 6-task research batch.
+- IDEAS.md IDEA-034: cross-task synthesis — every region surveyed (Russia's Atomic Tune,
+  Honda/Nissan/Subaru STFT/LTFT scaling, MegaLogViewer/VE Analyze Live) converged on the
+  same bin-by-RPM×Load + compute-error + scale-cell algorithm our dpw_eff/SWEET-SPICY-BITTER
+  already implements independently. Named the actual R&D frontier precisely: not the
+  map-correction math (solved, five times over) but a substitute for the AFR-error signal
+  itself, which every other recent IDEA (029-033) is an attempt at.
+### Changed
+- IDEA-030 (RPM-only torque observer) got a direct caution from freebuff task_010: inferring
+  mixture quality/combustion efficiency from acceleration alone is explicitly underdetermined
+  in the literature — confirms VDYNO must stay a relative comparator (as BL-VD-10 already
+  uses it), never a path to absolute AFR.
+- IDEA-029 item 4 (ion current sensing) reinforced with its strongest citation yet: Lee et
+  al. (2001) reports <2% AFR error for non-rich conditions; freebuff calls it the single
+  most promising hardware upgrade for this project across all tasks surveyed.
+- Novelty claim (IDEA-028) now confirmed by task_011 across rusEFI/Speeduino, MoTeC/AiM,
+  PGMFI/Nistune/ROMRaider, HP Academy, and — most pointedly — our own Buell DDFI tuning
+  community (ECMSpy/TunerPro users): nobody tuning this exact ECU has attempted mixture
+  inference without a wideband.
+- freebuff's new standing-feedback mechanism (added this session to TASKS.md) appears to be
+  working: task_010's response proactively flagged "no paper claims unsupervised long-term
+  operation without any O2 feedback" and marked EKF/SMO/UIO methods with explicit ❌ where
+  they require a sensor we don't have, instead of overclaiming relevance as in tasks 006/009.
+### AI
+- Claude Sonnet 5, Anthropic (freebuff research input: task_010, task_011 — final tasks of
+  the 006-011 research batch)
+
 ## [v2.7.267] — 2026-07-03
 ### Added
 - IDEAS.md IDEA-032: Brazilian flex-fuel virtual ethanol sensor (freebuff task_009, Japan+

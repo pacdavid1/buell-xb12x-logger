@@ -390,7 +390,13 @@ plus the Russian gray-literature sweep (task_007) surfaced four veins:
    <0.6-0.7ms = poor combustion/lean misfire) via a simple voltage divider on the ignition
    coil primary — much cheaper than ion-current, GPIO-feasible on the Pi. Both are per-cycle
    combustion feedback without touching the exhaust; the Russian version is the more buildable
-   first step.
+   first step. **Update (task_010, global academic sweep):** ion current gets its strongest
+   citation yet — Lee et al. (2001), *Estimation of cycle-resolved in-cylinder pressure and
+   air-fuel ratio using spark plug ionization current sensing*, reports **<2% AFR error for
+   non-rich conditions**. freebuff calls it "the single most promising hardware upgrade" for
+   this project. Still a real circuit (bias supply 80-400V, protection diodes, transimpedance
+   amp, 100kHz+ ADC) — moderate-high effort, not a weekend build — but now the best-evidenced
+   path to an absolute mixture number of everything surveyed across 5 tasks.
 **Aplica a:** the absolute rich/lean direction gap — the whole current pipeline is relative
 comparison (map A vs map B); these are candidate paths to an absolute mixture signal,
 alongside the density-as-lambda-sweep idea (IDEA-025). Item 2 (AE during F7) is the only
@@ -438,6 +444,13 @@ exist as cited.
 patent was not reproduced by freebuff, only the concept) — this is a real modeling task, not a
 one-script analysis. Worth a scoping pass before committing effort: is RPM-only torque
 estimation accurate enough on a V-twin with our sampling rate to be worth building.
+**Advertencia de freebuff task_010 (global academic sweep) que aplica directo a VDYNO:**
+inferring *mixture quality/combustion efficiency* from acceleration alone is explicitly called
+underdetermined in the literature (too many unknowns: drag, transmission loss, tire slip,
+thermal efficiency) — VDYNO must stay a *relative* comparator ("did this cell's power go up or
+down after the map change") exactly as BL-VD-10 already uses it, never a path to an absolute
+AFR number. Confirms an existing design choice was already the correct one; flagging so nobody
+is tempted to over-extend VDYNO into absolute mixture estimation later.
 
 ### IDEA-031 — Gaussian Process Regression as the map-proposal surface (replaces/extends GAP1's discrete binning)
 **Señal:** whatever cells already feed `_merge_maps`/GAP1 today (dpw_eff per RPM×TPS bin) — GPR
@@ -502,6 +515,58 @@ keeps getting more load-bearing evidence, not less.
 **Riesgo de las citas:** same standing caveat — SAE numbers (2017-36-0241, 2011-36-0057,
 2008-36-0262) and JSAE DOIs not independently verified to exist as cited.
 **Requiere:** nothing to build — this is a corrected positioning note, not a new technique.
+
+### IDEA-033 — Swap F7's DTW for Derivative DTW (DDTW): concrete, low-effort robustness upgrade
+**Señal:** the TPS curve F7 already extracts per event — no new signal, an algorithm swap.
+**Técnica:** freebuff task_010 (global academic sweep, virtual lambda) flagged that Derivative
+DTW, not standard DTW, is the established method in the vehicle-telemetry literature for
+aligning driving sessions by signal *shape*, because it computes distance on the derivative of
+the signal rather than raw amplitude — making it robust to sensor drift/offset between sessions.
+Task_010 explicitly said this "validates our F7 DTW approach" but also implies F7 is currently
+using plain DTW, not the more robust variant the literature converged on.
+**Aplica a:** `web/f7.py:_f7_dtw` (lines 65-79) — **verified, not speculative:** the cost function
+is `abs(a[i-1] - b[j-1])`, plain amplitude DTW with a Sakoe-Chiba window, used both for
+within-session PW clustering and cross-session TPS matching (`f7.py:532`). Not derivative-based.
+**Por qué importa:** this is the single most concrete, lowest-effort item to come out of the
+entire 6-task research batch — a library-level algorithm swap, not a new pipeline stage or a
+hardware project. Same-day change with a real, cited justification (better cross-session
+robustness to sensor/calibration drift, which is exactly the scenario F7 is used for: matching
+equivalent events across *different* map states, i.e. after a burn changed the fueling curve's
+absolute level even when the rider's gesture shape is identical).
+**Requiere:** compute first differences of the TPS (and/or PW) curve before feeding `_f7_dtw`,
+or add a `derivative=True` mode to the function; re-validate against existing F7 cross-session
+match test cases (91B225/248AE2 pair already used for GAP1 validation) before switching the
+default, since this changes what counts as a match.
+
+### IDEA-034 — The recurring "closest tool" pattern: everyone solved the binning/proposal math, nobody solved the error signal
+**Señal:** none new — this is a synthesis across freebuff tasks 006-011, not a data finding.
+**Técnica:** every region/community surveyed converged on the *same two-step algorithm* for
+map correction: (1) bin logged data by RPM×Load (or RPM×TPS), (2) compute a per-bin *error*
+against a target, then scale the map cell by that error. Named instances: Russia's Atomic
+Tune/FunTune (БЦН/ПЦН correction from road logs), the Honda/Nissan/Subaru scene's STFT/LTFT
+scaling (PGMFI, Nistune, ROMRaider's "Airboy's Spreadsheets"), and MegaLogViewer's histogram +
+VE Analyze Live — called by freebuff "the closest existing tool to our concept." **Our own
+dpw_eff / SWEET-SPICY-BITTER classification is the same algorithm shape**, independently arrived
+at.
+**Por qué importa — the actual reframe:** the binning-and-correcting math is a solved problem,
+everywhere, including in our own pipeline. The one ingredient every single one of these tools
+needs and we don't have is the *error signal itself* — a measured AFR deviation from a wideband
+or narrowband O2 sensor. That is the entire R&D frontier of this project, restated precisely:
+not "build a map-correction algorithm" (done, five times over, in five countries) but "find or
+build a substitute for the AFR-error signal that doesn't require an O2 sensor." Every other idea
+in this file (IDEA-029 through 033) is an attempt at exactly that one substitution — AE-as-proxy,
+RPM-jitter-as-proxy, ion-current, spark-duration, a second VDYNO estimator for cross-checking.
+Naming the frontier this precisely is itself useful: it is a filter for evaluating any future
+technique — does it produce (or substitute for) a per-cell AFR-error signal? If not, it doesn't
+address the actual gap, no matter how sophisticated the modeling around it is.
+**Dato clave:** MegaLogViewer's histogram method and our Sessions VS are structurally close
+enough that if we ever get a temporary wideband session, the correction-generation half of our
+pipeline is probably already compatible with that workflow with minimal changes — worth keeping
+in mind as a cheap way to validate the proposal-generation math independently of the missing
+error-signal problem (see IDEA-029 item 1's "borrow a temporary wideband to train/validate,
+then remove it" framing — same idea, now with a concrete existing tool to compare outputs against).
+**Requiere:** nothing to build — this is the positioning note that ties the whole research batch
+together. Useful as the intro paragraph if any of this work is ever written up.
 
 ## Descartadas
 
