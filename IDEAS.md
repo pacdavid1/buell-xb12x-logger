@@ -291,6 +291,46 @@ Start-point picker UI in GPS Analysis map (Leaflet click handler, stores lat/lon
 Haversine distance accumulation (already used elsewhere in the codebase). Dual-trace renderer
 on the existing uPlot or canvas chart in GPS Analysis. No new data collection needed beyond GPS Fase 1.
 
+### IDEA-028 — Prior art check: where this project sits vs. published MBC / system-ID work
+**Señal:** N/A — literature/prior-art research, not a data signal from the CSV.
+**Técnica:** Web search across three tiers of related work: (1) hobbyist ECU auto-tune
+(MegaSquirt VE Analyze Live, Speeduino, HP Tuners self-learn) — all require a wideband O2
+as the closed-loop error signal, none work without one; (2) OEM/academic on-road calibration
+via Bayesian optimization + Gaussian Process, 2025-2026 papers — closest in spirit (learn
+directly on the vehicle, no dyno) but still anchor to a measured ground-truth output
+(AFR/NOx/torque) and carry formal uncertainty quantification (posterior variance) plus
+algorithmic safety constraints; (3) MathWorks Model-Based Calibration Toolbox — classic
+dyno + DoE with designed excitation signals (RPM/load sweeps), the opposite of street logging.
+No published tool or paper was found doing DTW-based curve matching (TPS shape) to pair
+equivalent events across sessions/maps for tuning validation — this looks like a genuinely
+uncommon technique in this domain, worth treating as a potential differentiator, not just
+an internal implementation detail.
+**Aplica a:** Project framing / positioning. Also names three concrete gaps against the
+state of the art: no uncertainty quantification beyond GAP 5's convergence variance, no
+designed/persistent excitation (F7's DTW event pairing is a partial mitigation, not a
+formal substitute), no algorithmic safety-constrained optimization (burn decision is
+human-reviewed instead).
+**Por qué importa — the reframe that matters:** the user's own framing on the "designed
+excitation" gap: a dyno + DoE protocol is faster per iteration only because the sampled
+space is deliberately bounded — it tests a controlled grid, not the real operating envelope.
+This project's approach is slower per iteration because real-street data is dispersed across
+whatever the rider and the road actually produced, but that dispersion is not noise to be
+eliminated — it IS the joint distribution of real-world use (weather, elevation, thermal
+cycles, traffic patterns, throttle behavior) that a lab protocol never samples and therefore
+can never document, even in principle. What's traded for speed in the lab is coverage; this
+project buys coverage of conditions that no dynamometer test plan will ever contain a record
+of. The lab produces a faster answer to a narrower question. This project is the only place
+where evidence of those specific real-world operating conditions — and how the ECU actually
+behaved in them — exists at all.
+**Dato clave:** the closest published parallel (fleet-based Bayesian optimization / GP
+calibration directly on vehicles, no dyno) validates that "learn continuously from real
+operating data instead of a lab grid" is a principled approach elsewhere too — not just a
+budget workaround for lacking a dyno. The gap vs. that literature is formal uncertainty
+quantification and safety-constrained search, not the on-road premise itself.
+**Requiere:** nothing new to build. This is a positioning note — useful context if any of
+this ever gets written up (forum post, short paper) or when deciding priority between
+GAP 5-style convergence stats vs. new signal sources.
+
 ## Descartadas
 
 ## Convertidas a BACKLOG

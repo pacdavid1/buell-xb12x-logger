@@ -21,6 +21,26 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.263] — 2026-07-03
+### Added
+- IDEAS.md: IDEA-028 — prior art comparison against published MBC/system-ID work
+  (hobbyist wideband-dependent auto-tuners, on-road Bayesian/GP fleet calibration
+  research, MathWorks MBC Toolbox dyno+DoE). No published tool/paper found doing
+  DTW-based TPS curve matching for cross-session event pairing. Documents the framing
+  that designed-excitation (dyno) trades real-world coverage for iteration speed,
+  while this project's street-data approach trades speed for coverage of operating
+  conditions no lab protocol samples or documents.
+### AI
+- Claude Sonnet 5, Anthropic (authored in remote web session; applied locally by Claude Fable 5)
+
+## [v2.7.262] — 2026-07-03
+### Changed
+- CLAUDE.md: clarified git branch policy for remote/cloud sessions (Claude Code on
+  the web) — when the harness assigns a default feature branch, switch to `main`
+  before the first commit unless the user explicitly requests a separate branch/PR review.
+### AI
+- Claude Sonnet 5, Anthropic (authored in remote web session; applied locally by Claude Fable 5)
+
 ## [v2.7.261] — 2026-07-02
 ### Changed
 - BL-DI-06 (thermal protection contamination) CLOSED AS REFUTED by empirical analysis of all 89 rides / 391,508 samples: fl_hot is a warmed-up indicator (Flags6 bit 3, flips at CLT ~65°C, matches EEPROM "Hot Start Condition" 45°C), not a protection flag — it covers 95.1% of all samples, so the proposed exclusion filter would have silently discarded 95% of the dataset. No thermal fueling/spark step exists anywhere in the warm regime (pw1 +0.58% median across a +51°C CLT band; spark +0.01°); real protection (soft 280°C / hard 295°C) never engaged in the entire dataset (max CLT ever = 280°C, one sample). Tombstone kept in BACKLOG_DATASET_INSIGHTS.md per design rules 6/7.

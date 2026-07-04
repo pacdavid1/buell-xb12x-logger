@@ -523,6 +523,11 @@ Only create a branch when the user explicitly asks, OR the work touches:
 Everything else (UI, CSS, dead code, new pages, backlog items) goes
 directly to `main`.
 
+**Remote/cloud sessions (Claude Code on the web):** the harness may assign
+a default feature branch (e.g. `claude/...`) for the session. Unless the
+user explicitly asks for a separate branch or PR review, switch to `main`
+before the first commit and work directly there, same as local sessions.
+
 ## MODO CREATIVO
 
 Cuando el usuario diga "modo creativo", "activa modo creativo", "ponte creativo" o "ponte creativa":
