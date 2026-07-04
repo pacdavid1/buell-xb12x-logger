@@ -478,6 +478,34 @@ contexto crítico para entender por qué el PW fue mayor o menor.
   (baro_est = 1013.25 * (1 - 0.0065*gps_alt/288.15)**5.255) — solo relevante si se agrega
   la covariable de arriba.
 
+### BL-VS-PERCYL — Per-cylinder winner split (HIGH, user-identified 2026-07-04)
+**Problem:** `web/launch.py:build_index` averages the two cylinders into a single
+`pw_eff = (pw1+pw2)/2`, and `web/vs_engine.py:_build_ci` decides the A/B winner on that
+average. But `pw1`→`fuel_front` map and `pw2`→`fuel_rear` map are SEPARATE tables, already
+different from the factory (measured on 248AE2: mean abs diff 3.8, max 19 units ≈ 0.2-1ms).
+Averaging discards real per-cylinder signal — on an air-cooled V-twin the rear head runs
+hotter and genuinely needs different fueling ("compensación de fuerzas"). We already compute
+`dpw1`/`dpw2` (per-cylinder deltas) in the delta rows but never use them for the winner.
+**Fix:**
+1. In `_build_ci`, decide a front winner from `dpw1` and a rear winner from `dpw2`
+   independently (each with its own GAP1-style significance — needs per-cylinder Welch CI,
+   currently only the averaged `dpw_eff_se` exists, so add `dpw1_se`/`dpw2_se` in launch.py).
+2. `_merge_maps`/`proposal.py` then apply the front winner to `fuel_front` and the rear
+   winner to `fuel_rear` separately (the map loop already iterates fuel_front/fuel_rear —
+   just needs the per-map ci key instead of the shared one).
+3. Keep a "both agree" fast-path so genuinely-symmetric cells aren't over-fragmented.
+**Note:** this pairs with the map→PW transfer function measured 2026-07-04 (see below) —
+per-cylinder is where the front/rear map divergence actually lives.
+
+### Map→PW transfer function (measured 2026-07-04, reference)
+Empirically from 248AE2 (69 cells, dead-time-corrected): `pw1_base ≈ 0.055 × fuel_map_value
+− 1.38 ms`, **R²=0.95** — strongly LINEAR but AFFINE (non-zero intercept). Consequence:
+**% of map ≠ % of PW.** A +5% map change at map=100 gives +6.7% PW; the amplification
+varies ~2× at low load to ~1× at high load. This is why `proposal.py` proposes an existing
+session's actual map VALUE (not a synthesized % delta) — the % path needs this affine
+conversion, not a naive multiply. Deterministic (Alpha-N open loop), derivable from any
+session's data, no ride needed. Re-derive per-firmware/injector if hardware changes.
+
 ### Items pendientes para proposal.py v2 (freebuff tasks 010, 013)
 - [ ] ddvss cross-check in proposal.py: dpw_eff alone doesn't say if B is better
   Cross-reference with ddvss: if dpw_eff<0 AND ddvss>0 → B more efficient (high conf)
