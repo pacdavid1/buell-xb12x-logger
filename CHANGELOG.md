@@ -21,6 +21,23 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.265] — 2026-07-03
+### Changed
+- IDEAS.md IDEA-029 broadened and re-verified: user redirected freebuff's task_006 scope
+  from motorcycle-only to general ICE literature, freebuff re-ran it, and task_007
+  (Russia/CIS) landed in the same batch. Added: transient-AFR/fuel-film (wall-wetting)
+  modeling during throttle transients, with the connection freebuff itself missed — DDFI2
+  is port-injected, F7 events are throttle transients, and the ECU's own `AE` (accel
+  enrichment) signal is a zero-new-hardware proxy for exactly this phenomenon, already on
+  disk. Also added ignition-waveform combustion diagnostics (Russian oscilloscope
+  spark-duration method, cheaper GPIO-feasible alternative to Chinese ion-current sensing).
+  Novelty claim (no cross-session log-comparison tool found anywhere) now confirmed by a
+  third literature pool (Russian Январь/Itelma tuning scene) doing decades of manual
+  open-loop tuning on ECUs structurally similar to DDFI2. Flagged a standing risk: freebuff
+  cites specific papers/patents not independently verified to exist.
+### AI
+- Claude Sonnet 5, Anthropic (freebuff research input: task_006 revised, task_007)
+
 ## [v2.7.264] — 2026-07-03
 ### Added
 - IDEAS.md: IDEA-029 — three no-wideband virtual-combustion-sensor paths from freebuff's
