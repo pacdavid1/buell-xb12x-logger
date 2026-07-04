@@ -10,21 +10,36 @@ Status prefix: [PLAN] = design needed | [CODE] = implementable now
 
 ## BL-DI-01 — Batt_V confounder in map comparison (HIGH)
 **Tags:** bug, correction, sessions-vs
-**Status:** [PLAN]
+**Status:** [DONE v2.7.277] (dead-time part); magnitude corrected below
 
-### Finding
-Injector dead time varies inversely with battery voltage (0.1-0.2 ms/V).
-Batt_V swings 12-15.3 V within one ride, and average voltage differs
-ride-to-ride. At a 5 ms cruise pulse, that's a 2-4% pw shift caused by
-electrical state, not fueling intent — same magnitude as dpw deltas the
-Sessions VS pipeline treats as map differences.
+### Finding (as originally stated — partially wrong, see correction)
+Injector dead time varies inversely with battery voltage. The plan (and this
+entry) claimed a 2-4% pw shift of the same magnitude as real map deltas.
 
-### Action
-1. Regress pw residuals against Batt_V at matched RPM/TPS/CLT cells
-   within a single map
-2. If slope is non-zero, add Batt_V to cell-matching criteria in
-   _compare_sessions / Sessions VS
-3. Retroactively flag all existing A-vs-B verdicts that carry voltage bias
+### Correction (v2.7.277, validated against real data)
+The dead-time part is REAL but SMALLER than claimed. Measuring pw-vs-Batt_V:
+- At IDLE the slope is ~-0.60 ms/V, but that is mostly idle-control confound,
+  NOT injector dead-time.
+- At clean steady-cruise cells (the SWEET cells that matter) the empirical
+  slope is -0.19 to -0.20 ms/V, matching the ECU's own Battery Voltage
+  Correction table (~-0.16 ms/V near 14V). So the real dead-time artifact at
+  the cells that drive tuning is ~0.6-1%, not 2-4%.
+The "+2.31% fan-on shift" headline was inflated by idle-control confound.
+
+### Done (v2.7.277)
+Instead of the planned empirical linear guess (k=0.015), used the ECU's REAL
+voltage→ms table: `ecu/ecm_defs.py:decode_batt_correction()` + `deadtime_ms()`
+(XML-by-name, firmware-agnostic). `web/launch.py:build_index()` now computes
+fueling as `pw − deadtime(Batt_V)` per row before pw_eff/dpw_eff. Raw pw1/pw2
+kept for display. CACHE_VERSION 10→11. Cancels correctly where two sessions
+share voltage profile; only shifts where they differ (fan-on fraction).
+
+### Still open
+- `web/f7.py` delta_pw not yet corrected (secondary; short WOT events).
+- The larger idle voltage-correlation (~0.44 ms/V beyond dead-time) is real
+  fueling response to fan-on conditions (hot idle + electrical load), NOT an
+  artifact to subtract — if anything it argues for fan-state stratification of
+  idle cells, not PW correction. Not pursued (idle cells aren't SWEET targets).
 
 ---
 
