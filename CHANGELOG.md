@@ -21,6 +21,43 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.277] — 2026-07-04
+### Added
+- `ecu/ecm_defs.py`: `decode_batt_correction()` + `deadtime_ms()` — decode the ECU's own
+  "Battery Voltage Correction" table (injector dead-time, voltage→ms) from the session's
+  EEPROM via XML-by-name (works across firmwares, returns None when absent), and linearly
+  interpolate the dead-time at a given battery voltage.
+### Changed
+- BL-DI-01 (injector dead-time confounder): Sessions VS now strips the battery-voltage
+  artifact from PW before computing `pw_eff`/`dpw_eff`. In `web/launch.py` `build_index()`,
+  each row's fueling uses `pw − deadtime(Batt_V)` (per-cylinder, same dead-time both since
+  they share the battery). Raw `pw1`/`pw2` in the row are left untouched, so launch displays
+  still show the actual commanded pulse; only the cross-session fueling comparison is
+  corrected. This uses the ECU's REAL voltage→ms table instead of the plan's invented linear
+  guess (k=0.015). CACHE_VERSION 10→11.
+- Validated the model against real data before trusting it (this is why it's the table, not
+  a guess): the plan claimed the +2.31% fan-on PW shift was dead-time under-compensation, but
+  measuring the pw-vs-Batt_V slope showed the ~-0.60 ms/V seen at IDLE is mostly idle-control
+  confound, not dead-time. At clean steady-cruise cells (the SWEET cells that matter) the
+  empirical slope is -0.19 to -0.20 ms/V, matching the table's dead-time gradient (-0.16 ms/V
+  near 14V) within noise — confirming both the table AND the inferred 0.125 V/count axis
+  scale. So the real dead-time artifact at cruise is ~0.6-1% (not the 2.31% headline, which
+  was inflated by idle-control). The correction is correct but modest for this dataset.
+- Revalidation (Phases 1-4): 91B225/248AE2 unchanged (both sessions have similar voltage
+  profiles at matched cells, so the dead-time subtraction cancels in dpw_eff — correct: an
+  uncontaminated comparison isn't perturbed); 47BF04/248AE2 shifted in the de-confounding
+  direction (one cell went insignificant, 3→4 skipped; proposal cells changed 20→18) because
+  47BF04 has 45% fan-on vs the others' lower fractions. Fallback verified: no Batt_V or no
+  table → deadtime 0, raw behavior preserved, no crash.
+### Deferred
+- `web/f7.py` delta_pw not yet dead-time-corrected (secondary fusion input; F7 events are
+  short WOT pulls with momentarily-stable voltage, so the artifact is smaller there). Follow-up.
+- Tuning the Battery Voltage Correction table itself (user's ECU-side idea) is mechanically
+  ready but blocked on not being able to verify the correction direction without a fuel/AFR
+  measurement — a wideband-gated future item, not done here.
+### AI
+- Claude Opus 4.8, Anthropic (analysis input: freebuff docs/PLAN_confounders_batt_baro.md)
+
 ## [v2.7.276] — 2026-07-04
 ### Fixed
 - Removed barometric normalization of injector PW from `web/launch.py` (`load_csv` +

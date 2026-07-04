@@ -8,6 +8,8 @@ import logging
 from pathlib import Path
 
 from web.f7 import _f7_load_session_clusters, _f7_match_cross_session
+from ecu.ecm_defs import decode_batt_correction as _decode_batt_correction, deadtime_ms as _deadtime_ms
+from web.utils import _session_version
 
 
 def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=8.0, min_rpm=1500):
@@ -319,6 +321,16 @@ def _compare_sessions(buell_dir, sa, sb):
     def load_csv(sid):
         rows = []
         sdir = buell_dir / 'sessions' / sid
+        # Injector dead-time table (voltage -> ms) for this session's own EEPROM.
+        # Used to strip the battery-voltage artifact from PW before fueling
+        # comparison (BL-DI-01). None -> deadtime_ms returns 0 (no correction).
+        _ep = sdir / 'eeprom.bin'
+        _dt_table = None
+        if _ep.exists():
+            try:
+                _dt_table = _decode_batt_correction(_ep.read_bytes(), _session_version(_ep))
+            except Exception:
+                _dt_table = None
         csv_files = sorted(sdir.glob('ride_*.csv'))
         time_offset = 0.0
         last_ride_num = -1
@@ -354,6 +366,8 @@ def _compare_sessions(buell_dir, sa, sb):
                         'clt':  sf(r['CLT']),
                         'pw1':      sf(r['pw1']),
                         'pw2':      sf(r.get('pw2', 0)),
+                        'batt_v':   sf(r.get('Batt_V', 0)),
+                        'dt':       _deadtime_ms(_dt_table, sf(r.get('Batt_V', 0))) if sf(r.get('Batt_V', 0)) > 5 else 0.0,
                         'baro': _baro,
                         'baro_valid': _baro_valid,
                         'spark1':sf(r['spark1']),
@@ -441,9 +455,15 @@ def _compare_sessions(buell_dir, sa, sb):
             tb = bucket(r['tps'], TPS_BINS)
             k  = (fl, rb, tb)
             c  = idx[k]
+            # Strip injector dead-time (battery-voltage artifact) so the cell's
+            # fueling reflects the VE map, not the voltage it was logged at
+            # (BL-DI-01). Raw pw1/pw2 in the row are left untouched for display.
+            _dt = r.get('dt', 0.0)
+            _c1 = r['pw1'] - _dt if r['pw1'] > 0 else r['pw1']
+            _c2 = r['pw2'] - _dt if r['pw2'] > 0 else r['pw2']
             c['n']    += 1
-            c['pw1']  += r['pw1']
-            c['pw2']  += r['pw2']
+            c['pw1']  += _c1
+            c['pw2']  += _c2
             c['spark1']+= r['spark1']
             c['spark2']+= r['spark2']
             c['clt']  += r['clt']
@@ -451,7 +471,7 @@ def _compare_sessions(buell_dir, sa, sb):
             c['drpm'] += abs(r.get('drpm',0))
             c['spd']  += r['spd']
             c['dvss'] += r.get('dvss', 0)
-            c['pw_eff'] += ((r['pw1']+r['pw2'])/2) * r['afv'] / 100.0
+            c['pw_eff'] += ((_c1+_c2)/2) * r['afv'] / 100.0
             c['gear']  += r.get('gear', 0)
             if r.get('dalt') is not None:
                 c['dalt']   += r['dalt']
@@ -467,8 +487,9 @@ def _compare_sessions(buell_dir, sa, sb):
             delta_tps = r['tps'] - c['tps_m']
             c['tps_m']  += delta_tps / n2
             c['tps_m2'] += delta_tps * (r['tps'] - c['tps_m'])
-            # Welford online std for pw_eff (GAP 1 significance)
-            pweff_i = ((r['pw1']+r['pw2'])/2) * r['afv'] / 100.0
+            # Welford online std for pw_eff (GAP 1 significance) -- same
+            # dead-time-corrected fueling as the running pw_eff sum above.
+            pweff_i = ((_c1+_c2)/2) * r['afv'] / 100.0
             delta_pweff = pweff_i - c['pweff_m']
             c['pweff_m']  += delta_pweff / n2
             c['pweff_m2'] += delta_pweff * (pweff_i - c['pweff_m'])

@@ -281,7 +281,7 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
 def _fmtk(n):
     if n >= 1000: return f"{n/1000:.1f}k"
     return str(n)
-CACHE_VERSION = 10  # bumped: removed baro normalization of PW (DDFI2 Alpha-N, v2.7.276)
+CACHE_VERSION = 11  # bumped: injector dead-time correction on pw_eff (BL-DI-01, v2.7.277)
 _cache_lock = threading.Lock()
 
 def _eeprom_to_msq(eeprom, session=''):

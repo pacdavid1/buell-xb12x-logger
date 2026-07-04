@@ -177,6 +177,60 @@ _PAGES_BY_FIRMWARE: dict[str, list[tuple[int, int, int]]] = {
 }
 
 
+# Injector dead-time (Battery Voltage Correction) table.
+# The XML entry gives the ms scale, but NOT the voltage-axis scale (no xaxis).
+# 0.125 V/count is inferred from the "Fan Key-Off Minimum Battery Voltage" entry
+# (same units, scale 0.125) and empirically validated: with this scale the table's
+# dead-time gradient (~0.16 ms/V near 14V) matches the measured pw-vs-Batt_V slope
+# at steady cruise cells (~0.19-0.20 ms/V, within noise). See CHANGELOG v2.7.277.
+_BATT_AXIS_SCALE = 0.125  # Volts per axis count
+_BATT_TABLE_NAME = "Battery Voltage Correction"
+
+
+def decode_batt_correction(blob: bytes, version_string: str) -> list[tuple[float, float]] | None:
+    """Decode the injector dead-time table (voltage -> PW offset in ms).
+
+    Returns a list of (volts, ms) breakpoints sorted ascending by voltage, or
+    None when the firmware lacks the table or the blob is too short. The 12
+    bytes are 6 interleaved (axis_byte, value_byte) pairs.
+    """
+    xml_p = _xml_path(version_string)
+    if not xml_p or not xml_p.exists():
+        return None
+    entry = next((e for e in _entries(xml_p) if e["name"] == _BATT_TABLE_NAME), None)
+    if not entry:
+        return None
+    off, size, rows, scale = entry["offset"], entry["size"], entry["rows"], entry["scale"]
+    if not rows or off + size > len(blob):
+        return None
+    stride = size // rows  # 2: one axis byte + one value byte per row
+    points = []
+    for r in range(rows):
+        base = off + r * stride
+        volts = blob[base] * _BATT_AXIS_SCALE
+        ms = blob[base + 1] * scale
+        points.append((volts, ms))
+    points.sort()
+    return points
+
+
+def deadtime_ms(points: list[tuple[float, float]] | None, volts: float) -> float:
+    """Linear-interpolate injector dead-time (ms) at a battery voltage.
+    Clamps to the table's endpoints; returns 0.0 when no table is available."""
+    if not points:
+        return 0.0
+    if volts <= points[0][0]:
+        return points[0][1]
+    if volts >= points[-1][0]:
+        return points[-1][1]
+    for i in range(len(points) - 1):
+        v0, m0 = points[i]
+        v1, m1 = points[i + 1]
+        if v0 <= volts <= v1:
+            return m0 + (m1 - m0) * (volts - v0) / (v1 - v0) if v1 > v0 else m0
+    return points[-1][1]
+
+
 def get_eeprom_pages(version_string: str) -> list[tuple[int, int, int]]:
     """Return (page_nr, start, length) tuples covering the full EEPROM.
 
