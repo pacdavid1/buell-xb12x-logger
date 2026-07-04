@@ -21,6 +21,42 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.266] — 2026-07-03
+### Added
+- IDEAS.md IDEA-030: RPM-only torque/manifold-pressure observer (freebuff task_006,
+  China CN110987452A/B, mean-value engine model + Lyapunov observer) proposed as a second,
+  physically independent estimator to cross-validate VDYNO's GPS-acceleration-based power
+  estimate — per BACKLOG_VDYNO.md design rule 6 (cheap parallel paths, document convergence).
+- IDEAS.md IDEA-031: Gaussian Process Regression as the map-proposal surface, from
+  freebuff task_008 (Germany) — Tietze 2015 TU Darmstadt dissertation on GPR-based engine
+  map calibration, with Local GPR explicitly handling ECU mode-switching (relevant to the
+  fl_hot stratification question from BL-DI-06). Identified as a principled replacement for
+  FASE 6's old IDW+Laplacian smoothing step, giving proposals a real posterior variance
+  instead of per-cell independent statistics. Direct input to the (not yet started) FASE 6
+  revival plan.
+### Changed
+- IDEA-028 (prior art positioning) strengthened with the sharpest confirmation found so far:
+  freebuff task_008 shows the German industry actually built and then abandoned road-based
+  calibration (Straßenapplikation, pre-2010) in favor of Road-to-Rig — capturing road data
+  once and replaying it as a frozen boundary condition on a dyno, i.e. resolving the
+  static-bench-vs-dynamic-street tension by freezing the street data. This project resolves
+  the same tension the opposite way (keep logging open-ended, build statistics to survive
+  the lack of control) — recorded as the clearest one-paragraph statement yet of why this
+  project's method exists, prompted by the user's own framing this session ("el banco es
+  estático, la calle es dinámica").
+- IDEA-029 item 2 (transient AFR / wall-wetting) reinforced: freebuff's task_006 re-run
+  (intensive mode, ICE scope broadened per user request) found the fuel-film paper is
+  motorcycle-specific (Zhang Fujun, BIT 2005) using the same two inputs (TPS derivative,
+  coolant temp) as our existing `AE` signal — strengthens the zero-new-hardware AE-during-F7
+  analysis proposed there.
+- Confirmed via freebuff task_006 re-run: no Chinese prior art for automated cross-session
+  fuel-map proposal from road data (6 parallel searches, high confidence) — third
+  literature pool reaching the same novelty conclusion as English (IDEA-028) and Russian
+  (IDEA-029) sweeps; Germany (task_008) makes a fourth.
+- freebuff task_007 (Russia) re-checked for updates: none found, already fully processed.
+### AI
+- Claude Sonnet 5, Anthropic (freebuff research input: task_006 intensive re-run, task_008)
+
 ## [v2.7.265] — 2026-07-03
 ### Changed
 - IDEAS.md IDEA-029 broadened and re-verified: user redirected freebuff's task_006 scope

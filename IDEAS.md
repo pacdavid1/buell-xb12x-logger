@@ -330,6 +330,30 @@ quantification and safety-constrained search, not the on-road premise itself.
 **Requiere:** nothing new to build. This is a positioning note — useful context if any of
 this ever gets written up (forum post, short paper) or when deciding priority between
 GAP 5-style convergence stats vs. new signal sources.
+**Actualización 2026-07-03 — the strongest confirmation yet (freebuff task_008, Germany):**
+Germany is the one industry with a name and decades of practice for exactly our approach —
+**Straßenapplikation** (road-based calibration, pre-2010) — and the industry's own history
+is a direct answer to the tension the user named this session: *"todos se van al banco de
+prueba porque se puede medir, es medible y confiable, pero si dejamos fuera las pruebas de
+calle estamos dejando el crecimiento iterativo de mejora continua — el banco es estático,
+la calle es dinámica."* Germany faced that exact tradeoff and chose the opposite side:
+low reproducibility on real roads was judged not worth the dynamic realism, so the industry
+moved to **Road-to-Rig (R2R)** — capture real driving data, then replay it as a *fixed*
+boundary condition back on a dyno. That is the static side winning by design: real-world
+richness gets sampled once, then frozen and reproduced, not lived with and re-measured ride
+after ride. Their own engineering literature calls the newest step **Virtuelle Applikation**
+— full digital-twin calibration where road data is explicitly demoted to *validation only*,
+never the source of a proposed change. Every region searched so far (English academic +
+hobbyist, China, now Germany) shows the identical pattern: the industry-grade path always
+resolves the static/dynamic tension by making the street data static (freeze it into a rig
+replay or a validation snapshot). This project resolves it the other way: it keeps logging
+open-ended and dynamic, and instead builds the statistics to survive that (GAP1 Welch CI,
+F7 DTW event matching, GAP5 convergence) rather than freezing the input. Neither resolution
+is free — Germany buys reproducibility, this project buys the continuously-growing dataset
+of real operating conditions no rig replay set was ever built to contain. That trade, stated
+explicitly, is the cleanest one-paragraph pitch for why this project's method exists at all.
+**German Differenzkennfeld** (map-A minus map-B) is literally our dpw_eff × ddvss matrix —
+their own comparison method, minus the automated proposal step we already do on top of it.
 
 ### IDEA-029 — Virtual combustion sensors: no-wideband paths from global ICE literature (freebuff tasks 006+007)
 **Señal:** RPM, PW, TPS, CLT, baro/IAT already logged; ion current/ignition-waveform would need new hardware.
@@ -344,11 +368,17 @@ plus the Russian gray-literature sweep (task_007) surfaced four veins:
 2. **Transient AFR / fuel-film (wall-wetting) modeling during throttle transients** —
    task_006 flagged LSTM models specifically for the transient window where a physical O2
    sensor has 0.5-2s transport lag; separately flagged EKF fuel-puddle models for
-   port-injected engines. **This is the connection freebuff didn't make but is verifiable
-   in our own code:** DDFI2 is port-injected, F7 events ARE throttle transients, and our
-   ECU already logs an `AE` (accel enrichment) signal — which is the factory's own crude,
-   uncalibrated compensation for wall-wetting. AE during F7 events is a directly available,
-   zero-new-hardware signal for exactly the phenomenon the literature says matters most.
+   port-injected engines. **Update (task_006 re-run, intensive mode):** freebuff found the
+   citation is even more specific than "port-injected engines in general" — Zhang Fujun,
+   Beijing Institute of Technology (2005), *"Transient AFR Control Method for Motorcycle
+   Engine Based on Fuel Film Model"* (北京理工大学学报), using throttle-position derivative +
+   coolant temp as inputs to a fuel-film transfer-function compensator. That is our exact
+   vehicle class. **This is the connection freebuff didn't make but is verifiable in our own
+   code:** DDFI2 is port-injected, F7 events ARE throttle transients, and our ECU already
+   logs an `AE` (accel enrichment) signal — which is the factory's own crude, uncalibrated
+   compensation for wall-wetting, using the same two inputs (TPS derivative, CLT) as the
+   cited model. AE during F7 events is a directly available, zero-new-hardware signal for
+   exactly the phenomenon the literature says matters most, on the exact vehicle class studied.
 3. **Crankshaft speed fluctuation (CSF) analysis**, now with CNN/LSTM per task_006 (misfire/
    combustion-quality/cylinder balance from RPM micro-variation). Published method needs
    crank-tooth resolution; our serial stream is ~10 Hz, out of reach as published. Cheap
@@ -381,6 +411,61 @@ first; (2) RPM-stability proxy: nothing, one analysis script; (3) NN-VLS: a lamb
 ground-truth source first; (4) ignition-waveform sensing: hardware R&D (Russian voltage-
 divider approach is the cheaper starting point vs. ion current). Full source lists preserved
 in freebuff task_006/task_007 responses (processed 2026-07-03, CHANGELOG v2.7.264/v2.7.265).
+
+### IDEA-030 — RPM-only torque/manifold-pressure observer as a second, independent VDYNO estimator
+**Señal:** RPM alone (no GPS, no accel) — genuinely different sensor input from VDYNO's current
+GPS-acceleration-based power estimate.
+**Técnica:** freebuff task_006 (China, re-run) surfaced CN110987452A/B (Northeast University,
+2020/2021): a mean-value engine model plus a Lyapunov-stability observer that estimates intake
+manifold pressure and torque **from the RPM signal alone**, with no pressure sensor. Also cited:
+academic EKF/SMO observer literature for air-path/AFR estimation (Jilin, Tsinghua) that runs on
+the same "infer an unmeasured internal state from an available signal" logic.
+**Aplica a:** design rule 6 in BACKLOG_VDYNO.md — parallel processing paths are cheap, compute
+both, document convergence. VDYNO (BL-VD-10, ΔHP→cell) currently has exactly one estimator of
+engine output (GPS-measured acceleration × mass → power/torque). An RPM-only observer would be
+a second, physically independent estimate of the same quantity from a different sensor path —
+if the two agree, that's real cross-validation of VDYNO's core assumption; if they disagree in
+a structured way (e.g. only at certain RPM×TPS cells), that disagreement is itself diagnostic
+information about where the vehicle-as-dynamometer assumption breaks down (wind, grade, road
+surface aren't observed by RPM but do show up in GPS-accel).
+**Por qué importa:** this is not another "maybe someday" virtual sensor — it's a free second
+opinion on a number the pipeline already computes and already trusts (VDYNO). Two independent
+measurements of the same physical quantity, from unrelated data paths, converging or diverging,
+is a stronger validation signal than either path's own confidence interval.
+**Riesgo de las citas:** same caveat as IDEA-029 — patent numbers not independently verified to
+exist as cited.
+**Requiere:** implementing a mean-value-engine-model observer (the actual math from the cited
+patent was not reproduced by freebuff, only the concept) — this is a real modeling task, not a
+one-script analysis. Worth a scoping pass before committing effort: is RPM-only torque
+estimation accurate enough on a V-twin with our sampling rate to be worth building.
+
+### IDEA-031 — Gaussian Process Regression as the map-proposal surface (replaces/extends GAP1's discrete binning)
+**Señal:** whatever cells already feed `_merge_maps`/GAP1 today (dpw_eff per RPM×TPS bin) — GPR
+would consume the same data, not new data.
+**Técnica:** freebuff task_008 (Germany) found this is the actual state of the art in the one
+industry with a formal discipline for it: Tietze, N. (2015), *Model-based Calibration of Engine
+Control Units Using Gaussian Process Regression*, TU Darmstadt — GP surrogate models of engine
+maps that give a continuous surface AND a native uncertainty estimate at every point, instead of
+per-cell independent statistics. A named extension, **Local GPR (LGPR)**, specifically handles
+non-stationary dynamics and **ECU mode-switching** — i.e. exactly the warm-up/OL fl_hot
+stratification question from [[project-pipeline-dataflow]]'s rule 7 debate, but solved as part
+of the model instead of as a manual stratification step.
+**Aplica a:** FASE 6 revival (proposal.py + smoothing.py recovery, planned but not started). The
+old FASE 6 used IDW (inverse distance weighting) + Laplacian smoothing to interpolate between
+cells with data. GPR is a principled replacement for that exact step: it would give the eco/
+SWEET winner a real posterior variance instead of (or alongside) GAP1's per-cell Welch CI, and
+would naturally interpolate into cells with sparse data instead of needing a separate smoothing
+pass. This is the single most direct "upgrade our existing math" finding across all sweeps so far.
+**Dato clave:** Germany's own comparison method, Differenzkennfeld (map A minus map B), is
+literally our dpw_eff × ddvss matrix — meaning the German literature validates both ends of our
+pipeline: the comparison step (Differenzkennfeld ≈ our matrix) and the proposal step (GPR as the
+principled way to turn that matrix into a smoothed, uncertainty-aware map change).
+**Riesgo de las citas:** dissertation link was given and looks real (tuprints.ulb.tu-darmstadt.de)
+but has not been fetched/verified independently.
+**Requiere:** a real evaluation task, not a quick script — read the Tietze dissertation (or a
+GPR tutorial) enough to judge whether `scikit-learn`'s GaussianProcessRegressor is sufficient or
+whether this needs a proper GP library; prototype on one map pair (91B225 vs 248AE2, the same
+pair already used to validate GAP1) before deciding whether it replaces or augments GAP1.
 
 ## Descartadas
 
