@@ -537,6 +537,13 @@ contexto crítico para entender por qué el PW fue mayor o menor.
 
 ## FASE 6 — PROP_* session output (freebuff task 015)
 
+**Superseded/extended 2026-07-03 by `BACKLOG_PROPOSAL_V2.md`** — a 4-phase plan (DDTW in F7 →
+F7+VS zone fusion → GP Regression → new `proposal.py`) built from the tasks 006-013 prior-art
+sweep, validated against current code, with two corrections applied (scikit-learn is not
+actually installed — needs adding to `requirements.txt`; `burn_ledger.py:convergence_report()`
+is dead code, not a working GAP5). This section's PROP_* file format below is still the target
+output format — read `BACKLOG_PROPOSAL_V2.md` for the phased path to get there.
+
 **Goal:** Save proposal as a burnable session that appears in Tuner automatically.
 
 ### Key findings

@@ -21,6 +21,34 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.270] — 2026-07-03
+### Added
+- BACKLOG_PROPOSAL_V2.md committed: freebuff's 4-phase FASE 6 revival plan (DDTW in F7 →
+  F7+VS zone fusion → GP Regression → new proposal.py module), built from the tasks 006-013
+  prior-art sweep and cross-referenced against actual code (file:line references, task
+  breakdown, effort estimates ~11.5h total, dependency graph, risk register). Linked from
+  BACKLOG.md's existing FASE 6 section as the updated path to the PROP_* session output
+  already planned there.
+### Changed
+- Verified key claims in BACKLOG_PROPOSAL_V2.md against the live codebase before accepting
+  them: confirmed `/eeprom/propose` returns HTTP 410 (`eeprom.py:492`), `CACHE_VERSION=9`
+  (`vs_engine.py:121`), `tps_peak` is a real F7 field, and `_f7_dtw` is plain amplitude DTW
+  (all accurate). Found and corrected two errors: (1) the plan assumed scikit-learn is
+  "confirmed available on Pi" — false, it's absent from requirements.txt and unimported
+  anywhere; added an explicit install step before the GP Regression phase. (2) freebuff's
+  separate codebase-validation pass cited `web/burn_ledger.py:convergence_report()` as a
+  working GAP5 implementation — it's dead code, never called; the real one is
+  `web/vs_engine.py:compute_convergence()`. Corrected in BACKLOG_PROPOSAL_V2.md and fed back
+  to freebuff's standing instructions so it doesn't repeat either mistake.
+- Processed freebuff's task_012 (Atomic Tune deep dive) and task_013 (universal WOT problem)
+  plus 3 unrequested-but-useful follow-ups it produced on its own initiative: a consolidated
+  summary of the whole 006-013 batch, a full GP Regression design doc, and the codebase
+  validation pass discussed above.
+### AI
+- Claude Sonnet 5, Anthropic (freebuff research/planning input: task_012, task_013,
+  BACKLOG_PROPOSAL_V2.md, gp_regression_proposal_generator.md, validation_vs_codebase.md,
+  consolidated_summary_006-013.md)
+
 ## [v2.7.269] — 2026-07-03
 ### Changed
 - Processed freebuff's self-initiated re-evaluation of tasks 006-009 against the ZERO-O2
