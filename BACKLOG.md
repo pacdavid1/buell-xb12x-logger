@@ -1,5 +1,36 @@
 # BACKLOG — Buell Logger / Tuner
 
+### BL-GPS-06 -- gpsd deja de entregar TPV durante el ride (gps_stale ~22%)
+
+Sintoma: en el mapa el GPS "se pierde" y brinca. En 91B225/ride_003 el receptor
+tuvo fix 3D todo el ride (gps_mode=3 siempre, 0 saltos de tiempo en el CSV) pero
+gps_stale=True en ~900/4168 filas (~22%): la ultima coordenada se congela. Ejemplo
+del usuario (~segundo 340): salto de 32.504585,-116.924651 a 32.501798,-116.934312.
+
+Causa confirmada en journal (buell-logger, 14:42-14:43): bucle de reconexion
+perpetuo cada ~8s -- "GPS gpsd error: timed out --- reintentando en 3s" seguido de
+"Conectado a gpsd", 15 ciclos en 2 minutos. gpsd acepta la conexion (WATCH) pero
+no emite ni un TPV durante 5s -> socket timeout -> sleep(3) -> reconexion completa.
+
+Dos capas:
+- [ ] Amplificador (gps/reader.py:_run): timeout 5s + sleep 3s + reconexion completa
+      convierte cada silencio de gpsd en un hueco de ~8s. Bajar/quitar el sleep, no
+      tirar la conexion al primer readline timeout, reintentar mas rapido.
+- [ ] Causa raiz: por que gpsd calla con el receptor teniendo fix. Investigar config
+      gpsd, tasa de update del receptor, USB-serial, y el modo backup/power-save del
+      M8N (commit reciente 6dcbdcd) que podria throttlear el receptor durante el ride.
+      Diagnostico en vivo con gpsmon/cgps durante un ride.
+
+Nota: separar el GPS en un CSV propio NO arregla esto (el GPSReader ya es un hilo
+independiente; el dato falta porque gpsd no lo entrego). Un CSV GPS dedicado a 1Hz
+nativo con timestamp de gpsd es una mejora de CALIDAD posterior (huecos honestos, sin
+smear de coordenada congelada, sobrevive crash del logger), no el arreglo del bug.
+
+Impacto: MEDIO -- degrada la traza GPS y el analisis GPS (grade/altitud/replay).
+Esfuerzo: BAJO la capa amplificador; MEDIO la causa raiz (requiere ride de prueba).
+
+---
+
 ## METODOLOGIA -- Gaps y oportunidades de mejora (2026-06-28)
 
 Analisis de lo que existe en la literatura/industria que no esta implementado.
