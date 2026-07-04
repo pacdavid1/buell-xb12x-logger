@@ -139,28 +139,20 @@ def _gpr_predict_grid(delta, flavor='SWEET'):
     return out
 
 
-def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
+def _build_ci(buell_dir, sa, sb):
+    """VS + F7-zone-fusion + GP-gap-fill, shared by _merge_maps (discrete A/B/AVG
+    picker) and web/proposal.py (continuous delta-to-EEPROM conversion).
+
+    Returns (ci, delta, stats). ci[key] = {
+      'eco': 'A'/'B'/None, 'eco_delta': signed ms delta behind the eco decision
+      (None if no decision), 'pw_eff_a'/'pw_eff_b': reference PW at this cell
+      (for pct conversion), 'sport': 'A'/'B'/None, 'gp_filled': bool (optional).
+    }
+    """
     RB=RPM_BINS
     TB=TPS_BINS
     MN=10
     bk=_bin_index
-    ep_a=buell_dir/'sessions'/sa/'eeprom.bin'
-    ep_b=buell_dir/'sessions'/sb/'eeprom.bin'
-    if not ep_a.exists() or not ep_b.exists():
-        return {'error':'eeprom no encontrada','attributable':False}
-    mA=_decode_eeprom_maps(ep_a.read_bytes(), _session_version(ep_a))
-    mB=_decode_eeprom_maps(ep_b.read_bytes(), _session_version(ep_b))
-    FK=['fuel_front','fuel_rear']
-    SK=['spark_front','spark_rear']
-    fc=[k for k in FK if k in mA and k in mB and _maps_differ(mA[k],mB[k])]
-    sc=[k for k in SK if k in mA and k in mB and _maps_differ(mA[k],mB[k])]
-    ac=fc+sc
-    if not ac:
-        return {'error':'No changes between sessions','changed':[],'attributable':False}
-    if fc and sc:
-        attr=False
-    else:
-        attr=True
     try:
         vd=_compare_sessions_cached(buell_dir,sa,sb)
         delta=vd.get('delta',[])
@@ -176,7 +168,9 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
         fl=r['flavor']
         if fl not in ('SWEET','SPICY_WOT'): continue
         key=(bk(r['rpm_lo'],RB),bk(r['tps_lo'],TB))
-        if key not in ci: ci[key]={'eco':None,'sport':None}
+        if key not in ci:
+            ci[key]={'eco':None,'eco_delta':None,'sport':None,
+                     'pw_eff_a':r.get('pw_eff_a'),'pw_eff_b':r.get('pw_eff_b')}
         if fl=='SWEET':
             # GAP1 gate: only pick an eco winner when the Welch 95% CI on
             # dpw_eff does not cross zero. Without this, a cell could win
@@ -197,8 +191,10 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
                     fused=(vs_delta+f7_delta*w)/(1.0+w)
                 fused_with_f7+=1
                 ci[key]['eco']='A' if fused<0 else 'B'
+                ci[key]['eco_delta']=fused
             else:
                 ci[key]['eco']='A' if vs_delta<0 else 'B'
+                ci[key]['eco_delta']=vs_delta
         elif fl=='SPICY_WOT':
             # ddvss has no GAP1-equivalent significance test yet, so the
             # sport winner is still picked from raw sign — gating this needs
@@ -210,8 +206,35 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
         margin=1.96*g['std']
         lo,hi=g['mean']-margin,g['mean']+margin
         if not (lo>0 or hi<0): continue  # GP posterior CI crosses zero -- leave unfilled
-        ci[key]={'eco':'A' if g['mean']<0 else 'B','sport':None,'gp_filled':True}
+        ci[key]={'eco':'A' if g['mean']<0 else 'B','eco_delta':g['mean'],
+                 'sport':None,'gp_filled':True,'pw_eff_a':None,'pw_eff_b':None}
         filled_by_gp+=1
+    stats={'skipped_insignificant':skipped_insig,'fused_with_f7':fused_with_f7,'filled_by_gp':filled_by_gp}
+    return ci, delta, stats
+
+
+def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
+    RB=RPM_BINS
+    TB=TPS_BINS
+    bk=_bin_index
+    ep_a=buell_dir/'sessions'/sa/'eeprom.bin'
+    ep_b=buell_dir/'sessions'/sb/'eeprom.bin'
+    if not ep_a.exists() or not ep_b.exists():
+        return {'error':'eeprom no encontrada','attributable':False}
+    mA=_decode_eeprom_maps(ep_a.read_bytes(), _session_version(ep_a))
+    mB=_decode_eeprom_maps(ep_b.read_bytes(), _session_version(ep_b))
+    FK=['fuel_front','fuel_rear']
+    SK=['spark_front','spark_rear']
+    fc=[k for k in FK if k in mA and k in mB and _maps_differ(mA[k],mB[k])]
+    sc=[k for k in SK if k in mA and k in mB and _maps_differ(mA[k],mB[k])]
+    ac=fc+sc
+    if not ac:
+        return {'error':'No changes between sessions','changed':[],'attributable':False}
+    if fc and sc:
+        attr=False
+    else:
+        attr=True
+    ci, delta, stats = _build_ci(buell_dir, sa, sb)
     def winner(key):
         info=ci.get(key)
         if not info: return None
@@ -251,8 +274,8 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
         'attributable':attr,'changed':ac,
         'unchanged':[k for k in FK+SK if k not in ac],
         'mode':mode,'cells_with_data':len(ci),
-        'skipped_insignificant':skipped_insig,'fused_with_f7':fused_with_f7,
-        'filled_by_gp':filled_by_gp,'maps':result
+        'skipped_insignificant':stats['skipped_insignificant'],'fused_with_f7':stats['fused_with_f7'],
+        'filled_by_gp':stats['filled_by_gp'],'maps':result
     }
 
 def _fmtk(n):

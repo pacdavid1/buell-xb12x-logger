@@ -21,6 +21,40 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.275] — 2026-07-04
+### Added
+- `web/proposal.py` (FASE 6 Phase 4, final phase): `generate_proposal()` builds a
+  burnable EEPROM map proposal from two compared sessions (dry run, no disk writes) and
+  `save_proposal()` persists it as a `sessions/PROP_YYYYMMDD_HHMMSS/` session per
+  BACKLOG.md's existing FASE 6 spec (session_metadata.json, eeprom_decoded.json,
+  eeprom.bin, proposal_metadata.json, current_eeprom_decoded.json).
+- `POST /eeprom/propose` reactivated (`web/handlers/eeprom.py:_handle_eeprom_propose_post`,
+  registered in `web/server.py`): body `{session_a, session_b, mode?, reference?, save?}`.
+  `save=false` (default) returns the proposal JSON only; `save=true` also writes the
+  PROP_* session and returns its checksum. The GET variant is unchanged (still returns
+  410 — deprecated on purpose, POST is the reactivated path).
+### Changed
+- `web/vs_engine.py`: extracted `_build_ci()` out of `_merge_maps()` (same fusion logic —
+  VS + F7 zone fusion + GP gap-fill — now shared with `proposal.py` instead of duplicated).
+  `_merge_maps()`'s own behavior and return shape are unchanged (re-validated: identical
+  cell counts on both real test pairs after the refactor).
+- Scope corrections applied during implementation (see BACKLOG_PROPOSAL_V2.md Phase 4 for
+  full rationale): proposal values are always an existing session's own already-driven
+  map value, never a synthesized percentage-delta number (avoids guessing an unverified
+  sign convention on something that can reach a real burn); cells with no real decision
+  stay at the reference session's value unchanged, not averaged (a first validation pass
+  before this fix produced `cells_changed=304`, ~97% of all fuel cells, before the
+  untested-cells-stay-at-reference fix brought it down to a plausible `cells_changed=10`);
+  spark maps are never touched (no spark-timing signal exists anywhere upstream).
+- Validated against a live local server end-to-end (not just direct function calls):
+  `POST /eeprom/propose` with `save=false` and `save=true`, confirmed the saved PROP_*
+  session is discoverable via the existing `/eeprom/sessions-list` endpoint (Tuner will
+  list it), confirmed the encoded `eeprom.bin` round-trips cleanly through
+  `decode_eeprom_maps` with exactly the expected cells changed and spark maps untouched.
+### AI
+- Claude Sonnet 5, Anthropic (plan: freebuff BACKLOG_PROPOSAL_V2.md Phase 4 — final phase
+  of the FASE 6 revival)
+
 ## [v2.7.274] — 2026-07-04
 ### Added
 - `requirements.txt`: added `scikit-learn==1.9.0` for FASE 6 Phase 3 (GP Regression).

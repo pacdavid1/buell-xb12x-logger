@@ -203,6 +203,7 @@ class DashboardHandler(
             '/coverage/targets': self._handle_coverage_targets,
             '/eeprom/burn':       self._handle_eeprom_burn,
             '/eeprom/revert':     self._handle_eeprom_revert,
+            '/eeprom/propose':    self._handle_eeprom_propose_post,
         }
         handler = _routes.get(path)
         if handler:

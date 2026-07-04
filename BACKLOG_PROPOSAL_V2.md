@@ -227,7 +227,45 @@ Option B: Inline in `vs_engine.py` — less refactoring but the file is already 
 
 ---
 
-## Phase 4 — New `proposal.py`
+## Phase 4 — New `proposal.py` — ✅ DONE (v2.7.275, 2026-07-04)
+
+**Scope deviations, with rationale (see full reasoning in `web/proposal.py`'s module
+docstring):**
+- Dropped the percentage-delta synthesis (`proposed = current * (1 + delta)`) from
+  task 4.2/4.3. Applying `eco_delta` as a signed percentage requires certainty about
+  which direction (more/less PW) is the "winning" one for a given flavor/zone --
+  guessing that sign convention wrong would silently propose a WRONG-directioned change
+  into something that can eventually be burned. Instead, every proposed cell value is
+  either session A's or session B's OWN already-driven map value -- never a synthesized
+  number. The percentage-delta path remains a legitimate future upgrade, gated on a human
+  confirming the winner-direction semantics first.
+- Cells with no real decision (no vs_delta vote, no F7 fusion, no GP fill) stay at the
+  REFERENCE session's own value, unchanged -- NOT averaged with the other session, unlike
+  `_merge_maps()`'s own AVG-for-untested-cells behavior (reasonable for its interactive
+  comparison UI, wrong for an automated/unsupervised proposal per BACKLOG_VDYNO.md rule 1).
+  Same for BALANCE-mode eco/sport conflicts: stay at reference rather than blend.
+- Spark maps are never touched -- this whole pipeline (dpw_eff, F7 delta_pw) is a fuel/PW
+  signal only; there is no spark-timing correction computed anywhere upstream.
+
+**Bug found during first validation pass (before the above scope correction):** naively
+reusing `_merge_maps()`'s `merged` grid produced `cells_changed=304` (~97% of all fuel
+cells) with `max_delta_pct` pinned at the 15% clamp ceiling almost everywhere -- because
+untested cells were defaulting to `AVG(A,B)`, which differs substantially from the
+reference whenever the two maps are broadly different (the normal case for two different
+tunes). After the fix (untested cells stay at reference), the same real pair produces
+`cells_changed=10`, `max_delta_pct=5.88%` -- a plausible, targeted result.
+
+**Validated end-to-end against a live local server** (`serve_local.py`, not just direct
+function calls): started the server, POSTed to `/eeprom/propose` with `save=false` (dry
+run, correct proposed values returned) and `save=true` (PROP_20260704_081441 written to
+disk, confirmed discoverable via the existing `/eeprom/sessions-list` endpoint --
+i.e. the Tuner will list it). Verified the encoded `eeprom.bin` round-trips through
+`decode_eeprom_maps` cleanly and that exactly the expected 10 fuel cells differ from the
+reference, with spark maps byte-identical. Test session deleted after validation, server
+process killed (found and cleaned up two stale server processes left over from earlier in
+this session, both squatting on port 8080).
+
+
 
 **Why:** The current proposal path (`vs_engine.py:_merge_maps()`) combines merge logic, comparison, and proposal into one function. The `/eeprom/propose` endpoint is **deprecated** (returns 410). There's no clean way to generate a burnable proposal from the pipeline. A dedicated `proposal.py` module would:
 

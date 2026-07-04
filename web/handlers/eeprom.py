@@ -484,12 +484,52 @@ class EepromHandlerMixin:
         self.wfile.write(data)
 
     def _handle_eeprom_propose(self, path=None):
-        """GET /eeprom/propose - DEPRECATED: log warning only."""
+        """GET /eeprom/propose - DEPRECATED: log warning only.
+        The POST variant (FASE 6 Phase 4) generates a real proposal --
+        see _handle_eeprom_propose_post."""
         logging.getLogger("WebServer").warning(
             "DEPRECATED: /eeprom/propose was called from %s",
             self.client_address[0]
         )
         self._json({'error': 'endpoint deprecated', 'message': 'PROPOSAL tab was removed'}, 410)
+
+    def _handle_eeprom_propose_post(self, path=None, payload=None):
+        """POST /eeprom/propose - generate a map proposal from two sessions.
+        Body: { session_a, session_b, mode?, reference?, save? }
+        save=false (default) returns the proposal JSON only (dry run, no disk
+        writes). save=true also persists it as a PROP_* session (per
+        BACKLOG.md's FASE 6 spec) and returns its checksum.
+        """
+        from web.proposal import generate_proposal, save_proposal
+        body = payload or {}
+        sa = body.get('session_a')
+        sb = body.get('session_b')
+        if not sa or not sb:
+            self._json({'error': 'session_a and session_b are required'})
+            return
+        params = {'mode': body.get('mode', 'BALANCE'), 'reference': body.get('reference', 'B')}
+        buell_dir = self.server_instance.buell_dir
+        try:
+            result = generate_proposal(buell_dir, sa, sb, params)
+        except Exception as e:
+            self._json({'error': 'proposal generation failed: ' + str(e)})
+            return
+        if not result.get('ok'):
+            self._json({'error': result.get('error', 'unknown error')})
+            return
+        response = {
+            'ok': True, 'source_sessions': result['source_sessions'],
+            'reference': result['reference'], 'mode': result['mode'],
+            'proposed': result['proposed'], 'axes': result['axes'],
+            'stats': result['stats'],
+        }
+        if body.get('save'):
+            try:
+                response['prop_session'] = save_proposal(buell_dir, result)
+            except Exception as e:
+                self._json({'error': 'save failed: ' + str(e)})
+                return
+        self._json(response)
 
     def _handle_maps(self, path=None):
         params = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
