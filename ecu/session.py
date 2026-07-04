@@ -26,6 +26,53 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ecu.protocol import CSV_COLUMNS, RPM_BINS, LOAD_BINS
+from ecu.version_resolver import resolve_ecu
+
+# Below this peak RPM a ride is treated as idle/bench-only and tagged idle_only=True
+# (never deleted). Keyed by DDFI family: DDFI-2 = XB12 (idles ~1000), DDFI-3 = 1125
+# (idles ~2000, so it needs a higher bar). Unknown firmware defaults to the XB12 bar.
+IDLE_RPM_THRESHOLD = {2: 2000, 3: 2800}
+IDLE_RPM_THRESHOLD_DEFAULT = 2000
+
+
+def _idle_threshold_for(version_string: str) -> int:
+    """Peak-RPM threshold below which a ride counts as idle-only, by bike model.
+
+    files.xml stores the family as a string like 'DDFI-2' / 'DDFI-3', so extract
+    the digit rather than int()-ing the whole value."""
+    ecu = resolve_ecu(version_string) or {}
+    m = re.search(r"(\d)", str(ecu.get("ddfi", "")))
+    ddfi = int(m.group(1)) if m else 0
+    return IDLE_RPM_THRESHOLD.get(ddfi, IDLE_RPM_THRESHOLD_DEFAULT)
+
+
+def list_ride_csvs(sdir, include_idle: bool = False) -> list:
+    """List ride CSV paths in a session dir, sorted.
+
+    By default excludes rides tagged idle_only=True in session_metadata.json
+    (bench/idle tests with no tuning signal). Pass include_idle=True for all.
+    Fails open: if metadata is missing/unreadable, returns every CSV so data is
+    never hidden by a bad index. Ride part files (ride_<cs>_<nnn>_pN.csv) inherit
+    the base ride's idle flag via the ride number."""
+    sdir = Path(sdir)
+    csvs = sorted(sdir.glob("ride_*.csv"))
+    if include_idle:
+        return csvs
+    idle: set = set()
+    try:
+        meta = json.loads((sdir / "session_metadata.json").read_text())
+        for nnn, info in (meta.get("rides") or {}).items():
+            if info.get("idle_only"):
+                idle.add(str(nnn).zfill(3))
+    except Exception:
+        return csvs  # fail open — keep every ride visible rather than trust a broken index
+    if not idle:
+        return csvs
+    def _ride_num(p):
+        m = re.search(r"ride_[0-9A-Fa-f]+_(\d{3})", p.name)
+        return m.group(1) if m else None
+    return [p for p in csvs if _ride_num(p) not in idle]
+
 
 def _resolve_logger_version():
     """Resolve the current logger version from CHANGELOG.md (newest entry at
@@ -65,6 +112,7 @@ class SessionManager:
         self.last_elapsed_s      = 0
         self.current_part        = 1
         self.current_part_rows   = 0
+        self.ride_rpm_max        = 0.0   # peak RPM of the current ride (for idle_only tagging)
 
     def _checksum(self, blob):
         """Calculate session checksum from tune region of EEPROM blob.
@@ -138,6 +186,7 @@ class SessionManager:
         self.session_metadata["logger_version"] = LOGGER_VERSION
         self.current_part      = 1
         self.current_part_rows = 0
+        self.ride_rpm_max      = 0.0
         self._open_csv_part()
         self.ride_start_time   = time.monotonic()
         self.ride_sample_count = 0
@@ -152,7 +201,12 @@ class SessionManager:
         if self.current_csv_fh:
             self.current_csv_fh.close()
         self.current_csv_fh = open(ride_file, "w", newline="", buffering=1)
-        self.current_csv_fh.write(f"# logger={LOGGER_VERSION}\n")
+        # Stamp bike identity (session checksum + ECU firmware) into each CSV so a
+        # ride's true bike is auditable from the file itself, not just its folder.
+        ecu_ver = (self.session_metadata or {}).get("version_string", "")
+        self.current_csv_fh.write(
+            f"# logger={LOGGER_VERSION} session={self.current_checksum} ecu={ecu_ver}\n"
+        )
         self.current_writer = csv.DictWriter(
             self.current_csv_fh, fieldnames=CSV_COLUMNS, extrasaction="ignore"
         )
@@ -173,6 +227,8 @@ class SessionManager:
         self.ride_sample_count  += 1
         self.current_part_rows  += 1
         rpm = data_dict.get("RPM", 0) or 0
+        if rpm > self.ride_rpm_max:
+            self.ride_rpm_max = rpm
         if rpm > self.session_metadata.get("rpm_max_seen", 0):
             self.session_metadata["rpm_max_seen"] = rpm
         if 0 < rpm < self.session_metadata.get("rpm_min_seen", 99999):
@@ -197,10 +253,24 @@ class SessionManager:
         self.session_metadata["total_runtime_seconds"] = (
             self.session_metadata.get("total_runtime_seconds", 0) + dur
         )
+        # Idle-only tagging: a ride whose peak RPM never cleared the model's
+        # threshold was a bench/idle test with no tuning signal. Tag it (never
+        # delete) so the analysis layer can skip it by default. Threshold is
+        # per bike model (XB12 vs 1125) to avoid flagging real low-rev 1125 rides.
+        threshold = _idle_threshold_for(self.session_metadata.get("version_string", ""))
+        idle_only = self.ride_rpm_max < threshold
+        rides_map = self.session_metadata.setdefault("rides", {})
+        rides_map[f"{self.current_ride_num:03d}"] = {
+            "rpm_max": round(self.ride_rpm_max, 1),
+            "idle_only": idle_only,
+            "threshold": threshold,
+        }
         self.logger.info(
             f"Ride {self.current_ride_num:03d} cerrado — "
             f"{self.ride_sample_count} muestras, {dur:.0f}s, "
-            f"{self.current_part} parte(s)" + (f" ({reason})" if reason else "")
+            f"{self.current_part} parte(s), rpm_max={self.ride_rpm_max:.0f}"
+            f"{' [idle_only]' if idle_only else ''}"
+            + (f" ({reason})" if reason else "")
         )
         if tracker_snapshot is not None and self.current_session_dir:
             cells, _ = tracker_snapshot

@@ -21,6 +21,32 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.279] — 2026-07-04
+### Fixed
+- Bike-identity bug when the Pi is moved between motorcycles. A ride could be
+  misfiled under the PREVIOUS bike's session because `_load_eeprom` /
+  `_try_cached_session` (ecu/logger_process.py) fall back to the most-recent
+  `eeprom.bin` on disk (the last bike) when the live EEPROM read has not yet
+  succeeded. The session checksum derives from the EEPROM, so the wrong blob →
+  wrong bike → wrong session. Root-caused from today's data: after the 13:15
+  restart, the Buell's first ride landed in the 1125's session (`A295AD`).
+  Fix: `_load_eeprom` now returns `(blob, source)`; a session is `session_verified`
+  only when its checksum came from a LIVE ECU read. Ride start is gated on
+  `session_verified`, an unverified session keeps retrying a live EEPROM read
+  before any ride opens, and hard-reconnect forces re-verification (hot-swap).
+### Added
+- Per-CSV bike-identity stamp: ride CSV header now carries
+  `# logger=… session=<checksum> ecu=<firmware>` so a ride's true bike is
+  auditable from the file itself, not just its folder.
+- Idle-only ride tagging (ecu/session.py). A ride whose peak RPM never clears a
+  per-model threshold (XB12/DDFI-2 = 2000, 1125/DDFI-3 = 2800; model resolved via
+  `resolve_ecu(...).ddfi`) is tagged `idle_only=true` in `session_metadata.json`
+  (`rides` map) — never deleted. New `list_ride_csvs(sdir, include_idle=False)`
+  helper filters these out by default; wired into F7 (web/f7.py) and launch
+  (web/launch.py) ride enumeration so bench/idle tests stop polluting analysis.
+### AI
+- Claude Opus 4.8, Anthropic
+
 ## [v2.7.278] — 2026-07-04
 ### Added
 - IDEAS.md IDEA-035: reframe the sensorless "missing error signal" (IDEA-034) around this

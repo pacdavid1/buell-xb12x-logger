@@ -48,6 +48,7 @@ SESSION_OPEN_DELAY   = 0.5
 ECU_RETRY_INTERVAL   = 5.0
 ECU_READ_ERROR_DELAY = 0.2
 HARD_RECONNECT_DELAY = 0.5
+EEPROM_VERIFY_RETRY_S = 5.0   # retry a LIVE EEPROM read this often until the session is verified
 LIVE_EVERY           = 4    # frames between live.json writes  (~0.5 s at 8 Hz)
 CELLS_EVERY          = 30   # frames between cells.json writes (~3.75 s at 8 Hz)
 
@@ -85,20 +86,28 @@ def _write(path: Path, data):
 
 # ── EEPROM helpers ─────────────────────────────────────────────────────────────
 
-def _load_eeprom(ecu: DDFI2Connection, sessions_dir: Path, log) -> bytes:
+def _load_eeprom(ecu: DDFI2Connection, sessions_dir: Path, log) -> tuple[bytes, str]:
+    """Return (blob, source). source is one of:
+      'live'   — read from the connected ECU (trusted bike identity)
+      'cached' — fell back to the most-recent eeprom.bin on disk (may be a DIFFERENT bike)
+      'stub'   — no EEPROM available anywhere
+
+    Only a 'live' blob may be used to attribute a ride to a session. A 'cached'
+    blob belongs to whichever bike was last on this Pi, so trusting it after a
+    bike swap misfiles rides (see ride-start gate in run())."""
     try:
         blob = ecu.read_full_eeprom()
         if blob:
-            return blob
+            return blob, "live"
     except Exception as e:
         log.warning(f"EEPROM read failed: {e}")
     bins = sorted(sessions_dir.glob("*/eeprom.bin"), key=lambda p: p.stat().st_mtime)
     if bins:
         with open(bins[-1], 'rb') as f:
-            log.warning("Using cached EEPROM blob")
-            return f.read()
+            log.warning("Using cached EEPROM blob (unverified — bike identity not trusted)")
+            return f.read(), "cached"
     log.warning("No EEPROM available — stub")
-    return b'\x00' * 64
+    return b'\x00' * 64, "stub"
 
 
 def _try_cached_session(session: SessionManager, sessions_dir: Path, log):
@@ -145,6 +154,9 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
 
     ride_active       = False
     ecu_version       = None
+    session_verified  = False   # True only once the session checksum came from a LIVE ECU EEPROM read
+    _last_verify_t    = 0.0
+    _last_unverified_warn = 0.0
     rpm_zero_since    = None
     consecutive_errors = 0
     ecu_lost_since    = None
@@ -191,15 +203,19 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                     ecu.set_ecu_version(ecu_version)
                     _rx_bytes = ecu._rt_frame_size
                     log.info(f"ECU: {ecu_version}")
-                    blob = _load_eeprom(ecu, sessions_dir, log)
+                    blob, src = _load_eeprom(ecu, sessions_dir, log)
                     session.open_session(ecu_version, blob)
                     time.sleep(SESSION_OPEN_DELAY)
-                    session.save_eeprom(blob)
+                    session_verified = (src == "live")
+                    if src == "live":
+                        session.save_eeprom(blob)   # only persist a blob we trust as this bike's
+                        _axes = _decode_eeprom_maps(blob, ecu_version).get('axes', {})
+                        if _axes.get('fuel_rpm') and _axes.get('fuel_load'):
+                            tracker.set_bins(_axes['fuel_rpm'], _axes['fuel_load'])
+                    else:
+                        log.warning("Session unverified — rides gated until a live EEPROM read succeeds")
                     _publish_ecu_init(ipc_dir, ecu_version, session)
-                    _axes = _decode_eeprom_maps(blob, ecu_version).get('axes', {})
-                    if _axes.get('fuel_rpm') and _axes.get('fuel_load'):
-                        tracker.set_bins(_axes['fuel_rpm'], _axes['fuel_load'])
-                    log.info(f"Session: {session.current_checksum}")
+                    log.info(f"Session: {session.current_checksum} (verified={session_verified})")
                     consecutive_errors = 0
                     ecu_lost_since = None
                 else:
@@ -233,6 +249,8 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                     session.open_session(ecu_version or 'post-burn', proposed)
                     session.save_eeprom(proposed)
                     _publish_ecu_init(ipc_dir, ecu_version or 'post-burn', session)
+                    # A verified burn wrote this blob to the live ECU, so identity is trusted.
+                    session_verified = True
                     _axes = _decode_eeprom_maps(proposed, ecu_version or '').get('axes', {})
                     if _axes.get('fuel_rpm') and _axes.get('fuel_load'):
                         tracker.set_bins(_axes['fuel_rpm'], _axes['fuel_load'])
@@ -289,6 +307,10 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                         ecu_lost_since = None
                         last_lost_interval = -1
                         _last_reconnect_t = 0.0
+                        # Force re-verification: a reconnect could be a bike swap.
+                        # If mid-ride (ride_active) this has no effect on the current
+                        # ride; it only re-gates the NEXT ride start until confirmed.
+                        session_verified = False
                 except Exception as re_e:
                     log.warning(f"Hard reconnect failed: {re_e}")
                     _last_reconnect_t = time.monotonic()
@@ -308,10 +330,36 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
         last_lost_interval = -1
         rpm = data.get('RPM', 0) or 0
 
+        # If the session is unverified (opened from a cached/stub blob), keep
+        # retrying a LIVE EEPROM read before allowing any ride to start. This is
+        # what prevents a ride from being misfiled under the PREVIOUS bike after
+        # a bike swap: the cached checksum is not trusted until confirmed live.
+        if not session_verified and ecu_version and not ride_active:
+            now_v = time.monotonic()
+            if now_v - _last_verify_t >= EEPROM_VERIFY_RETRY_S:
+                _last_verify_t = now_v
+                try:
+                    live_blob = ecu.read_full_eeprom()
+                    if live_blob:
+                        session.open_session(ecu_version, live_blob)
+                        session.save_eeprom(live_blob)
+                        _publish_ecu_init(ipc_dir, ecu_version, session)
+                        _axes = _decode_eeprom_maps(live_blob, ecu_version).get('axes', {})
+                        if _axes.get('fuel_rpm') and _axes.get('fuel_load'):
+                            tracker.set_bins(_axes['fuel_rpm'], _axes['fuel_load'])
+                        session_verified = True
+                        log.info(f"Session verified from live EEPROM: {session.current_checksum}")
+                except Exception as e:
+                    log.debug(f"EEPROM verify retry: {e}")
+
         # Ride start
         if not ride_active and rpm >= RPM_START:
             if session.current_checksum is None:
                 log.warning("RPM but no session — skipping ride start")
+            elif not session_verified:
+                if time.monotonic() - _last_unverified_warn >= 1.0:
+                    _last_unverified_warn = time.monotonic()
+                    log.warning("RPM but session unverified (live EEPROM not read yet) — skipping ride start")
             else:
                 try:
                     session.start_ride()

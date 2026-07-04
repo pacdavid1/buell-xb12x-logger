@@ -9,6 +9,7 @@ from pathlib import Path
 
 from web.f7 import _f7_load_session_clusters, _f7_match_cross_session
 from ecu.ecm_defs import decode_batt_correction as _decode_batt_correction, deadtime_ms as _deadtime_ms
+from ecu.session import list_ride_csvs
 from web.utils import _session_version
 
 
@@ -331,7 +332,7 @@ def _compare_sessions(buell_dir, sa, sb):
                 _dt_table = _decode_batt_correction(_ep.read_bytes(), _session_version(_ep))
             except Exception:
                 _dt_table = None
-        csv_files = sorted(sdir.glob('ride_*.csv'))
+        csv_files = list_ride_csvs(sdir)   # excludes idle_only rides by default
         time_offset = 0.0
         last_ride_num = -1
         for cp in csv_files:

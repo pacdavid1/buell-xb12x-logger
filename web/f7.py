@@ -6,6 +6,7 @@ from web.gear_detect import detect_gear as _detect_gear
 import json
 import math as _math
 from pathlib import Path
+from ecu.session import list_ride_csvs
 
 # Inverse-order algorithm: cluster by PW curve (DTW) first, validate Bucket A second.
 
@@ -813,7 +814,7 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
         return rows
 
     # --- Step 1: detect events per ride (incremental cache) ---
-    csv_files   = sorted(sdir.glob('ride_*.csv'))
+    csv_files   = list_ride_csvs(sdir)   # excludes idle_only rides by default
     event_files = []
     for cp in csv_files:
         ef = cp.with_name(cp.stem + '_f7events.json')
