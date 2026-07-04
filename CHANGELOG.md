@@ -21,6 +21,26 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.271] — 2026-07-03
+### Changed
+- BACKLOG_PROPOSAL_V2.md Phase 1 implemented: `web/f7.py` cross-session TPS matching
+  (`_f7_match_cross_session`, previously line 532) now uses derivative-based DTW (DDTW)
+  instead of plain amplitude DTW, per freebuff task_010's citation that DDTW is the
+  vehicle-telemetry standard for cross-session alignment robust to sensor/calibration
+  drift. Added `_f7_derivative()` (central-difference) and `_f7_ddtw()` wrapper; within-
+  session PW clustering (`_f7_cluster`) intentionally kept on plain `_f7_dtw` — same map,
+  so absolute PW amplitude is meaningful there, only the cross-session TPS shape match
+  benefits from ignoring amplitude/offset. Bumped `_F7_EVENTS_V` 7 → 8 to invalidate
+  cached clusters built with the old matcher.
+- Validated against real session data (91B225/248AE2, the pair used for GAP1 validation,
+  turned out to have zero non-orphan accel clusters in 91B225 — not a usable test case for
+  F7 cross-session matching specifically). Found a better pair with actual accel clusters
+  on both sides (47BF04: 6, 248AE2: 2) and confirmed: DDTW finds the same match as plain
+  DTW on this data (gear 5, ~3453 RPM, ~10% TPS) — no regression, code runs cleanly against
+  the real cluster/cache structure.
+### AI
+- Claude Sonnet 5, Anthropic (plan: freebuff BACKLOG_PROPOSAL_V2.md Phase 1)
+
 ## [v2.7.270] — 2026-07-03
 ### Added
 - BACKLOG_PROPOSAL_V2.md committed: freebuff's 4-phase FASE 6 revival plan (DDTW in F7 →

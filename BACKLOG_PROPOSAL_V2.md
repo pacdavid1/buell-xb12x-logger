@@ -21,7 +21,7 @@ Phase 4: New proposal.py      (consumes all above)  ← impact: HIGH, effort: ME
 
 ---
 
-## Phase 1 — DDTW in F7
+## Phase 1 — DDTW in F7 — ✅ DONE (v2.7.271, 2026-07-03)
 
 **Why:** Research (task_010, global academic) confirmed Derivative DTW is the standard for vehicle-telemetry cross-session alignment because it's robust to sensor drift/offset. F7's `_f7_dtw()` currently uses plain amplitude DTW (`abs(a[i-1] - b[j-1])`). Since cross-session F7 matching is the explicit use case (different maps → different absolute PW levels), DDTW directly improves match quality.
 

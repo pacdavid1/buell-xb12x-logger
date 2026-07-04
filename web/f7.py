@@ -13,7 +13,7 @@ from pathlib import Path
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
 _F7_THRESH  = 0.85  # default DTW threshold
-_F7_EVENTS_V = 7
+_F7_EVENTS_V = 8    # v8: cross-session TPS matching uses derivative DTW (DDTW)
 _F7_PRE_N       = 10    # pre-break context resample points     # bump when event struct fields change
 
 # BL-GPS-03: GPS quality thresholds
@@ -77,6 +77,23 @@ def _f7_dtw(a, b, window=_F7_WINDOW):
     if cr == 0:
         return 1.0
     return max(0.0, 1.0 - raw / (n * cr))
+
+
+def _f7_derivative(x):
+    """Central-difference derivative, keeping endpoints via one-sided diffs."""
+    n = len(x)
+    if n < 2:
+        return list(x)
+    out = [x[1] - x[0]]
+    out.extend((x[i + 1] - x[i - 1]) / 2 for i in range(1, n - 1))
+    out.append(x[-1] - x[-2])
+    return out
+
+
+def _f7_ddtw(a, b, window=_F7_WINDOW):
+    """Derivative DTW: matches curve SHAPE, robust to amplitude/offset drift
+    between sessions -- unlike _f7_dtw, which compares raw amplitude."""
+    return _f7_dtw(_f7_derivative(a), _f7_derivative(b), window=window)
 
 
 def _f7_rolling_std(vals):
@@ -529,7 +546,7 @@ def _f7_match_cross_session(clusters_a, clusters_b, threshold=0.85):
                 mx = max(v) if max(v) > 0 else 1.0
                 return [x / mx for x in v]
 
-            tps_sim = _f7_dtw(_norm01(tps_a), _norm01(tps_b))
+            tps_sim = _f7_ddtw(_norm01(tps_a), _norm01(tps_b))
             if tps_sim < threshold:
                 continue
 
