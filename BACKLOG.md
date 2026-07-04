@@ -462,17 +462,21 @@ contexto crítico para entender por qué el PW fue mayor o menor.
   hesitation, unknown) — el rider como sensor zero-cost
 - [ ] Futuro: EGT sensor en cilindro trasero (~$40, Type-K + MAX6675) = mejor upgrade
 
-### Normalización barométrica (task 006 — valida nuestra implementación)
-- [ ] Nuestra implementación (row level, 1013.25 hPa, baro=0 skip) es CORRECTA ✅
-- [ ] NO agregar corrección de temperatura — ECU ya maneja IAT en sus tablas
-- [ ] Mejora pendiente: GPS altitude como fallback si baro=0:
-  baro_est = 1013.25 * (1 - 0.0065 * gps_alt / 288.15) ** 5.255
-  (válido para <3000m, precisión ±5 hPa)
-- [ ] Validar rango baro: solo aplicar si 900 < baro < 1100 hPa
-- [ ] Si >10% de rows sin baro válido en una sesión: skip normalization para esa sesión + flag
-- [ ] Considerar: preservar pw1/pw2 raw y agregar pw1_norm/pw2_norm
-  (actualmente modificamos pw1/pw2 in-place — design decision pendiente)
-- [ ] Dashboard: mostrar avg_baro, baro_valid_pct, Δbaro por comparación
+### Normalización barométrica — ❌ REMOVIDA v2.7.276 (task 006 estaba EQUIVOCADO)
+- [x] **RESUELTO:** baro-normalizar PW era un BUG, no una técnica válida. El DDFI2 es
+  Alpha-N (sin sensor MAP): la ECU NO compensa PW por presión barométrica, así que el PW
+  crudo YA es la señal correcta. `1013.25/baro` inyectaba un delta falso. Contradecía la
+  regla explícita de CLAUDE.md "Alpha-N fueling" desde siempre. La afirmación previa de
+  "task 006 valida nuestra implementación ✅" era incorrecta y quedó revertida.
+- [x] Removido de `launch.py` (load_csv + build_index) y `f7.py` (_load_csv_rows).
+  CACHE_VERSION 9→10, _F7_EVENTS_V 9→10.
+- [ ] Diferido (baja prioridad — el dataset actual no tiene variación de altitud, todas las
+  sesiones con baro válido están ~1000 hPa, y 248AE2 tiene baro=0): agregar baro como
+  covariable descriptiva en Sessions VS + warning "⚠ Δbaro > 50 hPa" para detectar cuando
+  dos sesiones se compararon a altitudes distintas (donde el mapa VE real SÍ difiere).
+- [ ] Diferido: GPS altitude como fallback cuando baro=0
+  (baro_est = 1013.25 * (1 - 0.0065*gps_alt/288.15)**5.255) — solo relevante si se agrega
+  la covariable de arriba.
 
 ### Items pendientes para proposal.py v2 (freebuff tasks 010, 013)
 - [ ] ddvss cross-check in proposal.py: dpw_eff alone doesn't say if B is better

@@ -21,6 +21,46 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.276] — 2026-07-04
+### Fixed
+- Removed barometric normalization of injector PW from `web/launch.py` (`load_csv` +
+  `build_index`) and `web/f7.py` (`_load_csv_rows`). This was a real bug: the DDFI2 runs
+  Alpha-N (TPS+RPM, no MAP sensor), so the ECU does NOT compensate commanded PW for
+  barometric pressure — raw PW already carries the true map-calibration difference between
+  sessions. Multiplying PW by `1013.25/baro` injected a false delta (or hid a real one
+  across altitudes). This exactly violated the existing CLAUDE.md "Alpha-N fueling" rule
+  ("do NOT normalize PW by (1013/baro) for DDFI2"). `dpw_eff` — which drives every cell
+  decision in GAP1, F7 fusion, the GP gap-fill, and proposal.py — is now computed from raw
+  PW. Collapsed the now-redundant `pw1_norm`/`pw2_norm` fields into the raw `pw1`/`pw2`
+  already stored; `baro`/`baro_valid` are kept as descriptive covariates only. VDYNO's own
+  baro normalization (SAE J1349, physics-based power correction) is correct and untouched.
+- Cache invalidation: bumped `CACHE_VERSION` 9→10 (`vs_engine.py`) and `_F7_EVENTS_V` 9→10
+  (`f7.py`) so stale results computed with the old normalization don't survive the fix.
+- Sub-fix required for the above to actually take effect: `f7.py`'s per-ride
+  `ride_*_f7events.json` cache was invalidated by CSV mtime ONLY, so a code change to
+  event-building (like this baro fix) could not force its regeneration — the version bump
+  alone would have left contaminated per-ride pw curves in place on any machine with
+  existing caches (including the Pi after pull). Wrapped that cache in a versioned envelope
+  (`{'v': N, 'events': [...]}`) that regenerates on `_F7_EVENTS_V` mismatch; old bare-list
+  caches are treated as stale and rebuilt.
+### Changed
+- Corrected a factual error in `docs/PLAN_confounders_batt_baro.md` (freebuff): the plan
+  assumed 47BF04 was Cuernavaca ~900-950 hPa and 91B225 was Mexico City ~780 hPa, projecting
+  a 10-30% baro contamination. Actual data: both sessions log valid baro near 1000 hPa
+  (997-1011 and 992-1005 hPa → factors ~0.8-1.1%), and 248AE2 has baro=0 in 100% of rows
+  (broken/absent sensor → never normalized). So the confounder's real magnitude in the
+  current dataset is ~1%, not the projected altitude scenario — the fix is still correct on
+  principle (removes a logically-wrong operation matching CLAUDE.md), but its practical
+  impact on THIS data is small. Revalidation confirms this: 91B225/248AE2 proposal unchanged
+  (25 cells, 10 changed, 5.88% — the ~0.8% shift flipped no significant-cell winners),
+  47BF04/248AE2 proposal shifted from its prior values (now 20 cells changed) — real but
+  cell-specific, not a wholesale change. No explosion, counts stable.
+- Corrects a wrong belief recorded in a prior session (memory + implied by BACKLOG.md's
+  "task 006 validates our baro implementation" note): baro normalization was NOT a validated
+  deliberate technique, it contradicted CLAUDE.md all along.
+### AI
+- Claude Opus 4.8, Anthropic (analysis input: freebuff docs/PLAN_confounders_batt_baro.md)
+
 ## [v2.7.275] — 2026-07-04
 ### Added
 - `web/proposal.py` (FASE 6 Phase 4, final phase): `generate_proposal()` builds a

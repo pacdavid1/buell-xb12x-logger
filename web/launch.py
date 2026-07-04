@@ -9,8 +9,6 @@ from pathlib import Path
 
 from web.f7 import _f7_load_session_clusters, _f7_match_cross_session
 
-REF_BARO = 1013.25  # reference barometric pressure hPa (standard atmosphere)
-
 
 def detect_launches(rows, pre_window=3.0, post_window=5.0, min_dtps=8.0, min_rpm=1500):
     """Detect WOT tip-in events from CSV rows.
@@ -343,7 +341,12 @@ def _compare_sessions(buell_dir, sa, sb):
                     if rpm < 100: continue
                     _baro = sf(r.get('baro_hPa', 0))
                     _baro_valid = 900 < _baro < 1100
-                    _baro_factor = REF_BARO / _baro if _baro_valid else 1.0
+                    # DDFI2 is Alpha-N (TPS+RPM, no MAP sensor): the ECU does NOT
+                    # compensate PW for barometric pressure, so raw PW already
+                    # carries the real map-calibration difference between sessions.
+                    # Baro-normalizing here would inject a false delta (or hide a
+                    # real one across altitudes). See CLAUDE.md "Alpha-N fueling".
+                    # baro is kept as a descriptive covariate only (not applied to PW).
                     rows.append({
                         't':    sf(r['time_elapsed_s']) + time_offset,
                         'rpm':  rpm,
@@ -351,8 +354,6 @@ def _compare_sessions(buell_dir, sa, sb):
                         'clt':  sf(r['CLT']),
                         'pw1':      sf(r['pw1']),
                         'pw2':      sf(r.get('pw2', 0)),
-                        'pw1_norm': sf(r['pw1']) * _baro_factor,
-                        'pw2_norm': sf(r.get('pw2', 0)) * _baro_factor,
                         'baro': _baro,
                         'baro_valid': _baro_valid,
                         'spark1':sf(r['spark1']),
@@ -441,8 +442,8 @@ def _compare_sessions(buell_dir, sa, sb):
             k  = (fl, rb, tb)
             c  = idx[k]
             c['n']    += 1
-            c['pw1']  += r['pw1_norm']
-            c['pw2']  += r['pw2_norm']
+            c['pw1']  += r['pw1']
+            c['pw2']  += r['pw2']
             c['spark1']+= r['spark1']
             c['spark2']+= r['spark2']
             c['clt']  += r['clt']
@@ -450,7 +451,7 @@ def _compare_sessions(buell_dir, sa, sb):
             c['drpm'] += abs(r.get('drpm',0))
             c['spd']  += r['spd']
             c['dvss'] += r.get('dvss', 0)
-            c['pw_eff'] += ((r['pw1_norm']+r['pw2_norm'])/2) * r['afv'] / 100.0
+            c['pw_eff'] += ((r['pw1']+r['pw2'])/2) * r['afv'] / 100.0
             c['gear']  += r.get('gear', 0)
             if r.get('dalt') is not None:
                 c['dalt']   += r['dalt']
@@ -467,7 +468,7 @@ def _compare_sessions(buell_dir, sa, sb):
             c['tps_m']  += delta_tps / n2
             c['tps_m2'] += delta_tps * (r['tps'] - c['tps_m'])
             # Welford online std for pw_eff (GAP 1 significance)
-            pweff_i = ((r['pw1_norm']+r['pw2_norm'])/2) * r['afv'] / 100.0
+            pweff_i = ((r['pw1']+r['pw2'])/2) * r['afv'] / 100.0
             delta_pweff = pweff_i - c['pweff_m']
             c['pweff_m']  += delta_pweff / n2
             c['pweff_m2'] += delta_pweff * (pweff_i - c['pweff_m'])

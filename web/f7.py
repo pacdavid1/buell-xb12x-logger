@@ -13,7 +13,7 @@ from pathlib import Path
 _F7_N       = 20    # resample points
 _F7_WINDOW  = 3     # Sakoe-Chiba window
 _F7_THRESH  = 0.85  # default DTW threshold
-_F7_EVENTS_V = 9    # v9: bucket_a summary carries tps_peak (used for F7+VS zone fusion)
+_F7_EVENTS_V = 10   # v10: removed baro normalization of PW (DDFI2 Alpha-N)
 _F7_PRE_N       = 10    # pre-break context resample points     # bump when event struct fields change
 
 # BL-GPS-03: GPS quality thresholds
@@ -778,14 +778,15 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
                     continue
                 _baro = _sf(r.get('baro_hPa', 0))
                 _baro_valid = 900 < _baro < 1100
-                _baro_factor = 1013.25 / _baro if _baro_valid else 1.0
+                # DDFI2 Alpha-N: raw PW is the real signal, no baro compensation.
+                # See CLAUDE.md "Alpha-N fueling" and launch.py's load_csv.
                 rows.append({
                     't':      _sf(r['time_elapsed_s']),
                     'rpm':    rpm,
                     'tps':    _sf(r.get('TPS_pct') or r.get('TPD', 0)),
                     'spd':    _sf(r.get('VS_KPH', 0)),
-                    'pw1':    _sf(r['pw1']) * _baro_factor,
-                    'pw2':    _sf(r.get('pw2', 0)) * _baro_factor,
+                    'pw1':    _sf(r['pw1']),
+                    'pw2':    _sf(r.get('pw2', 0)),
                     'gear':          _sf(r.get('Gear', 0)),
                     'gear_detected':  _detect_gear(rpm, _sf(r.get("VS_KPH", 0)), _sf(r.get("di_neutral", 0)), thresholds=_gear_thresholds),
                     'clt':    _sf(r['CLT']),
@@ -820,15 +821,21 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
         if not _regen:
             try:
                 _s = json.loads(ef.read_text())
-                if not _s or 'pre_pw_curve' not in _s[0] or 'mat_avg' not in _s[0]:
+                # Only accept the current versioned envelope. Old bare-list
+                # caches, or a version mismatch (e.g. after the baro-norm
+                # removal changed the pw curves), force a recompute -- the CSV
+                # mtime alone can't detect that the event-building code changed.
+                _evs = _s.get('events') if isinstance(_s, dict) else None
+                if not isinstance(_s, dict) or _s.get('v') != _F7_EVENTS_V:
+                    _regen = True
+                elif _evs and ('pre_pw_curve' not in _evs[0] or 'mat_avg' not in _evs[0]):
                     _regen = True
             except Exception:
                 _regen = True
         if _regen:
             rows = _load_csv_rows(cp)
             evs  = _f7_detect_events(rows)
-            # strip pw_curve arrays to save space (will re-compute from pw1/pw2)
-            ef.write_text(json.dumps(evs, separators=(',', ':')))
+            ef.write_text(json.dumps({'v': _F7_EVENTS_V, 'events': evs}, separators=(',', ':')))
         event_files.append(ef)
 
     csv_path_map = {cp.stem: cp for cp in csv_files}
@@ -853,7 +860,8 @@ def _f7_load_session_clusters(buell_dir, session_id, threshold=_F7_THRESH):
     all_events = []
     for ef in event_files:
         try:
-            evs = json.loads(ef.read_text())
+            _s = json.loads(ef.read_text())
+            evs = _s.get('events', []) if isinstance(_s, dict) else _s
             for e in evs:
                 e['ride_file'] = ef.stem.replace('_f7events', '')
             all_events.extend(evs)

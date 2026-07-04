@@ -281,7 +281,7 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
 def _fmtk(n):
     if n >= 1000: return f"{n/1000:.1f}k"
     return str(n)
-CACHE_VERSION = 9  # bumped: per-cell dpw_eff Welch CI + significance (GAP 1, v2.7.230)
+CACHE_VERSION = 10  # bumped: removed baro normalization of PW (DDFI2 Alpha-N, v2.7.276)
 _cache_lock = threading.Lock()
 
 def _eeprom_to_msq(eeprom, session=''):
