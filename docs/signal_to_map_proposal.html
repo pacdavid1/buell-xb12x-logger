@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>🗺️ Señales → Propuesta de Mapa: Pipeline Completo, Gaps y Roadmap</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --panel: #111114; --accent: #e8420a; --fg: #d8d8dc; --muted: #7a7a80;
+    --c-critical: #ff5c5c; --c-high: #e8b923; --c-med: #4a9eff; --c-low: #6b6b70;
+    --c-green: #3ddc84;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:'Segoe UI',system-ui,sans-serif; }
+  #header { position:sticky; top:0; z-index:100; background:var(--panel); border-bottom:1px solid #222; padding:12px 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  #header h1 { font-size:14px; color:var(--accent); }
+  #header .sub { font-size:10px; color:var(--muted); }
+  #main { padding:16px 24px 80px; max-width:1100px; margin:0 auto; }
+
+  .flow { display:flex; gap:2px; align-items:center; flex-wrap:wrap; margin:8px 0; font-size:9px; }
+  .flow .node { padding:3px 8px; border-radius:3px; border:1px solid #333; background:#0d0d0f; }
+  .flow .arrow { color:#444; }
+  .node-ecu { border-color:#4a9eff; }
+  .node-sensor { border-color:#e8b923; }
+  .node-derived { border-color:#88aaff; }
+  .node-pipeline { border-color:#3ddc84; }
+  .node-output { border-color:var(--accent); background:#1a0a0a; }
+  .node-wasted { border-color:#ff5c5c; opacity:0.5; }
+  .node-gap { border-color:#e8b923; border-style:dashed; background:#1a1a0a; }
+
+  .section { margin:12px 0; border:1px solid #1a1a1e; border-radius:6px; overflow:hidden; }
+  .section-header { padding:8px 12px; background:var(--panel); font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .section-header .badge { font-size:9px; padding:2px 6px; border-radius:3px; background:#1a1a1e; }
+  .section-body { padding:8px 12px; }
+
+  table { width:100%; border-collapse:collapse; font-size:10px; }
+  th { text-align:left; padding:5px 6px; color:var(--muted); border-bottom:1px solid #222; font-weight:500; }
+  td { padding:4px 6px; border-bottom:1px solid #1a1a1e; }
+
+  .tag { display:inline-block; padding:1px 5px; border-radius:2px; font-size:8px; font-weight:600; }
+  .tag-used { background:#1a2a1a; color:var(--c-green); }
+  .tag-captured { background:#1a1a2a; color:var(--c-med); }
+  .tag-gap { background:#2a2a1a; color:var(--c-high); border:1px dashed #555; }
+  .tag-critical { background:#2a1a1a; color:var(--c-critical); }
+  .tag-derived { background:#1a1a2a; color:#88aaff; }
+  .tag-sensor { background:#2a2a1a; color:#e8b923; }
+
+  .chain { padding:8px; background:#0a0a0f; border:1px solid #1a1a1e; border-radius:4px; margin:6px 0; font-size:9px; font-family:monospace; line-height:1.6; }
+  .chain .active { color:var(--c-green); }
+  .chain .silent { color:#444; text-decoration:line-through; }
+  .chain .gap { color:var(--c-high); font-style:italic; }
+
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px,1fr)); gap:8px; }
+  .card { padding:8px; border:1px solid #1a1a1e; border-radius:4px; background:#0d0d0f; }
+  .card .title { font-size:10px; font-weight:600; margin-bottom:4px; }
+  .card .desc { font-size:9px; color:var(--muted); }
+  .card .impact { font-size:8px; margin-top:4px; }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>🗺️ Señales → Propuesta de Mapa</h1>
+  <span class="sub">Pipeline completo desde la señal cruda hasta el MSQ final. Qué influye, qué falta, qué necesitamos.</span>
+</div>
+<div id="main">
+
+<!-- ============================================================ -->
+<!-- 1. PANORAMA GENERAL -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">🔭 Panorama General <span class="badge">58 RAW → 4 outputs</span></div>
+  <div class="section-body">
+    <div style="font-size:10px; color:var(--muted); line-height:1.6;">
+      <p>Trazamos <b>58 señales RAW</b> del protocolo DDFI2 + <b>~15 señales externas</b> (GPS, baro, humedad, sysmon).
+      De todas ellas, solo <b>21 se usan</b> en el pipeline de tuning que termina en la <b>propuesta de mapa (MSQ).</b>
+      Las demás están: capturadas pero no usadas (16), en el protocolo pero no capturadas (12), o son protocolo puro (9).</p>
+    </div>
+    <div class="chain">
+      <span class="node node-ecu">📡 ECU DDFI2</span> <span class="arrow">→</span>
+      <span class="node node-sensor">🌤️ GPS/Baro/Hum</span> <span class="arrow">→</span>
+      <span class="node node-derived">🧮 decode_rt_packet</span> <span class="arrow">→</span>
+      <span class="node node-pipeline">🏗️ build_index (launch.py)</span> <span class="arrow">→</span>
+      <span class="node node-pipeline">⚖️ _compare_sessions</span> <span class="arrow">→</span>
+      <span class="node node-pipeline">🤝 _merge_maps (vs_engine.py)</span> <span class="arrow">→</span>
+      <span class="node node-output" style="font-weight:700;">📄 suggested_CHECKSUM.msq</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 2. SEÑALES QUE INFLUYEN EN LA PROPUESTA DE MAPA -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">🎯 Señales que Influyen DIRECTAMENTE en la Propuesta de Mapa <span class="badge">12 señales</span></div>
+  <div class="section-body">
+    <div style="font-size:9px; color:var(--muted); margin-bottom:8px;">
+      Estas son las únicas señales que realmente determinan si una celda del mapa gana (A), pierde (B), o se promedia (AVG) en la propuesta final.
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Señal</th><th>Pipeline</th><th>Qué hace</th><th>Frecuencia</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><span class="tag tag-used">pw1, pw2</span></td><td>_compare_sessions → _merge_maps</td><td><b>⭐ Señal principal.</b> pw1_norm (baro-corregido) + pw2 se promedian como pw_eff. El <b>dpw_eff</b> entre sesiones A y B es la métrica de decisión para cada celda SWEET.</td><td>8 Hz</td></tr>
+        <tr><td>2</td><td><span class="tag tag-used">RPM</span></td><td>build_index → _merge_maps</td><td>Define la coordenada RPM de cada celda. El binning (RPM_BINS = 800-6800) agrupa samples por celda.</td><td>8 Hz</td></tr>
+        <tr><td>3</td><td><span class="tag tag-used">TPS_pct</span></td><td>build_index → _merge_maps</td><td>Define la coordenada TPS de cada celda. Junto con RPM, forma la grilla 2D del mapa VE.</td><td>8 Hz</td></tr>
+        <tr><td>4</td><td><span class="tag tag-used">baro_hPa</span></td><td>load_csv (baro_factor)</td><td><b>Corrige pw1/pw2 por presión atmosférica.</b> pw1_norm = pw1_raw * (1013.25 / baro). Si no hay baro, factor = 1.0</td><td>~1 Hz</td></tr>
+        <tr><td>5</td><td><span class="tag tag-used">AFV</span></td><td>build_index (pw_eff)</td><td>pw_eff = pw_norm * AFV / 100. Pero AFV=100 siempre (locked) → hoy es constante.</td><td>8 Hz</td></tr>
+        <tr><td>6</td><td><span class="tag tag-used">CLT</span></td><td>build_index (classify gate)</td><td><b>Filtro de validez:</b> classify() requiere CLT ≥ 170°F (~77°C). Samples con motor frío → BITTER → descartados.</td><td>8 Hz</td></tr>
+        <tr><td>7</td><td><span class="tag tag-used">WUE</span></td><td>build_index (classify gate)</td><td><b>Filtro de validez:</b> WUE > 102% → BITTER (motor en warmup).</td><td>8 Hz</td></tr>
+        <tr><td>8</td><td><span class="tag tag-used">Accel_Corr</span></td><td>build_index (classify gate)</td><td><b>Filtro de validez:</b> Accel_Corr > 105% → BITTER (transitorio).</td><td>8 Hz</td></tr>
+        <tr><td>9</td><td><span class="tag tag-used">fl_wot</span></td><td>build_index (classify gate)</td><td>SPICY_WOT vs SWEET. Cada flavor tiene su propio winner en merge.</td><td>8 Hz</td></tr>
+        <tr><td>10</td><td><span class="tag tag-used">fl_decel</span></td><td>build_index (classify gate)</td><td>Si fl_decel está activo → BITTER → el sample no cuenta.</td><td>8 Hz</td></tr>
+        <tr><td>11</td><td><span class="tag tag-used">fl_fuel_cut</span></td><td>build_index (classify gate)</td><td>Si fl_fuel_cut está activo → BITTER → descartado.</td><td>8 Hz</td></tr>
+        <tr><td>12</td><td><span class="tag tag-used">fl_engine_run</span></td><td>build_index (classify gate)</td><td>Si motor no está running → BITTER → descartado. (Nunca debería ocurrir en datos reales)</td><td>8 Hz</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:8px; padding:6px; background:#0a0a0f; border:1px solid #1a1a1e; border-radius:4px; font-size:9px; color:var(--muted);">
+      <b>💡 Conclusión:</b> De 58 señales RAW, solo <b>12 impactan la propuesta de mapa</b>. De esas, <b>6 son señales de control</b> (filtros) y solo <b>1 es la métrica principal: pw1/pw2 → dpw_eff</b>. Las demás (RPM, TPS_pct, baro) definen coordenadas y correcciones.
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 3. SEÑALES QUE INFLUYEN INDIRECTAMENTE -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">🔄 Señales que Influyen INDIRECTAMENTE <span class="badge">9 señales</span></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Señal</th><th>Cómo influye</th><th>¿Qué falta?</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag tag-captured">Batt_V</span></td><td>Influye pw1/pw2 por dead-time del inyector. <b>+2.3% de shift confirmado.</b> Hoy NO se corrige.</td><td><span class="tag tag-gap">🔴 GAP: dead_time_correction() no implementada</span></td></tr>
+        <tr><td><span class="tag tag-used">spark1, spark2</span></td><td>Se trackean en build_index, se comparan en _merge_maps. Pero si spark no cambió, se usa 'AVG'.</td><td><span class="tag tag-gap">🟡 El merge de spark es débil sin knock sensor</span></td></tr>
+        <tr><td><span class="tag tag-sensor">gps_alt_m</span></td><td>Se usa en classify() como dalt (derivada de altitud). Determina SALTY_UP/DOWN → BITTER.</td><td><span class="tag tag-gap">🟡 GAP 4: slope_reference no se usa, clasifica mal subidas reales</span></td></tr>
+        <tr><td><span class="tag tag-captured">gps_heading_rate</span></td><td>Podría segmentar curvas. Hoy NO se usa en ningún lado.</td><td><span class="tag tag-gap">🟡 Receta 3: cornering analysis no implementado</span></td></tr>
+        <tr><td><span class="tag tag-captured">humidity_pct</span></td><td>Podría corregir densidad del aire en VDYNO y baro_factor. Hoy NO se usa.</td><td><span class="tag tag-gap">🟡 Receta 2: air density correction no implementada</span></td></tr>
+        <tr><td><span class="tag tag-captured">EGO_Corr</span></td><td>Debería ser la corrección en lazo cerrado. Hoy LOCKED=100. Con wideband sería la señal más importante.</td><td><span class="tag tag-gap">🔴 Receta 4: requiere wideband físico</span></td></tr>
+        <tr><td><span class="tag tag-captured">O2_ADC</span></td><td>Narrowband. Hoy locked en ~512. Con wideband, sería lambda real.</td><td><span class="tag tag-gap">🔴 Mismo que EGO_Corr</span></td></tr>
+        <tr><td><span class="tag tag-captured">BAS_ADC</span></td><td>Bank Angle Sensor. ⚠️ Es INTERRUPTOR BINARIO (tip-over ~55-60°), NO continuo. No sirve para lean angle en curvas.</td><td><span class="tag tag-gap">🔴 No vale la pena — GPS heading_rate da mejor lean angle</span></td></tr>
+        <tr><td><span class="tag tag-captured">CDiag/HDiag</span></td><td>Podrían alertar sobre fallas en ciertas celdas. Hoy no se analizan.</td><td><span class="tag tag-gap">🟡 Receta 5: fault pattern mining</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 4. QUÉ INFORMACIÓN DEBERÍAMOS GENERAR Y NO GENERAMOS -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">💡 Información que DEBERÍAMOS generar (y no generamos) <span class="badge">8 gaps</span></div>
+  <div class="section-body">
+    <div class="card-grid">
+      <div class="card">
+        <div class="title"><span class="tag tag-gap">🔴</span> pw_corr (dead-time)</div>
+        <div class="desc">pw1/pw2 corregido por Batt_V. Hoy usamos pw1_raw que tiene +2.3% de sesgo cuando el ventilador se enciende. Esto contamina todas las comparaciones VS.</div>
+        <div class="impact">Señales necesarias: Batt_V (ya capturada)<br>Esfuerzo: ~1h</div>
+      </div>
+      <div class="card">
+        <div class="title"><span class="tag tag-gap">🟡</span> spark_map_real (no AVG)</div>
+        <div class="desc">Hoy _merge_maps devuelve 'AVG' para spark cuando no hay diferencia significativa. Necesitamos lógica de winner basada en dpw_eff como proxy.</div>
+        <div class="impact">Señales: spark1, spark2, dpw_eff (todo ya disponible)<br>Esfuerzo: ~3h</div>
+      </div>
+      <div class="card">
+        <div class="title"><span class="tag tag-gap">🟡</span> curva de potencia VDYNO</div>
+        <div class="desc">El VDYNO existe (compute_ride en vdyno.py) pero NO se integra en la propuesta de mapa. Las celdas que dan más HP deberían pesar más.</div>
+        <div class="impact">Señales: VS_KPH, RPM, (todo capturado)<br>Esfuerzo: ~4h</div>
+      </div>
+      <div class="card">
+        <div class="title"><span class="tag tag-gap">🟡</span> air_density real</div>
+        <div class="desc">Rho fijo = 1.10. Con MAT + baro + humidity podemos calcular rho real. Mejora precisión VDYNO ~1-3%.</div>
+        <div class="impact">Señales: MAT, baro_hPa, humidity_pct (todo capturado)<br>Esfuerzo: ~2h</div>
+      </div>
+      <div class="card">
+        <div class="title"><span class="tag tag-gap">🟡</span> terrain_aware_classify</div>
+        <div class="desc">classify() marca como SALTY_UP/BITTER cuando sube altitud, pero no sabe si es colina o aceleración. Con slope_reference (ya existe!) podemos reclasificar como SWEET.</div>
+        <div class="impact">Señales: gps_alt_m, gps_lat, gps_lon (todo capturado)<br>Esfuerzo: ~1h</div>
+      </div>
+      <div class="card">
+        <div class="title"><span class="tag tag-gap">🟡</span> corner_performance</div>
+        <div class="desc">Con gps_heading_rate podemos segmentar curvas (entry→apex→exit) y ver qué mapa acelera mejor en salida de curva. Nueva dimensión de análisis.</div>
+        <div class="impact">Señales: gps_heading_rate, gps_speed_kmh (capturadas)<br>Esfuerzo: ~4h</div>
+      </div>
+      <div class="card">
+        <div class="title"><span class="tag tag-gap">🔴</span> lean_angle: usar GPS, NO BAS</div>
+        <div class="desc">⚠️ BAS_ADC es un INTERRUPTOR BINARIO (tip-over ~55-60°). No mide lean angle continuo. Para lean angle usar: lean = atan(v² / (R × g)) con gps_heading_rate + gps_speed. El GPS ya está capturado.</div>
+        <div class="impact">Señal: gps_heading_rate + gps_speed_kmh (ya capturadas)<br>Esfuerzo: ~2h. BAS_ADC: ❌ Inútil para esto</div>
+      </div>
+      <div class="card">
+        <div class="title"><span class="tag tag-gap">🔴</span> VE_correction real</div>
+        <div class="desc">TODO el pipeline de tuning_report genera INACTIVE_NOISE porque EGO_Corr y AFV están locked. Con wideband se desbloquea. El código casi está listo.</div>
+        <div class="impact">Señales: EGO_Corr, AFV (requiere wideband)<br>Esfuerzo: ~8h + $50-120 HW</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 5. SENSORES QUE NECESITAMOS A FUTURO -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">🔧 Roadmap de Sensores Futuros <span class="badge">4 niveles</span></div>
+  <div class="section-body">
+    <table>
+      <thead><tr><th>Prioridad</th><th>Sensor</th><th>Costo</th><th>Qué habilita</th><th>Alternativa sin HW</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-gap">🥇 Ahora</span></td>
+          <td><b>NINGUNO</b> — aprovechar los que YA tenemos</td>
+          <td>$0</td>
+          <td>Batt_V dead-time correction, slope_reference, cornering GPS, air density con humidity. <b>Todo con sensores existentes. BAS_ADC: ❌ es binario, no sirve para lean angle.</b></td>
+          <td>—</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-gap">🥇 Corto plazo</span></td>
+          <td><b>Wideband O2 (Bosch LSU 4.9)</b></td>
+          <td>$50-120</td>
+          <td>⚠️ <b>El gap más grande del sistema.</b> Desbloquea: EGO_Corr real, AFV real, tuning_report, VE correction loop, autotune. Transforma el sistema de "guess" a "medición".</td>
+          <td>Ninguna viable. Sessions VS es un proxy, no mide mezcla real.</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-gap">🥈 Medio plazo</span></td>
+          <td><b>EGT (termopar en escape)</b></td>
+          <td>$20-50</td>
+          <td>Detonación por temperatura. Columna EGT por cilindro. Safety para mapas agresivos.</td>
+          <td>Oído del piloto (poco fiable). Plug chop (requiere parar).</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-gap">🥉 Largo plazo</span></td>
+          <td><b>Knock sensor piezoeléctrico dedicado</b></td>
+          <td>$10-30 + ADC 40kHz</td>
+          <td>Detección de detonación real. El DDFI2 no tiene este sensor ni la capacidad de procesarlo. Requeriría hardware externo + ADC rápido.</td>
+          <td>EGT (mejor proxy). Oído. Plug chop.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:10px; padding:8px; background:#0a0a0f; border:1px solid #1a1a1e; border-radius:4px;">
+      <h3 style="font-size:11px; color:var(--accent); margin-bottom:6px;">📊 Sensores que YA TENEMOS y no aprovechamos</h3>
+      <table>
+        <thead><tr><th>Sensor</th><th>Señal en CSV</th><th>Potencial</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>BMP280 (baro + temp)</td><td>baro_hPa, baro_temp_c</td><td>Corrección SAE J1349 + air density + terrain</td><td><span class="tag tag-gap">Usado parcialmente</span></td></tr>
+          <tr><td>AHT20 (humedad)</td><td>humidity_pct</td><td>Air density real (oxígeno desplazado por vapor)</td><td><span class="tag tag-captured">No usado</span></td></tr>
+          <tr><td>GPS u-blox NEO-6M</td><td>gps_* (10+ columnas)</td><td>Cornering, slope reference, lean angle estimado</td><td><span class="tag tag-gap">Usado parcialmente</span></td></tr>
+          <tr><td>BAS (Bank Angle Sensor DDFI2)</td><td>BAS_ADC</td><td>⚠️ INTERRUPTOR BINARIO (tip-over ~55-60°). NO mide lean angle continuo. Solo DTC 44. Inútil para curvas.</td><td><span class="tag tag-captured">No usado (y no vale la pena)</span></td></tr>
+          <tr><td>Batt_V (ECU interno)</td><td>Batt_V</td><td>Dead-time correction inyector (2.3% shift)</td><td><span class="tag tag-gap">No corregido</span></td></tr>
+          <tr><td>Coil1/2_ADC (ECU interno)</td><td>❌ No capturado</td><td>Diagnóstico bobina (NO ion sense)</td><td><span class="tag tag-captured">No vale la pena</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 6. PLAN DE CLEANUP -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">🧹 Plan de Cleanup del CSV <span class="badge">98 → ~77 columnas</span></div>
+  <div class="section-body">
+    <div style="font-size:9px; color:var(--muted); margin-bottom:6px;">
+      Objetivo: Remover ~21 columnas que no influyen en el resultado final. Ahorro estimado: ~500 KB/hora.
+    </div>
+    <table>
+      <thead><tr><th>Acción</th><th>Columnas</th><th>Justificación</th><th>Riesgo</th></tr></thead>
+      <tbody>
+        <tr style="border-left:3px solid var(--c-green);">
+          <td>🗑️ REMOVER</td>
+          <td><code>EGO_Corr, AFV, O2_ADC</code></td>
+          <td>LOCKED=100/100/512. Generan INACTIVE_NOISE en tuning_report. Si se instala wideband, se agregan de nuevo.</td>
+          <td>🟢 Bajo — hay que cambiar constantes en build_index (AFV=100 fijo)</td>
+        </tr>
+        <tr style="border-left:3px solid var(--c-green);">
+          <td>🗑️ REMOVER</td>
+          <td><code>CDiag0-4, HDiag0-4</code></td>
+          <td>Nadie los consume. 10 columnas ~200 KB/hora. Si se implementa fault mining, se agregan como archivo aparte.</td>
+          <td>🟢 Bajo — ningún código lee esto del CSV</td>
+        </tr>
+        <tr style="border-left:3px solid var(--c-green);">
+          <td>🗑️ REMOVER</td>
+          <td><code>dirty_byte_hex, dirty_byte_name, forensic_event</code></td>
+          <td>Solo diagnostic manual via ride_errorlog_json. No entran al ciclo de tuning.</td>
+          <td>🟢 Bajo — ErrorLog tiene su propio archivo</td>
+        </tr>
+        <tr style="border-left:3px solid var(--c-green);">
+          <td>🗑️ REMOVER</td>
+          <td><code>Unk63_b0..b7</code></td>
+          <td>Unk63 (el byte completo) se mantiene. Los bits individuales no se usan para nada — ya sabemos que es Fire Event Window.</td>
+          <td>🟢 Bajo — solo se usó para el análisis detective</td>
+        </tr>
+        <tr style="border-left:3px solid var(--c-med);">
+          <td>📉 REDUCIR FRECUENCIA</td>
+          <td><code>humidity_pct</code></td>
+          <td>Solo para climatología. No necesita 8 Hz. Reducir a 1 muestra cada 60s (~0.017 Hz). O almacenar en metadata de sesión.</td>
+          <td>🟢 Bajo — reconstruible desde baro_temp_c</td>
+        </tr>
+        <tr style="border-left:3px solid var(--c-high);">
+          <td>✅ MANTENER + CORREGIR</td>
+          <td><code>Batt_V</code></td>
+          <td>No remover — agregar dead_time_correction(). Es un confounder, no noise.</td>
+          <td>⚠️ Requiere implementar corrección</td>
+        </tr>
+        <tr style="border-left:3px solid var(--c-high);">
+          <td>✅ MANTENER (por si acaso)</td>
+          <td><code>BAS_ADC</code></td>
+          <td>Bank Angle Sensor — pero es INTERRUPTOR BINARIO (tip-over). No sirve para lean angle. Mantener capturado (2B/sample) por si acaso.</td>
+          <td>⚠️ Requiere nueva funcionalidad</td>
+        </tr>
+        <tr style="border-left:3px solid var(--c-med);">
+          <td>✅ MANTENER (display)</td>
+          <td><code>Rides, ETS_ADC, IAT_ADC, SysConfig</code></td>
+          <td>Ocupan poco espacio. Útiles para debugging. Mantener.</td>
+          <td>🟢 Sin riesgo</td>
+        </tr>
+        <tr style="border-left:3px solid var(--c-high);">
+          <td>➕ AGREGAR (cuando se implemente)</td>
+          <td><code>pw_corr, lean_angle, corner_phase</code></td>
+          <td>Nuevas columnas derivadas: pw corregido por Batt_V, ángulo de inclinación, fase de curva.</td>
+          <td>🟡 Cuando se implementen las recetas</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:8px; padding:6px; border:1px solid #1a1a1e; border-radius:4px; background:#0a0a0f;">
+      <div style="font-size:10px;">
+        <b>CSV_COLUMNS después del cleanup:</b> 98 → <b>~77 columnas</b> (-21 columnas)
+      </div>
+      <div style="font-size:8px; color:#666; margin-top:4px; font-family:monospace;">
+        # Removidas: EGO_Corr, AFV, O2_ADC, CDiag0-4, HDiag0-4, dirty_byte_hex, dirty_byte_name, forensic_event, Unk63_b0-7 (18 columnas)<br>
+        # Frecuencia reducida: humidity_pct (1 columna)<br>
+        # Agregadas (futuro): pw_corr, lean_angle, corner_phase (3 columnas)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 7. RESUMEN EJECUTIVO -->
+<!-- ============================================================ -->
+<div class="section">
+  <div class="section-header">📋 Resumen Ejecutivo</div>
+  <div class="section-body">
+    <div class="card-grid">
+      <div class="card">
+        <div class="title" style="color:var(--c-green);">✅ Señales que YA influyen</div>
+        <div class="desc">12 señales determinan la propuesta: pw1, pw2, RPM, TPS_pct, baro_hPa, AFV, CLT, WUE, Accel_Corr, fl_wot, fl_decel, fl_fuel_cut. De ellas, una es la métrica principal (pw_eff).</div>
+      </div>
+      <div class="card">
+        <div class="title" style="color:var(--c-high);">⚠️ Señales que DEBERÍAN influir (y no)</div>
+        <div class="desc">Batt_V (dead-time), spark1/2 (merge real), CDiag/HDiag (seguridad), humidity (air density). BAS_ADC: ❌ es binario (tip-over), no lean angle. <b>5 señales → 4 útiles.</b></div>
+      </div>
+      <div class="card">
+        <div class="title" style="color:var(--c-critical);">🔴 El gap más grande</div>
+        <div class="desc"><b>No tenemos feedback de mezcla.</b> EGO_Corr/AFV locked, O2_ADC en ruido. Sessions VS infiere dirección (más rico/más pobre) pero no magnitud. Con wideband, TODO cambia.</div>
+      </div>
+      <div class="card">
+        <div class="title" style="color:var(--c-med);">🧹 Cleanup inmediato</div>
+        <div class="desc">Remover 18 columnas del CSV (CDiag, HDiag, dirty, Unk63 bits, O2_ADC, EGO_Corr, AFV). Reducir humidity a ~0.017 Hz. Ahorro: ~500 KB/hora. <b>Implementable en ~1h.</b></div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px; padding:8px; background:#0a0a0f; border:1px solid #1a1a1e; border-radius:4px; font-size:10px;">
+      <b>🎯 Conclusión final:</b> Hoy generamos ~5 MB/hora de CSV. Solo ~12 columnas (21%) impactan la propuesta de mapa. El resto son datos muertos, ruido controlado, o potencial desperdiciado. Podemos:<br><br>
+      1. <b>Ahora (~1h):</b> Remover 18 columnas muertas del CSV<br>
+      2. <b>Corto (~10h):</b> Implementar 5 mejoras que usan señales ya capturadas (dead-time, cornering, slope, air density, lean angle)<br>
+      3. <b>Medio ($50-120):</b> Wideband O2 — el único cambio que realmente transforma el sistema<br>
+      4. <b>Largo:</b> EGT + knock sensor para seguridad en mapas agresivos
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</body>
+</html>

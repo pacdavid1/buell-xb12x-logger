@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Data Pipelines by Sector — Buell Logger</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --panel: #111114; --accent: #e8420a; --fg: #d8d8dc; --muted: #7a7a80;
+    --raw: #3ddc84; --process: #4a9eff; --output: #e8b923; --unused: #6b6b70; --gap: #ff5c5c;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+  #header {
+    position: sticky; top:0; z-index:100;
+    background: var(--panel); border-bottom: 1px solid #222;
+    padding: 12px 24px; display:flex; align-items:center; gap: 16px; flex-wrap:wrap;
+  }
+  #header h1 { font-size: 18px; color: var(--accent); letter-spacing: 1px; }
+  #header .subtitle { font-size: 12px; color: var(--muted); }
+  #header .legend { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; font-size:11px; }
+  .legend-dot { width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:4px; }
+
+  #sector-nav {
+    position: sticky; top:84px; z-index:99;
+    background: #0d0d0f; border-bottom: 1px solid #1a1a1e;
+    padding: 8px 24px; display:flex; gap:6px; flex-wrap:wrap; overflow-x:auto;
+  }
+  .sector-btn {
+    padding: 5px 12px; border: 1px solid #333; border-radius: 4px;
+    background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 11px; white-space: nowrap; transition: all 0.15s;
+  }
+  .sector-btn:hover { border-color: var(--accent); color: var(--fg); }
+  .sector-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  #main { padding: 16px 24px 80px; max-width: 1600px; margin: 0 auto; }
+
+  .sector {
+    display:none; margin-bottom: 40px;
+    border: 1px solid #1a1a1e; border-radius: 8px; overflow: hidden;
+  }
+  .sector.active { display:block; }
+  .sector.all-visible { display:block; }
+
+  .sector-header {
+    padding: 12px 16px;
+    display:flex; align-items:center; gap:12px;
+    border-bottom: 1px solid #1a1a1e;
+    cursor: pointer; user-select: none;
+  }
+  .sector-header h2 { font-size: 14px; font-weight: 600; }
+  .sector-header .badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 10px;
+    color: #fff;
+  }
+  .sector-header .desc { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+  .sector-body { padding: 16px; overflow: visible; }
+
+  /* Pipeline tube */
+  .pipeline {
+    display: flex; gap: 0; overflow: visible;
+    position: relative;
+  }
+
+  .pipe-stage {
+    flex: 1; min-width: 0;
+    display: flex; flex-direction: column; gap: 4px;
+    position: relative;
+  }
+
+  .pipe-stage:not(:last-child)::after {
+    content: '→';
+    position: absolute; right: -8px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted); font-size: 18px;
+    z-index: 2;
+  }
+
+  .stage-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--muted); text-align: center; padding: 2px 4px;
+  }
+
+  .stage-box {
+    background: var(--panel); border: 1px solid #222; border-radius: 6px;
+    padding: 8px; font-size: 10px; position: relative;
+    min-height: 50px;
+    transition: all 0.15s;
+  }
+  .stage-box:hover { border-color: #555; }
+  .stage-box.raw { border-left: 3px solid var(--raw); }
+  .stage-box.process { border-left: 3px solid var(--process); }
+  .stage-box.output { border-left: 3px solid var(--output); }
+  .stage-box.unused { border-left: 3px solid var(--unused); }
+  .stage-box.gap { border-left: 3px solid var(--gap); }
+
+  .stage-box .title {
+    font-weight: 600; font-size: 10px; margin-bottom: 3px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .stage-box .file-ref {
+    font-size: 8px; color: var(--muted); font-family: monospace; margin-bottom: 4px;
+  }
+  .stage-box .fields {
+    display: flex; flex-wrap: wrap; gap: 2px;
+  }
+  .stage-box .field-tag {
+    background: #1c1c22; border-radius: 3px; padding: 1px 5px;
+    font-family: monospace; font-size: 9px; color: #aaa;
+  }
+  .stage-box .field-tag.in { color: var(--raw); }
+  .stage-box .field-tag.out { color: var(--output); }
+  .stage-box .field-tag.unused-tag { color: var(--unused); }
+  .stage-box .field-tag.transform { color: var(--process); }
+  .stage-box .field-tag.ui { color: #4a9eff; text-decoration: underline; cursor:pointer; }
+  .stage-box .note {
+    font-size: 8px; color: var(--muted); margin-top: 3px; font-style: italic;
+    line-height: 1.3;
+  }
+  .stage-box .arrow-in, .stage-box .arrow-out {
+    font-size: 8px; color: #666; margin: 2px 0;
+  }
+  .stage-box .status {
+    font-size: 8px; padding: 1px 5px; border-radius: 3px;
+    display: inline-block; margin-top: 2px;
+  }
+  .status-valid { background: #1a3a1a; color: #4ade80; }
+  .status-unvalidated { background: #3a3a1a; color: #e8b923; }
+  .status-unused { background: #3a1a1a; color: #ff5c5c; }
+  .status-noise { background: #2a2a2a; color: #888; }
+
+  /* Compact table view for signals */
+  .signal-table {
+    width:100%; border-collapse: collapse; font-size: 10px; margin-top: 8px;
+  }
+  .signal-table th {
+    text-align: left; padding: 4px 8px; color: var(--muted);
+    border-bottom: 1px solid #222; font-weight: 500;
+  }
+  .signal-table td {
+    padding: 3px 8px; border-bottom: 1px solid #1a1a1e;
+    vertical-align: top;
+  }
+  .signal-table tr:hover td { background: #15151a; }
+
+  .consumed-by { color: var(--raw); }
+  .not-consumed { color: var(--unused); }
+  .transform-arrow { color: var(--muted); margin: 0 4px; }
+
+  /* Flow arrows between stages */
+  .flow-line {
+    font-size: 22px; color: var(--muted); text-align: center;
+    line-height: 1; padding: 2px 0;
+  }
+
+  /* Raw signal detail expand */
+  .raw-detail { display: none; margin-top: 12px; }
+  .raw-detail.open { display: block; }
+  .toggle-detail {
+    font-size: 10px; color: var(--accent); cursor: pointer;
+    background: none; border: none; padding: 2px 4px;
+  }
+
+  /* ALL sectors view */
+  .sector.all-visible { display: block; }
+  .sector.all-visible + .sector.all-visible { margin-top: 24px; }
+
+  /* Search */
+  #search-box {
+    background: #1a1a1e; border: 1px solid #333; border-radius: 4px;
+    color: var(--fg); padding: 4px 10px; font-size: 12px; width: 180px;
+    font-family: monospace;
+  }
+  #search-box:focus { outline: none; border-color: var(--accent); }
+
+  .highlight { background: #3a2a0a; border-radius: 2px; padding: 0 2px; }
+
+  /* Modal for signal detail */
+  #signal-modal {
+    display: none;
+    position: fixed; top:0; left:0; right:0; bottom:0; z-index:200;
+    background: rgba(0,0,0,0.7);
+    align-items: center; justify-content: center;
+  }
+  #signal-modal.open { display: flex; }
+  #signal-modal .modal-content {
+    background: var(--panel); border: 1px solid #333; border-radius: 8px;
+    padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;
+  }
+  #signal-modal .modal-content h3 { font-size: 14px; margin-bottom: 8px; }
+  #signal-modal .modal-content .close-btn {
+    float: right; background: none; border: none; color: var(--muted);
+    font-size: 18px; cursor: pointer;
+  }
+  #signal-modal .modal-content .flow-list { margin-top: 8px; }
+  #signal-modal .modal-content .flow-item {
+    padding: 6px 8px; border-left: 3px solid var(--process);
+    margin-bottom: 4px; border-radius: 0 4px 4px 0;
+    background: #15151a; font-size: 11px;
+  }
+  #signal-modal .modal-content .flow-item .flow-stage { font-weight: 600; color: var(--process); }
+  #signal-modal .modal-content .flow-item .flow-detail { color: var(--muted); font-size: 10px; }
+
+  @media (max-width: 768px) {
+    .pipeline { flex-direction: column; }
+    .pipe-stage:not(:last-child)::after { content: '↓'; right: auto; bottom: -12px; top: auto; left: 50%; transform: translateX(-50%); }
+    #header { flex-direction: column; align-items: flex-start; }
+    #header .legend { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>DATA PIPELINES BY SECTOR</h1>
+  <span class="subtitle">Every raw signal tracked from source → transformation → output</span>
+  <div class="legend">
+    <span><span class="legend-dot" style="background:var(--raw)"></span>Raw signal</span>
+    <span><span class="legend-dot" style="background:var(--process)"></span>Process</span>
+    <span><span class="legend-dot" style="background:var(--output)"></span>Output</span>
+    <span><span class="legend-dot" style="background:var(--unused)"></span>Captured unused</span>
+    <span><span class="legend-dot" style="background:var(--gap)"></span>GAP / not consumed</span>
+    <input id="search-box" type="text" placeholder="Search signal, file, transform..." title="Type to search across all sectors">
+  </div>
+</div>
+
+<div id="sector-nav">
+  <button class="sector-btn active" data-sector="all">🌐 ALL SECTORS</button>
+  <button class="sector-btn" data-sector="sector-fuel-trim">🏁 Fuel Trim (F7+VS)</button>
+  <button class="sector-btn" data-sector="sector-vdyno">🔥 VDYNO</button>
+  <button class="sector-btn" data-sector="sector-launch">🚀 Launch Analysis</button>
+  <button class="sector-btn" data-sector="sector-map-editor">🗺️ Map Editor / QUEMAR</button>
+  <button class="sector-btn" data-sector="sector-coverage">📊 Coverage & Objectives</button>
+  <button class="sector-btn" data-sector="sector-fuel">⛽ Fuel Consumption</button>
+  <button class="sector-btn" data-sector="sector-unused">🚫 Captured Unused</button>
+  <button class="sector-btn" data-sector="sector-signal-map">🔍 Full Signal Map</button>
+</div>
+
+<div id="main">
+
+<!-- ============================================================ -->
+<!-- SECTOR 1: FUEL TRIM -->
+<!-- ============================================================ -->
+<div id="sector-fuel-trim" class="sector active all-visible">
+  <div class="sector-header" style="border-left: 4px solid var(--raw);">
+    <h2>🏁 Fuel Trim — F7 + Sessions VS</h2>
+    <span class="badge" style="background:#1a4a1a;color:#4ade80;">ACTIVE</span>
+    <span class="desc">Main tuning pipeline: compares two sessions, determines which map is better per cell</span>
+  </div>
+  <div class="sector-body">
+
+    <!-- Pipeline flow -->
+    <div class="pipeline">
+
+      <!-- Stage 0: Raw Inputs -->
+      <div class="pipe-stage">
+        <div class="stage-label">RAW INPUTS</div>
+        <div class="stage-box raw">
+          <div class="title">📡 ECU Core</div>
+          <div class="file-ref">ecu/protocol.py → CSV_COLUMNS</div>
+          <div class="fields">
+            <span class="field-tag in">RPM</span>
+            <span class="field-tag in">TPS_pct</span>
+            <span class="field-tag in">VS_KPH</span>
+            <span class="field-tag in">Gear</span>
+            <span class="field-tag in">pw1</span>
+            <span class="field-tag in">pw2</span>
+            <span class="field-tag in">CLT</span>
+            <span class="field-tag in">flags (fl_wot, fl_decel, fl_fc)</span>
+            <span class="field-tag in">baro_hPa</span>
+          </div>
+          <div class="note">Alpha-N: TPS+RPM drive fueling. VS_KPH from VSS counts.</div>
+        </div>
+      </div>
+
+      <!-- Stage 1: CSV Load + Normalize -->
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 1</div>
+        <div class="stage-box process">
+          <div class="title">📄 load_csv()</div>
+          <div class="file-ref">web/launch.py:load_csv()</div>
+          <div class="arrow-in">← raw ECU signals</div>
+          <div class="fields">
+            <span class="field-tag transform">pw1_norm = pw1 × 1013.25/baro</span>
+            <span class="field-tag transform">pw2_norm = pw2 × 1013.25/baro</span>
+            <span class="field-tag transform">gear_detected = detect_gear()</span>
+            <span class="field-tag out">rows[] with normalized PW</span>
+          </div>
+          <div class="note">Baro normalization contradicts CLAUDE.md rule "do NOT normalize PW by baro for DDFI2 Alpha-N"</div>
+        </div>
+      </div>
+
+      <!-- Stage 2: Classify -->
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 2</div>
+        <div class="stage-box process">
+          <div class="title">🏷️ classify()</div>
+          <div class="file-ref">web/launch.py:classify()</div>
+          <div class="arrow-in">← rows[]</div>
+          <div class="fields">
+            <span class="field-tag transform">fl_wot OR tps≥85 → SPICY_WOT</span>
+            <span class="field-tag transform">dtps&gt;15 → SPICY_TIPIN</span>
+            <span class="field-tag transform">flat TPS+RPM + flat alt → SWEET</span>
+            <span class="field-tag transform">clt&lt;170 OR wue&gt;102 OR ae&gt;105 → BITTER</span>
+            <span class="field-tag transform">dalt&gt;0.8 → SALTY_UP</span>
+            <span class="field-tag transform">dalt&lt;-0.8 → SALTY_DOWN</span>
+            <span class="field-tag out">flavor per row {SWEET, SPICY_*, SALTY_*, BITTER}</span>
+          </div>
+          <div class="note">BITTER rows excluded from fueling analysis. SWEET = ideal tuning data.</div>
+        </div>
+      </div>
+
+      <!-- Stage 3: Build Index -->
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 3</div>
+        <div class="stage-box process">
+          <div class="title">📊 build_index()</div>
+          <div class="file-ref">web/launch.py:build_index()</div>
+          <div class="arrow-in">← classified rows[]</div>
+          <div class="fields">
+            <span class="field-tag transform">RPM→bin (800-6800, 15 bins)</span>
+            <span class="field-tag transform">TPS→bin (0-100, 16 bins)</span>
+            <span class="field-tag transform">pw_eff = (pw1_norm+pw2_norm)/2 × AFV/100</span>
+            <span class="field-tag transform">Welford online std_rpm, std_tps, std_pweff</span>
+            <span class="field-tag out">per-cell dict {n, pw1, pw2, pw_eff, std_*, ...}</span>
+          </div>
+          <div class="note">AFV locked at 100.0 (O2 disconnected) — pw_eff = pw_norm × 1.0</div>
+        </div>
+      </div>
+
+      <!-- Stage 4: F7 Event Detection -->
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 4</div>
+        <div class="stage-box process">
+          <div class="title">🎯 f7_event_detect()</div>
+          <div class="file-ref">web/f7.py:_f7_detect_events()</div>
+          <div class="arrow-in">← rows[]</div>
+          <div class="fields">
+            <span class="field-tag transform">Stable bucket≥3s (rolling std RPM&lt;150, TPS&lt;2)</span>
+            <span class="field-tag transform">TPS break ≥2% → event start</span>
+            <span class="field-tag transform">Phase B PW curve captured</span>
+            <span class="field-tag transform">tps_curve_norm for cross-session DTW</span>
+            <span class="field-tag transform">Fuel cut trim (&lt;2ms), PW drop trim (&gt;35%)</span>
+            <span class="field-tag out">events[] with pw_curve, tps_curve, bucket_a, env context</span>
+          </div>
+          <div class="note">Pure PW/TPS physics, no EGO dependency. BW: 800-6800RPM, 0-100%TPS</div>
+        </div>
+      </div>
+
+      <!-- Stage 5: DTW Cluster + Cross-Session Match -->
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 5</div>
+        <div class="stage-box process">
+          <div class="title">🔗 f7_dtw_cluster → f7_cross_session_match</div>
+          <div class="file-ref">web/f7.py:_f7_cluster() / _f7_match_cross_session()</div>
+          <div class="arrow-in">← events[] from both sessions</div>
+          <div class="fields">
+            <span class="field-tag transform">Complete-linkage DTW on PW curves (threshold 0.85)</span>
+            <span class="field-tag transform">Sub-divide by Bucket A consistency</span>
+            <span class="field-tag transform"><b>DDTW on tps_curve_norm</b> for cross-session match</span>
+            <span class="field-tag transform">delta_pw, delta_vss, confidence, efficiency_delta</span>
+            <span class="field-tag out">matches[] with per-event PW delta</span>
+          </div>
+          <div class="note">IDEA-033: DDTW for shape matching, not amplitude. Already implemented in _f7_ddtw().</div>
+        </div>
+      </div>
+
+      <!-- Stage 6: Sessions VS Engine -->
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 6</div>
+        <div class="stage-box process">
+          <div class="title">⚖️ _compare_sessions_cached()</div>
+          <div class="file-ref">web/vs_engine.py + web/launch.py:_compare_sessions()</div>
+          <div class="arrow-in">← index a + index b + f7_matches</div>
+          <div class="fields">
+            <span class="field-tag transform">Common cells: SWEET + SPICY_WOT only</span>
+            <span class="field-tag transform">dpw_eff = pw_eff_b − pw_eff_a</span>
+            <span class="field-tag transform"><b>GAP 1 Welch CI</b>: dpw_eff ± 1.96×SE</span>
+            <span class="field-tag transform">dpw_eff_sig = CI does not cross 0</span>
+            <span class="field-tag transform">F7+VS zone fusion: LIGHT=F7, MID=blend, WOT=VS</span>
+            <span class="field-tag out">delta[] with per-cell dpw_eff, CI, significance</span>
+          </div>
+          <div class="note">Cache version 9. GAP1 computed but NOT yet consumed by merge (GAP backlogged).</div>
+          <span class="status status-unvalidated">UNVALIDATED</span>
+        </div>
+      </div>
+
+      <!-- Stage 7: GP Regression + Merge -->
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 7</div>
+        <div class="stage-box process">
+          <div class="title">🧩 _merge_maps() + GP Regression</div>
+          <div class="file-ref">web/vs_engine.py:_merge_maps() / _gpr_predict_grid()</div>
+          <div class="arrow-in">← delta[] + f7_cells + eeprom_a + eeprom_b</div>
+          <div class="fields">
+            <span class="field-tag transform">GAP1 significance gate (skip if !dpw_eff_sig)</span>
+            <span class="field-tag transform">Fusion: vs_delta ⊕ f7_delta weighted by confidence</span>
+            <span class="field-tag transform">Bias toward richer (safer) when signs disagree</span>
+            <span class="field-tag transform"><b>GP Regression</b> (Matern 5/2, scikit-learn) fills unfilled cells</span>
+            <span class="field-tag transform">Winner: 'A' if dpw_eff&lt;0, 'B' if &gt;0</span>
+            <span class="field-tag out">merged maps {fuel_front, fuel_rear, spark_front, spark_rear}</span>
+          </div>
+          <div class="note">GP regression fills ~40% more cells than raw winner-take-all alone.</div>
+        </div>
+      </div>
+
+      <!-- Stage 8: Output -->
+      <div class="pipe-stage">
+        <div class="stage-label">OUTPUTS</div>
+        <div class="stage-box output">
+          <div class="title">📤 Merged Maps → UI</div>
+          <div class="arrow-in">← merged maps</div>
+          <div class="fields">
+            <span class="field-tag out">ui_tuner: Δ maps with cell-level winners</span>
+            <span class="field-tag out">ui_sessions_vs: F7 matches overlay</span>
+            <span class="field-tag out">eeprom_bin: encoded for QUEMAR</span>
+          </div>
+          <div class="note">Output feeds Map Editor (Sector 4) for burning to ECU.</div>
+        </div>
+      </div>
+
+    </div><!-- /pipeline -->
+
+    <div class="signal-table-wrapper">
+      <table class="signal-table">
+        <tr><th>Raw Signal</th><th>Used In</th><th>Transformations</th><th>Status</th></tr>
+        <tr>
+          <td><span class="field-tag in">RPM</span></td>
+          <td>classify(), build_index(), f7_detect(), GP</td>
+          <td>→ bin_index (7 bins across 800-6800)</td>
+          <td><span class="status status-valid">ACTIVE</span></td>
+        </tr>
+        <tr>
+          <td><span class="field-tag in">TPS_pct</span></td>
+          <td>classify(), build_index(), f7_detect()</td>
+          <td>→ bin_index (15 bins across 0-100)</td>
+          <td><span class="status status-valid">ACTIVE</span></td>
+        </tr>
+        <tr>
+          <td><span class="field-tag in">pw1, pw2</span></td>
+          <td>build_index(), f7_detect()</td>
+          <td>→ pw1_norm (× baro_factor) → pw_eff = pw_avg × AFV/100</td>
+          <td><span class="status status-valid">ACTIVE</span></td>
+        </tr>
+        <tr>
+          <td><span class="field-tag in">baro_hPa</span></td>
+          <td>load_csv()</td>
+          <td>→ baro_factor = 1013.25/baro → PW normalization</td>
+          <td><span class="status status-unvalidated">⚠ CONTRADICTS RULE</span></td>
+        </tr>
+        <tr>
+          <td><span class="field-tag in">CLT</span></td>
+          <td>classify(), bucket_a (f7)</td>
+          <td>CLT&lt;170 → BITTER</td>
+          <td><span class="status status-valid">ACTIVE</span></td>
+        </tr>
+        <tr>
+          <td><span class="field-tag in">Gear</span></td>
+          <td>f7 bucket_a compatibility</td>
+          <td>→ gear_detected via statistical filter</td>
+          <td><span class="status status-valid">ACTIVE</span></td>
+        </tr>
+        <tr>
+          <td><span class="field-tag in">VS_KPH</span></td>
+          <td>f7 bucket_a, classify dalt</td>
+          <td>VSS_Count→VS_KPH via VSS_CPKM25 calibration</td>
+          <td><span class="status status-valid">ACTIVE</span></td>
+        </tr>
+        <tr>
+          <td><span class="field-tag in">WUE, Accel_Corr</span></td>
+          <td>classify()</td>
+          <td>WUE&gt;102 OR AE&gt;105 → BITTER gate</td>
+          <td><span class="status status-valid">ACTIVE</span></td>
+        </tr>
+        <tr>
+          <td><span class="field-tag in">AFV, EGO_Corr</span></td>
+          <td>build_index()</td>
+          <td>⛔ Locked at 100.0 — pw_eff = pw_norm × 1.0</td>
+          <td><span class="status status-noise">INACTIVE NOISE</span></td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTOR 2: VDYNO -->
+<!-- ============================================================ -->
+<div id="sector-vdyno" class="sector all-visible">
+  <div class="sector-header" style="border-left: 4px solid #e8b923;">
+    <h2>🔥 VDYNO — Virtual Dyno</h2>
+    <span class="badge" style="background:#3a3a1a;color:#e8b923;">ACTIVE_UNVALIDATED</span>
+    <span class="desc">Estimates wheel power from GPS acceleration + physics model</span>
+  </div>
+  <div class="sector-body">
+    <div class="pipeline">
+
+      <div class="pipe-stage">
+        <div class="stage-label">RAW INPUTS</div>
+        <div class="stage-box raw">
+          <div class="title">📡 GPS + ECU + Environment</div>
+          <div class="file-ref">ride_csv columns</div>
+          <div class="fields">
+            <span class="field-tag in">VS_KPH</span>
+            <span class="field-tag in">RPM</span>
+            <span class="field-tag in">TPS_pct</span>
+            <span class="field-tag in">Gear</span>
+            <span class="field-tag in">fl_wot</span>
+            <span class="field-tag in">fl_decel</span>
+            <span class="field-tag in">baro_hPa</span>
+            <span class="field-tag in">IAT_Corr</span>
+            <span class="field-tag in">gps_alt_m</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 1</div>
+        <div class="stage-box process">
+          <div class="title">✂️ _extract_segments()</div>
+          <div class="file-ref">web/vdyno.py</div>
+          <div class="fields">
+            <span class="field-tag transform">Filter: fl_wot OR TPS≥70%</span>
+            <span class="field-tag transform">Reject: fl_decel, gear=0, VS_KPH&lt;20, RPM&lt;1500</span>
+            <span class="field-tag transform">Min segment: 1.5s continuous</span>
+            <span class="field-tag out">WOT segments[]</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 2</div>
+        <div class="stage-box process">
+          <div class="title">🔬 _seg_physics()</div>
+          <div class="file-ref">web/vdyno.py</div>
+          <div class="arrow-in">← segments</div>
+          <div class="fields">
+            <span class="field-tag transform">VS_KPH → m/s → acceleration</span>
+            <span class="field-tag transform">F = m×a + 0.5×ρ×CdA×v² + Crr×m×g</span>
+            <span class="field-tag transform">P_w = F × v (watts)</span>
+            <span class="field-tag transform"><b>SAE J1349</b> correction from baro+IAT</span>
+            <span class="field-tag out">physics arrays {times, rpms, vss_s, P_w}</span>
+          </div>
+          <div class="note">Config defaults: mass=295kg, CdA=0.60, Crr=0.015, ρ=1.10 (Mexico City)</div>
+          <span class="status status-unvalidated">UNVALIDATED</span>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 3</div>
+        <div class="stage-box process">
+          <div class="title">📊 _build_result_bins()</div>
+          <div class="file-ref">web/vdyno.py</div>
+          <div class="arrow-in">← physics arrays</div>
+          <div class="fields">
+            <span class="field-tag transform">RPM binning (250 RPM bins)</span>
+            <span class="field-tag transform">Median kW per bin + p25/p75</span>
+            <span class="field-tag transform">HP = kW × 1.341, Torque = kW×1000/ω</span>
+            <span class="field-tag out">per-RPM-bin {hp, torque, n}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">OUTPUTS</div>
+        <div class="stage-box output">
+          <div class="title">📤 Power Curves</div>
+          <div class="fields">
+            <span class="field-tag out">ride_vdyno_json (per-ride cache)</span>
+            <span class="field-tag out">ride_vdyno_rows_json (per-row sparse)</span>
+            <span class="field-tag out">ui_sessions_vs (compare A vs B)</span>
+            <span class="field-tag out">ui_launch_power (launch clusters)</span>
+            <span class="field-tag out">compare_sessions() (delta per RPM bin)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTOR 3: LAUNCH ANALYSIS -->
+<!-- ============================================================ -->
+<div id="sector-launch" class="sector all-visible">
+  <div class="sector-header" style="border-left: 4px solid #b06fe0;">
+    <h2>🚀 Launch Analysis — WOT Tip-In</h2>
+    <span class="badge" style="background:#3a3a1a;color:#e8b923;">ACTIVE_UNVALIDATED</span>
+    <span class="desc">Detects WOT openings, clusters by pre-launch conditions, compares across sessions</span>
+  </div>
+  <div class="sector-body">
+    <div class="pipeline">
+
+      <div class="pipe-stage">
+        <div class="stage-label">RAW INPUTS</div>
+        <div class="stage-box raw">
+          <div class="title">📡 ECU + GPS</div>
+          <div class="fields">
+            <span class="field-tag in">RPM</span>
+            <span class="field-tag in">TPS_pct</span>
+            <span class="field-tag in">VS_KPH</span>
+            <span class="field-tag in">pw1, pw2</span>
+            <span class="field-tag in">Gear</span>
+            <span class="field-tag in">CLT</span>
+            <span class="field-tag in">baro_hPa</span>
+            <span class="field-tag in">gps_alt_m</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 1</div>
+        <div class="stage-box process">
+          <div class="title">🔍 detect_launches()</div>
+          <div class="file-ref">web/launch.py</div>
+          <div class="fields">
+            <span class="field-tag transform">Find: dtps &gt; 8% AND rpm &gt; 1500</span>
+            <span class="field-tag transform">Pre-window: 3s before event, check gear stability</span>
+            <span class="field-tag transform">Type A: TPS_std&lt;5 (pure cruise)</span>
+            <span class="field-tag transform">Type B: TPS_std&lt;20 + RPM_std&lt;500 + SPD_std&lt;15 (light cruise)</span>
+            <span class="field-tag transform">Post-window: 5s series {dt, rpm, tps, spd, pw1, pw2, ae}</span>
+            <span class="field-tag out">launches[] with pre_stats + series</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 2</div>
+        <div class="stage-box process">
+          <div class="title">📦 cluster_launches()</div>
+          <div class="file-ref">web/launch.py</div>
+          <div class="arrow-in">← launches[]</div>
+          <div class="fields">
+            <span class="field-tag transform">Group by: gear + rpm (±250) + tps (±2.5)</span>
+            <span class="field-tag transform">Mean series: averaged time-aligned curves</span>
+            <span class="field-tag transform">Stats: peak_pw, rpm_gain, spd_gain, dtps</span>
+            <span class="field-tag out">clusters[] with mean_series + std_series</span>
+          </div>
+          <div class="note">Outcome metrics excluded from clustering to avoid selection bias.</div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 3</div>
+        <div class="stage-box process">
+          <div class="title">🔗 match_clusters() + compute_launch_cluster_power()</div>
+          <div class="file-ref">web/launch.py + web/vdyno.py</div>
+          <div class="arrow-in">← clusters_a + clusters_b</div>
+          <div class="fields">
+            <span class="field-tag transform">Cross-session matching by rpm + spd + tps (euclidean)</span>
+            <span class="field-tag transform">Apply VDYNO physics to mean_series for HP</span>
+            <span class="field-tag out">Power comparison per launch cluster</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">OUTPUTS</div>
+        <div class="stage-box output">
+          <div class="title">📤 Launch Analysis</div>
+          <div class="fields">
+            <span class="field-tag out">ui_sessions_launch (cluster comparison)</span>
+            <span class="field-tag out">ui_launch_power (HP from launch clusters)</span>
+            <span class="field-tag out">sessions_vs_cache (env stats for clustering)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTOR 4: MAP EDITOR / QUEMAR -->
+<!-- ============================================================ -->
+<div id="sector-map-editor" class="sector all-visible">
+  <div class="sector-header" style="border-left: 4px solid var(--accent);">
+    <h2>🗺️ Map Editor / QUEMAR — EEPROM Burn Pipeline</h2>
+    <span class="badge" style="background:#1a4a1a;color:#4ade80;">ACTIVE</span>
+    <span class="desc">Reads, modifies, encodes, and burns ECU maps + burn ledger tracking</span>
+  </div>
+  <div class="sector-body">
+    <div class="pipeline">
+
+      <div class="pipe-stage">
+        <div class="stage-label">RAW INPUT</div>
+        <div class="stage-box raw">
+          <div class="title">💾 eeprom.bin</div>
+          <div class="file-ref">ecu/session.py:save_eeprom()</div>
+          <div class="fields">
+            <span class="field-tag in">EEPROM binary blob</span>
+            <span class="field-tag in">Firmware version string</span>
+          </div>
+          <div class="note">Always present per session. ~600-4000 bytes depending on firmware.</div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 1</div>
+        <div class="stage-box process">
+          <div class="title">🔓 decode_eeprom_maps()</div>
+          <div class="file-ref">ecu/eeprom.py</div>
+          <div class="arrow-in">← eeprom.bin</div>
+          <div class="fields">
+            <span class="field-tag transform">XML-driven decode via ecm_defs.py</span>
+            <span class="field-tag transform">Extract: fuel_front, fuel_rear, spark_front, spark_rear</span>
+            <span class="field-tag transform">Extract: axis definitions (RPM + TPS bins)</span>
+            <span class="field-tag out">decoded maps dict</span>
+          </div>
+          <span class="status status-valid">ACTIVE</span>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 2</div>
+        <div class="stage-box process">
+          <div class="title">✏️ ui_map_editor / _merge_maps()</div>
+          <div class="file-ref">web/handlers/eeprom.py + web/vs_engine.py</div>
+          <div class="arrow-in">← decoded maps + sessions_vs_cache</div>
+          <div class="fields">
+            <span class="field-tag transform">Manual: user edits cells in map-editor.html</span>
+            <span class="field-tag transform">Auto: _merge_maps() picks A/B winner per cell</span>
+            <span class="field-tag transform">Auto: GP Regression fills uncertain cells</span>
+            <span class="field-tag out">merged maps (same schema as decoded)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 3</div>
+        <div class="stage-box process">
+          <div class="title">🔒 encode_eeprom_maps()</div>
+          <div class="file-ref">ecu/eeprom.py</div>
+          <div class="arrow-in">← original bytes + merged maps</div>
+          <div class="fields">
+            <span class="field-tag transform">Apply edited maps back into EEPROM bytes</span>
+            <span class="field-tag transform">Unknown firmware → no write (burn guard)</span>
+            <span class="field-tag out">new eeprom.bin bytes ready for burn</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 4</div>
+        <div class="stage-box process">
+          <div class="title">📝 burn_ledger.record_burn()</div>
+          <div class="file-ref">web/burn_ledger.py</div>
+          <div class="arrow-in">← current_bin + proposed_bin + decoded maps</div>
+          <div class="fields">
+            <span class="field-tag transform">tune_checksum(parent) = MD5(blob[327:])[:6]</span>
+            <span class="field-tag transform">diff_maps() per-cell {old, new}</span>
+            <span class="field-tag transform">Append to burns.json (atomic via tmp+replace)</span>
+            <span class="field-tag out">burns.json entry</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">STAGE 5</div>
+        <div class="stage-box process">
+          <div class="title">📈 convergence_report() — GAP 5</div>
+          <div class="file-ref">web/burn_ledger.py</div>
+          <div class="arrow-in">← burns.json</div>
+          <div class="fields">
+            <span class="field-tag transform">Per-cell: delta trend over last 3+ burns</span>
+            <span class="field-tag transform">Converged if delta &lt; 1% of cell value (min 0.05)</span>
+            <span class="field-tag transform">Score: converged/active × 100</span>
+            <span class="field-tag out">convergence status {converged, converging, diverging}</span>
+          </div>
+          <span class="status status-valid">ACTIVE</span>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">OUTPUTS</div>
+        <div class="stage-box output">
+          <div class="title">📤 Burn Pipeline Outputs</div>
+          <div class="fields">
+            <span class="field-tag out">burns.json (append-only lineage)</span>
+            <span class="field-tag out">ui_tuner: convergence score</span>
+            <span class="field-tag out">ui_map_editor: edit map cells</span>
+            <span class="field-tag out">suggested_msq: auto-generated MSQ (INACTIVE_NOISE)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTOR 5: COVERAGE & OBJECTIVES -->
+<!-- ============================================================ -->
+<div id="sector-coverage" class="sector all-visible">
+  <div class="sector-header" style="border-left: 4px solid #4a9eff;">
+    <h2>📊 Coverage & Objectives</h2>
+    <span class="badge" style="background:#1a4a1a;color:#4ade80;">ACTIVE</span>
+    <span class="desc">Tracks which cells have enough samples for meaningful analysis</span>
+  </div>
+  <div class="sector-body">
+    <div class="pipeline">
+
+      <div class="pipe-stage">
+        <div class="stage-label">RAW INPUTS</div>
+        <div class="stage-box raw">
+          <div class="fields">
+            <span class="field-tag in">RPM</span>
+            <span class="field-tag in">TPS_pct</span>
+            <span class="field-tag in">CLT</span>
+            <span class="field-tag in">flags (fl_wot, fl_decel)</span>
+            <span class="field-tag in">objectives.json targets</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">PROCESS</div>
+        <div class="stage-box process">
+          <div class="title">📈 CellTracker + Objectives Check</div>
+          <div class="file-ref">ecu/session.py:CellTracker.update()</div>
+          <div class="fields">
+            <span class="field-tag transform">Per-cell bilinear weighting (RPM×Load)</span>
+            <span class="field-tag transform">Flavor counts + valid_seconds accumulation</span>
+            <span class="field-tag transform">Compare vs targets: SWEET 30s, TIPOUT 15s, WOT 10s</span>
+            <span class="field-tag transform">confidence = f(n_samples, consistency)</span>
+            <span class="field-tag out">snapshot {cells, active_cell}</span>
+          </div>
+          <div class="note">Live path broken: _get_live() hardcodes objectives=[] while riding. Post-ride works via ride_summary_json.</div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">OUTPUTS</div>
+        <div class="stage-box output">
+          <div class="title">📤 Coverage Data</div>
+          <div class="fields">
+            <span class="field-tag out">ride_summary_json (per-ride coverage %) </span>
+            <span class="field-tag out">ui_dashboard (coverage bars, health score)</span>
+            <span class="field-tag out">objectives_json (per-cell targets)</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTOR 6: FUEL CONSUMPTION -->
+<!-- ============================================================ -->
+<div id="sector-fuel" class="sector all-visible">
+  <div class="sector-header" style="border-left: 4px solid #e8b923;">
+    <h2>⛽ Fuel Consumption</h2>
+    <span class="badge" style="background:#1a4a1a;color:#4ade80;">ACTIVE</span>
+    <span class="desc">Fuel usage tracking — diagnostic only, not part of tuning cycle</span>
+  </div>
+  <div class="sector-body">
+    <div class="pipeline">
+
+      <div class="pipe-stage">
+        <div class="stage-label">RAW INPUTS</div>
+        <div class="stage-box raw">
+          <div class="fields">
+            <span class="field-tag in">pw1, pw2</span>
+            <span class="field-tag in">RPM</span>
+            <span class="field-tag in">VS_KPH</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">PROCESS</div>
+        <div class="stage-box process">
+          <div class="title">📉 _calc_ride_from_csv()</div>
+          <div class="file-ref">web/fuel_tracker.py</div>
+          <div class="fields">
+            <span class="field-tag transform">PW × RPM → cc/ms → fuel consumed per sample</span>
+            <span class="field-tag transform">Accumulate over ride → total consumption (mL)</span>
+            <span class="field-tag transform">Cache to ride_*_consumption.json</span>
+            <span class="field-tag out">fuel_consumption_cache</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="pipe-stage">
+        <div class="stage-label">OUTPUT</div>
+        <div class="stage-box output">
+          <div class="title">📤 Fuel Data</div>
+          <div class="fields">
+            <span class="field-tag out">ui_fuel (fuel.html dashboard)</span>
+            <span class="field-tag out">fuel_consumption_cache JSON</span>
+          </div>
+          <div class="note">Not part of tuning cycle. Descriptive only.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTOR 7: CAPTURED UNUSED -->
+<!-- ============================================================ -->
+<div id="sector-unused" class="sector all-visible">
+  <div class="sector-header" style="border-left: 4px solid var(--unused);">
+    <h2>🚫 Captured Unused — Data That Goes Nowhere</h2>
+    <span class="badge" style="background:#3a1a1a;color:#ff5c5c;">CAPTURED_UNUSED</span>
+    <span class="desc">Signals captured in CSV but never consumed by any tuning decision</span>
+  </div>
+  <div class="sector-body">
+    <table class="signal-table">
+      <tr>
+        <th style="width:18%">Raw Signal</th>
+        <th style="width:12%">Columns</th>
+        <th style="width:20%">Captured In</th>
+        <th style="width:25%">What Uses It</th>
+        <th style="width:25%">GAP / Impact</th>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">dirty_byte_hex</span><br><span class="field-tag unused-tag">dirty_byte_name</span><br><span class="field-tag unused-tag">forensic_event</span></td>
+        <td>3 cols</td>
+        <td>ride_csv → ride_errorlog_json</td>
+        <td><span class="not-consumed">ui_errorlog_viz (manual debugging only)</span></td>
+        <td>Serial corruption forensics. <b>No automated consumer</b>. Captured every row (~8Hz) for manual inspection.</td>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">Batt_V</span></td>
+        <td>1 col</td>
+        <td>ride_csv</td>
+        <td><span class="not-consumed">ride_errorlog context only</span></td>
+        <td><b>BL-DI-01:</b> Confirmed 2.31% pw shift from −0.19V fan-on. Not used as confounder correction in VS.</td>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">humidity_pct</span></td>
+        <td>1 col</td>
+        <td>ride_csv → f7 env context</td>
+        <td><span class="not-consumed">Descriptive metadata only. Never read by delta.</span></td>
+        <td>Logged via AHT20 sensor. Embedded in f7 events and sessions_vs_cache env, but <b>no logic reads it</b>.</td>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">CDiag0-4, HDiag0-4</span></td>
+        <td>10 cols</td>
+        <td>ride_csv</td>
+        <td><span class="not-consumed">Nothing</span></td>
+        <td>Diagnostic counters. IDEA-005 proposes fault-mining, not implemented.</td>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">O2_ADC</span></td>
+        <td>1 col</td>
+        <td>ride_csv → tuning_report (via cell_tracker)</td>
+        <td><span class="not-consumed">tuning_report is INACTIVE_NOISE</span></td>
+        <td>Raw ADC from disconnected narrowband. Piped to tuning_report (also INACTIVE_NOISE).</td>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">AFV, EGO_Corr</span></td>
+        <td>2 cols</td>
+        <td>ride_csv → build_index → tuning_report</td>
+        <td><span class="not-consumed">Locked at 100.0 — entire tuning_report is noise</span></td>
+        <td><b>Still computed every ride close</b>. _update_tuning_report runs despite being INACTIVE_NOISE.</td>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">slope_reference_json</span></td>
+        <td>—</td>
+        <td>gps/slope_reference.py</td>
+        <td><span class="not-consumed">Nothing (manual update only)</span></td>
+        <td><b>GAP 4:</b> Automatic trigger on ride close not wired. f7.py never calls get_slope_pct() despite backlog.</td>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">rider_notes_field</span></td>
+        <td>—</td>
+        <td>session_metadata["rider_notes"]</td>
+        <td><span class="not-consumed">Nothing (no write endpoint exists)</span></td>
+        <td>Field initialized empty. No POST handler to write. No UI to read. Fully dead.</td>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">raw_imu</span></td>
+        <td>DESIGN_ONLY</td>
+        <td>Not in CSV schema (planned only)</td>
+        <td><span class="not-consumed">None — MPU6050 not integrated</span></td>
+        <td>⚠️ NO knock sensor en DDFI2. IMU no sirve para detectar detonación. Lean angle mejor desde GPS heading_rate.</td>
+      </tr>
+      <tr>
+        <td><span class="field-tag unused-tag">BAS_ADC</span></td>
+        <td>1 col</td>
+        <td>ride_csv (offset 65, 10-bit ADC)</td>
+        <td><span class="not-consumed">Nothing — tip-over switch, NOT continuous lean sensor</span></td>
+        <td>🔴 Sensor de inclinación binario (55-60°). No sirve para lean angle en curvas. Mantener capturado (2B/sample) por si acaso.</td>
+      </tr>
+    </table>
+
+    <div style="margin-top: 16px; padding: 12px; background: #15151a; border: 1px solid #3a1a1a; border-radius: 6px;">
+      <h3 style="font-size: 12px; color: var(--gap); margin-bottom: 8px;">⚠️ Cost of Captured Unused Signals</h3>
+      <p style="font-size: 10px; color: var(--muted); line-height: 1.5;">
+        <b>18 columns</b> in CSV are NEVER consumed by any tuning decision.<br>
+        At ~8Hz logging, that's <b>144 bytes/s × 3600s = ~500KB per ride</b> of wasted storage and processing.<br>
+        <b>Biggest impact:</b> Batt_V (BL-DI-01) — empirically confirmed to cause ~2.3% pw shift that masquerades as map differences in Sessions VS.<br>
+        <b>Easiest cleanup:</b> rider_notes (dead field), O2_ADC (dead signal), humidity_pct (descriptive only).
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTOR 8: FULL SIGNAL MAP -->
+<!-- ============================================================ -->
+<div id="sector-signal-map" class="sector all-visible">
+  <div class="sector-header" style="border-left: 4px solid var(--accent);">
+    <h2>🔍 Full Signal Map — Every Signal End-to-End</h2>
+    <span class="badge" style="background:#1a1a2a;color:#888;">REFERENCE</span>
+    <span class="desc">Complete trace: raw signal → transformations → final output</span>
+  </div>
+  <div class="sector-body">
+
+    <table class="signal-table">
+      <tr>
+        <th>Signal Group</th>
+        <th>Columns</th>
+        <th>Pipeline Sector</th>
+        <th>First Transform</th>
+        <th>Final Consumer</th>
+        <th>Status</th>
+      </tr>
+      <tr>
+        <td><b>RPM</b></td>
+        <td class="field-tag in">RPM</td>
+        <td>Fuel Trim, VDYNO, Launch, Coverage</td>
+        <td>bin → index(800-6800, 800 bins)</td>
+        <td>_merge_maps → ui_tuner</td>
+        <td><span class="status status-valid">ACTIVE</span></td>
+      </tr>
+      <tr>
+        <td><b>TPS</b></td>
+        <td class="field-tag in">TPS_10Bit → TPS_pct</td>
+        <td>Fuel Trim, VDYNO, Launch</td>
+        <td>ADC → voltage → 0-100% (cal: 0.66V=0%, 4.54V=100%)</td>
+        <td>_merge_maps → ui_tuner</td>
+        <td><span class="status status-valid">ACTIVE</span></td>
+      </tr>
+      <tr>
+        <td><b>PW</b></td>
+        <td class="field-tag in">pw1, pw2</td>
+        <td>Fuel Trim, F7, Fuel Consumption</td>
+        <td>pw1_norm = pw1 × 1013.25/baro</td>
+        <td>dpw_eff in sessions_vs_cache → winner decision</td>
+        <td><span class="status status-valid">ACTIVE</span></td>
+      </tr>
+      <tr>
+        <td><b>Speed</b></td>
+        <td class="field-tag in">VSS_Count → VS_KPH</td>
+        <td>Fuel Trim, VDYNO, Launch</td>
+        <td>VSS_Count → VS_KPH via VSS_CPKM25 (cal: 1518)</td>
+        <td>VDYNO physics, F7 Bucket A, VDYNO</td>
+        <td><span class="status status-valid">ACTIVE</span></td>
+      </tr>
+      <tr>
+        <td><b>Gear</b></td>
+        <td class="field-tag in">Gear</td>
+        <td>Fuel Trim (F7), Launch</td>
+        <td>GearFilter 3s window: statistical ratio detection</td>
+        <td>F7 Bucket A compatibility gate</td>
+        <td><span class="status status-valid">ACTIVE</span></td>
+      </tr>
+      <tr>
+        <td><b>Flags</b></td>
+        <td class="field-tag in">fl_engine_run, fl_wot, fl_decel, fl_fuel_cut, fl_hot</td>
+        <td>All sectors</td>
+        <td>Bit decode from Flags1-4,6 (protocol.py)</td>
+        <td>CellTracker validity, F7 trim, VDYNO extract, Launch detect</td>
+        <td><span class="status status-valid">ACTIVE</span></td>
+      </tr>
+      <tr>
+        <td><b>CLT</b></td>
+        <td class="field-tag in">CLT</td>
+        <td>Fuel Trim, Coverage</td>
+        <td>CLT &lt; 170°F → BITTER (excluded from tuning)</td>
+        <td>classify() → BITTER gate</td>
+        <td><span class="status status-valid">ACTIVE</span></td>
+      </tr>
+      <tr>
+        <td><b>Spark</b></td>
+        <td class="field-tag in">spark1, spark2</td>
+        <td>Fuel Trim (descriptive-only)</td>
+        <td>dspk1, dspk2 in sessions_vs delta (descriptive)</td>
+        <td>ui_tuner (display only). ⚠️ NO hay sensor de knock en DDFI2. spark1/2 son avance CALCULADO del mapa, NO ajustado por detonación. KR inference imposible.</td>
+        <td><span class="status status-valid">DESCRIPTIVE ONLY</span></td>
+      </tr>
+      <tr>
+        <td><b>EGO/AFV</b></td>
+        <td class="field-tag in">EGO_Corr, AFV</td>
+        <td>Fuel Trim (INACTIVE)</td>
+        <td>Locked at 100.0 → pw_eff = pw_norm × 1.0</td>
+        <td>tuning_report (INACTIVE_NOISE)</td>
+        <td><span class="status status-noise">INACTIVE_NOISE</span></td>
+      </tr>
+      <tr>
+        <td><b>Enrich</b></td>
+        <td class="field-tag in">WUE, Accel_Corr, Decel_Corr, WOT_Corr, Idle_Corr, OL_Corr</td>
+        <td>Coverage (validity filter)</td>
+        <td>WUE &gt; 102 → BITTER, AE &gt; 105 → BITTER</td>
+        <td>CellTracker validity gate</td>
+        <td><span class="status status-valid">ACTIVE (gate only)</span></td>
+      </tr>
+      <tr>
+        <td><b>GPS</b></td>
+        <td class="field-tag in">gps_lat, gps_lon, gps_alt_m, gps_speed_kmh, gps_*</td>
+        <td>VDYNO, F7, GPS Analysis</td>
+        <td>gps_valid + gps_sats ≥6 + gps_epv ≤5 → quality gate</td>
+        <td>VDYNO (accel → power), F7 (slope context), GPS analysis UI</td>
+        <td><span class="status status-unvalidated">ACTIVE_UNVALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><b>Baro</b></td>
+        <td class="field-tag in">baro_hPa, baro_temp_c</td>
+        <td>Fuel Trim, VDYNO</td>
+        <td>900 &lt; baro &lt; 1100 → valid gate</td>
+        <td>PW normalization + SAE J1349 correction</td>
+        <td><span class="status status-unvalidated">ACTIVE_UNVALIDATED</span></td>
+      </tr>
+      <tr>
+        <td><b>Battery</b></td>
+        <td class="field-tag unused-tag">Batt_V</td>
+        <td>🚫 Captured Unused</td>
+        <td>None</td>
+        <td>ride_errorlog context only</td>
+        <td><span class="status status-unused">CAPTURED_UNUSED</span></td>
+      </tr>
+      <tr>
+        <td><b>Bank Angle</b></td>
+        <td class="field-tag unused-tag">BAS_ADC</td>
+        <td>🚫 Captured Unused</td>
+        <td>None</td>
+        <td>Nada — tip-over switch binario (55-60°), no continuo</td>
+        <td><span class="status status-unused">CAPTURED_UNUSED</span></td>
+      </tr>
+      <tr>
+        <td><b>Dirty Bytes</b></td>
+        <td class="field-tag unused-tag">dirty_byte_hex, dirty_byte_name, forensic_event</td>
+        <td>🚫 Captured Unused</td>
+        <td>None</td>
+        <td>ride_errorlog → ui_errorlog_viz</td>
+        <td><span class="status status-unused">CAPTURED_UNUSED</span></td>
+      </tr>
+      <tr>
+        <td><b>Diagnostic</b></td>
+        <td class="field-tag unused-tag">CDiag0-4, HDiag0-4</td>
+        <td>🚫 Captured Unused</td>
+        <td>None</td>
+        <td>(nothing)</td>
+        <td><span class="status status-unused">CAPTURED_UNUSED</span></td>
+      </tr>
+      <tr>
+        <td><b>Bank Angle Sensor</b></td>
+        <td class="field-tag unused-tag">BAS_ADC</td>
+        <td>🚫 Captured Unused</td>
+        <td>None — sensor binario (tip-over), no continuo</td>
+        <td>Interruptor pendular magnético ~55-60°. Solo DTC 44. NO sirve para lean angle en curvas.</td>
+        <td><span class="status status-unused">CAPTURED_UNUSED</span></td>
+      </tr>
+      <tr>
+        <td><b>O2 ADC</b></td>
+        <td class="field-tag unused-tag">O2_ADC</td>
+        <td>🚫 Captured Unused</td>
+        <td>None</td>
+        <td>tuning_report (INACTIVE_NOISE)</td>
+        <td><span class="status status-unused">CAPTURED_UNUSED</span></td>
+      </tr>
+      <tr>
+        <td><b>Humidity</b></td>
+        <td class="field-tag unused-tag">humidity_pct</td>
+        <td>🚫 Captured Unused</td>
+        <td>None</td>
+        <td>F7 env context (descriptive only)</td>
+        <td><span class="status status-unused">CAPTURED_UNUSED</span></td>
+      </tr>
+      <tr>
+        <td><b>System Health</b></td>
+        <td class="field-tag in">ttl_pct, cpu_pct, cpu_temp, mem_pct, buf_in</td>
+        <td>System (non-tuning)</td>
+        <td>None</td>
+        <td>Dashboard / system_health.json</td>
+        <td><span class="status status-valid">ACTIVE (system only)</span></td>
+      </tr>
+    </table>
+
+    <!-- Flow diagram: raw → pipeline → output -->
+    <div style="margin-top: 24px;">
+      <h3 style="font-size: 12px; color: var(--fg); margin-bottom: 12px;">Signal → Pipeline Mapping</h3>
+      <div style="display:flex; flex-direction:column; gap:4px; font-size:10px; font-family: monospace;">
+        <div><span class="field-tag in">RPM</span><span class="transform-arrow"> → S1(Fuel Trim) + S2(VDYNO) + S3(Launch) + S5(Coverage)</span></div>
+        <div><span class="field-tag in">TPS_pct</span><span class="transform-arrow"> → S1(Fuel Trim) + S2(VDYNO) + S3(Launch)</span></div>
+        <div><span class="field-tag in">pw1, pw2</span><span class="transform-arrow"> → S1(Fuel Trim) + S3(Launch) + S6(Fuel Cons)</span></div>
+        <div><span class="field-tag in">VS_KPH</span><span class="transform-arrow"> → S1(Fuel Trim) + S2(VDYNO) + S3(Launch)</span></div>
+        <div><span class="field-tag in">Gear</span><span class="transform-arrow"> → S1(Fuel Trim) + S3(Launch)</span></div>
+        <div><span class="field-tag in">CLT</span><span class="transform-arrow"> → S1(Fuel Trim) + S5(Coverage)</span></div>
+        <div><span class="field-tag in">flags</span><span class="transform-arrow"> → S1(Fuel Trim) + S2(VDYNO) + S3(Launch) + S5(Coverage)</span></div>
+        <div><span class="field-tag in">spark1,2</span><span class="transform-arrow"> → S1(Fuel Trim, display only)</span></div>
+        <div><span class="field-tag in">baro_hPa</span><span class="transform-arrow"> → S1(Fuel Trim) + S2(VDYNO)</span></div>
+        <div><span class="field-tag in">gps_*</span><span class="transform-arrow"> → S2(VDYNO) + S1(F7 slope context)</span></div>
+        <div><span class="field-tag unused-tag">Batt_V</span><span class="transform-arrow" style="color:var(--unused)"> → ❌ No sector (CAPTURED_UNUSED)</span></div>
+        <div><span class="field-tag unused-tag">BAS_ADC</span><span class="transform-arrow" style="color:var(--unused)"> → ❌ No sector (tip-over switch, NO continuo)</span></div>
+        <div><span class="field-tag unused-tag">dirty_*</span><span class="transform-arrow" style="color:var(--unused)"> → ❌ No sector (manual debugging only)</span></div>
+        <div><span class="field-tag unused-tag">humidity</span><span class="transform-arrow" style="color:var(--unused)"> → ❌ No sector (descriptive only)</span></div>
+        <div><span class="field-tag unused-tag">O2_ADC</span><span class="transform-arrow" style="color:var(--unused)"> → ❌ No sector (INACTIVE_NOISE)</span></div>
+        <div><span class="field-tag unused-tag">CDiag, HDiag</span><span class="transform-arrow" style="color:var(--unused)"> → ❌ No sector (nothing reads)</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// Sector navigation
+const sectorBtns = document.querySelectorAll('.sector-btn');
+const sectors = document.querySelectorAll('.sector');
+
+function showSector(sectorId) {
+  sectorBtns.forEach(b => b.classList.toggle('active', b.dataset.sector === sectorId));
+  sectors.forEach(s => {
+    if (sectorId === 'all') {
+      s.classList.add('all-visible');
+    } else {
+      s.classList.toggle('all-visible', s.id === sectorId);
+    }
+  });
+  // Scroll to top of main
+  document.getElementById('main').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+sectorBtns.forEach(btn => {
+  btn.addEventListener('click', () => showSector(btn.dataset.sector));
+});
+
+// Search
+const searchBox = document.getElementById('search-box');
+searchBox.addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  if (!q) {
+    document.querySelectorAll('.stage-box, .signal-table tr').forEach(el => {
+      el.style.boxShadow = ''; el.style.background = '';
+    });
+    return;
+  }
+  // Show all sectors when searching
+  showSector('all');
+  
+  document.querySelectorAll('.stage-box, .signal-table tr').forEach(el => {
+    const text = el.textContent.toLowerCase();
+    if (text.includes(q)) {
+      el.style.boxShadow = '0 0 8px rgba(232,66,10,0.3)';
+      el.style.background = '#1a1510';
+    } else {
+      el.style.boxShadow = '';
+      el.style.background = '';
+    }
+  });
+});
+</script>
+
+<div style="position:fixed; bottom:8px; right:12px; font-size:10px; color:var(--muted); z-index:50;">
+  Built from source: web/vs_engine.py, web/f7.py, web/launch.py, web/vdyno.py, web/burn_ledger.py, ecu/protocol.py, ecu/session.py
+</div>
+</body>
+</html>

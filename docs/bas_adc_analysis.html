@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>🔬 BAS_ADC Analysis — Real Data from 129K Samples</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --panel: #111114; --accent: #e8420a; --fg: #d8d8dc; --muted: #7a7a80;
+    --low: #3ddc84; --high: #ff5c5c; --mid: #e8b923;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--fg); font-family:'Segoe UI',system-ui,sans-serif; }
+  #header { position:sticky; top:0; z-index:100; background:var(--panel); border-bottom:1px solid #222; padding:12px 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  #header h1 { font-size:15px; color:var(--accent); }
+  #main { padding:16px 24px 80px; max-width:1100px; margin:0 auto; }
+
+  .section { margin:12px 0; border:1px solid #1a1a1e; border-radius:6px; overflow:hidden; }
+  .section-header { padding:8px 12px; background:var(--panel); font-size:12px; font-weight:600; }
+  .section-body { padding:8px 12px; }
+
+  table { width:100%; border-collapse:collapse; font-size:10px; }
+  th { text-align:left; padding:5px 6px; color:var(--muted); border-bottom:1px solid #222; font-weight:500; }
+  td { padding:4px 6px; border-bottom:1px solid #1a1a1e; }
+
+  .tag { display:inline-block; padding:1px 5px; border-radius:2px; font-size:8px; font-weight:600; }
+  .tag-low { background:#1a2a1a; color:var(--low); }
+  .tag-high { background:#2a1a1a; color:var(--high); }
+  .tag-mid { background:#2a2a1a; color:var(--mid); }
+
+  .bar-container { display:flex; height:16px; border-radius:3px; overflow:hidden; margin:4px 0; }
+  .bar-low { background:var(--low); }
+  .bar-high { background:var(--high); }
+  .bar-mid { background:var(--mid); }
+
+  .verdict { padding:12px; border-radius:6px; margin:8px 0; font-size:10px; line-height:1.5; }
+  .verdict.update { background:#0a1a0a; border:1px solid var(--low); }
+  .verdict.corrected { background:#1a0a0a; border:1px solid var(--accent); }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>🔬 BAS_ADC Análisis Exploratorio</h1>
+  <span style="font-size:10px;color:var(--muted);">129,126 samples · 15 sessions · 56 valores únicos</span>
+</div>
+<div id="main">
+
+<!-- Context -->
+<div class="section">
+  <div class="section-header">🎯 Objetivo</div>
+  <div class="section-body" style="font-size:10px;line-height:1.6;">
+    Determinar si BAS_ADC (Bank Angle Sensor, offset 65, 10-bit ADC) es un sensor <b>puramente binario</b>
+    (tip-over switch a ~55-60°) o si tiene <b>resolución analógica</b> que podría usarse para lean angle.
+    Datos provenientes de 15 sesiones reales de riding (~129K muestras).
+  </div>
+</div>
+
+<!-- Big Finding -->
+<div class="section">
+  <div class="section-header" style="border-left:4px solid var(--mid);">⚠️ Hallazgo Principal</div>
+  <div class="section-body">
+    <div class="verdict corrected">
+      <b style="font-size:12px;color:var(--mid);">BAS_ADC NO es puramente binario.</b><br><br>
+      Tiene <b>56 valores únicos</b> en dos clusters con valores intermedios. Esto sugiere que el sensor
+      Hall-effect dentro del BAS tiene <b>resolución analógica limitada</b>, no es solo un interruptor on/off.<br><br>
+      Sin embargo, la gran mayoría de las muestras caen en dos valores (~250 y ~928), y los valores intermedios
+      son raros. El ECU probablemente ignora la resolución intermedia y solo usa el umbral para corte de motor.
+    </div>
+  </div>
+</div>
+
+<!-- Clusters -->
+<div class="section">
+  <div class="section-header">📊 Distribución: Dos Clusters + Intermedios</div>
+  <div class="section-body">
+    <table>
+      <tr><th>Cluster</th><th>Rango ADC</th><th>Voltaje</th><th>Significado</th><th>% muestras</th></tr>
+      <tr>
+        <td><span class="tag tag-low">🟢 LOW</span></td>
+        <td>~243-260 (centro ~250)</td>
+        <td>~1.22V</td>
+        <td><b>Moto vertical / conducción normal</b></td>
+        <td>66-100%</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-mid">🟡 INTERMEDIO</span></td>
+        <td>268, 284, 310, 439, 452, 642-729</td>
+        <td>1.3-3.6V</td>
+        <td><b>Transiciones / inclinación parcial</b></td>
+        <td>&lt;1%</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-high">🔴 HIGH</span></td>
+        <td>~839-931 (centro ~928)</td>
+        <td>~4.53V</td>
+        <td><b>Moto inclinada >55° (tip-over)</b></td>
+        <td>0-34%</td>
+      </tr>
+    </table>
+
+    <div style="margin-top:8px; font-size:10px;">
+      <b>Distribución por sesión:</b>
+    </div>
+    <table>
+      <tr><th>Sesión</th><th>Low%</th><th>High%</th><th>Distribución</th><th>¿Tip-over?</th></tr>
+      <tr><td>3311B1</td><td>100%</td><td>0%</td><td><div class="bar-container"><div class="bar-low" style="width:100%"></div></div></td><td>❌ No</td></tr>
+      <tr><td>248AE2-035</td><td>100%</td><td>0%</td><td><div class="bar-container"><div class="bar-low" style="width:100%"></div></div></td><td>❌ No</td></tr>
+      <tr><td>248AE2-029</td><td>99.8%</td><td>0.2%</td><td><div class="bar-container"><div class="bar-low" style="width:99.8%"></div><div class="bar-high" style="width:0.2%"></div></div></td><td>🟡 Posible</td></tr>
+      <tr><td>60E0BB-001</td><td>99.6%</td><td>0.4%</td><td><div class="bar-container"><div class="bar-low" style="width:99.6%"></div><div class="bar-high" style="width:0.4%"></div></div></td><td>🟡 Posible</td></tr>
+      <tr><td>D7B333-006</td><td>99.7%</td><td>0.3%</td><td><div class="bar-container"><div class="bar-low" style="width:99.7%"></div><div class="bar-high" style="width:0.3%"></div></div></td><td>🟡 Posible</td></tr>
+      <tr><td>27F1A2-004</td><td>98.5%</td><td>1.5%</td><td><div class="bar-container"><div class="bar-low" style="width:98.5%"></div><div class="bar-high" style="width:1.5%"></div></div></td><td>🟡 Posible</td></tr>
+      <tr><td>653DC0-001</td><td>81.2%</td><td>18.8%</td><td><div class="bar-container"><div class="bar-low" style="width:81.2%"></div><div class="bar-high" style="width:18.8%"></div></div></td><td>✅ Sí (18.8%)</td></tr>
+      <tr><td>653DC0-005</td><td>66.2%</td><td>33.8%</td><td><div class="bar-container"><div class="bar-low" style="width:66.2%"></div><div class="bar-high" style="width:33.8%"></div></div></td><td>✅ Sí (33.8%)</td></tr>
+      <tr><td>653DC0-007</td><td>65.5%</td><td>34.5%</td><td><div class="bar-container"><div class="bar-low" style="width:65.5%"></div><div class="bar-high" style="width:34.5%"></div></div></td><td>✅ Sí (34.5%)</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Intermediate Values Detail -->
+<div class="section">
+  <div class="section-header">🔬 Valores Intermedios (300-800 ADC)</div>
+  <div class="section-body">
+    <div style="font-size:10px;line-height:1.6;">
+      Se encontraron <b>11 valores intermedios</b> entre los clusters bajo y alto:<br><br>
+      <code style="font-size:11px;">310, 439, 452, 642, 643, 644, 677, 687, 699, 723, 729</code><br><br>
+      Estos valores NO deberían existir si el sensor fuera un simple interruptor binario.
+      La presencia de valores intermedios indica que el sensor Hall-effect dentro del BAS
+      tiene cierta resolución analógica que el ECU podría leer, aunque solo lo use
+      como umbral para el corte de motor.
+    </div>
+  </div>
+</div>
+
+<!-- Updated Conclusion -->
+<div class="section">
+  <div class="section-header">📋 Conclusión Actualizada</div>
+  <div class="section-body">
+    <div class="verdict update">
+      <b style="color:var(--mid);">🔄 CORRECCIÓN A LA DOCUMENTACIÓN ANTERIOR</b><br><br>
+      La investigación web sugería que el BAS era un interruptor binario puro. Los datos reales muestran
+      que NO lo es completamente — tiene <b>56 valores únicos</b> con valores intermedios.<br><br>
+      Sin embargo, la utilidad para lean angle en curvas sigue siendo limitada porque:<br>
+      1. La mayoría de las muestras caen en ~250 (vertical) o ~928 (inclinación extrema &gt;55°)<br>
+      2. Los valores intermedios son raros (&lt;1% de las muestras)<br>
+      3. No hay una relación lineal conocida entre ADC y grados de inclinación<br>
+      4. El ángulo de disparo (~55-60°) es demasiado alto para curvas deportivas (30-45°)<br><br>
+      <b>GPS heading_rate sigue siendo la mejor opción para lean angle estimado.</b>
+    </div>
+
+    <table style="margin-top:8px;">
+      <tr><th>Aspecto</th><th>Antes (web research)</th><th>Ahora (datos reales)</th></tr>
+      <tr><td>Tipo de sensor</td><td>Binario (on/off)</td><td>🟡 Cuasi-binario con intermedios</td></tr>
+      <tr><td>Valores únicos</td><td>2 (0 y 1023 o similar)</td><td><b>56 valores</b> (243-931)</td></tr>
+      <tr><td>Cluster bajo</td><td>—</td><td>~250 ADC = 1.22V (vertical)</td></tr>
+      <tr><td>Cluster alto</td><td>—</td><td>~928 ADC = 4.53V (tip-over)</td></tr>
+      <tr><td>Valores intermedios</td><td>No deberían existir</td><td><b>Sí existen</b> (310-729 ADC)</td></tr>
+      <tr><td>Útil para lean angle?</td><td>❌ No</td><td>🔴 Muy limitado — mejor usar GPS</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- Source info -->
+<div style="margin-top:16px; padding:8px; background:var(--panel); border:1px solid #1a1a1e; border-radius:6px; font-size:9px; color:var(--muted);">
+  Fuente: 15 archivos CSV de ride, 129,126 muestras, 9 sesiones distintas (653DC0, D7B333, 60E0BB, 27F1A2, 248AE2, 3311B1).
+  Script: analyze_bas_adc.py
+</div>
+
+</div>
+</body>
+</html>

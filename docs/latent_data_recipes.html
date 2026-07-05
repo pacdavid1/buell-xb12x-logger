@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Latent Data Recipes — Buell Logger</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --panel: #111114; --accent: #e8420a; --fg: #d8d8dc; --muted: #7a7a80;
+    --c-have: #3ddc84; --c-new: #4a9eff; --c-chain: #e8b923; --c-unused: #6b6b70;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+  }
+  #header {
+    position: sticky; top:0; z-index:100;
+    background: var(--panel); border-bottom: 1px solid #222;
+    padding: 12px 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  #header h1 { font-size: 16px; color: var(--accent); letter-spacing: 1px; }
+  #header .sub { font-size: 11px; color: var(--muted); }
+  #header .legend { display:flex; gap:10px; font-size:10px; margin-left:auto; }
+  .ld { width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:3px; }
+
+  #main { padding: 16px 24px 80px; max-width: 1100px; margin: 0 auto; }
+
+  .recipe {
+    border: 1px solid #1a1a1e; border-radius: 8px; margin-bottom: 16px;
+    overflow: hidden; transition: border-color 0.15s;
+  }
+  .recipe:hover { border-color: #333; }
+  .recipe-header {
+    padding: 10px 14px; cursor: pointer; user-select: none;
+    display:flex; align-items:center; gap:10px;
+    border-bottom: 1px solid #1a1a1e;
+  }
+  .recipe-header .icon { font-size: 18px; }
+  .recipe-header .title { font-weight: 600; font-size: 13px; }
+  .recipe-header .impact {
+    font-size: 9px; padding: 2px 8px; border-radius: 8px;
+    margin-left: auto; font-weight: 500;
+  }
+  .impact-high { background: #3a1a1a; color: #ff5c5c; }
+  .impact-med  { background: #3a3a1a; color: #e8b923; }
+  .impact-low  { background: #1a1a2a; color: #4a9eff; }
+  .impact-fix  { background: #1a3a1a; color: #4ade80; }
+
+  .recipe-body { padding: 12px 14px; display: none; }
+  .recipe-body.open { display: block; }
+
+  .ingredient-grid {
+    display: flex; flex-direction: column; gap: 6px;
+    position: relative; padding-left: 20px;
+  }
+  .ingredient-grid::before {
+    content: ''; position: absolute; left: 6px; top: 0; bottom: 0;
+    width: 2px; background: #1a1a1e;
+  }
+
+  .step {
+    position: relative; padding: 8px 12px;
+    border: 1px solid #1a1a1e; border-radius: 6px;
+    background: #0d0d0f; font-size: 11px;
+    transition: background 0.12s;
+  }
+  .step:hover { background: #111114; }
+  .step::before {
+    content: '●'; position: absolute; left: -18px; top: 8px;
+    font-size: 8px;
+  }
+  .step.raw::before { color: var(--c-have); }
+  .step.formula::before { color: var(--c-new); }
+  .step.result::before { color: var(--c-chain); }
+  .step.chain::before { color: var(--c-accent); }
+
+  .step .tag {
+    font-size: 8px; text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 2px; font-weight: 500;
+  }
+  .step.raw .tag { color: var(--c-have); }
+  .step.formula .tag { color: var(--c-new); }
+  .step.result .tag { color: var(--c-chain); }
+
+  .step .formula-box {
+    background: #15151a; border: 1px solid #1a1a1e; border-radius: 4px;
+    padding: 6px 10px; font-family: 'Consolas', monospace; font-size: 10px;
+    margin: 4px 0; color: #aaddff;
+  }
+  .step .desc { color: var(--muted); font-size: 10px; line-height: 1.4; }
+  .step .file { font-size: 8px; color: #555; font-family: monospace; margin-top: 2px; }
+  .step .arrow-down {
+    text-align: center; color: var(--muted); font-size: 14px;
+    margin: 1px 0; padding: 0;
+  }
+  .step .field {
+    display:inline-block; padding:1px 6px; border-radius:3px;
+    font-family: monospace; font-size:9px; margin:1px;
+  }
+  .field-have { background:#1a2a1a; color:#4ade80; }
+  .field-new { background:#1a1a2a; color:#4a9eff; }
+  .field-chain { background:#2a2a1a; color:#e8b923; }
+
+  .chain-arrow { text-align: center; color: var(--muted); font-size: 20px; padding: 2px 0; }
+
+  .status-badge {
+    display: inline-block; font-size: 8px; padding: 2px 6px;
+    border-radius: 3px; margin-left: 6px;
+  }
+  .status-captured { background:#1a2a1a; color:#4ade80; }
+  .status-unused { background:#2a1a1a; color:#ff5c5c; }
+  .status-plan { background:#2a2a1a; color:#e8b923; }
+
+  /* Search */
+  #search {
+    background: #1a1a1e; border: 1px solid #333; border-radius: 4px;
+    color: var(--fg); padding: 4px 10px; font-size: 11px; width: 160px;
+    font-family: monospace;
+  }
+  #search:focus { outline: none; border-color: var(--accent); }
+
+  .highlight { background: #3a2a0a; border-radius: 2px; }
+
+  /* Chain continuation badge */
+  .chain-badge {
+    display: inline-block; font-size: 9px; padding: 3px 8px;
+    background: #1a1a2a; border: 1px solid #2a2a4a; border-radius: 4px;
+    color: var(--c-new); cursor: pointer; margin-top: 2px;
+  }
+  .chain-badge:hover { background: #2a2a3a; }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>LATENT DATA RECIPES</h1>
+  <span class="sub">Lo que PODEMOS hacer con los datos que ya capturamos pero no usamos</span>
+  <div class="legend">
+    <span><span class="ld" style="background:var(--c-have)"></span>Ya lo tenemos</span>
+    <span><span class="ld" style="background:var(--c-new)"></span>Fórmula nueva</span>
+    <span><span class="ld" style="background:var(--c-chain)"></span>Derivado nuevo</span>
+    <input id="search" type="text" placeholder="Search signal, formula...">
+  </div>
+</div>
+
+<div id="main">
+
+<!-- ============================================================= -->
+<!-- RECIPE 1: Batt_V → Dead-time Correction -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="batt-v">
+  <div class="recipe-header">
+    <span class="icon">🔋</span>
+    <span class="title">Batt_V → Corrección de Dead-Time del Inyector</span>
+    <span class="status-badge status-captured">CAPTURED</span>
+    <span class="impact impact-high">🔴 ALTO IMPACTO</span>
+  </div>
+  <div class="recipe-body open">
+    <p style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.4;">
+      El voltaje de batería afecta el tiempo de apertura del inyector. Confirmado: −0.19V del fan-on 
+      produce +2.31% shift en PW que Sessions VS interpreta como diferencia de mapa.
+    </p>
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTE — ya lo tenemos</div>
+        <span class="field field-have">Batt_V</span> en cada fila del CSV
+        <div class="file">ecu/protocol.py → CSV_COLUMNS (Batt_V) — logged 8Hz</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — dead-time correction</div>
+        <div class="formula-box">pw_corrected = pw_raw × (1 + k × (V_ref − Batt_V))</div>
+        <div class="desc">
+          Donde <b>k</b> = 0.015 (1.5%/V empírico) y <b>V_ref</b> = 13.0V basado en datos
+          de fan-on/off. Ajustable por inyector y moto.
+        </div>
+        <div class="file">→ Aplicar en load_csv() junto a baro normalization</div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 1 — PW corregido por voltaje</div>
+        <span class="field field-chain">pw1_corr</span>
+        <span class="field field-chain">pw2_corr</span>
+        <div class="desc">PW que el ECU <i>intentó</i> entregar, no el que realmente entregó.</div>
+      </div>
+
+      <div class="chain-arrow">⬇</div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — sesgo por sesión</div>
+        <div class="formula-box">batt_skew = |mean_batt_a − mean_batt_b| / 0.5V</div>
+        <div class="desc">Si el sesgo > 1.0, la comparación A vs B está contaminada por voltaje. Usar batt_skew como alerta en UI.</div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 2 — VS más preciso</div>
+        <span class="field field-chain">dpw_eff_corr</span>
+        <div class="desc">Sesgo de Batt_V eliminado → las celdas SWEET ya no ganan por ruido de voltaje.
+        Estimado: ~30% menos falsos positivos en celdas de baja carga.</div>
+        <div class="file">web/vs_engine.py → dpw_eff calculado con pw_corr</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- RECIPE 2: Humidity + Baro + MAT → Air Density Correction -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="air-density">
+  <div class="recipe-header">
+    <span class="icon">🌡️</span>
+    <span class="title">humidity_pct + baro_hPa + MAT → Densidad del Aire Corregida</span>
+    <span class="status-badge status-unused">UNUSED</span>
+    <span class="impact impact-med">🟡 IMPACTO MEDIO</span>
+  </div>
+  <div class="recipe-body">
+    <p style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.4;">
+      La humedad reduce la densidad del aire (el vapor de agua desplaza oxígeno). A 30°C y 80% humedad,
+      el aire tiene ~2% menos oxígeno que a 20% humedad. Actualmente VDYNO usa rho=1.10 fijo.
+    </p>
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTES — ya los tenemos</div>
+        <span class="field field-have">humidity_pct</span>
+        <span class="field field-have">baro_hPa</span>
+        <span class="field field-have">baro_temp_c</span>
+        <span class="field field-have">MAT</span>
+        <div class="file">sensors/aht20.py + CSV_COLUMNS (logged 8Hz humidity, 1Hz baro)</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — densidad del aire real</div>
+        <div class="formula-box">
+          e = 6.112 × exp(17.67 × T / (T + 243.5))<br>
+          Td = (243.5 × ln(humidity/100 × e/6.112)) / (17.67 − ln(humidity/100 × e/6.112))<br>
+          rho = (baro × 100) / (287.058 × (T + 273.15)) × (1 − 0.378 × e/baro)
+        </div>
+        <div class="desc">
+          Fórmula completa de densidad del aire con corrección por humedad (ISO 2533).
+          T = MAT (manifold temp) o baro_temp_c si no hay MAT.
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO — VDYNO corregido por condiciones reales</div>
+        <span class="field field-chain">rho_real</span>
+        <div class="desc">
+          En lugar de rho=1.10 fijo (Mexico City), calculamos rho real por sesión.
+          Diferencia típica: ±0.03-0.05 → ±3-5% en potencia calculada.
+          Esto hace que comparaciones VDYNO entre días distintos sean más justas.
+        </div>
+      </div>
+
+      <div class="chain-arrow">⬇</div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — SAE J1349 mejorado</div>
+        <div class="formula-box">
+          CF = (29.23 / baro_inHg) × ((IAT°F + 460) / 537)^0.5 × (1 + 0.001 × (humidity − 30))
+        </div>
+        <div class="desc">
+          SAE J1349 estándar no incluye humedad explícitamente. Este factor extiende el
+          estándar para incluirla. El factor de humedad contribuye ~0.5% en clima extremo.
+        </div>
+        <div class="file">web/vdyno.py → _seg_physics() SAE J1349 section</div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 2 — HP más realista</div>
+        <span class="field field-chain">hp_humidity_corrected</span>
+        <div class="desc">Potencia al volante con corrección por humedad. Diferencia típica &lt;1%,
+          pero elimina un confounder en comparaciones día-a-día.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- RECIPE 3: GPS Heading Rate + Turning → Cornering Analysis -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="cornering">
+  <div class="recipe-header">
+    <span class="icon">🔄</span>
+    <span class="title">gps_heading_rate + gps_turning → Radio de Curva y Comportamiento en Viraje</span>
+    <span class="status-badge status-unused">UNUSED</span>
+    <span class="impact impact-med">🟡 IMPACTO MEDIO</span>
+  </div>
+  <div class="recipe-body">
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTES — ya los tenemos</div>
+        <span class="field field-have">gps_heading_rate</span>
+        <span class="field field-have">gps_turning</span>
+        <span class="field field-have">gps_speed_kmh</span>
+        <span class="field field-have">RPM</span>
+        <span class="field field-have">TPS_pct</span>
+        <div class="file">gps/reader.py → CSV_COLUMNS (logged 1-10Hz)</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — radio de curva instantáneo</div>
+        <div class="formula-box">
+          R_curva = V_ms / heading_rate_rads<br>
+          V_ms = gps_speed_kmh / 3.6
+        </div>
+        <div class="desc">
+          heading_rate está en °/s del GPS. Convertir a rad/s y dividir velocidad.
+          Radio en metros. Negativo = izquierda, positivo = derecha.
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 1 — segmentos de curva</div>
+        <span class="field field-chain">R_curva</span>
+        <span class="field field-chain">curva_type (L/R)</span>
+        <span class="field field-chain">curva_angle</span>
+        <div class="desc">Cada sample tiene un radio de curva asociado. Segmentos con R &lt; 100m = curvas cerradas.</div>
+      </div>
+
+      <div class="chain-arrow">⬇</div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — desempeño en curva por celda</div>
+        <div class="formula-box">
+          pw_curva_eff = mean(pw1) en curvas R&lt;100m, mismas RPM×TPS<br>
+          curva_delta = pw_curva_eff_B − pw_curva_eff_A
+        </div>
+        <div class="desc">
+          Agrupar samples de curva por celda RPM×TPS. Comparar PW en curvas entre sesiones.
+          "Este mapa acelera mejor en curvas?" — es el F7 de curvas.
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 2 — tuning orientado a curvas</div>
+        <span class="field field-chain">curva_compare</span>
+        <div class="desc">
+          Nueva dimensión de comparación: no solo "aceleración en recta" (F7), sino
+          "respuesta en salida de curva". Ideal para calibrar mapas de calle donde
+          las curvas son la mayoría del recorrido.
+        </div>
+      </div>
+
+      <div class="chain-arrow">⬇</div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — lean angle (IMU)</div>
+        <div class="formula-box">
+          lean_ang = asin(V_ms × heading_rate_rads / g)<br>
+          (futuro, requiere IMU para precisión dinámica)
+        </div>
+        <div class="desc">
+          BL-DI-09: ángulo de inclinación desde GPS + IMU. Con solo GPS la precisión
+          es limitada (curvas peraltadas confunden). Con IMU (MPU6050, DESIGN_ONLY) se puede
+          obtener ángulo real.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- RECIPE 4: O2_ADC (EGO) + AFV → Wideband Readiness -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="wideband">
+  <div class="recipe-header">
+    <span class="icon">🔌</span>
+    <span class="title">O2_ADC + EGO_Corr/AFV → Infraestructura para Wideband</span>
+    <span class="status-badge status-captured">CAPTURED</span>
+    <span class="impact impact-fix">🟢 BAJO AHORA — ALTO CON WB</span>
+  </div>
+  <div class="recipe-body">
+    <p style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.4;">
+      Actualmente EGO_Corr y AFV están LOCKED en 100.0 porque el narrowband está desconectado.
+      Si se instala un wideband, TODO el pipeline de tuning_report se vuelve útil.
+      El código ya existe — solo hay que desbloquearlo.
+    </p>
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTES — ya los tenemos (hardware: narrowband roto)</div>
+        <span class="field field-have">O2_ADC</span>
+        <span class="field field-have">EGO_Corr</span>
+        <span class="field field-have">AFV</span>
+        <span class="field field-have">pw1, pw2</span>
+        <div class="file">ecu/protocol.py → CSV_COLUMNS (locked at 100.0 → INACTIVE_NOISE)</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — VE real desde lambda</div>
+        <div class="formula-box">
+          VE_actual = VE_base × (AFV / 100) × (EGO_Corr / 100)<br>
+          VE_error = 100 × (VE_actual − VE_target) / VE_target
+        </div>
+        <div class="desc">
+          La corrección estándar que hace Atomic Tune, MegaLogViewer, etc.
+          Con AFV y EGO_Corr desbloqueados, tuning_report genera VE real.
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO — VE real por celda</div>
+        <span class="field field-chain">VE_actual</span>
+        <span class="field field-chain">VE_error_pct</span>
+        <div class="desc">
+          tuning_report.json pasa de INACTIVE_NOISE a FUENTE DE VERDAD.
+          suggested_msq genera mapas VE reales. El pipeline completo se vuelve utilizable:
+          ¡exactamente lo que hace MegaLogViewer!
+        </div>
+      </div>
+
+      <div class="chain-arrow">⬇</div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — auto-tune loop (FASE 6)</div>
+        <div class="formula-box">
+          VE_nueva = VE_actual × (1 + VE_error × alpha)<br>
+          alpha ∈ [0.1, 0.5] (ILC learning rate, GAP 6)
+        </div>
+        <div class="desc">
+          Bucle cerrado: log → detectar error VE → proponer corrección → quemar → verificar.
+          GAP 6 ya está identificado en el código (alpha en _handle_eeprom_burn).
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 2 — auto-tuning loop</div>
+        <span class="field field-chain">VE_nueva</span>
+        <span class="field field-chain">mapa_auto_corregido</span>
+        <div class="desc">
+          Con wideband + este loop, el sistema se convierte en un autotuner completo.
+          Cada ride cierra un poco más el error VE. Convergencia típica: 3-5 burns.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- RECIPE 5: CDiag/HDiag → Fault Pattern Mining -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="fault-mining">
+  <div class="recipe-header">
+    <span class="icon">🔍</span>
+    <span class="title">CDiag0-4 + HDiag0-4 → Minería de Patrones de Falla</span>
+    <span class="status-badge status-unused">UNUSED</span>
+    <span class="impact impact-med">🟡 IMPACTO MEDIO</span>
+  </div>
+  <div class="recipe-body">
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTES — ya los tenemos (nadie los lee)</div>
+        <span class="field field-have">CDiag0-4</span>
+        <span class="field field-have">HDiag0-4</span>
+        <span class="field field-have">Batt_V</span>
+        <span class="field field-have">CLT</span>
+        <span class="field field-have">RPM</span>
+        <div class="file">ecu/protocol.py → CSV_COLUMNS (10 columnas, IDEA-005)</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — correlación condición → falla</div>
+        <div class="formula-box">
+          fault_rate(map_key, cond) = sum(CDiag_inc) / total_samples en condición<br>
+          cond = {batt_range, clt_range, rpm_range}
+        </div>
+        <div class="desc">
+          IDEA-005: agrupar samples por rango de Batt_V, CLT y RPM.
+          Calcular tasa de incremento de contadores de diagnóstico en cada grupo.
+          "¿Este mapa causa más fallas de inyector a bajas RPM?"
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO — reporte de salud por mapa</div>
+        <span class="field field-chain">fault_heatmap</span>
+        <div class="desc">
+          Mapa de calor por celda (RPM×TPS) mostrando tasa de fallas.
+          Si la sesión B tiene más fallas que la A en las mismas celdas,
+          el mapa B podría estar causando condiciones marginales (ej: muy pobre → detonación).
+        </div>
+      </div>
+
+      <div class="chain-arrow">⬇</div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — health score por sesión</div>
+        <div class="formula-box">
+          health = 100 × (1 − sum(fault_events) / total_samples × 1000)
+        </div>
+        <div class="desc">
+          Normalizado a 0-100. Una sesión con muchas fallas de inyector o
+          timeout de ECU recibe score bajo. Útil para decidir si una calibración
+          es "segura" además de "potente".
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 2 — seguridad de calibración</div>
+        <span class="field field-chain">session_health_score</span>
+        <div class="desc">Añadir al tuner UI: "Session B: 5% más potencia, 12% más fallas. ¿Seguro?"</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- RECIPE 6: Spark1/Spark2 → Spark Tuning -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="spark-tuning">
+  <div class="recipe-header">
+    <span class="icon">⚡</span>
+    <span class="title">spark1 + spark2 → Avance de Chispa (FASE 6 Spark)</span>
+    <span class="status-badge status-captured">CAPTURED</span>
+    <span class="impact impact-high">🔴 ALTO IMPACTO</span>
+  </div>
+  <div class="recipe-body">
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTES — ya los tenemos (solo display hoy)</div>
+        <span class="field field-have">spark1</span>
+        <span class="field field-have">spark2</span>
+        <span class="field field-have">RPM</span>
+        <span class="field field-have">TPS_pct</span>
+        <div class="file">ecu/protocol.py → CSV_COLUMNS (dspk1/dspk2 en VS, display only)</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — detectar knock desde spark (proxy)</div>
+        <div class="formula-box">
+          spark_kr = max(0, spark_base − spark_actual)<br>
+          kr_per_cell = mean(spark_kr) por celda RPM×TPS
+        </div>
+        <div class="desc">
+          Si la ECU está retrasando chispa (knock retard), es porque detecta detonación.
+          Podemos inferir knock rate sin sensor de knock — solo mirando cuánto
+          retrasa la ECU el avance respecto al mapa base.
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 1 — knock rate inferido</div>
+        <span class="field field-chain">spark_kr</span>
+        <span class="field field-chain">knock_rate_map</span>
+        <div class="desc">Mapa de calor de celdas donde la ECU retrasa chispa. Si una celda tiene KR &gt; 3° consistente, el mapa está muy avanzado ahí.</div>
+      </div>
+
+      <div class="chain-arrow">⬇</div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — propuesta de avance de chispa</div>
+        <div class="formula-box">
+          dspk_proposal = spark_b − spark_a (misma lógica que dpw_eff)<br>
+          winner = 'A' if dspk_proposal &lt; 0 and spark_kr_a &lt; spark_kr_b else 'B'
+        </div>
+        <div class="desc">
+          Misma lógica que _merge_maps pero para spark. Elegir sesión con menos
+          knock retard (KR) como ganadora. Si ambas tienen KR bajo, elegir
+          la que tiene más avance (más potencia potencial).
+        </div>
+        <div class="file">web/vs_engine.py → spark merge (no existe aún, agregar en _merge_maps)</div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 2 — merged spark maps</div>
+        <span class="field field-chain">spark_merged</span>
+        <div class="desc">
+          Spark maps merged entre sesiones, exactamente como fuel maps.
+          Las spark maps actualmente se copian sin merge (código las incluye
+          en _merge_maps pero siempre devuelve 'AVG' porque no hay spark FASE 6).
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- RECIPE 7: Slope + Route Reference → Terrain-Aware VS -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="terrain">
+  <div class="recipe-header">
+    <span class="icon">⛰️</span>
+    <span class="title">slope_reference + gps_alt_m → Comparación con Consciencia de Terreno</span>
+    <span class="status-badge status-unused">UNUSED</span>
+    <span class="impact impact-med">🟡 IMPACTO MEDIO</span>
+  </div>
+  <div class="recipe-body">
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTES — infraestructura existe, nadie la llama</div>
+        <span class="field field-have">gps_alt_m</span>
+        <span class="field field-have">gps_lat, gps_lon</span>
+        <span class="field field-have">slope_reference.json</span>
+        <span class="field field-have">route_reference.json</span>
+        <div class="file">gps/slope_reference.py + gps/route_reference.py — GAP 4</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — slope por coordenada</div>
+        <div class="formula-box">
+          slope_pct = SlopeReference.get_slope_pct(lat1, lon1, lat2, lon2)
+        </div>
+        <div class="desc">
+          GAP 4: get_slope_pct() nunca es llamado desde f7.py o vs_engine.py.
+          Solo existe como endpoint manual /slope_reference?lat1=...&lon1=...
+          Hay que auto-trigger en ride close y pasar slope a classify().
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO — SWEET clasificado correctamente en pendiente</div>
+        <span class="field field-chain">slope_aware_classify</span>
+        <div class="desc">
+          Hoy classify() marca como SALTY_UP/SALTY_DOWN si dalt>0.8 m/s.
+          Con slope reference, podemos distinguir "subiendo una colina" de
+          "acelerando en plano". Más celdas clasifican como SWEET = más datos de tuning.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- RECIPE 8: Dirty Bytes → Serial Health Monitor -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="serial-health">
+  <div class="recipe-header">
+    <span class="icon">📡</span>
+    <span class="title">dirty_byte_hex/name/forensic_event → Monitor de Salud Serial</span>
+    <span class="status-badge status-unused">UNUSED</span>
+    <span class="impact impact-low">🔵 BAJO IMPACTO</span>
+  </div>
+  <div class="recipe-body">
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTES — solo para debug manual hoy</div>
+        <span class="field field-have">dirty_byte_hex</span>
+        <span class="field field-have">dirty_byte_name</span>
+        <span class="field field-have">forensic_event</span>
+        <span class="field field-have">buf_in</span>
+        <div class="file">ecu/protocol.py → 3 cols, 8Hz, ~2.5KB/minuto</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — serial quality score</div>
+        <div class="formula-box">
+          serial_q = max(0, 100 − dirty_rate_per_1000 − buf_overflow_pct × 10)
+        </div>
+        <div class="desc">
+          dirty_rate = dirty_bytes / total_rows × 1000.<br>
+          buf_overflow = samples donde buf_in > 384 × 50%.
+          Score 0-100. Si cae &lt; 80, la conexión serial necesita revisión.
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO — alerta temprana de falla serial</div>
+        <span class="field field-chain">serial_quality</span>
+        <div class="desc">
+          Dashboard: indicador de salud serial en vivo. Si empieza a degradarse,
+          el usuario sabe que el cable o el puerto USB están fallando antes de
+          perder una sesión completa.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- RECIPE 9: Rider Notes + Annotations → Contexto Humano en VS -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="rider-context">
+  <div class="recipe-header">
+    <span class="icon">📝</span>
+    <span class="title">rider_notes + ride_annotations → Contexto del Piloto en Sessions VS</span>
+    <span class="status-badge status-unused">UNUSED</span>
+    <span class="impact impact-low">🔵 BAJO IMPACTO</span>
+  </div>
+  <div class="recipe-body">
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTES — rider_notes muerto, annotations vivo</div>
+        <span class="field field-have">rider_notes[]</span>
+        <span class="field field-have">ride_annotations (POST /annotations)</span>
+        <div class="file">ecu/session.py:_load_or_create (dead field) + web/server.py:_handle_post_annotations</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — wire rider_notes + annotation context</div>
+        <div class="formula-box">
+          rider_notes = [{"t": timestamp, "note": "knock_heard", "rpm": x, "tps": y}, ...]
+        </div>
+        <div class="desc">
+          1. Crear POST /rider-note endpoint (hoy no existe — totalmente muerto)
+          2. En UI dashboard: botón "Knock!" que registra timestamp + contexto actual
+          3. En VS: si la sesión A tiene knock notes en una celda y B no, B gana
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO — notas del piloto influyen en merge</div>
+        <span class="field field-chain">rider_context_winner</span>
+        <div class="desc">
+          "En esta celda, el piloto reportó knock en sesión A pero no en B.
+          Aunque dpw_eff diga que A es más rica, B es más segura."
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================= -->
+<!-- RECIPE 10: IMU (planned) → Vibration + Lean Angle -->
+<!-- ============================================================= -->
+<div class="recipe" data-id="imu">
+  <div class="recipe-header">
+    <span class="icon">🧭</span>
+    <span class="title">IMU (MPU6050) — Acelerómetro + Giroscopio (DESIGN_ONLY)</span>
+    <span class="status-badge status-plan">PLAN</span>
+    <span class="impact impact-med">🟡 IMPACTO MEDIO (requiere HW)</span>
+  </div>
+  <div class="recipe-body">
+    <div class="ingredient-grid">
+
+      <div class="step raw">
+        <div class="tag">📦 INGREDIENTE — planeado, no implementado</div>
+        <span class="field field-have">(raw_imu — DESIGN_ONLY)</span>
+        <div class="file">no hardware, no CSV columns — BACKLOG_MAPA_3D</div>
+      </div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — espectro de vibración</div>
+        <div class="formula-box">
+          fft(vib_z, window=1024) → peak_freq, peak_mag<br>
+          vib_health = |peak_freq − expected_freq| / expected_freq
+        </div>
+        <div class="desc">
+          FASE 3 del backlog: FFT de aceleración Z para detectar cambios en
+          vibración del motor. Una mezcla pobre puede causar detonación que
+          se ve como pico de vibración de alta frecuencia (~6-8 kHz).
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO — detección de detonación por vibración</div>
+        <span class="field field-chain">vib_knock_score</span>
+        <div class="desc">
+          Alternativa al sensor de knock: detectar firma de detonación en el
+          espectro de vibración del acelerómetro. No requiere hardware especial
+          (el MPU6050 cuesta ~$3).
+        </div>
+      </div>
+
+      <div class="chain-arrow">⬇</div>
+
+      <div class="step formula">
+        <div class="tag">🧮 FÓRMULA — ángulo de inclinación</div>
+        <div class="formula-box">
+          lean_angle = atan2(accel_y, accel_z) — estático<br>
+          lean_angle_dyn = complementario(gyro_yaw_rate, lean_angle_static, alpha=0.98)
+        </div>
+        <div class="desc">
+          BL-DI-09: filtro complementario para ángulo de inclinación en curvas.
+          Útil para análisis de comportamiento en curvas y comparación entre mapas.
+        </div>
+      </div>
+
+      <div class="step result">
+        <div class="tag">✨ RESULTADO 2 — ángulo de inclinación en F7</div>
+        <span class="field field-chain">lean_angle</span>
+        <div class="desc">Bucket A de F7 podría incluir lean_angle para agrupar eventos en recta vs curva.</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// Toggle recipe body
+document.querySelectorAll('.recipe-header').forEach(h => {
+  h.addEventListener('click', () => {
+    const body = h.nextElementSibling;
+    body.classList.toggle('open');
+  });
+});
+
+// Search
+document.getElementById('search').addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  document.querySelectorAll('.recipe').forEach(r => {
+    if (!q) { r.style.display = ''; r.style.borderColor = ''; return; }
+    const match = r.textContent.toLowerCase().includes(q);
+    r.style.display = match ? '' : 'none';
+    if (match) r.style.borderColor = '#e8420a';
+    else r.style.borderColor = '';
+  });
+});
+</script>
+
+<div style="position:fixed; bottom:8px; right:12px; font-size:9px; color:var(--muted); z-index:50;">
+  10 recetas — datos que ya capturamos, dormidos
+</div>
+</body>
+</html>

@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sector DAGs — Buell Logger</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --panel: #111114; --accent: #e8420a; --fg: #d8d8dc; --muted: #7a7a80;
+    --c-raw: #3ddc84; --c-proc: #4a9eff; --c-out: #e8b923; --c-unused: #6b6b70; --c-gap: #ff5c5c; --c-loop: #b06fe0;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body { background: var(--bg); color: var(--fg); font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; height: 100vh; }
+
+  /* Top bar */
+  #topbar {
+    position: fixed; top:0; left:0; right:0; height:48px; background: var(--panel);
+    border-bottom: 1px solid #222; display:flex; align-items:center; gap:8px;
+    padding: 0 12px; z-index: 100; overflow-x: auto;
+  }
+  #topbar h1 { font-size: 13px; color: var(--accent); letter-spacing:1px; white-space:nowrap; margin-right: 8px; }
+  .sbtn {
+    padding: 4px 10px; border: 1px solid #333; border-radius: 4px;
+    background: transparent; color: var(--muted); cursor: pointer;
+    font-size: 10px; white-space: nowrap; transition: all 0.12s; flex-shrink:0;
+  }
+  .sbtn:hover { border-color: #555; color: var(--fg); }
+  .sbtn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  #legend {
+    display:flex; gap:6px; font-size:9px; margin-left:auto; flex-shrink:0;
+  }
+  .ldot { width:8px; height:8px; border-radius:2px; display:inline-block; margin-right:2px; }
+
+  /* Canvas */
+  #canvas-wrap {
+    position: fixed; top:48px; left:0; right:320px; bottom:0; overflow:hidden;
+    cursor:grab;
+  }
+  #canvas-wrap.dragging { cursor:grabbing; }
+  #canvas-wrap.panel-hidden { right:0; }
+
+  /* SVG */
+  #graph-svg { display: block; }
+  .node { cursor:pointer; }
+  .node rect { transition: stroke-width 0.12s, filter 0.12s; }
+  .node:hover rect { filter: brightness(1.3); }
+  .node.hi rect:first-of-type { stroke-width: 3; }
+  .node.dim { opacity: 0.1; }
+  .node.upstream rect:first-of-type { filter: drop-shadow(0 0 6px #4a9eff); }
+  .node.downstream rect:first-of-type { filter: drop-shadow(0 0 6px #e8420a); }
+  .edge { transition: opacity 0.12s; }
+  .edge.dim { opacity: 0.04 !important; }
+  .edge.hi { opacity: 1 !important; stroke-width: 2.5 !important; }
+
+  /* Side panel */
+  #sidepanel {
+    position: fixed; top:48px; right:0; bottom:0; width:320px;
+    background: var(--panel); border-left: 1px solid #222;
+    padding: 12px; overflow-y:auto; font-size:11px;
+    transition: transform 0.15s;
+  }
+  #sidepanel.hidden { transform: translateX(320px); }
+  #panel-toggle { background:var(--panel); color:var(--fg); border:1px solid #333; font-size:9px; padding:3px 6px; cursor:pointer; }
+  #sidepanel h2 { font-size:12px; color: var(--accent); word-break:break-all; margin-bottom:6px; }
+  #sidepanel .fl { color: var(--muted); font-size:9px; text-transform:uppercase; margin-top:6px; }
+  #sidepanel .fv { margin-bottom:4px; }
+  #sidepanel .er { font-size:10px; padding:2px 4px; cursor:pointer; border-radius:2px; word-break:break-all; }
+  #sidepanel .er:hover { background:#1c1c22; }
+  #sidepanel .empty { color: var(--muted); font-size:10px; }
+
+  /* Zoom controls */
+  #zoomctl {
+    position: fixed; bottom:8px; right:328px; z-index:90; display:flex; gap:4px;
+  }
+  #zoomctl button {
+    background: var(--panel); color: var(--fg); border: 1px solid #333;
+    width: 24px; height: 24px; cursor: pointer; font-size: 11px;
+  }
+  #zoomctl button.wide { width:auto; padding:0 6px; font-size:9px; }
+
+  .sector-tag {
+    font-size:8px; fill: var(--muted); letter-spacing:1px; text-transform:uppercase;
+  }
+
+  @media (max-width:700px) {
+    #sidepanel { width:260px; }
+    #canvas-wrap { right:260px; }
+    #zoomctl { right:268px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>SECTOR DAGS</h1>
+  <button class="sbtn active" data-sector="all">🌐 ALL</button>
+  <button class="sbtn" data-sector="fuel-trim">🏁 Fuel Trim</button>
+  <button class="sbtn" data-sector="vdyno">🔥 VDYNO</button>
+  <button class="sbtn" data-sector="launch">🚀 Launch</button>
+  <button class="sbtn" data-sector="map-editor">🗺️ Map Editor</button>
+  <button class="sbtn" data-sector="coverage">📊 Coverage</button>
+  <button class="sbtn" data-sector="fuel">⛽ Fuel</button>
+  <button class="sbtn" data-sector="captured-unused">🚫 Unused</button>
+  <div id="legend">
+    <span><span class="ldot" style="background:var(--c-raw)"></span>RAW</span>
+    <span><span class="ldot" style="background:var(--c-proc)"></span>PROCESS</span>
+    <span><span class="ldot" style="background:var(--c-out)"></span>OUTPUT</span>
+    <span><span class="ldot" style="background:var(--c-unused)"></span>UNUSED</span>
+  </div>
+  <button id="panel-toggle">☰</button>
+</div>
+
+<div id="canvas-wrap">
+  <svg id="graph-svg" width="5000" height="5000" viewBox="0 0 5000 5000" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ar-gray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#9a9aa0"/></marker>
+      <marker id="ar-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4a9eff"/></marker>
+      <marker id="ar-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#ff5c5c"/></marker>
+      <marker id="ar-yellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#e8b923"/></marker>
+      <marker id="ar-purple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#b06fe0"/></marker>
+    </defs>
+    <g id="pan-group">
+      <!-- All content is injected by JavaScript -->
+    </g>
+  </svg>
+</div>
+
+<div id="sidepanel">
+  <p class="empty">Click a node to inspect it</p>
+</div>
+
+<div id="zoomctl">
+  <button id="zin">+</button>
+  <button id="zout">−</button>
+  <button id="zreset" class="wide">1:1</button>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────
+// Node types: raw, process, output, unused, design
+const NODE_COLORS = { raw:'#3ddc84', process:'#4a9eff', output:'#e8b923', unused:'#6b6b70', design:'#b06fe0', noise:'#6b6b70' };
+const NODE_LABELS = { raw:'RAW', process:'PROC', output:'OUT', unused:'UNUSED', design:'DESIGN', noise:'NOISE' };
+
+// Sector definitions: each sector has nodes and edges
+const SECTORS = {
+  'fuel-trim': {
+    label: '🏁 Fuel Trim (F7 + Sessions VS)',
+    nodes: [
+      { id:'raw_ecu_core',   type:'raw',    label:'ECU Core',    x:80,  y:80,  w:160, h:32, detail:'RPM, TPS_pct, VS_KPH, Gear — Alpha-N inputs' },
+      { id:'raw_ecu_fuel',   type:'raw',    label:'ECU Fuel',    x:80,  y:140, w:160, h:32, detail:'pw1, pw2 — injector pulse-width' },
+      { id:'raw_ecu_flags',  type:'raw',    label:'ECU Flags',   x:80,  y:200, w:160, h:32, detail:'fl_wot, fl_decel, fl_fuel_cut, fl_hot' },
+      { id:'raw_env_baro',   type:'raw',    label:'Baro',        x:80,  y:260, w:160, h:32, detail:'baro_hPa — normalized to 1013.25' },
+      { id:'raw_ecu_temp',   type:'raw',    label:'ECU Temp',    x:80,  y:320, w:160, h:32, detail:'CLT — gates BITTER if <170°F' },
+      { id:'load_csv',       type:'process',label:'load_csv()',  x:400, y:100, w:170, h:40, detail:'Baro-normalize PW + detect_gear()' },
+      { id:'classify',       type:'process',label:'classify()',  x:400, y:200, w:170, h:40, detail:'SWEET/SPICY/SALTY/BITTER per row' },
+      { id:'build_index',    type:'process',label:'build_index()', x:400, y:300, w:170, h:40, detail:'Per-cell Welford: pw_eff, std_pweff' },
+      { id:'f7_event_detect', type:'process',label:'f7_event_detect()', x:700, y:80,  w:180, h:40, detail:'Stable bucket 3s → TPS break → PW curve' },
+      { id:'f7_dtw_cluster', type:'process',label:'f7_dtw_cluster()', x:700, y:180, w:180, h:40, detail:'Complete-linkage DTW on PW curves' },
+      { id:'f7_cross_match', type:'process',label:'f7_cross_session_match()', x:700, y:280, w:180, h:40, detail:'DDTW on tps_curve_norm across sessions' },
+      { id:'vs_compare',     type:'process',label:'_compare_sessions()', x:700, y:400, w:180, h:40, detail:'dpw_eff + Welch CI + f7_matches' },
+      { id:'gap1_welch',     type:'process',label:'GAP1 Welch CI', x:1000, y:80,  w:160, h:40, detail:'dpw_eff ±1.96×SE — significance gate' },
+      { id:'gp_regression',  type:'process',label:'GP Regression', x:1000, y:200, w:160, h:40, detail:'Matern 5/2 kernel — fill uncertain cells' },
+      { id:'merge_maps',     type:'process',label:'_merge_maps()', x:1000, y:320, w:160, h:40, detail:'Winner-take-all A/B per cell + GP fill' },
+      { id:'sessions_vs_cache',type:'output',label:'sessions_vs_cache', x:1300, y:80,  w:180, h:40, detail:'Cell-level A-vs-B delta (cache v9)' },
+      { id:'ui_tuner',       type:'output',label:'ui_tuner',     x:1300, y:200, w:160, h:32, detail:'Δ maps with per-cell winners & GP' },
+      { id:'ui_sessions_vs', type:'output',label:'ui_sessions_vs', x:1300, y:300, w:160, h:32, detail:'F7 matches + VS delta overlay' },
+    ],
+    edges: [
+      ['raw_ecu_core','load_csv'], ['raw_ecu_fuel','load_csv'], ['raw_ecu_flags','load_csv'],
+      ['raw_env_baro','load_csv'], ['raw_ecu_temp','load_csv'],
+      ['load_csv','classify'], ['classify','build_index'],
+      ['load_csv','f7_event_detect'], ['raw_ecu_flags','f7_event_detect'],
+      ['raw_env_baro','f7_event_detect'],
+      ['f7_event_detect','f7_dtw_cluster'], ['f7_dtw_cluster','f7_cross_match'],
+      ['f7_cross_match','vs_compare'],
+      ['build_index','vs_compare'], ['vs_compare','gap1_welch'],
+      ['gap1_welch','sessions_vs_cache'], ['build_index','sessions_vs_cache'],
+      ['sessions_vs_cache','merge_maps'], ['gap1_welch','merge_maps'],
+      ['merge_maps','gp_regression'], ['gp_regression','merge_maps'],
+      ['merge_maps','ui_tuner'], ['sessions_vs_cache','ui_sessions_vs'],
+    ]
+  },
+
+  'vdyno': {
+    label: '🔥 VDYNO — Virtual Dyno',
+    nodes: [
+      { id:'v_raw_gps',   type:'raw',    label:'GPS',         x:80,  y:80,  w:140, h:32, detail:'VS_KPH, gps_alt_m, gps_valid' },
+      { id:'v_raw_baro',  type:'raw',    label:'Baro + IAT',  x:80,  y:140, w:140, h:32, detail:'baro_hPa, IAT_Corr for SAE J1349' },
+      { id:'v_raw_core',  type:'raw',    label:'ECU Core',    x:80,  y:200, w:140, h:32, detail:'RPM, TPS_pct, Gear, fl_wot flags' },
+      { id:'v_extract',   type:'process',label:'_extract_segments()', x:320, y:80,  w:170, h:40, detail:'Filter WOT pulls: TPS≥70%, RPM≥1500, 1.5s min' },
+      { id:'v_physics',   type:'process',label:'_seg_physics()', x:320, y:200, w:170, h:40, detail:'F=m×a + 0.5×ρ×CdA×v² + Crr×m×g' },
+      { id:'v_j1349',     type:'process',label:'SAE J1349',   x:540, y:80,  w:150, h:32, detail:'Air density correction from baro+IAT' },
+      { id:'v_bins',      type:'process',label:'_build_result_bins()', x:540, y:180, w:150, h:40, detail:'Median kW per 250-RPM bin' },
+      { id:'v_vdyno_json',type:'output', label:'ride_vdyno_json', x:780, y:80,  w:150, h:32, detail:'Per-ride HP/torque curve' },
+      { id:'v_vdyno_rows',type:'output', label:'ride_vdyno_rows_json', x:780, y:160, w:150, h:32, detail:'Sparse per-row HP overlay' },
+      { id:'v_compare',   type:'output', label:'compare_sessions()', x:780, y:260, w:150, h:40, detail:'A-vs-B power delta per RPM bin' },
+    ],
+    edges: [
+      ['v_raw_gps','v_extract'], ['v_raw_baro','v_extract'], ['v_raw_core','v_extract'],
+      ['v_extract','v_physics'], ['v_physics','v_j1349'],
+      ['v_raw_baro','v_j1349'],
+      ['v_j1349','v_bins'], ['v_physics','v_bins'],
+      ['v_bins','v_vdyno_json'], ['v_bins','v_vdyno_rows'],
+      ['v_vdyno_json','v_compare'],
+    ]
+  },
+
+  'launch': {
+    label: '🚀 Launch Analysis — WOT Tip-In',
+    nodes: [
+      { id:'l_raw',       type:'raw',    label:'ECU + GPS',   x:80,  y:80,  w:140, h:40, detail:'RPM, TPS, pw1, Gear, CLT, baro, gps_alt' },
+      { id:'l_detect',    type:'process',label:'detect_launches()', x:300, y:80,  w:170, h:40, detail:'dtps>8% + rpm>1500 → 3s pre + 5s post' },
+      { id:'l_cluster',   type:'process',label:'cluster_launches()', x:300, y:200, w:170, h:40, detail:'Group by gear+rpm+tps, mean_series' },
+      { id:'l_match',     type:'process',label:'match_clusters()', x:530, y:80,  w:170, h:40, detail:'Cross-session matching, euclidean distance' },
+      { id:'l_power',     type:'process',label:'compute_launch_cluster_power()', x:530, y:200, w:170, h:40, detail:'VDYNO physics on launch mean_series' },
+      { id:'l_ui_launch', type:'output', label:'ui_sessions_launch', x:780, y:80,  w:160, h:32, detail:'Cluster comparison across sessions' },
+      { id:'l_ui_power',  type:'output', label:'ui_launch_power', x:780, y:180, w:160, h:32, detail:'HP from launch clusters' },
+      { id:'l_sessions_vs',type:'output',label:'sessions_vs_cache', x:780, y:280, w:160, h:32, detail:'Env stats feed into Sessions VS' },
+    ],
+    edges: [
+      ['l_raw','l_detect'], ['l_detect','l_cluster'],
+      ['l_cluster','l_match'], ['l_cluster','l_power'],
+      ['l_match','l_ui_launch'], ['l_power','l_ui_power'],
+      ['l_detect','l_sessions_vs'],
+    ]
+  },
+
+  'map-editor': {
+    label: '🗺️ Map Editor / QUEMAR — EEPROM Burn Pipeline',
+    nodes: [
+      { id:'m_eeprom_bin',  type:'raw',    label:'eeprom.bin',  x:80,  y:80,  w:150, h:32, detail:'Binary blob per session (offset 327+ = tune data)' },
+      { id:'m_decode',      type:'process',label:'decode_eeprom_maps()', x:300, y:80,  w:180, h:40, detail:'XML-driven: fuel_front/rear, spark_front/rear' },
+      { id:'m_merge',       type:'process',label:'_merge_maps()', x:300, y:200, w:180, h:40, detail:'A/B winner per cell + GP fill' },
+      { id:'m_sessions_vs', type:'raw',    label:'sessions_vs_cache', x:80,  y:200, w:150, h:32, detail:'Cell-level delta data from Sector 1' },
+      { id:'m_encode',      type:'process',label:'encode_eeprom_maps()', x:540, y:80,  w:180, h:40, detail:'Apply edited maps back to binary' },
+      { id:'m_burn',        type:'process',label:'_handle_eeprom_burn()', x:540, y:200, w:180, h:40, detail:'IPC burn → poll result → verify' },
+      { id:'m_ledger',      type:'process',label:'record_burn()', x:780, y:80,  w:160, h:40, detail:'Append to burns.json (parent→child lineage)' },
+      { id:'m_converge',    type:'process',label:'convergence_report()', x:780, y:200, w:160, h:40, detail:'GAP 5: delta trend over last 3+ burns' },
+      { id:'m_burns_json',  type:'output', label:'burns.json',  x:1000, y:80,  w:150, h:32, detail:'Append-only lineage with per-cell diffs' },
+      { id:'m_ui_tuner',    type:'output', label:'ui_tuner',    x:1000, y:200, w:150, h:32, detail:'Convergence score + merged maps' },
+      { id:'m_ui_editor',   type:'output', label:'ui_map_editor', x:1000, y:320, w:150, h:32, detail:'Manual cell editing' },
+      { id:'m_suggested_msq',type:'output',label:'suggested_msq', x:1000, y:440, w:150, h:32, detail:'Auto-generated MSQ (INACTIVE_NOISE)' },
+    ],
+    edges: [
+      ['m_eeprom_bin','m_decode'], ['m_sessions_vs','m_merge'],
+      ['m_decode','m_merge'], ['m_decode','m_encode'],
+      ['m_merge','m_encode'], ['m_encode','m_burn'],
+      ['m_burn','m_ledger'], ['m_ledger','m_burns_json'],
+      ['m_ledger','m_converge'], ['m_converge','m_ui_tuner'],
+      ['m_eeprom_bin','m_ui_editor'], ['m_ui_editor','m_encode'],
+      ['m_decode','m_suggested_msq'],
+    ]
+  },
+
+  'coverage': {
+    label: '📊 Coverage & Objectives',
+    nodes: [
+      { id:'c_raw',         type:'raw',    label:'ECU + Config', x:80,  y:80,  w:150, h:40, detail:'RPM, TPS, CLT, flags + objectives.json targets' },
+      { id:'c_celltracker', type:'process',label:'CellTracker.update()', x:300, y:80,  w:180, h:40, detail:'Per-cell bilinear accumulation, flavor counts' },
+      { id:'c_validity',    type:'process',label:'_is_valid()', x:300, y:200, w:180, h:40, detail:'CLT≥70°C, WUE≤102, no decel/fuel-cut' },
+      { id:'c_snapshot',    type:'process',label:'snapshot()',  x:530, y:80,  w:150, h:40, detail:'Compute confidence, ego_iir, flavor_counts' },
+      { id:'c_objectives',  type:'process',label:'Objectives Check', x:530, y:200, w:150, h:40, detail:'Compare valid_seconds vs cell_targets' },
+      { id:'c_summary',     type:'output', label:'ride_summary_json', x:780, y:80,  w:170, h:32, detail:'Per-ride coverage %, health_score' },
+      { id:'c_dashboard',   type:'output', label:'ui_dashboard', x:780, y:180, w:170, h:32, detail:'Coverage bars + active cell display' },
+    ],
+    edges: [
+      ['c_raw','c_celltracker'], ['c_celltracker','c_validity'],
+      ['c_validity','c_celltracker'],
+      ['c_celltracker','c_snapshot'], ['c_celltracker','c_objectives'],
+      ['c_objectives','c_summary'], ['c_snapshot','c_summary'],
+      ['c_summary','c_dashboard'], ['c_objectives','c_dashboard'],
+    ]
+  },
+
+  'fuel': {
+    label: '⛽ Fuel Consumption',
+    nodes: [
+      { id:'f_raw',    type:'raw',    label:'ECU Fuel', x:80,  y:80,  w:140, h:32, detail:'pw1, pw2, RPM, VS_KPH' },
+      { id:'f_calc',   type:'process',label:'_calc_ride_from_csv()', x:300, y:80,  w:180, h:40, detail:'PW × RPM → cc/ms → total mL' },
+      { id:'f_cache',  type:'process',label:'save_ride_consumption_cache()', x:300, y:200, w:180, h:40, detail:'Persist to ride_*_consumption.json' },
+      { id:'f_ui',     type:'output', label:'ui_fuel (fuel.html)', x:560, y:80,  w:160, h:32, detail:'Fuel consumption dashboard' },
+    ],
+    edges: [
+      ['f_raw','f_calc'], ['f_calc','f_cache'], ['f_cache','f_ui'],
+    ]
+  },
+
+  'captured-unused': {
+    label: '🚫 Captured Unused — Data That Goes Nowhere',
+    nodes: [
+      { id:'u_dirty',    type:'unused', label:'Dirty Bytes',  x:80,  y:60,  w:150, h:32, detail:'dirty_byte_hex/name/forensic_event — 3 cols' },
+      { id:'u_batt',     type:'unused', label:'Batt_V',       x:80,  y:120, w:150, h:32, detail:'BL-DI-01: +2.3% PW shift confirmed. Uncorrected!' },
+      { id:'u_humidity', type:'unused', label:'Humidity',     x:80,  y:180, w:150, h:32, detail:'humidity_pct — descriptive only in F7 env' },
+      { id:'u_diag',     type:'unused', label:'Diag Counters', x:80,  y:240, w:150, h:32, detail:'CDiag0-4, HDiag0-4 — 10 cols, no consumer' },
+      { id:'u_o2',       type:'noise',  label:'O2_ADC',       x:80,  y:300, w:150, h:32, detail:'Disconnected narrowband → noise' },
+      { id:'u_ego',      type:'noise',  label:'EGO_Corr/AFV', x:80,  y:360, w:150, h:32, detail:'Locked at 100.0 — tuning_report = noise' },
+      { id:'u_rider',    type:'unused', label:'rider_notes',  x:80,  y:420, w:150, h:32, detail:'Dead field — no write endpoint exists' },
+      { id:'u_imu',      type:'design', label:'IMU (DESIGN_ONLY)', x:80,  y:480, w:150, h:32, detail:'MPU6050 — NO knock sensor en DDFI2. Lean angle via GPS heading_rate mejor.' },
+      { id:'u_bas',      type:'unused', label:'BAS_ADC (tip-over)', x:80,  y:540, w:170, h:36, detail:'Bank Angle Sensor — binario (55-60°). NO sirve para lean angle continuo.' },
+      { id:'u_csv',      type:'process',label:'ride_csv',     x:320, y:60,  w:150, h:32, detail:'98 cols, 18+ unused → 500KB/h wasted' },
+      { id:'u_errorlog', type:'process',label:'ride_errorlog_json', x:320, y:180, w:150, h:32, detail:'Diagnostic only — not tuning cycle' },
+      { id:'u_tuning_rpt',type:'noise', label:'tuning_report (INACTIVE)', x:320, y:300, w:150, h:40, detail:'Generated every ride with meaningless data' },
+      { id:'u_errorlog_viz',type:'output',label:'ui_errorlog_viz', x:560, y:60,  w:150, h:32, detail:'Manual inspection only' },
+      { id:'u_suggested',  type:'noise', label:'suggested_msq', x:560, y:200, w:150, h:32, detail:'Built from INACTIVE_NOISE data' },
+      { id:'u_impact',    type:'output', label:'⚠️ 19+ COLUMNS WASTED', x:560, y:340, w:170, h:50, detail:'Remove: dirty_bytes, CDiag/HDiag, O2_ADC, EGO_Corr, AFV, Unk63_bits. Keep: BAS_ADC (2B/sample). Fix: Batt_V. ⚠️ NO knock sensor en DDFI2 — spark1/2 son avance calculado, no KR.' },
+    ],
+    edges: [
+      ['u_dirty','u_csv'], ['u_batt','u_csv'], ['u_humidity','u_csv'],
+      ['u_diag','u_csv'], ['u_o2','u_csv'], ['u_ego','u_csv'],
+      ['u_rider','u_csv'], ['u_imu','u_csv'], ['u_bas','u_csv'],
+      ['u_csv','u_errorlog'], ['u_dirty','u_errorlog'],
+      ['u_csv','u_tuning_rpt'], ['u_ego','u_tuning_rpt'],
+      ['u_errorlog','u_errorlog_viz'],
+      ['u_tuning_rpt','u_suggested'],
+      ['u_impact','u_errorlog_viz'],
+    ]
+  }
+};
+
+// ── RENDER ────────────────────────────────────────────────────────
+const panGroup = document.getElementById('pan-group');
+const sidepanel = document.getElementById('sidepanel');
+const DEFAULT_PANEL = sidepanel.innerHTML;
+
+const nodeById = {};
+let scale = 0.75, panX = 60, panY = 20;
+let activeSector = 'all';
+
+function renderSector(sectorId) {
+  const data = SECTORS[sectorId];
+  if (!data) return '';
+  let svg = '';
+
+  // Sector background label
+  svg += `<text x="40" y="30" font-size="14" fill="#e8420a" font-family="'Segoe UI',sans-serif" font-weight="600">${data.label}</text>`;
+
+  // Edges
+  for (const [src,dst] of data.edges) {
+    const sn = data.nodes.find(n=>n.id===src);
+    const dn = data.nodes.find(n=>n.id===dst);
+    if (!sn || !dn) continue;
+    const x1 = sn.x + sn.w, y1 = sn.y + sn.h/2;
+    const x2 = dn.x, y2 = dn.y + dn.h/2;
+    const dx = Math.max(20, (x2 - x1) / 2);
+    const path = `M ${x1} ${y1} C ${x1+dx} ${y1}, ${x2-dx} ${y2}, ${x2} ${y2}`;
+    const color = '#9a9aa0';
+    svg += `<path class="edge" data-sid="${sectorId}" data-src="${src}" data-dst="${dst}" d="${path}" stroke="${color}" stroke-width="1.4" fill="none" opacity="0.5" marker-end="url(#ar-gray)"/>`;
+  }
+
+  // Nodes
+  for (const n of data.nodes) {
+    const color = NODE_COLORS[n.type] || '#888';
+    const typeLabel = NODE_LABELS[n.type] || n.type.toUpperCase();
+    const rx=5, ry=5;
+    svg += `<g class="node" data-sid="${sectorId}" data-id="${n.id}" data-type="${n.type}" data-detail="${esc(n.detail)}" transform="translate(${n.x},${n.y})">`;
+    svg += `<rect width="${n.w}" height="${n.h}" rx="${rx}" fill="#15151a" stroke="${color}" stroke-width="1.5"/>`;
+    svg += `<rect width="${n.w}" height="14" rx="${rx}" fill="${color}" opacity="0.15"/>`;
+    svg += `<text x="5" y="10" font-size="7" fill="${color}" font-family="monospace">${typeLabel}</text>`;
+    svg += `<text x="5" y="24" font-size="9" fill="#d8d8dc" font-family="'Segoe UI',sans-serif">${esc(n.label)}</text>`;
+    svg += `</g>`;
+  }
+
+  return svg;
+}
+
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderAll() {
+  let html = '';
+  // Collect unique Y offsets per sector
+  let yOff = 0;
+  for (const [sid, data] of Object.entries(SECTORS)) {
+    const group = document.createElementNS('http://www.w3.org/2000/svg','g');
+    // We'll just build string and compute bounding box
+    const nodes = data.nodes;
+    const maxY = Math.max(...nodes.map(n=>n.y + n.h)) + 40;
+    const minX = Math.min(...nodes.map(n=>n.x)) - 20;
+    
+    html += `<g id="sector-group-${sid}" data-sector="${sid}">`;
+    html += renderSector(sid);
+    html += `</g>`;
+  }
+  panGroup.innerHTML = html;
+  applyVisibility();
+}
+
+function applyVisibility() {
+  const groups = document.querySelectorAll('[id^="sector-group-"]');
+  groups.forEach(g => {
+    const sid = g.dataset.sector;
+    g.style.display = (activeSector === 'all' || activeSector === sid) ? '' : 'none';
+  });
+}
+
+// ── INTERACTION ───────────────────────────────────────────────────
+const wrap = document.getElementById('canvas-wrap');
+const svg = document.getElementById('graph-svg');
+
+let panning = false, lastX=0, lastY=0, startX=0, startY=0, moved=false;
+
+wrap.addEventListener('mousedown', e => {
+  if (e.target.closest('.node')) return;
+  panning = true; lastX=e.clientX; lastY=e.clientY;
+  startX=e.clientX; startY=e.clientY; moved=false;
+  wrap.classList.add('dragging');
+});
+window.addEventListener('mousemove', e => {
+  if (!panning) return;
+  if (Math.abs(e.clientX-startX)>3 || Math.abs(e.clientY-startY)>3) moved=true;
+  panX += e.clientX-lastX; panY += e.clientY-lastY;
+  lastX=e.clientX; lastY=e.clientY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => {
+  if (panning && !moved) clearSelection();
+  panning=false; wrap.classList.remove('dragging');
+});
+wrap.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) {
+    const f = Math.exp(-Math.max(-60,Math.min(60,e.deltaY))*0.012);
+    scale = Math.min(3, Math.max(0.15, scale*f));
+  } else { panX -= e.deltaX; panY -= e.deltaY; }
+  applyTransform();
+}, {passive:false});
+
+document.getElementById('zin').onclick = ()=>{scale=Math.min(3,scale*1.2);applyTransform();};
+document.getElementById('zout').onclick = ()=>{scale=Math.max(0.15,scale/1.2);applyTransform();};
+document.getElementById('zreset').onclick = ()=>{scale=0.75;panX=60;panY=20;applyTransform();};
+
+function applyTransform() {
+  panGroup.setAttribute('transform', `translate(${panX},${panY}) scale(${scale})`);
+}
+
+// ── SELECTION ─────────────────────────────────────────────────────
+function clearSelection() {
+  document.querySelectorAll('.node').forEach(x=>x.classList.remove('hi','dim','upstream','downstream'));
+  document.querySelectorAll('.edge').forEach(x=>x.classList.remove('hi','dim'));
+  sidepanel.innerHTML = DEFAULT_PANEL;
+}
+
+function selectNode(id) {
+  const el = document.querySelector(`.node[data-id="${id}"]`);
+  if (!el) return;
+
+  // Build adjacency within same sector
+  const sid = el.dataset.sector;
+  const succ={}, pred={};
+  document.querySelectorAll(`.edge[data-sid="${sid}"]`).forEach(e => {
+    const s=e.dataset.src, d=e.dataset.dst;
+    (succ[s]=succ[s]||[]).push(d); (pred[d]=pred[d]||[]).push(s);
+  });
+
+  function bfs(start, adj) {
+    const vis=new Set([start]); const q=[start];
+    while (q.length) {
+      const u=q.shift();
+      for (const v of (adj[u]||[])) { if (!vis.has(v)) { vis.add(v); q.push(v); } }
+    }
+    vis.delete(start); return vis;
+  }
+
+  const upstream = bfs(id, pred);
+  const downstream = bfs(id, succ);
+  const relevant = new Set([id,...upstream,...downstream]);
+
+  document.querySelectorAll('.node').forEach(x => {
+    x.classList.remove('hi','dim','upstream','downstream');
+    const xid = x.dataset.id;
+    if (xid===id) x.classList.add('hi');
+    else if (upstream.has(xid)) x.classList.add('upstream');
+    else if (downstream.has(xid)) x.classList.add('downstream');
+    else if (x.dataset.sector===sid) x.classList.add('dim');
+  });
+  document.querySelectorAll('.edge').forEach(x => {
+    const direct = x.dataset.src===id || x.dataset.dst===id;
+    const chain = relevant.has(x.dataset.src) && relevant.has(x.dataset.dst);
+    x.classList.toggle('hi', direct||chain);
+    x.classList.toggle('dim', !(direct||chain));
+  });
+
+  // Side panel
+  const detail = el.dataset.detail || '';
+  const out=[], inn=[];
+  document.querySelectorAll(`.edge[data-sid="${sid}"]`).forEach(x => {
+    if (x.dataset.src===id) out.push(x.dataset.dst);
+    if (x.dataset.dst===id) inn.push(x.dataset.src);
+  });
+  const typeColor = NODE_COLORS[el.dataset.type] || '#888';
+  sidepanel.innerHTML = `
+    <h2>${id}</h2>
+    <div class="fl">type</div><div class="fv" style="color:${typeColor}">${el.dataset.type}</div>
+    <div class="fl">detail</div><div class="fv">${esc(detail)}</div>
+    <div class="fl">full upstream chain — ${upstream.size} node(s)</div>
+    ${upstream.size ? [...upstream].map(u=>`<div class="er" data-jump="${u}">← ${u}</div>`).join('') : '<div class="empty">(none)</div>'}
+    <div class="fl">full downstream chain — ${downstream.size} node(s)</div>
+    ${downstream.size ? [...downstream].map(d=>`<div class="er" data-jump="${d}">→ ${d}</div>`).join('') : '<div class="empty">(none)</div>'}
+    <div class="fl">feeds into (direct)</div>
+    ${inn.length ? inn.map(i=>`<div class="er" data-jump="${i}">← ${i}</div>`).join('') : '<div class="empty">(none)</div>'}
+    <div class="fl">feeds to (direct)</div>
+    ${out.length ? out.map(o=>`<div class="er" data-jump="${o}">→ ${o}</div>`).join('') : '<div class="empty">(none)</div>'}
+  `;
+  sidepanel.querySelectorAll('.er').forEach(row => {
+    row.onclick = () => selectNode(row.dataset.jump);
+  });
+}
+
+// Click node
+document.addEventListener('click', e => {
+  const nodeEl = e.target.closest('.node');
+  if (!nodeEl) return;
+  selectNode(nodeEl.dataset.id);
+});
+
+// ── SECTOR NAV ────────────────────────────────────────────────────
+document.querySelectorAll('[data-sector]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeSector = btn.dataset.sector;
+    document.querySelectorAll('[data-sector]').forEach(b => b.classList.toggle('active', b.dataset.sector===activeSector));
+    applyVisibility();
+
+    // Auto-pan to sector center
+    const firstNode = document.querySelector(`[id^="sector-group-${activeSector}"] .node`);
+    if (firstNode && activeSector !== 'all') {
+      const x = parseFloat(firstNode.getAttribute('transform')?.match(/translate\(([^,]+)/)?.[1] || 0);
+      const y = parseFloat(firstNode.getAttribute('transform')?.match(/translate\([^,]+,\s*([^)]+)/)?.[1] || 0);
+      panX = wrap.clientWidth/2 - x*scale - 100;
+      panY = wrap.clientHeight/2 - y*scale - 80;
+      applyTransform();
+    }
+    clearSelection();
+  });
+});
+
+document.getElementById('panel-toggle').onclick = () => {
+  const hidden = sidepanel.classList.toggle('hidden');
+  wrap.classList.toggle('panel-hidden', hidden);
+};
+
+// ── INIT ──────────────────────────────────────────────────────────
+renderAll();
+applyTransform();
+</script>
+</body>
+</html>

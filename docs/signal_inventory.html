@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>📡 DDFI2 Signal Inventory — Captured vs Used vs Wasted</title>
+<style>
+  :root {
+    --bg: #0a0a0b; --panel: #111114; --accent: #e8420a; --fg: #d8d8dc; --muted: #7a7a80;
+    --c-used: #3ddc84; --c-captured: #4a9eff; --c-unused: #e8b923; --c-missing: #ff5c5c; --c-protocol: #6b6b70;
+  }
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body { background: var(--bg); color: var(--fg); font-family: 'Segoe UI', system-ui, sans-serif; overflow-x: hidden; }
+  #header { position:sticky; top:0; z-index:100; background:var(--panel); border-bottom:1px solid #222; padding:12px 24px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  #header h1 { font-size:15px; color:var(--accent); letter-spacing:1px; }
+  #header .sub { font-size:10px; color:var(--muted); }
+  .legend { display:flex; gap:10px; font-size:9px; margin-left:auto; flex-wrap:wrap; }
+  .ld { width:10px; height:10px; border-radius:2px; display:inline-block; margin-right:3px; }
+  #nav { display:flex; gap:4px; padding:8px 24px; background:var(--panel); flex-wrap:wrap; border-bottom:1px solid #1a1a1e; }
+  .nav-btn { padding:4px 10px; border:1px solid #222; border-radius:4px; cursor:pointer; font-size:10px; background:transparent; color:var(--muted); transition:all 0.12s; }
+  .nav-btn:hover { border-color:#444; color:var(--fg); }
+  .nav-btn.active { border-color:var(--accent); color:var(--accent); background:#1a0a0a; }
+  #search { background:#1a1a1e; border:1px solid #333; border-radius:4px; color:var(--fg); padding:4px 10px; font-size:10px; width:140px; font-family:monospace; }
+  #search:focus { outline:none; border-color:var(--accent); }
+  #main { padding:16px 24px 80px; max-width:1200px; margin:0 auto; }
+
+  /* Stats bar */
+  #stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:8px; margin-bottom:16px; }
+  .stat-card { padding:8px 12px; border:1px solid #1a1a1e; border-radius:6px; background:#0d0d0f; }
+  .stat-card .n { font-size:22px; font-weight:700; }
+  .stat-card .l { font-size:9px; color:var(--muted); }
+
+  table { width:100%; border-collapse:collapse; font-size:10px; }
+  th { text-align:left; padding:6px 8px; color:var(--muted); border-bottom:1px solid #222; font-weight:500; position:sticky; top:100px; background:var(--bg); }
+  td { padding:4px 8px; border-bottom:1px solid #1a1a1e; vertical-align:top; }
+  tr:hover { background:#111114; }
+  .sig-used { color:var(--c-used); }
+  .sig-captured { color:var(--c-captured); }
+  .sig-unused { color:var(--c-unused); }
+  .sig-missing { color:var(--c-missing); }
+  .sig-protocol { color:var(--c-protocol); }
+
+  .tag { display:inline-block; padding:1px 5px; border-radius:2px; font-size:8px; margin-right:2px; font-weight:600; }
+  .tag-used { background:#1a2a1a; color:var(--c-used); }
+  .tag-captured { background:#1a1a2a; color:var(--c-captured); }
+  .tag-unused { background:#2a1a1a; color:var(--c-unused); }
+  .tag-missing { background:#2a1a1a; color:var(--c-missing); }
+  .tag-external { background:#2a2a1a; color:#e8b923; }
+  .tag-derived { background:#1a1a2a; color:#88aaff; }
+  .summary-row td { padding:8px; background:#0a0a0f; }
+
+  .section-title { font-size:12px; color:var(--accent); margin:16px 0 8px; padding:6px 8px; background:var(--panel); border-radius:4px; letter-spacing:0.5px; display:flex; align-items:center; gap:8px; }
+  .section-title .badge { font-size:9px; padding:2px 6px; border-radius:3px; background:#1a1a1e; }
+
+  .byte-detail { font-size:9px; color:var(--muted); padding-left:16px; }
+  .byte-name { font-weight:500; color:var(--fg); }
+  .consumed-by { font-size:8px; color:#666; }
+  .note { color:#e8b923; font-style:italic; }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>📡 DDFI2 SIGNAL INVENTORY</h1>
+  <span class="sub">Todas las señales del protocolo DDFI2 vs qué capturamos, qué usamos, qué desperdiciamos</span>
+  <div class="legend">
+    <span><span class="ld" style="background:var(--c-used)"></span>✅ Usado</span>
+    <span><span class="ld" style="background:var(--c-captured)"></span>Capturado pero no usado</span>
+    <span><span class="ld" style="background:var(--c-unused)"></span>En RT_VARS pero no en CSV</span>
+    <span><span class="ld" style="background:var(--c-missing)"></span>NO capturado</span>
+    <input id="search" type="text" placeholder="Search signal...">
+  </div>
+</div>
+<div id="nav">
+  <button class="nav-btn active" data-filter="all">📊 Todas</button>
+  <button class="nav-btn" data-filter="used">✅ Usadas</button>
+  <button class="nav-btn" data-filter="captured">📥 Capturadas no usadas</button>
+  <button class="nav-btn" data-filter="missing">❌ No capturadas</button>
+  <button class="nav-btn" data-filter="derived">🧮 Derivadas</button>
+</div>
+<div id="main">
+
+<!-- STATS -->
+<div id="stats">
+  <div class="stat-card"><div class="n" style="color:var(--c-used)">58</div><div class="l">Señales RAW en protocolo DDFI2</div></div>
+  <div class="stat-card"><div class="n" style="color:var(--c-used)">21</div><div class="l">Usadas en pipeline de tuning</div></div>
+  <div class="stat-card"><div class="n" style="color:var(--c-captured)">16</div><div class="l">Capturadas en CSV pero NO usadas</div></div>
+  <div class="stat-card"><div class="n" style="color:var(--c-missing)">12</div><div class="l">En protocolo pero NO capturadas</div></div>
+  <div class="stat-card"><div class="n" style="color:var(--c-warn)">~500KB/h</div><div class="l">Datos inservibles en CSV por ride</div></div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1: SEÑALES ESENCIALES DE TUNING (USADAS) -->
+<!-- ============================================================ -->
+<div class="section-title">
+  ✅ Señales Usadas en el Pipeline de Tuning
+  <span class="badge">21 señales</span>
+</div>
+<table id="sig-table">
+<thead><tr>
+  <th>#</th><th>Señal</th><th>Offset</th><th>Tipo</th><th>Consumida por</th><th>Pipeline</th>
+</tr></thead>
+<tbody>
+<tr><td>1</td><td><span class="sig-used">RPM</span></td><td>11</td><td>uint16</td><td>launch.py, f7.py, vs_engine.py, vdyno.py, session.py</td><td>🏁 Fuel · 🔥 VDYNO · 🚀 Launch</td></tr>
+<tr><td>2</td><td><span class="sig-used">Load</span></td><td>27</td><td>uint8</td><td>session.py (cell index), vs_engine.py</td><td>🏁 Fuel (cell binning)</td></tr>
+<tr><td>3</td><td><span class="sig-used">TPD</span></td><td>25</td><td>uint16</td><td>display (UI chart)</td><td>📊 UI</td></tr>
+<tr><td>4</td><td><span class="sig-used">TPS_10Bit</span></td><td>90</td><td>uint16</td><td>protocol.py → TPS_V, TPS_pct</td><td>🏁 Fuel · 🚀 Launch</td></tr>
+<tr><td>5</td><td><span class="sig-used">CLT</span></td><td>30</td><td>uint16</td><td>launch.py, f7.py, session.py, CellTracker</td><td>🏁 Fuel (validity gate)</td></tr>
+<tr><td>6</td><td><span class="sig-used">MAT</span></td><td>32</td><td>uint16</td><td>f7.py (display), vdyno.py (potential rho)</td><td>🏁 Fuel · 🔥 VDYNO (light)</td></tr>
+<tr><td>7</td><td><span class="sig-used">Batt_V</span></td><td>28</td><td>uint16</td><td>launch.py (dead-time pending), error logging</td><td>🏁 Fuel (confounder)</td></tr>
+<tr><td>8</td><td><span class="sig-used">pw1</span></td><td>21</td><td>uint16</td><td>launch.py, f7.py, vs_engine.py, CellTracker</td><td>🏁 Fuel · 🔥 VDYNO</td></tr>
+<tr><td>9</td><td><span class="sig-used">pw2</span></td><td>23</td><td>uint16</td><td>launch.py, f7.py, vs_engine.py, CellTracker</td><td>🏁 Fuel · 🔥 VDYNO</td></tr>
+<tr><td>10</td><td><span class="sig-used">spark1</span></td><td>13</td><td>uint16</td><td>launch.py, vs_engine.py (_merge_maps)</td><td>⚡ Spark (display+merge)</td></tr>
+<tr><td>11</td><td><span class="sig-used">spark2</span></td><td>15</td><td>uint16</td><td>launch.py, vs_engine.py (_merge_maps)</td><td>⚡ Spark (display+merge)</td></tr>
+<tr><td>12</td><td><span class="sig-used">veCurr1</span></td><td>17</td><td>uint16</td><td>display (UI chart)</td><td>📊 UI</td></tr>
+<tr><td>13</td><td><span class="sig-used">veCurr2</span></td><td>19</td><td>uint16</td><td>display (UI chart)</td><td>📊 UI</td></tr>
+<tr><td>14</td><td><span class="sig-used">WUE</span></td><td>38</td><td>uint16</td><td>CellTracker (validity: WUE > 102 → invalid)</td><td>🏁 Fuel (validity gate)</td></tr>
+<tr><td>15</td><td><span class="sig-used">IAT_Corr</span></td><td>40</td><td>uint16</td><td>display, f7.py</td><td>🏁 Fuel (display)</td></tr>
+<tr><td>16</td><td><span class="sig-used">Accel_Corr</span></td><td>42</td><td>uint16</td><td>launch.py (classify), display</td><td>🏁 Fuel (classify gate)</td></tr>
+<tr><td>17</td><td><span class="sig-used">Decel_Corr</span></td><td>44</td><td>uint16</td><td>display</td><td>📊 UI</td></tr>
+<tr><td>18</td><td><span class="sig-used">WOT_Corr</span></td><td>46</td><td>uint16</td><td>display</td><td>📊 UI</td></tr>
+<tr><td>19</td><td><span class="sig-used">Idle_Corr</span></td><td>48</td><td>uint16</td><td>display</td><td>📊 UI</td></tr>
+<tr><td>20</td><td><span class="sig-used">OL_Corr</span></td><td>50</td><td>uint16</td><td>display</td><td>📊 UI</td></tr>
+<tr><td>21</td><td><span class="sig-used">Flags (DOut/DIn decoded)</span></td><td>84-85</td><td>bitfield</td><td>launch.py, f7.py, session.py, vs_engine.py</td><td>🏁 Fuel · ⚡ (fl_wot, fl_decel, etc.)</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: SEÑALES CAPTURADAS EN CSV PERO NO USADAS -->
+<!-- ============================================================ -->
+<div class="section-title">
+  📥 Capturadas en CSV pero NO usadas en el Pipeline de Tuning
+  <span class="badge">16 señales</span>
+</div>
+<table id="sig-table2">
+<thead><tr>
+  <th>#</th><th>Señal</th><th>Offset</th><th>Tipo</th><th>RAW/Derived</th><th>Por qué no se usa</th>
+</tr></thead>
+<tbody>
+<tr><td>1</td><td><span class="sig-captured">EGO_Corr</span></td><td>54</td><td>uint16</td><td>RAW ECU</td><td>LOCKED=100.0 — narrowband desconectado. Todo el pipeline de VE correction genera INACTIVE_NOISE</td></tr>
+<tr><td>2</td><td><span class="sig-captured">AFV</span></td><td>52</td><td>uint16</td><td>RAW ECU</td><td>LOCKED=100.0 — mismo problema. Si se instala wideband, ambos se vuelven la señal más valiosa</td></tr>
+<tr><td>3</td><td><span class="sig-captured">O2_ADC</span></td><td>34</td><td>uint16</td><td>RAW ECU</td><td>Se captura pero está en ~512 (2.5V) siempre. Narrowband desconectado = señal plana</td></tr>
+<tr><td>4</td><td><span class="sig-captured">CDiag0</span></td><td>67</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza (IDEA-005: fault pattern mining pendiente)</td></tr>
+<tr><td>5</td><td><span class="sig-captured">CDiag1</span></td><td>68</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza</td></tr>
+<tr><td>6</td><td><span class="sig-captured">CDiag2</span></td><td>69</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza</td></tr>
+<tr><td>7</td><td><span class="sig-captured">CDiag3</span></td><td>70</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza</td></tr>
+<tr><td>8</td><td><span class="sig-captured">CDiag4</span></td><td>—</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza (offset no está en XML, podría ser derivado de otros)</td></tr>
+<tr><td>9</td><td><span class="sig-captured">HDiag0</span></td><td>75</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza — contiene DTCs almacenados históricos</td></tr>
+<tr><td>10</td><td><span class="sig-captured">HDiag1</span></td><td>76</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza — bits: Coil1 low/high, Inj1 low/high, Batt low/high, IAT low/high</td></tr>
+<tr><td>11</td><td><span class="sig-captured">HDiag2</span></td><td>77</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza — bits: Tacho, FP, Inj2, Coil2 faults</td></tr>
+<tr><td>12</td><td><span class="sig-captured">HDiag3</span></td><td>78</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza — bits: Sync, ADC, EEPROM, Flash, RAM, Fan, BAS faults</td></tr>
+<tr><td>13</td><td><span class="sig-captured">HDiag4</span></td><td>—</td><td>uint8</td><td>RAW ECU</td><td>Nunca se analiza</td></tr>
+<tr><td>14</td><td><span class="sig-captured">BAS_ADC</span></td><td>65</td><td>uint16</td><td>RAW ECU</td><td>⚠️ Interruptor binario (tip-over ~55-60°). NO mide lean angle continuo. Solo DTC 44. Mantener capturado (2B/sample).</td></tr>
+<tr><td>15</td><td><span class="sig-captured">ETS_ADC</span></td><td>94</td><td>uint8</td><td>RAW ECU</td><td>Raw engine temp sensor. CLT ya cubre esto (conversión a °C incluida). Redundante.</td></tr>
+<tr><td>16</td><td><span class="sig-captured">IAT_ADC</span></td><td>95</td><td>uint8</td><td>RAW ECU</td><td>Raw intake temp sensor. MAT ya cubre esto. Redundante.</td></tr>
+<tr><td>17</td><td><span class="sig-captured">Rides</span></td><td>83</td><td>uint8</td><td>RAW ECU</td><td>Contador de rides desde último DTC. Baja utilidad.</td></tr>
+</tbody>
+</table>
+
+<!-- Maybe add some explanation for Flavor-flagged signals -->
+<div style="padding:6px 10px; background:#0d0d0f; border:1px solid #1a1a1e; border-radius:4px; margin:8px 0; font-size:9px; color:var(--muted);">
+  <b>⚠️ Nota:</b> Las columnas <code>dirty_byte_hex</code>, <code>dirty_byte_name</code>, <code>forensic_event</code> también se capturan en CSV pero solo sirven para diagnóstico de errores seriales. No entran al ciclo de tuning.
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 3: SEÑALES EN RT_VARIABLES PERO NO EN CSV -->
+<!-- ============================================================ -->
+<div class="section-title">
+  ❌ En Protocolo DDFI2 pero NO Capturados en CSV
+  <span class="badge">12 señales</span>
+</div>
+<table>
+<thead><tr><th>#</th><th>Señal</th><th>Offset</th><th>Tipo</th><th>Descripción</th><th>¿Vale la pena capturar?</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><span class="sig-missing">Coil1_ADC</span></td><td>86</td><td>uint8</td><td>Front ignition coil feedback signal</td><td>🔴 No — es monitor de salud eléctrica no ion sense. DTCs ya cubren esto (DTC 25)</td></tr>
+<tr><td>2</td><td><span class="sig-missing">Coil2_ADC</span></td><td>87</td><td>uint8</td><td>Rear ignition coil feedback signal</td><td>🔴 No — mismo que Coil1_ADC. DTC 24 cubre coil2 faults</td></tr>
+<tr><td>3</td><td><span class="sig-missing">Inj1_ADC</span></td><td>88</td><td>uint8</td><td>Injector feedback, front</td><td>🔴 Baja — es monitor de inyector (abierto/corto). DTC 23 cubre esto</td></tr>
+<tr><td>4</td><td><span class="sig-missing">Inj2_ADC</span></td><td>89</td><td>uint8</td><td>Injector feedback, rear</td><td>🔴 Baja — igual, DTC 32 cubre</td></tr>
+<tr><td>5</td><td><span class="sig-missing">Batt_ADC</span></td><td>92</td><td>uint16</td><td>Battery voltage raw 10-bit ADC</td><td>🔴 Redundante — ya tenemos Batt_V calibrado (offset 28) con scale=0.01</td></tr>
+<tr><td>6</td><td><span class="sig-missing">F_Pp_ADC</span></td><td>96</td><td>uint8</td><td>Fuel pump feedback signal</td><td>🔴 Baja — solo diagnóstico de bomba de gasolina</td></tr>
+<tr><td>7</td><td><span class="sig-missing">SysConfig</span></td><td>7</td><td>bitfield</td><td>System configuration byte</td><td>🟡 Media — podría revelar configuración de fábrica del ECU</td></tr>
+<tr><td>8</td><td><span class="sig-missing">CLT_F</span></td><td>30</td><td>uint16</td><td>Engine temp in Fahrenheit</td><td>🔴 Redundante — CLT ya está en °C</td></tr>
+<tr><td>9</td><td><span class="sig-missing">MAT_F</span></td><td>32</td><td>uint16</td><td>Air temp in Fahrenheit</td><td>🔴 Redundante — MAT ya está en °C</td></tr>
+<tr><td>10</td><td><span class="sig-missing">O2 (Volt)</span></td><td>34</td><td>uint16</td><td>O2 sensor voltage (0.004887585 V/bit)</td><td>🔴 Redundante — O2_ADC es el raw, O2 es la versión en voltios</td></tr>
+<tr><td>11</td><td><span class="sig-missing">TPP</span></td><td>27</td><td>uint8</td><td>Throttle percentage (secret=1)</td><td>🔴 Redundante — TPS_pct se calcula de TPS_10Bit más precisamente</td></tr>
+<tr><td>12</td><td><span class="sig-missing">BAS_Voltg</span></td><td>65</td><td>uint16</td><td>Bank angle sensor voltage</td><td>🔴 Redundante — BAS_ADC es el raw, este es calibrado a voltios</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- SECTION 4: SEÑALES DERIVADAS / INYECTADAS -->
+<!-- ============================================================ -->
+<div class="section-title">
+  🧮 Señales Derivadas e Inyectadas (no vienen del ECU)
+  <span class="badge">~30 señales</span>
+</div>
+<table>
+<thead><tr><th>#</th><th>Señal</th><th>Origen</th><th>Qué es</th><th>¿Se usa?</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><span class="tag tag-derived">TPS_V</span></td><td>Derivada de TPS_10Bit</td><td>TPS voltage calibrado</td><td>✅ Display</td></tr>
+<tr><td>2</td><td><span class="tag tag-derived">TPS_pct</span></td><td>Derivada de TPS_10Bit</td><td>TPS % (0.66-4.54V → 0-100%)</td><td>✅ Core (launch.py, f7.py, session.py)</td></tr>
+<tr><td>3</td><td><span class="tag tag-derived">VS_KPH</span></td><td>Derivada de VSS_Count</td><td>Velocidad en km/h</td><td>✅ Core (vdyno, launch, f7, vs_engine)</td></tr>
+<tr><td>4</td><td><span class="tag tag-derived">VSS_RPM_Ratio</span></td><td>Derivada</td><td>KPH per 1000RPM</td><td>✅ Gear detection</td></tr>
+<tr><td>5</td><td><span class="tag tag-derived">Gear</span></td><td>Derivada (GearFilter)</td><td>Marcha detectada</td><td>✅ Core</td></tr>
+<tr><td>6</td><td><span class="tag tag-derived">fl_* flags</span></td><td>Derivadas de Flags0-6</td><td>Engine state flags</td><td>✅ Core</td></tr>
+<tr><td>7</td><td><span class="tag tag-derived">do_* flags</span></td><td>Derivadas de DOut</td><td>Output states</td><td>✅ Display</td></tr>
+<tr><td>8</td><td><span class="tag tag-derived">di_* flags</span></td><td>Derivadas de DIn</td><td>Input states</td><td>✅ Core (di_neutral, di_clutch)</td></tr>
+<tr><td>9</td><td><span class="tag tag-derived">Unk63_b0..b7</span></td><td>Derivadas de Unk63</td><td>Bits de byte misterioso</td><td>❌ Solo análisis forense</td></tr>
+<tr><td>10</td><td><span class="tag tag-external">baro_hPa</span></td><td>BMP280 (sysmon)</td><td>Presión barométrica</td><td>✅ launch.py (baro_factor), vdyno.py (SAE J1349)</td></tr>
+<tr><td>11</td><td><span class="tag tag-external">baro_temp_c</span></td><td>BMP280 (sysmon)</td><td>Temperatura del sensor</td><td>❌ No usado (pero podría para air density)</td></tr>
+<tr><td>12</td><td><span class="tag tag-external">humidity_pct</span></td><td>AHT20 (sysmon)</td><td>Humedad relativa</td><td>❌ No usado (pero podría para air density, Receta 2)</td></tr>
+<tr><td>13</td><td><span class="tag tag-external">gps_lat</span></td><td>GPS (sysmon)</td><td>Latitud</td><td>❌ Para slope reference (GAP 4)</td></tr>
+<tr><td>14</td><td><span class="tag tag-external">gps_lon</span></td><td>GPS (sysmon)</td><td>Longitud</td><td>❌ Para slope reference</td></tr>
+<tr><td>15</td><td><span class="tag tag-external">gps_alt_m</span></td><td>GPS (sysmon)</td><td>Altitud GPS</td><td>✅ launch.py (dalt en classify), f7.py (gps_slope)</td></tr>
+<tr><td>16</td><td><span class="tag tag-external">gps_speed_kmh</span></td><td>GPS (sysmon)</td><td>Velocidad GPS</td><td>✅ VSS calibration, display</td></tr>
+<tr><td>17</td><td><span class="tag tag-external">gps_heading</span></td><td>GPS (sysmon)</td><td>Rumbo GPS</td><td>❌ No usado (Receta 3 pending)</td></tr>
+<tr><td>18</td><td><span class="tag tag-external">gps_heading_rate</span></td><td>GPS (derivada)</td><td>°/s — tasa de cambio de rumbo</td><td>❌ No usado (Receta 3 pending)</td></tr>
+<tr><td>19</td><td><span class="tag tag-external">gps_turning</span></td><td>GPS (derivada)</td><td>Indicador de giro</td><td>❌ No usado</td></tr>
+<tr><td>20</td><td><span class="tag tag-external">gps_satellites</span></td><td>GPS (sysmon)</td><td>Número de satélites</td><td>❌ Solo para calidad GPS</td></tr>
+<tr><td>21</td><td><span class="tag tag-external">gps_valid</span></td><td>GPS (sysmon)</td><td>Fix válido?</td><td>✅ f7.py (gps_quality gate)</td></tr>
+<tr><td>22</td><td><span class="tag tag-external">cpu_pct, cpu_temp, mem_pct, ttl_pct</span></td><td>sysmon</td><td>Estado del Raspberry Pi</td><td>❌ Solo debug</td></tr>
+<tr><td>23</td><td><span class="tag tag-external">bat_voltage, bat_soc</span></td><td>sysmon</td><td>Voltaje batería Pi</td><td>❌ Solo debug</td></tr>
+<tr><td>24</td><td><span class="tag tag-external">dirty_byte_hex</span></td><td>ECU error</td><td>Raw byte de frame corrupto</td><td>❌ Solo ride_errorlog_json</td></tr>
+<tr><td>25</td><td><span class="tag tag-external">dirty_byte_name</span></td><td>ECU error</td><td>Nombre del byte</td><td>❌ Solo ride_errorlog_json</td></tr>
+<tr><td>26</td><td><span class="tag tag-external">forensic_event</span></td><td>ECU error</td><td>Descripción del evento</td><td>❌ Solo ride_errorlog_json</td></tr>
+<tr><td>27</td><td><span class="tag tag-external">buf_in</span></td><td>Serial monitor</td><td>Bytes en buffer serial</td><td>❌ Solo debug</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- SECTION 5: BYTE MAP VISUAL -->
+<!-- ============================================================ -->
+<div class="section-title">
+  📊 Mapa de Bytes del Frame DDFI2 (offsets 0-98)
+  <span class="badge">~100 bytes</span>
+</div>
+<div style="font-family:'Consolas',monospace; font-size:8px; color:var(--muted); line-height:1.6; background:#0a0a0f; border:1px solid #1a1a1e; border-radius:4px; padding:8px;">
+<pre style="white-space:pre-wrap;">
+OFFSET  SIGNAL           SIZE  STATUS       NOTES
+──────  ───────────────  ────  ───────────  ──────────────────────
+00      SOH              1     🔵 Protocol  Start of Header (0x01)
+01      SRC              1     🔵 Protocol  Source
+02      DST              1     🔵 Protocol  Destination
+03      Len              1     🔵 Protocol  Payload length
+04      EOH              1     🔵 Protocol  End of Header (0xFF)
+05      SOT              1     🔵 Protocol  Start of Text (0x02)
+06      ACK              1     🔵 Protocol  Acknowledge (0x06)
+07      SysConfig        1     ❌ Missing   System config bitfield
+08      MilliSec         1     🔵 Protocol  10ms timer / 0.01
+09-10   Seconds          2     🔵 Protocol  Seconds since start
+11-12   RPM              2     ✅ Used
+13-14   spark1           2     ✅ Used      Scale 0.0025 → °
+15-16   spark2           2     ✅ Used      Scale 0.0025 → °
+17-18   veCurr1          2     ✅ Used      Scale 0.026666
+19-20   veCurr2          2     ✅ Used      Scale 0.026666
+21-22   pw1              2     ✅ Used      Scale 0.00133 → ms
+23-24   pw2              2     ✅ Used      Scale 0.00133 → ms
+25-26   TPD              2     ✅ Used      Scale 0.1 → °
+27      Load             1     ✅ Used      8-bit load
+28-29   Batt_V           2     ✅ Used      Scale 0.01 → V
+30-31   CLT              2     ✅ Used      Scale 0.1, -40 offset → °C
+32-33   MAT              2     ✅ Used      Scale 0.1, -40 offset → °C
+34-35   O2_ADC           2     📥 Captured  Narrowband (locked ~512)
+36-37   (unused)         2     ❓ Empty?    No defined signal
+38-39   WUE              2     ✅ Used      Scale 0.1 → %
+40-41   IAT_Corr         2     ✅ Used      Scale 0.1 → %
+42-43   Accel_Corr       2     ✅ Used      Scale 0.1 → %
+44-45   Decel_Corr       2     ✅ Used      Scale 0.1 → %
+46-47   WOT_Corr         2     ✅ Used      Scale 0.1 → %
+48-49   Idle_Corr        2     ✅ Used      Scale 0.1 → %
+50-51   OL_Corr          2     ✅ Used      Scale 0.1 → %
+52-53   AFV              2     📥 Captured  LOCKED=100
+54-55   EGO_Corr         2     📥 Captured  LOCKED=100
+56      Flags0           1     ✅ Used      Bitfield
+57      Flags1           1     ✅ Used      Bitfield
+58      Flags2           1     ✅ Used      Bitfield
+59      Flags3           1     ✅ Used      Bitfield
+60      Flags4           1     ✅ Used      Bitfield
+61      Flags5           1     📥 Captured  All bits empty :)
+62      Flags6           1     ✅ Used      Bitfield
+63-64   Unk63            2     📥 Captured  Analizado: Fire Event Window
+65-66   BAS_ADC          2     📥 Captured  🔴 Bank Angle Sensor — binario tip-over, NO continuo
+67      CDiag0           1     📥 Captured  Current DTCs byte 0
+68      CDiag1           1     📥 Captured  Current DTCs byte 1
+69      CDiag2           1     📥 Captured  Current DTCs byte 2
+70      CDiag3           1     📥 Captured  Current DTCs byte 3
+71      RDiag0           1     🔴 Protocol  Recent DTCs (secret)
+72      RDiag1           1     🔴 Protocol  Recent DTCs (secret)
+73      RDiag2           1     🔴 Protocol  Recent DTCs (secret)
+74      RDiag3           1     🔴 Protocol  Recent DTCs (secret)
+75      HDiag0           1     📥 Captured  Stored DTCs byte 0
+76      HDiag1           1     📥 Captured  Stored DTCs byte 1
+77      HDiag2           1     📥 Captured  Stored DTCs byte 2
+78      HDiag3           1     📥 Captured  Stored DTCs byte 3
+79      Unk79            1     ❌ Missing   Unknown
+80      Unk80            1     ❌ Missing   Unknown
+81      Unk81            1     ❌ Missing   Unknown
+82      Unk82            1     ❌ Missing   Unknown
+83      Rides            1     📥 Captured  Ride counter
+84      DOut             1     ✅ Used      Digital outputs
+85      DIn              1     ✅ Used      Digital inputs
+86      Coil1_ADC        1     ❌ Missing   Coil feedback front — no sirve para knock
+87      Coil2_ADC        1     ❌ Missing   Coil feedback rear
+88      Inj1_ADC         1     ❌ Missing   Injector feedback front
+89      Inj2_ADC         1     ❌ Missing   Injector feedback rear
+90-91   TPS_10Bit        2     ✅ Used      Raw TPS ADC
+92-93   Batt_ADC         2     ❌ Missing   Batt raw ADC (redundante)
+94      ETS_ADC          1     📥 Captured  Engine temp sensor raw
+95      IAT_ADC          1     📥 Captured  Intake air temp sensor raw
+96      F_Pp_ADC         1     ❌ Missing   Fuel pump feedback
+97      EOT              1     🔵 Protocol  End of Text (0x03)
+98      Checksum         1     🔵 Protocol  XOR checksum
+</pre>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 6: CONCLUSION / CALL TO ACTION -->
+<!-- ============================================================ -->
+<div style="margin-top:16px; border:1px solid #1a1a1e; border-radius:8px; padding:16px; background:#0d0d0f;">
+  <h2 style="font-size:13px; color:var(--accent); margin-bottom:8px;">📋 CONCLUSIONES</h2>
+  
+  <h3 style="font-size:11px; color:var(--muted); margin:8px 0 4px;">🔴 Datos que PODRÍAMOS dejar de capturar (ahorro ~500 KB/hora):</h3>
+  <ul style="font-size:10px; color:var(--muted); padding-left:16px; list-style:none;">
+    <li>❌ <b>CDiag0-4, HDiag0-4</b> (8 columnas, ~1 KB/hora cada una, nunca analizadas)</li>
+    <li>❌ <b>EGO_Corr, AFV, O2_ADC</b> (locked en 100/100/512, generan INACTIVE_NOISE en tuning_report)</li>
+    <li>❌ <b>dirty_byte_hex, dirty_byte_name, forensic_event</b> (3 columnas, solo en errorlog)</li>
+    <li>❌ <b>Unk63_b0..b7</b> (8 columnas, ya sabemos que es Fire Event Window — no útil)</li>
+  </ul>
+
+  <h3 style="font-size:11px; color:var(--muted); margin:8px 0 4px;">🟡 Datos que deberíamos EMPEZAR a usar (sin hardware nuevo):</h3>
+  <ul style="font-size:10px; color:var(--muted); padding-left:16px; list-style:none;">
+    <li>🔴 <b>BAS_ADC</b> — Bank Angle Sensor → es binario (tip-over), NO sirve para lean angle. Usar GPS heading_rate en su lugar.</li>
+    <li>🟡 <b>gps_heading_rate</b> — cornering analysis (Receta 3)</li>
+    <li>🟡 <b>humidity_pct + baro_temp_c</b> — air density correction para VDYNO (Receta 2)</li>
+    <li>🟡 <b>Batt_V</b> — dead-time correction (Receta 1, +2.3% shift confirmado)</li>
+  </ul>
+
+  <h3 style="font-size:11px; color:var(--muted); margin:8px 0 4px;">🟢 Datos que NO vale la pena capturar (aunque están en el protocolo):</h3>
+  <ul style="font-size:10px; color:var(--muted); padding-left:16px; list-style:none;">
+    <li>🟢 <b>Coil1_ADC, Coil2_ADC</b> — feedback de bobina, NO ion sense. DTC 24/25 cubren diagnóstico.</li>
+    <li>🟢 <b>Inj1_ADC, Inj2_ADC</b> — feedback de inyector. DTC 23/32 cubren.</li>
+    <li>🟢 <b>Batt_ADC, F_Pp_ADC</b> — redundantes con Batt_V calibrado.</li>
+    <li>🟢 <b>CLT_F, MAT_F, TPP, O2 (Volt)</b> — versiones redundantes de señales que ya tenemos.</li>
+  </ul>
+
+  <div style="margin-top:12px; padding:8px; background:#0a0a0f; border:1px solid #1a1a1e; border-radius:4px; font-size:10px; color:var(--muted);">
+    <b>💡 Hallazgo clave:</b> De 58 señales RAW en el protocolo DDFI2, solo <b>21 se usan realmente en el pipeline de tuning</b> (36%). 
+    Otras <b>16 se capturan en CSV pero nunca se analizan</b> — incluyendo datos que generan ~500 KB/hora de storage inservible. 
+    Y <b>12 señales ni siquiera se capturan</b> — aunque la mayoría son redundantes o de bajo valor. 
+    Las señales externas (GPS, baro, humedad) añaden ~15 señales más, de las cuales menos de la mitad se aprovechan realmente.
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+document.getElementById('search').addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  document.querySelectorAll('table tbody tr').forEach(r => {
+    if (!q) { r.style.display = ''; return; }
+    const match = r.textContent.toLowerCase().includes(q);
+    r.style.display = match ? '' : 'none';
+  });
+});
+
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const filter = btn.dataset.filter;
+    document.querySelectorAll('.section-title').forEach(s => s.style.display = '');
+    document.querySelectorAll('table').forEach(t => t.style.display = '');
+    if (filter === 'used') {
+      // Hide non-used sections
+      document.querySelectorAll('.section-title')[1].style.display = 'none';
+      document.querySelectorAll('table')[1].style.display = 'none';
+      document.querySelectorAll('.section-title')[2].style.display = 'none';
+      document.querySelectorAll('table')[2].style.display = 'none';
+      document.querySelectorAll('.section-title')[3].style.display = 'none';
+      document.querySelectorAll('table')[3].style.display = 'none';
+    } else if (filter === 'captured') {
+      document.querySelectorAll('.section-title')[0].style.display = 'none';
+      document.querySelectorAll('table')[0].style.display = 'none';
+      document.querySelectorAll('.section-title')[2].style.display = 'none';
+      document.querySelectorAll('table')[2].style.display = 'none';
+      document.querySelectorAll('.section-title')[3].style.display = 'none';
+      document.querySelectorAll('table')[3].style.display = 'none';
+    } else if (filter === 'missing') {
+      document.querySelectorAll('.section-title')[0].style.display = 'none';
+      document.querySelectorAll('table')[0].style.display = 'none';
+      document.querySelectorAll('.section-title')[1].style.display = 'none';
+      document.querySelectorAll('table')[1].style.display = 'none';
+      document.querySelectorAll('.section-title')[3].style.display = 'none';
+      document.querySelectorAll('table')[3].style.display = 'none';
+    } else if (filter === 'derived') {
+      document.querySelectorAll('.section-title')[0].style.display = 'none';
+      document.querySelectorAll('table')[0].style.display = 'none';
+      document.querySelectorAll('.section-title')[1].style.display = 'none';
+      document.querySelectorAll('table')[1].style.display = 'none';
+      document.querySelectorAll('.section-title')[2].style.display = 'none';
+      document.querySelectorAll('table')[2].style.display = 'none';
+    }
+  });
+});
+
+// Open only first section by default
+</script>
+
+<div style="position:fixed; bottom:8px; right:12px; font-size:9px; color:var(--muted); z-index:50;">
+  Fuente: rtdata.xml (328KB) + protocol.py + código fuente del repo
+</div>
+</body>
+</html>
