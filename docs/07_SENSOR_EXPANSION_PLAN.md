@@ -9,7 +9,15 @@ The stock DDFI2 ECU provides critical engine data but lacks high-fidelity enviro
 
 ### Combustion & Tuning (High Priority)
 - **Wideband O2 (Spartan 3 OEM):** For precise VE table tuning. Interface: I2C.
-- **EGT (Exhaust Gas Temp):** K-Type thermocouples with MAX31855. Interface: SPI.
+- **Thermocouples K-Type (MAX31850):** Actual hardware in hand (2 units, more on
+  order) uses **MAX31850, not MAX31855** — 1-Wire, not SPI. Multiple sensors
+  share a single GPIO pin (each has a unique 64-bit ROM id); confirmed via the
+  kernel w1-gpio/w1-therm driver (manual Python bit-banging does not meet
+  1-Wire timing requirements reliably). Rollout plan (see `BACKLOG.md`
+  BL-PWMODEL-01): Phase 1 non-invasive clamp sensors at each spark plug boss
+  (front + rear cylinder head proxy) and each exhaust pipe exterior (front +
+  rear EGT proxy); Phase 2 replaces the exhaust clamps with real EGT + wideband
+  lambda sensors inside the exhaust once bungs are welded in.
 - **Oil Pressure/Temp:** 0-5V Analog sensors via ADC.
 
 ### Environmental (Forensic Data)
@@ -32,9 +40,12 @@ I2C y SPI NO están habilitados por defecto.
 Habilitar via: sudo raspi-config → Interface Options
 
 Pines físicos disponibles (sin conflicto con FT232 en USB):
-- I2C: GPIO2 (SDA, pin 3) + GPIO3 (SCL, pin 5)
-- SPI: GPIO10 (MOSI), GPIO9 (MISO), GPIO11 (SCLK), GPIO8 (CE0), GPIO7 (CE1)
+- I2C: GPIO2 (SDA, pin 3) + GPIO3 (SCL, pin 5) — nativo
+- I2C bit-banged (ya en uso, ver `/boot/firmware/config.txt`): GPIO22 (SDA) + GPIO23 (SCL), bus=2
+- SPI: GPIO10 (MOSI), GPIO9 (MISO), GPIO11 (SCLK), GPIO8 (CE0), GPIO7 (CE1) — deshabilitado hoy
 - UART: GPIO14 (TX, pin 8) + GPIO15 (RX, pin 10) — compartido con consola serial
+- 1-Wire (MAX31850): GPIO4 (pin 7) — libre, confirmado sin conflicto (2026-07-05).
+  Habilitar con `dtoverlay=w1-gpio` en `/boot/firmware/config.txt` (requiere reboot).
 - Analógico: requiere ADC externo (MCP3008 vía SPI) — Pi Zero no tiene ADC nativo
 
 ## 5. Limitaciones de hardware
@@ -49,7 +60,7 @@ La Pi Zero 2W tiene recursos limitados:
 | Sensor | Prioridad | Interfaz | Módulo futuro | Estado |
 |--------|-----------|----------|---------------|--------|
 | Wideband O2 (Spartan 3) | Alta | I2C | sensors/lambda.py | Pendiente |
-| EGT K-Type (MAX31855) | Alta | SPI | sensors/egt.py | Pendiente |
+| Termopares K-Type (MAX31850 x2-4) | Alta | 1-Wire | `sensors/max31850.py` | **Driver escrito (2026-07-05), sin hardware conectado aun** |
 | GPS (Ublox M8N) | Media | UART | sensors/gps.py | Pendiente |
 | IMU (LSM6DSO) | Media | I2C | sensors/imu.py | Pendiente |
 | BME280 Airbox | Baja | I2C | sensors/environment.py | Pendiente |
