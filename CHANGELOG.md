@@ -21,6 +21,22 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.280] — 2026-07-05
+### Added
+- Inferred Active Muffler Control (AMC / exhaust valve) status column,
+  `fl_amc_active_inferred`, in the ride CSV. DDFI-2's live telemetry frame does
+  not report AMC drive/feedback state (confirmed against `ecu_defs/rtdata.xml`:
+  the "Active Muffler Output" bit only exists for DDFI-3) -- this is computed
+  from RPM + WOT flag against the EEPROM-decoded AMC config (feature enable,
+  WOT-only condition, and the 3 RPM activation regions), not measured. `None`
+  when the inference can't be made (feature disabled/RPM unknown); `False`
+  means "known closed". New `ecu/ecm_defs.py: decode_amc_config()` /
+  `is_amc_active()`, wired into `ecu/session.py` (`open_session`/`write_sample`),
+  both wrapped defensively so a decode/inference failure can never crash the
+  recording loop -- worst case the column is `None` for that sample.
+### AI
+- Claude Opus 4.8
+
 ## [v2.7.279] — 2026-07-04
 ### Fixed
 - Bike-identity bug when the Pi is moved between motorcycles. A ride could be

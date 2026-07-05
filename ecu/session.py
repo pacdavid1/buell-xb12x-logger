@@ -27,6 +27,7 @@ from pathlib import Path
 
 from ecu.protocol import CSV_COLUMNS, RPM_BINS, LOAD_BINS
 from ecu.version_resolver import resolve_ecu
+from ecu.ecm_defs import decode_amc_config, is_amc_active
 
 # Below this peak RPM a ride is treated as idle/bench-only and tagged idle_only=True
 # (never deleted). Keyed by DDFI family: DDFI-2 = XB12 (idles ~1000), DDFI-3 = 1125
@@ -113,6 +114,7 @@ class SessionManager:
         self.current_part        = 1
         self.current_part_rows   = 0
         self.ride_rpm_max        = 0.0   # peak RPM of the current ride (for idle_only tagging)
+        self._amc_config         = None  # decoded Active Muffler Control config (see open_session)
 
     def _checksum(self, blob):
         """Calculate session checksum from tune region of EEPROM blob.
@@ -165,6 +167,11 @@ class SessionManager:
         self.current_checksum = new_cs
         self.current_session_dir, self.session_metadata = self._load_or_create(new_cs, version_str)
         self.logger.info(f"Session active: {new_cs} | firmware={version_str}")
+        try:
+            self._amc_config = decode_amc_config(blob, version_str)
+        except Exception as e:
+            self.logger.debug(f"AMC config decode failed: {e}")
+            self._amc_config = None
         eeprom_file = self.current_session_dir / "eeprom.bin"
         return not eeprom_file.exists()
 
@@ -223,6 +230,13 @@ class SessionManager:
         row["timestamp_iso"]  = datetime.fromtimestamp(wall_time, tz=timezone.utc).isoformat()
         row["time_elapsed_s"] = round(time.monotonic() - self.ride_start_time, 3)
         self.last_elapsed_s   = row["time_elapsed_s"]
+        try:
+            row["fl_amc_active_inferred"] = is_amc_active(
+                data_dict.get("RPM"), data_dict.get("fl_wot"), self._amc_config
+            )
+        except Exception as e:
+            self.logger.debug(f"AMC inference failed: {e}")
+            row["fl_amc_active_inferred"] = None
         self.current_writer.writerow(row)
         self.ride_sample_count  += 1
         self.current_part_rows  += 1

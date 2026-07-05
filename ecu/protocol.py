@@ -372,6 +372,7 @@ CSV_COLUMNS: list[str] = [
     "VSS_Count", "VS_KPH", "Fan_Duty_Pct", "VSS_RPM_Ratio", "Gear",
     "dirty_byte_hex", "dirty_byte_name", "forensic_event",
     "fl_engine_run", "fl_o2_active", "fl_accel", "fl_decel", "fl_engine_stop", "fl_wot", "fl_ignition",
+    "fl_amc_active_inferred",
     "fl_closed_loop", "fl_rich", "fl_learn",
     "fl_cam_active", "fl_kill", "fl_immob",
     "fl_fuel_cut",

@@ -251,3 +251,69 @@ def get_eeprom_pages(version_string: str) -> list[tuple[int, int, int]]:
         nr += 1
         start += length
     return pages
+
+
+# ── Active Muffler Control (AMC / exhaust valve) ────────────────────────────
+# DDFI-2's live telemetry frame does not report AMC drive/feedback state
+# (that field only exists for DDFI-3 in ecu_defs/rtdata.xml). This decodes the
+# EEPROM tune config so callers can INFER whether the valve should be active
+# from RPM + WOT, since it cannot be measured directly on this platform.
+
+_AMC_CONFIG_NAME = "Active Muffler Configuration"
+_AMC_REGION_NAMES = [
+    ("AMC Region 1 Lower RPM", "AMC Region 1 Upper RPM"),
+    ("AMC Region 2 Lower RPM", "AMC Region 2 Upper RPM"),
+    ("AMC Region 3 Lower RPM", "AMC Region 3 Upper RPM"),
+]
+
+
+def decode_amc_config(blob: bytes, version_string: str) -> dict | None:
+    """Decode Active Muffler Control settings from an EEPROM blob.
+
+    Returns None if this firmware's XML has no AMC definition (older/other
+    firmware families may not have the feature at all).
+    """
+    if not blob:
+        return None
+    xml_path = _xml_path(version_string)
+    if not xml_path or not xml_path.exists():
+        return None
+    entries = {e["name"]: e for e in _entries(xml_path)}
+    cfg = entries.get(_AMC_CONFIG_NAME)
+    if not cfg or cfg["offset"] >= len(blob):
+        return None
+    cfg_byte = blob[cfg["offset"]]
+
+    regions = []
+    for lower_name, upper_name in _AMC_REGION_NAMES:
+        lo, hi = entries.get(lower_name), entries.get(upper_name)
+        if not lo or not hi or hi["offset"] >= len(blob):
+            continue
+        regions.append((blob[lo["offset"]] * lo["scale"], blob[hi["offset"]] * hi["scale"]))
+
+    return {
+        "enabled": bool((cfg_byte >> 7) & 1),           # bit8: Enable AMC feature
+        "wot_only": bool((cfg_byte >> 0) & 1),          # bit1: Only actuate if in WOT condition
+        "on_without_wot": bool((cfg_byte >> 1) & 1),    # bit2: AMC on even if not in WOT condition
+        "off_on_noise_abatement": bool((cfg_byte >> 3) & 1),  # bit4
+        "regions": regions,
+    }
+
+
+def is_amc_active(rpm: float | None, fl_wot: int | None, amc_config: dict | None) -> bool | None:
+    """Infer whether the Active Muffler valve should be open right now.
+
+    This is INFERRED from the same activation logic the ECU firmware uses
+    (RPM windows + WOT condition read from the EEPROM tune) -- it is NOT a
+    measured signal. DDFI-2 has no live AMC status bit to confirm the valve
+    actually moved (see decode_amc_config docstring). A stuck/failed valve
+    would not be detected by this function.
+
+    Returns None when the inference cannot be made (no config, feature
+    disabled, or RPM unknown), not False -- False means "known to be closed".
+    """
+    if not amc_config or not amc_config.get("enabled") or rpm is None:
+        return None
+    if amc_config.get("wot_only") and not fl_wot:
+        return False
+    return any(lo <= rpm <= hi for lo, hi in amc_config.get("regions", []))
