@@ -1,5 +1,51 @@
 # BACKLOG — Buell Logger / Tuner
 
+### BL-PWMODEL-01 -- PW simulator: de calculadora aislada a herramienta de modelado + sensor termico nuevo (2026-07-05)
+
+Contexto: se audito y corrigio el PW simulator standalone
+(`DDFI2 PW REVENGINEERING/pw_simulator_v5.html`, fuera del repo buell -- ver
+`REPORTE_DE_HALLAZGOS.md` en esa carpeta). El modelo M5 (R2=0.9566, cross-val
+R2=0.963 en sesion distinta) ya quedo validado. Quedan pendientes dos
+decisiones de producto antes de invertir mas en esta linea, mas una pieza de
+hardware nueva que las conecta:
+
+- [ ] **Pregunta abierta -- utilidad real para tuning.** El usuario cuestiona
+      si mover sliders manualmente en un simulador aislado sirve de algo
+      practico para tunear un mapa ("no me imagino como"). Evaluar: la
+      calculadora aporta valor como EXPLORACION/validacion de hipotesis (ver
+      el efecto antes de quemar), no como reemplazo de PROPONER (proposal.py).
+      Decidir entre (a) integrar su logica (calcPW/calcA, coeficientes M5)
+      directamente en el dashboard principal (tuner.html o un endpoint nuevo)
+      para que alimente automaticamente las propuestas de FASE 6, en vez de
+      ser una pagina HTML aparte que hay que operar a mano; o (b) dejarla solo
+      como documentacion/validacion del modelo PW, sin invertir en integrarla.
+
+- [ ] **Integrar datos de rides para modelar TEMPERATURA a partir de los
+      pulsos (PW).** Extender el modelo M5 (u otro nuevo) para predecir/
+      explicar temperatura (CLT, cabezote, escape, etc.) en funcion de PW
+      acumulado + RPM + tiempo, no solo PW en funcion de fuel/WUE/Batt. Mas
+      rides = mas datos para validar un modelo termico real. Requiere
+      sensores de temperatura reales para validar contra la prediccion (no
+      solo el CLT que ya reporta el ECU) -- ver siguiente item.
+
+- [ ] **Nuevo sensor: termopar tipo K + modulo MAX31850** (ya en mano,
+      pendiente de instalar). A diferencia de AHT20/CW2015 (I2C, ver
+      `sensors/aht20.py`), el MAX31850 es **1-Wire** con compensacion de
+      union fria integrada -- protocolo distinto (en la Pi tipicamente via
+      `w1-gpio`/`w1-therm` o lectura directa del bus 1-Wire, no smbus2).
+      Definir DONDE se coloca fisicamente el termopar (culata? escape?
+      cerca del inyector?) ANTES de escribir el driver -- el punto de
+      medicion determina que modelo termico es siquiera posible construir.
+
+Impacto: MEDIO-ALTO -- si se resuelve la pregunta de integracion, esto puede
+alimentar FASE 6 (propuesta unificada) y ser el primer modelo termico real
+del proyecto. Esfuerzo: ALTO (sensor nuevo + protocolo 1-Wire nuevo + modelo
+termico nuevo + decision de arquitectura sobre integrar o no el simulador).
+Relacionado: [BL-BURN-01] (los objetivos de prueba fan@300 / bateria baja ya
+apuntaban a necesitar mas sensores de temperatura), FASE 6 -- unified map proposal.
+
+---
+
 ### BL-BURN-01 -- Caracterizacion bit a bit del mapa: rango de valores + validacion de quemado + acople al CSV (2026-07-04)
 
 Objetivo global: tener NOCION del rango de valor de cada bit/parametro modificable
