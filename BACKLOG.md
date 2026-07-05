@@ -28,14 +28,28 @@ hardware nueva que las conecta:
       sensores de temperatura reales para validar contra la prediccion (no
       solo el CLT que ya reporta el ECU) -- ver siguiente item.
 
-- [ ] **Nuevo sensor: termopar tipo K + modulo MAX31850** (ya en mano,
-      pendiente de instalar). A diferencia de AHT20/CW2015 (I2C, ver
+- [ ] **Nuevo sensor: termopar tipo K + modulo MAX31850** (2 unidades en mano,
+      comprando mas). A diferencia de AHT20/CW2015 (I2C, ver
       `sensors/aht20.py`), el MAX31850 es **1-Wire** con compensacion de
       union fria integrada -- protocolo distinto (en la Pi tipicamente via
       `w1-gpio`/`w1-therm` o lectura directa del bus 1-Wire, no smbus2).
-      Definir DONDE se coloca fisicamente el termopar (culata? escape?
-      cerca del inyector?) ANTES de escribir el driver -- el punto de
-      medicion determina que modelo termico es siquiera posible construir.
+
+      Confirmado: el CLT de fabrica del ECU esta en el **cilindro trasero**
+      -- el delantero esta ciego hoy. Plan de instalacion en 2 fases:
+
+      - **Fase 1 (ahora, con lo que ya se tiene):** termopares no invasivos --
+        uno en cada bujia (culata front + rear, sensor de contacto/abrazadera)
+        y uno en cada tubo de escape por fuera (proxy externo de temp de gases,
+        sin cortar/soldar nada). Conectar los 2 sensores actuales a la Pi via
+        MAX31850 (1-Wire) como primer paso.
+      - **Fase 2 (cuando lleguen los bungs):** sensores lambda (wideband O2 --
+        ver "Future -- when WB sensor is added" en CLAUDE.md, esto es
+        justo esa pieza) y EGT reales DENTRO del escape, mas invasivo pero
+        mas representativo de temp de gases real que el clamp externo.
+
+      Con 2 termopares (bujia front/rear) + 2 (escape front/rear) = 4 canales
+      nuevos totales una vez completado. Define en la practica si front/rear
+      corren distinto -- informacion que ni el ECU ni ningun sensor actual dan.
 
 Impacto: MEDIO-ALTO -- si se resuelve la pregunta de integracion, esto puede
 alimentar FASE 6 (propuesta unificada) y ser el primer modelo termico real
