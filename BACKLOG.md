@@ -1,5 +1,46 @@
 # BACKLOG — Buell Logger / Tuner
 
+### BL-BURN-01 -- Caracterizacion bit a bit del mapa: rango de valores + validacion de quemado + acople al CSV (2026-07-04)
+
+Objetivo global: tener NOCION del rango de valor de cada bit/parametro modificable
+del mapa, incorporarlo a los calculos de las propuestas (proposal), y poder MEDIR el
+efecto de cambios puntuales contra el registro del CSV con objetivos de prueba definidos.
+
+Cuatro bloques:
+
+- [ ] **Validacion de quemado bit a bit (checksum como invariante).**
+      El session_id parece SER el checksum del EEPROM (ej. sesion 91B225). Prueba:
+      en 91B225, cambiar UN bit -> el checksum debe cambiar; revertir ese mismo bit
+      -> el checksum debe regresar a 91B225. Confirma que el pipeline de lectura/
+      escritura/checksum es reversible y determinista antes de confiar en un quemado.
+      (NO ejecutar con la moto conectada / logger activo sin control -- burn real.)
+
+- [ ] **Rango/limite por parametro desde el XML de definiciones.**
+      Revisar si el XML (ecu_defs) trae min/max/rango o factor de escala para cada
+      parametro que podemos mover. Extraer y exponer ese rango por bit/celda.
+      Sirve para: (a) no proponer valores fuera de rango, (b) saber cuanto "pesa"
+      cada bit en unidades fisicas.
+
+- [ ] **Acople rango -> propuestas (proposal.py).** Que los calculos de propuestas
+      de modificacion consideren el rango valido de cada parametro (clamp + resolucion
+      del bit) en vez de sugerir deltas ciegos. Ver [BACKLOG_PROPOSAL_V2.md].
+
+- [ ] **Acople cambio de mapa -> registro del CSV (medir efecto).** Poder asociar un
+      cambio puntual quemado al CSV para monitorear su efecto. Definir OBJETIVOS DE
+      PRUEBA que caractericen el comportamiento, p.ej.:
+        - Fan active en 300: ¿la temp sube con el fan?, ¿se estabiliza?, ¿sigue creciendo?
+        - Mover AE (acceleration enrichment) y observar respuesta.
+        - Mover enriquecimiento cuando baja la bateria (~.19V?) con el fan activo.
+      Cada objetivo = un experimento controlado: cambio conocido en el mapa -> ride ->
+      metrica en el CSV -> conclusion sobre el comportamiento de ese parametro.
+
+Impacto: ALTO -- convierte el tuning de "propuesta ciega" a "cambio caracterizado y medido".
+Esfuerzo: ALTO -- toca lectura/checksum EEPROM, parser XML de rangos, proposal.py y
+correlacion con CSV. Empezar por el bloque 1 (validacion checksum, barato y de base).
+Relacionado: [BACKLOG_ECM_DEFS.md], [BACKLOG_PROPOSAL_V2.md].
+
+---
+
 ### BL-GPS-06 -- gpsd deja de entregar TPV durante el ride (gps_stale ~22%)
 
 Sintoma: en el mapa el GPS "se pierde" y brinca. En 91B225/ride_003 el receptor
