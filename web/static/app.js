@@ -126,15 +126,19 @@ function _widgetVal(id, lv){
   }
 }
 
+function _combineLabel(label, unit){
+  return label.toLowerCase()===String(unit).toLowerCase() ? label : label+' '+unit;
+}
+
 function _paintA(lv){
   const m=_WA[_waIdx], card=$id('cardWidgetA');
   if(!card) return;
-  $id('waLabel').textContent=m.label;
-  $id('waUnit').textContent=m.unit;
+  $id('waLabel').textContent=_combineLabel(m.label,m.unit);
   const {v,col}=_widgetVal(m.id,lv);
   $id('waVal').textContent=v;
   $id('waVal').style.color=col;
   card.style.borderTopColor=col;
+  if(typeof fitLabels==='function') fitLabels();
 }
 
 

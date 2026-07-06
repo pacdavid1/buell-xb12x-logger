@@ -70,7 +70,7 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospa
   .hdr-row{gap:4px}
   .hs,.hs-sm{flex:1;width:auto;min-width:0;flex-shrink:1}
   .hs-val{font-size:20px}
-  .big-num{font-size:64px}
+  .big-num{font-size:45px}
 }
 
 
@@ -92,7 +92,7 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospa
            letter-spacing:.12em;text-transform:uppercase;
            writing-mode:vertical-rl;transform:rotate(180deg);
            white-space:nowrap;flex-shrink:0;line-height:1}
-.big-num{font-size:80px;font-weight:900;line-height:1;letter-spacing:-.02em}
+.big-num{font-size:56px;font-weight:900;line-height:1;letter-spacing:-.02em}
 .big-unit{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:2px}
 .big-val-row{display:flex;align-items:baseline;gap:4px}
 .big-unit-inline{font-family:var(--mono);font-size:14px;color:var(--dim);font-weight:400;line-height:1}
@@ -374,25 +374,22 @@ table.veg td:active{filter:brightness(1.6)}
   </div>
   <div class="big-display" id="bigDisplay">
     <div class="big-card hot" id="cardCHT">
-      <span class="big-label">CHT</span>
+      <span class="big-label">CHT °C</span>
       <div class="big-val-row">
         <div class="big-num ac" id="bigCHT">--</div>
-        <span class="big-unit-inline">°C</span>
       </div>
     </div>
     <div class="big-card" id="cardKPH" style="border-top-color:#2ecc71">
       <span class="big-label">KPH</span>
       <div class="big-val-row">
         <div class="big-num" style="color:#2ecc71" id="bigKPH">--</div>
-        <span class="big-unit-inline">km/h</span>
       </div>
     </div>
     <div class="big-card tps" id="cardTPS">
-      <span class="big-label">TPS</span>
+      <span class="big-label">TPS %</span>
       <div>
       <div class="big-val-row">
         <div class="big-num bl" id="bigTPS">--</div>
-        <span class="big-unit-inline">%</span>
       </div>
       <div style="font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:2px">
         <span id="bigTPSPct" style="color:var(--blue);font-weight:700">--°</span>
@@ -406,7 +403,6 @@ table.veg td:active{filter:brightness(1.6)}
       <span class="big-label" id="waLabel">RPM</span>
       <div class="big-val-row">
         <div class="big-num" id="waVal" style="color:#ff4444">--</div>
-        <span class="big-unit-inline" id="waUnit">rpm</span>
       </div>
       <div id="waMenu" class="wa-menu"></div>
     </div>
@@ -772,6 +768,7 @@ function fitLabels(){
   });
 }
 window.addEventListener('resize',fitLabels);
+document.addEventListener('DOMContentLoaded',fitLabels);
 setTimeout(fitLabels,150);
 </script>
 <script>document.addEventListener('click',e=>{if(!e.target.closest('.nav-menu'))document.getElementById('navDrop').classList.remove('open')});</script><script>

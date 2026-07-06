@@ -21,6 +21,27 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.283] — 2026-07-05
+### Changed
+- Dashboard 2x2 big-display grid (CHT/KPH/TPS/widget-A): merged each tile's
+  unit into its rotated 90° label instead of showing it twice (`CHT` + `°C`
+  -> `CHT °C`; `TPS` + `%` -> `TPS %`; dropped the redundant `km/h` next to
+  `KPH` since the label already is the unit). Configurable widget A
+  (`_paintA` in `app.js`) now builds the same combined label via
+  `_combineLabel()`, collapsing label+unit into one when they're the same
+  word (e.g. `RPM`+`rpm` -> `RPM`) instead of showing both.
+- Reduced `.big-num` font-size ~30% (80px->56px desktop, 64px->45px mobile)
+  -- the previous size overflowed the tile at a glance.
+### Fixed
+- `fitLabels()` (auto-sizes the rotated big-card labels to fit the tile
+  height) was only ever wired to the `resize` event, never called on
+  initial page load or after `_paintA()` changed the label text -- so
+  labels rendered at the browser-default size until the window was
+  resized, overlapping/clipping inside the tile. Now also runs on
+  `DOMContentLoaded` and after every `_paintA()` update.
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.282] — 2026-07-05
 ### Fixed
 - `/fuel/status` took 69s and hung the (single-threaded) dev server once any
