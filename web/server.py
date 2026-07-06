@@ -143,8 +143,6 @@ class DashboardHandler(
             '/sessions_launch/data': self._handle_sessions_launch_data,
             '/fuel': self._handle_fuel,
             '/fuel/status': self._handle_fuel_status,
-            '/fuel/reserve': self._handle_fuel_reserve,
-            '/fuel/refuel': self._handle_fuel_refuel,
             '/fuel/consumption': self._handle_fuel_consumption,
         }
         handler = _routes.get(path)
@@ -204,6 +202,8 @@ class DashboardHandler(
             '/eeprom/burn':       self._handle_eeprom_burn,
             '/eeprom/revert':     self._handle_eeprom_revert,
             '/eeprom/propose':    self._handle_eeprom_propose_post,
+            '/fuel/reserve':      self._handle_fuel_reserve,
+            '/fuel/refuel':       self._handle_fuel_refuel,
         }
         handler = _routes.get(path)
         if handler:

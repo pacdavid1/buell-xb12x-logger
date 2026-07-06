@@ -1,5 +1,4 @@
 # DEV NOTE: All code, comments, and variable names must be in English.
-import json
 from pathlib import Path
 
 from web.utils import _get_version
@@ -18,22 +17,19 @@ class FuelHandlerMixin:
         sessions_dir = str(buell / 'sessions')
         self._json(fuel_tracker.get_status(sessions_dir, buell_dir=str(buell)))
 
-    def _handle_fuel_reserve(self, path=None):
-        try:
-            body = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
-            active = bool(body.get('active', True))
-        except Exception:
-            active = True
+    def _handle_fuel_reserve(self, path=None, payload=None):
+        payload = payload or {}
+        active = bool(payload.get('active', True))
         buell = self.server_instance.buell_dir
         sessions_dir = str(buell / 'sessions')
         self._json(fuel_tracker.toggle_reserve(active, sessions_dir, buell_dir=str(buell)))
 
-    def _handle_fuel_refuel(self, path=None):
+    def _handle_fuel_refuel(self, path=None, payload=None):
+        payload = payload or {}
         try:
-            body = json.loads(self.rfile.read(int(self.headers.get('Content-Length', 0))))
-            liters = float(body.get('liters', 0))
-            octane = int(body.get('octane', 91))
-            full_tank = bool(body.get('full_tank', False))
+            liters = float(payload.get('liters', 0))
+            octane = int(payload.get('octane', 91))
+            full_tank = bool(payload.get('full_tank', False))
         except Exception:
             self._json({'error': 'invalid body'}, 400)
             return

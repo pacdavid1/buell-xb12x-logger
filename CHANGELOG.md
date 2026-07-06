@@ -21,6 +21,22 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.281] — 2026-07-05
+### Fixed
+- Fuel tracker "Save Fill-up" always failed with `404 {"error": "unknown
+  endpoint"}`. Root cause: `/fuel/refuel` and `/fuel/reserve` were registered
+  in the `do_GET` routing table in `web/server.py`, but their handlers
+  (`_handle_fuel_refuel`, `_handle_fuel_reserve`) read the raw POST body and
+  are only ever called via `fetch(..., {method:'POST'})` from `fuel.html` --
+  so every request was dispatched to `do_POST`, whose routing table had no
+  `/fuel/*` entries at all. Moved both routes to the `do_POST` table and
+  updated both handlers to accept the already-parsed `payload` dict (which
+  `do_POST` builds from the body) instead of re-reading `self.rfile` a second
+  time, which would have returned empty bytes since the stream was already
+  consumed upstream.
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.280] — 2026-07-05
 ### Added
 - Inferred Active Muffler Control (AMC / exhaust valve) status column,
