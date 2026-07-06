@@ -21,6 +21,18 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.282] — 2026-07-05
+### Fixed
+- `/fuel/status` took 69s and hung the (single-threaded) dev server once any
+  refuel existed, because `_calc_since()` re-parsed every row of every ride
+  CSV in `sessions_dir` (82 files, 409k rows) on every call -- triggered by
+  the 10s poll in `fuel.html`, so the Fill-up History panel stayed stuck on
+  "Loading...". Fixed by skipping ride files whose mtime (== ride end time)
+  predates the `from_ts` window being summed, instead of opening and parsing
+  every historical ride on every status check.
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.281] — 2026-07-05
 ### Fixed
 - Fuel tracker "Save Fill-up" always failed with `404 {"error": "unknown

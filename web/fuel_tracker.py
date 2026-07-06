@@ -184,12 +184,18 @@ def get_status(sessions_dir: str, buell_dir: str = '') -> dict:
 
 
 def _calc_since(from_ts: str, sessions_dir: str, cc_per_ms: float):
-    """Sum PW-based consumption and km across all ride CSVs since from_ts."""
+    """Sum PW-based consumption and km across ride CSVs modified since from_ts."""
+    import os
     from_unix = datetime.fromisoformat(from_ts.replace('Z', '+00:00')).timestamp()
     total_cc = 0.0
     total_km = 0.0
     for csv_path in sorted(glob.glob(f'{sessions_dir}/*/ride_*.csv')):
         try:
+            # A ride file's mtime is its last write, i.e. the ride's end time.
+            # Skip files that ended before the window we're summing -- avoids
+            # re-parsing the entire ride history (400k+ rows) on every status poll.
+            if os.path.getmtime(csv_path) < from_unix:
+                continue
             with open(csv_path) as f:
                 if f.readline().startswith('#'):
                     pass
