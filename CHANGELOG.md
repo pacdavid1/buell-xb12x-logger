@@ -21,6 +21,14 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.284] — 2026-07-03
+### Added
+- Backlog audit: two-pass sweep across all 10 BACKLOG*.md files (~137 items inventoried, 15 stale-DONE claims + 9 duplicate pairs verified against actual code, not just backlog text). Findings written directly into the audited files: full consolidated report in BACKLOG.md ("AUDIT REPORT" section at top), inline audit markers at every item's original location. 8 items confirmed genuinely done (safe to delete), 4 items confirmed shipped but with stale spec text (needs rewrite), 2 items were FALSE DONE claims and reopened with corrected scope -- one is a genuine regression (BL-MAP-03 speed-color legend existed and was silently deleted in commit 89fefe0/v2.7.233, never ported to its replacement page). 7 of 9 duplicate pairs confirmed and flagged for merge; 1 pair (BL-FUEL-13/17) found to be a dependency chain, not a duplicate; 1 ID collision (BL-GRAF-03 used for two unrelated features across BACKLOG.md and BACKLOG_3D_VIZ.md) flagged for rename.
+### Audited
+- BACKLOG.md, BACKLOG_PROPOSAL_V2.md, BACKLOG_ANL.md, BACKLOG_MAPA_3D.md, BACKLOG_ECM_DEFS.md, BACKLOG_EEPROM_READ_LOGIC.md, BACKLOG_DATASET_INSIGHTS.md, BACKLOG_3D_VIZ.md -- all findings verified against actual code (function names, call sites, CHANGELOG cross-check) before being written, not trusted from the inventory pass alone.
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.283] — 2026-07-05
 ### Changed
 - Dashboard 2x2 big-display grid (CHT/KPH/TPS/widget-A): merged each tile's

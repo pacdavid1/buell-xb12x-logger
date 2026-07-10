@@ -65,6 +65,9 @@ Un ride largo puede tener decenas de miles de puntos GPS:
 ## Bugs/mejoras del subtab Mapa encontrados durante el análisis
 
 ### ~~BL-MAP-03~~ ✅ (v2.7.186) — Leyenda de colores de velocidad
+
+🔍 **AUDITED 2026-07-03: NOT-ACTUALLY-DONE — genuine regression, not a false original claim.** The 5-swatch legend (`spd2color()` buckets: 0-20/20-60/60-120/120-160/160+ km/h) really did ship in the old "Mapa" tab of `index.html` — but was silently deleted in commit `89fefe0` (v2.7.233, "Mapa removal — superseded by gps_analysis page") when that tab was replaced by `gps_analysis.html`. The new page never got the legend ported over, and dead `.map-legend-bar` CSS was left behind in `index.html:740-742`. The color function itself (`spd2color()`) IS still used for both 2D and 3D tracks in `gps_analysis.html` — only the visible legend key is missing. Full detail in the AUDIT REPORT section at the top of `BACKLOG.md`. **Action: reopen as a small task** — port the 5-swatch legend markup into `gps_analysis.html`, delete the dead CSS from `index.html`. Good candidate for a "smallest first" pass. Delete the incorrect strikethrough above when actioning.
+
 **Priority:** LOW
 Barrita de leyenda (azul→verde→amarillo→rojo→magenta con sus rangos km/h)
 visible en el mapa 2D y el 3D. Hoy el código de colores es implícito.

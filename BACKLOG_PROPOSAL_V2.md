@@ -1,5 +1,7 @@
 # BACKLOG PROPOSAL V2 — Implementation Plan
 
+🔍 **AUDITED 2026-07-03: ALL 4 PHASES CONFIRMED-DONE against actual code** (not just this file's own claims). Phase 1 (DDTW): `web/f7.py` `_f7_dtw()`/`_f7_derivative()`/`_f7_ddtw()`. Phase 2 (zone fusion): `web/vs_engine.py` `_zone_by_tps_peak()`/`_f7_delta_to_cells()`/`_build_ci()`. Phase 3 (GP Regression): `requirements.txt` has `scikit-learn==1.9.0`, `web/vs_engine.py` `_gpr_predict_grid()` uses `GaussianProcessRegressor`. Phase 4 (proposal.py): `web/proposal.py` `generate_proposal()`/`save_proposal()` wired to `POST /eeprom/propose`. Full detail in the AUDIT REPORT section at the top of `BACKLOG.md`. **This whole file is a finished implementation log — candidate for archival once actioned** (e.g. move to `archive/` or `docs/`, since `BACKLOG.md`'s own convention is that DONE items get removed, not left as open backlog).
+
 **Date:** 2026-07-03
 **Source:** freebuff research tasks 006-013 (global prior art sweep, 48 searches)
 **Validated:** Against actual code in `web/vs_engine.py`, `web/f7.py`, `web/launch.py`, `web/handlers/eeprom.py`, `web/burn_ledger.py`

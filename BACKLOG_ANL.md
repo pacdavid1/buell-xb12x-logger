@@ -175,6 +175,8 @@ El JSON no es fácil de leer para análisis rápido o para compartir.
 **BACKLOG-ANL14** `OPEN`
 ~~Watchdog de espacio en disco~~ ✅ (v2.7.186)
 
+🔍 **AUDITED 2026-07-03: NOT-ACTUALLY-DONE — false claim, correctly still marked OPEN.** The strikethrough+✅ above is wrong on two counts: (1) the cited version v2.7.186 is unrelated (ecm_defs.py/eeprom.py size guards, not disk space); (2) only a `/health` endpoint exposing `disk_free_gb`/`disk_total_gb`/`disk_used_pct` via `shutil.disk_usage("/")` was ever built (`web/server.py:_handle_health`, shipped v2.7.192) — that's a metric, not a watchdog. Zero periodic polling, zero threshold, zero dashboard badge, zero auto-stop-recording logic exist anywhere in `main.py`/`web/server.py`/`web/static/app.js`. Full detail in the AUDIT REPORT section at the top of `BACKLOG.md`. **Action: this is a real, still-open, small task** — good candidate for a "smallest first" pass (periodic check + threshold + dashboard badge + optional auto-stop). Delete the incorrect strikethrough line above when actioning.
+
 ### Problem
 La SD puede llenarse silenciosamente. Los CSVs crecen ~2MB por ride.
 Sin alerta el logger falla sin aviso cuando se llena.

@@ -111,6 +111,7 @@ CAM.zoom + ángulos (inTps/inRpm/inVal) y ALT en localStorage para que la
 vista preferida sobreviva el reload. Hoy todo resetea a default.
 
 ### BL-GRAF-03 — Persistir señales custom POR preset
+🔍 **AUDITED 2026-07-03: ID COLLISION, not a duplicate.** `BACKLOG.md` also has a BL-GRAF-03 (GRAF2 floating cursor readout removal) — that one is CONFIRMED-DONE and unrelated to this open item. Rename this one before deleting the other, to avoid confusion (e.g. next open GRAF slot — GRAF-04/05 appear taken elsewhere). Full detail in the AUDIT REPORT section at the top of `BACKLOG.md`.
 Hoy editar con ⚙ siempre cae a CUSTOM (un solo slot). Idea: recordar
 ajustes finos por preset (ej. SPARK + cpu_temp) en localStorage separado.
 

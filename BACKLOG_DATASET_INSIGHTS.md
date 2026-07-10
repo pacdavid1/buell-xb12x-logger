@@ -168,6 +168,7 @@ measure ECU self-defense, not the map, and should be excluded.
 ---
 
 ## BL-DI-07 — GPS/VSS ratio as tire wear gauge (HIGH)
+🔍 **AUDITED 2026-07-03: duplicate** of BL-DI-11 below (~line 222), which has more method detail (heading-stable, CLT>70 filter). Merge into that one, delete this. Neither is built. Full detail in the AUDIT REPORT section at the top of `BACKLOG.md`.
 **Tags:** calibration, monitoring
 **Status:** [PLAN]
 
@@ -220,6 +221,7 @@ angle per corner. Riding insight, not tuning.
 ---
 
 ## BL-DI-11 — GPS/VSS ratio as tire wear and pressure gauge (HIGH)
+🔍 **AUDITED 2026-07-03: duplicate** of BL-DI-07 above (~line 170). Keep this version (more method detail), delete the other. Full detail in the AUDIT REPORT section at the top of `BACKLOG.md`.
 **Tags:** monitoring, tire, calibration
 **Status:** [PLAN]
 

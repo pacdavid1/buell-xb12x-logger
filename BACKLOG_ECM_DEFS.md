@@ -1,6 +1,8 @@
 <!-- DEV NOTE: planning doc (Spanish per project convention). All CODE remains English.
      Promoted from inbox/ecm_defs_refactor.md (freebuff) on 2026-06-14. Tracked in BACKLOG.md as BL-ECM-01. -->
 
+🔍 **AUDITED 2026-07-03: PARTIALLY-DONE — mostly superseded by BL-ECM-01 (confirmed shipped: `ecu/ecm_defs.py`, `ecu/version_resolver.py`, `ecu/rt_defs.py`), but NOT fully.** Two sub-items from this file's own plan are still genuinely open: (1) 2nd fuel map not in `ecu/ecm_defs.py`'s `MAP_KEYS` — UI can't show/burn it, tracked separately under BL-ECM-02's "2nd Fuel Map" note in `BACKLOG.md`; (2) dynamic RPM/LOAD bins in `protocol.py`/`app.js` — still hardcoded BUEIB-only, tracked separately as BL-ECM-01-RESIDUAL in `BACKLOG.md`. Both residuals are already captured elsewhere, so nothing is lost — this file is safe to archive once confirmed those two entries stay tracked. Full detail in the AUDIT REPORT section at the top of `BACKLOG.md`.
+
 # EcmDefs Refactor: Multi-ECU Support via EcmSpy XML
 
 ## Fecha

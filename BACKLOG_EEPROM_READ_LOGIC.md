@@ -2,6 +2,8 @@
      Hallazgos VERIFICADOS leyendo los archivos reales (no claims de freebuff sin validar).
      Fecha: 2026-06-14. Relacionado: BACKLOG_ECM_DEFS.md (BL-ECM-01). NO commiteado aún. -->
 
+🔍 **AUDITED 2026-07-03: PARTIALLY-DONE.** Fase A (decoder) and Fase C (burn path with firmware-match guard) fully confirmed shipped in `ecu/ecm_defs.py` and `ecu/eeprom.py`/`ecu/connection.py`. Fase B (read path) is mostly done, but its own flagged gap ("app.js grid dinámico") is confirmed STILL broken — `web/static/app.js` still hardcodes 13×12 BUEIB-only RPM_BINS/LOAD_BINS. This is the exact same residual already tracked as BL-ECM-01-RESIDUAL in `BACKLOG.md` — nothing is lost, safe to archive this file once confirmed. The `feat/ecm-defs` branch referenced below no longer exists (merged, as expected). Full detail in the AUDIT REPORT section at the top of `BACKLOG.md`.
+
 # BACKLOG — Lógica de lectura/escritura del EEPROM (refactor multi-firmware)
 
 > Documento de hallazgos para el refactor EcmDefs visto desde la **lógica de read/write

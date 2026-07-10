@@ -1,5 +1,142 @@
 # BACKLOG — Buell Logger / Tuner
 
+## 🔍 AUDIT REPORT — 2026-07-03 (stale-DONE + duplicate sweep, verified against code)
+
+**Why this exists:** the backlog had grown to ~137 actionable items across 10 files,
+too large to safely prioritize by feel. A two-pass audit was run: (1) an inventory
+pass flagged every item marked DONE/✅ that was still physically present in a backlog
+file (this project's own rule says completed items must be removed immediately —
+any leftover DONE item is itself a bug); (2) a verification pass did NOT trust that
+flag — it re-read the actual code for every flagged item (function names, call sites,
+CHANGELOG cross-check) before accepting or rejecting the DONE claim, per the same
+"verify before trusting an audit" rule this project already applies to freebuff.
+
+**Per-item detail (evidence, file:line, function names) lives in the full agent
+transcripts from this session — not reproduced in full here to avoid bloating this
+file further. What follows is the actionable summary: verdict + recommended action
+per item. Inline `🔍 AUDITED 2026-07-03` markers at each item's original location
+point back to this section.**
+
+### ✅ Confirmed DONE — safe to delete once actioned
+- **BL-GEAR-01** (line ~285) — gear detection via ECU Gear ground truth. Confirmed:
+  `ecu/gear_calibration.py`, `web/gear_detect.py`, `web/gear_learner.py` all exist and
+  are wired into `f7.py`/`launch.py`/live `GearFilter`.
+- **BL-GPS-03** (line ~334) — GPS fix quality filters. Confirmed: `_gps_quality()` in
+  `web/f7.py` (epv≤5.0, mode≥3, sats≥6) plus an independent equivalent gate in
+  `gps/route_reference.py`. Two separate implementations, not a bug — worth
+  consolidating someday, not urgent.
+- **BL-ECM-01** (line ~398) — multi-ECU XML-driven EEPROM decode/encode. Confirmed:
+  `ecu/ecm_defs.py`, `ecu/version_resolver.py`, `ecu/rt_defs.py` all wired into
+  `ecu/eeprom.py`/`ecu/connection.py`. Its own "BL-ECM-01-RESIDUAL" callout
+  (hardcoded RPM_BINS/LOAD_BINS in protocol.py) is still accurate — keep that one open.
+- **BL-GRAF-03** (line ~493, BACKLOG.md's copy) — floating GRAF2 cursor readout
+  removed. Confirmed: no `#cur-readout` anywhere, replaced by inline `.chip .cval`
+  spans. **Naming collision warning:** `BACKLOG_3D_VIZ.md` has an UNRELATED, still-open
+  item also called BL-GRAF-03 (per-preset signal persistence) — do not confuse the two,
+  see that file's note.
+- **FASE6 baro-norm removal / task006** (lines ~617-631) — confirmed: no baro
+  multiplication of PW anywhere in `f7.py`/`launch.py`, matches CHANGELOG v2.7.276.
+- **FASE6 PROP_* output / task015** (line ~722) — confirmed: `web/proposal.py`
+  (`generate_proposal()`, `save_proposal()`) wired to `POST /eeprom/propose`.
+- **FASE6.1 zone fusion design / task037** (line ~1826) — confirmed done, but it's a
+  **duplicate of the F7+VS combo item below**, not independently useful — delete as
+  redundant once that one is resolved.
+- **BL-ECM-03** (line ~1984) — revert EEPROM version guard. Confirmed:
+  `_handle_eeprom_revert()` in `web/handlers/eeprom.py` does the donor/live DDFI-tier
+  check. Note: CHANGELOG v2.7.251 claims a duplicate entry was removed, but the
+  *remaining single entry* was never actually deleted — exactly the bug this audit
+  is checking for.
+- **`BACKLOG_PROPOSAL_V2.md`** (whole file, 402 lines) — all 4 phases (DDTW, F7+VS
+  zone fusion, GP Regression, proposal.py) independently confirmed shipped and wired
+  (v2.7.271/272/274/275). Candidate for archival once actioned.
+
+### ⚠️ Confirmed shipped, but backlog TEXT is stale/wrong — needs rewrite, not deletion
+- **FASE6 F7+VS zone fusion / task001+005** (lines ~569-583) — the functionality
+  shipped in `web/vs_engine.py` (`_zone_by_tps_peak`, `_f7_delta_to_cells`,
+  `_build_ci`), but with different thresholds than the original spec (85/40 not
+  60/20) and the spec'd `w_cross_match` (orphan vs matched bonus) component was
+  never built — confirmed absent from `vs_engine.py`. This is a documented,
+  deliberate deviation (see `BACKLOG_PROPOSAL_V2.md` Phase 2) — the old spec text
+  should be replaced with a pointer to what actually shipped, not just deleted.
+- **FASE5.1 map click-edit+burn** (line ~1011) — **real contradiction found**:
+  `tuner.html` implementation works end-to-end (`/eeprom/burn`, ±15% gate, auto-backup,
+  all confirmed live). BUT `map-editor.html` is a **separate, still-broken** duplicate
+  page — its burn button POSTs to `/tuner/burn`, which has no route (404), confirmed
+  in `web/server.py`'s routing table. This is the SAME bug as **BL-BUG-04** (line
+  ~476), which stays open — correctly. Action: delete the stale line-1011 spec (its
+  intent is satisfied by tuner.html), keep BL-BUG-04 open, and separately decide
+  whether to fix or remove `map-editor.html`'s dead burn button.
+- **`BACKLOG_ECM_DEFS.md`** (whole file, 229 lines) — mostly superseded by BL-ECM-01,
+  but NOT fully: 2 sub-items are still genuinely open (2nd fuel map not in
+  `MAP_KEYS`, dynamic RPM/LOAD bins in protocol.py). Good news: both are already
+  independently tracked elsewhere (BL-ECM-02's "2nd Fuel Map" note, and
+  BL-ECM-01-RESIDUAL) — nothing is lost if this file is archived, but confirm those
+  two items are properly captured before deleting this file.
+- **`BACKLOG_EEPROM_READ_LOGIC.md`** (whole file, 195 lines) — same situation: Fases
+  A and C fully confirmed shipped; Fase B (read path) is "mostly done" but its own
+  flagged gap ("app.js grid dinámico") is confirmed STILL broken —
+  `web/static/app.js` still hardcodes 13×12 BUEIB-only RPM_BINS/LOAD_BINS. This is
+  the exact same residual as BL-ECM-01-RESIDUAL — already tracked, safe to archive
+  this file once confirmed.
+
+### 🔴 NOT actually done — false DONE claims, reopen with corrected scope
+- **BACKLOG_ANL.md → BACKLOG-ANL14** "disk-space watchdog" — **false claim**. Only a
+  `/health` endpoint exposing `disk_free_gb` via `shutil.disk_usage` exists
+  (`web/server.py:_handle_health`). Zero polling, zero threshold, zero dashboard
+  badge, zero auto-stop-recording logic — a watchdog was never built, only a metric.
+  The cited version (v2.7.186) is also wrong (that version is about ecm_defs.py size
+  guards, unrelated). The real metric-only work shipped at v2.7.192. **Action: reopen
+  as a real, still-small task** (periodic check + threshold + dashboard badge +
+  optional auto-stop) — this is a good XS/S candidate for the "smallest first" queue.
+- **BACKLOG_MAPA_3D.md → BL-MAP-03** "speed-color legend bar" — **genuine regression**,
+  not a false original claim. The 5-swatch legend (`spd2color()` buckets: 0-20/
+  20-60/60-120/120-160/160+ km/h) really did ship in the old "Mapa" tab of
+  `index.html` at the cited version, but was silently deleted 41 commits later in
+  commit `89fefe0` (v2.7.233) when that tab was replaced by `gps_analysis.html` — the
+  new page never got the legend ported over, and dead `.map-legend-bar` CSS was left
+  behind in `index.html`. **Action: reopen as a small task** — port the legend markup
+  into `gps_analysis.html`, delete the dead CSS from `index.html`. Also a good
+  "smallest first" candidate.
+
+### Duplicates confirmed (safe to merge) — 7 of 9 checked
+- **"PROPOSAL tab in Tuner UI"**: BACKLOG.md lines ~828 (task020), ~1602 (task025),
+  ~1705 (FASE5.2) — same task 3x. Backend ready (`/eeprom/propose`), zero UI consumes
+  it. Merge into one entry.
+- **"Batch compare / rank maps by win-rate"**: lines ~1122 (FASE7 7.7), ~1753
+  (task031) — same task 2x, neither built (`web/batch_compare.py` doesn't exist).
+  Merge.
+- **"Migrate Launch to F7"**: lines ~1131 (FASE7 7.8), ~1801 (task032) — same task
+  2x. Keep the ~1801 version (more implementation detail), delete the other.
+- **"AI context export"**: lines ~1041, ~1779 (task035) — same task 2x
+  (`GET /eeprom/ai_context`), neither built. Merge.
+- **"Daemon watchdog heartbeat"**: lines ~919 (#13), ~1645 (task033) — likely
+  duplicate (task033 already has a worked-out concrete plan) — not independently
+  re-verified in this pass, do a quick manual check before merging.
+- **"GPS/VSS tire-wear ratio"**: `BACKLOG_DATASET_INSIGHTS.md` BL-DI-07 and BL-DI-11
+  — same idea 2x, neither built. Keep BL-DI-11 (more method detail: heading-stable,
+  CLT>70 filter), delete BL-DI-07.
+- **"UPS-Lite MOSFET features"** (power-cut, charge-limiter, INA219): described twice
+  in BACKLOG.md — once in the numbered "Power Management Features" section
+  (~1419-1500), once in "HW Modifications" (~1528-1577). The HW Modifications version
+  has more detail (IRLML6402 part number, wake-on-ignition circuit, tiered shutdown)
+  — merge into that one, delete the earlier duplicate content.
+
+### NOT a duplicate — do not merge
+- **BL-FUEL-13 vs BL-FUEL-17** (odometer from EEPROM): sequential, not parallel.
+  BL-FUEL-17 is the research task ("does the odometer exist in EEPROM"), BL-FUEL-13
+  is the downstream integration that depends on it. Neither is built
+  (`grep -rn odometer ecu/ web/` is empty). The "found at BUEYD/BUEWD/BUEZD offset
+  -36" research note is currently misfiled under BL-FUEL-13 — move it to BL-FUEL-17,
+  it's that item's actual output.
+
+### Rename, don't merge
+- **BL-GRAF-03 collision**: BACKLOG.md's BL-GRAF-03 (done, cursor-readout removal)
+  and `BACKLOG_3D_VIZ.md`'s BL-GRAF-03 (open, per-preset signal persistence in
+  localStorage) are unrelated features that share an ID by accident. Renumber the
+  `BACKLOG_3D_VIZ.md` one before it causes confusion — see that file's note.
+
+---
+
 ### BL-PWMODEL-01 -- PW simulator: de calculadora aislada a herramienta de modelado + sensor termico nuevo (2026-07-05)
 
 Contexto: se audito y corrigio el PW simulator standalone
@@ -264,6 +401,7 @@ Nombre en literatura: Iterative Learning Control (ILC) con forgetting factor.
 
 ### BL-GEAR-01 — Gear detection multi-bike via auto-clustered ratios
 **Status: DONE 2026-06-28**
+🔍 **AUDITED 2026-07-03: CONFIRMED-DONE** — see AUDIT REPORT at top of this file. Safe to delete this section.
 
 **Approach taken:** ECU already reports `Gear` column — used it as ground truth instead of unsupervised clustering. `web/gear_learner.py` rewritten to collect (ratio, gear) pairs from all ride CSVs and find the optimal RPM/VSS threshold between each adjacent gear pair by brute-force minimisation of misclassifications.
 
@@ -313,6 +451,7 @@ own atomic timestamp that can serve as a master reference if desired.
 
 ### BL-GPS-03 — Filter bad GPS fixes before use
 **Status: DONE (implementado en slope_reference.py v2.7.x)**
+🔍 **AUDITED 2026-07-03: CONFIRMED-DONE** — see AUDIT REPORT at top of this file. Two independent implementations exist (f7.py `_gps_quality()` + route_reference.py) — not a bug, worth consolidating someday. Safe to delete this section.
 
 Filtros implementados en gps/slope_reference.py:
 - gps_valid must be True
@@ -376,6 +515,7 @@ valores menores -- son ruido. Ver GAP 4 para tareas pendientes de integracion.
 ## Core refactor (2026-06-14)
 
 ### BL-ECM-01 — Multi-ECU support vía EcmSpy XML ✅ DONE (2026-06-30)
+🔍 **AUDITED 2026-07-03: CONFIRMED-DONE** — see AUDIT REPORT at top of this file. BL-ECM-01-RESIDUAL stays open (real). Safe to delete this section once residual is confirmed tracked.
 **Validado:** ecu/ecm_defs.py, ecu/version_resolver.py, ecu/rt_defs.py implementados y en producción.
 
 - decode_eeprom_maps() / encode_eeprom_maps() — XML-driven, multi-firmware, burn guard ✅
@@ -471,6 +611,7 @@ branch policy, not a direct commit to main, and explicit user approval
 before starting.**
 
 ### BL-GRAF-03 — GRAF2: remove floating cursor readout ✅ DONE v2.7.252 (2026-06-30)
+🔍 **AUDITED 2026-07-03: CONFIRMED-DONE** — see AUDIT REPORT at top of this file. ⚠️ Naming collision: `BACKLOG_3D_VIZ.md` has an unrelated OPEN item also called BL-GRAF-03 — do not confuse when deleting this one. Safe to delete this section.
 Removed #cur-readout panel (-32 lines). Cursor values shown inline in block header chips.
 
 ### BL-UX-07 — Dashboard Graf: gráficas configurables con multi-señal overlay
@@ -545,6 +686,8 @@ contexto crítico para entender por qué el PW fue mayor o menor.
 ---
 
 ## FASE 6 — Algoritmo: hallazgos de freebuff (tareas 001-006)
+
+🔍 **AUDITED 2026-07-03 (task001+005 section below): CONFIRMED SHIPPED, but this spec text is stale.** See AUDIT REPORT at top of this file — functionality is live in `web/vs_engine.py` (`_zone_by_tps_peak`, `_f7_delta_to_cells`, `_build_ci`), but with different thresholds (85/40, not 60/20) and the `w_cross_match` component below was never built (deliberate, documented deviation — see `BACKLOG_PROPOSAL_V2.md` Phase 2). Replace this section with a pointer to what actually shipped, don't just delete.
 
 ### Combinación F7 + Sessions VS (task 001 + 005)
 - [ ] Usar PEAK TPS del evento (no Bucket_A TPS) para clasificar zona
@@ -701,6 +844,8 @@ session's data, no ride needed. Re-derive per-firmware/injector if hardware chan
 
 ## FASE 6 — PROP_* session output (freebuff task 015)
 
+🔍 **AUDITED 2026-07-03: CONFIRMED-DONE** — see AUDIT REPORT at top of this file. `web/proposal.py` (`generate_proposal()`, `save_proposal()`) wired to `POST /eeprom/propose`. Safe to delete this section.
+
 **Superseded/extended 2026-07-03 by `BACKLOG_PROPOSAL_V2.md`** — a 4-phase plan (DDTW in F7 →
 F7+VS zone fusion → GP Regression → new `proposal.py`) built from the tasks 006-013 prior-art
 sweep, validated against current code, with two corrections applied (scikit-learn is not
@@ -807,6 +952,8 @@ Sessions VS (dpw, ddvss)       →  comparación por celda      →  ¿cuál map
 
 ## UX — PROPOSAL tab in Tuner page (freebuff task 020)
 
+🔍 **AUDITED 2026-07-03: duplicate.** Same task described 3x — see line ~1729 (task025) and FASE 5.2 below (~1832). Backend (`/eeprom/propose`) is ready; zero UI consumes it. Merge into one entry. See AUDIT REPORT at top of this file.
+
 **Goal:** Add a PROPOSAL tab to tuner.html showing the fuel delta heatmap.
 
 ### Design decisions (freebuff task 020)
@@ -897,6 +1044,7 @@ This is incremental — only add to files you touch, never as a bulk pass on unt
 - [ ] **GLM-5.1 API integration** — "AI Analyze" button in errorlog visualizer that sends ride data to Zhipu AI's GLM-5.1 for pattern analysis.
 
 ### Priority High (Confirmed Bugs)
+🔍 **AUDITED 2026-07-03: likely duplicate** of "TASK 033" below (~line 1780), which already has a worked-out concrete plan — not independently re-verified in this pass, do a quick manual check before merging. See AUDIT REPORT at top of this file.
 - **#13 — Daemon threads without watchdog** (`main.py:446-449`): `_ecu_thread` and `_sysmon_thread` are `daemon=True`. If they die, the process continues but without ECU data or system monitoring. No recovery mechanism.
 
 ### Priority Medium (Fragile Patterns)
@@ -990,6 +1138,8 @@ The missing piece is the UI layer and parameter-level burn controls.
 
 ### Phase 5.1 — Fuel + Spark map editor (safe zone only)
 
+🔍 **AUDITED 2026-07-03: intent satisfied, but with a real contradiction found.** See AUDIT REPORT at top of this file. `tuner.html` already implements this end-to-end (STAGE + commitStage() with ±15% gate + burnStaged() → `/eeprom/burn`, confirmed live). BUT `map-editor.html` is a separate, still-broken duplicate page whose burn button POSTs to `/tuner/burn` (no route, 404) — that's the exact same bug as **BL-BUG-04** below, which stays open correctly. Action: delete this spec (satisfied by tuner.html), keep BL-BUG-04 open, decide separately whether to fix or remove map-editor.html's dead burn button.
+
 The 4 maps (Fuel Front, Fuel Rear, Spark Front, Spark Rear) are the primary
 tuning targets. These live in the safe write zone (offsets 670–1205).
 
@@ -1019,6 +1169,8 @@ idle spark, WOT spark reduction, fuel cut region, and more.
       based on which params the user edits (never touch DTC/serial/factory bytes)
 
 ### Phase 5.3 — AI-assisted parameter suggestions
+
+🔍 **AUDITED 2026-07-03: duplicate** of "FASE 5.3 — AI context export (freebuff task 035)" (~line 1912). Same endpoint (`GET /eeprom/ai_context`), neither built. Merge into one entry. See AUDIT REPORT at top of this file.
 
 Generating tuning suggestions for the 200+ configuration parameters is too complex
 for deterministic algorithms. The right approach: export a structured JSON snapshot
@@ -1100,6 +1252,7 @@ Cross session (mapas diferentes):
 
 
 #### 7.7 — Events-compete-directly comparison (all sessions)
+🔍 **AUDITED 2026-07-03: duplicate** of "Backlog 7.7 — Batch compare all-sessions (freebuff task 031)" (~line 1886, more concrete plan). Neither built (`web/batch_compare.py` doesn't exist). Merge, keep the task031 version. See AUDIT REPORT at top of this file.
 - [ ] Batch-generate session_f7clusters JSON for all sessions that have ride CSVs
 - [ ] Compare events directly (not sessions) — any two accel events with matching
   Bucket_A (gear, RPM_bin, TPS_bin, KPH_bin) and Pearson(TPS_curve) > 0.85 compete
@@ -1109,6 +1262,7 @@ Cross session (mapas diferentes):
 - [ ] Output: ranked list of sessions/eeproms by acceleration win rate
 
 #### 7.8 — Migrate Launch Analysis to use f7 events JSON
+🔍 **AUDITED 2026-07-03: duplicate** of "Backlog 7.8 — Migrate Launch to consume F7 events (freebuff task 032)" (~line 1934, more concrete plan). Merge, keep the task032 version. See AUDIT REPORT at top of this file.
 - [ ] Launch currently runs detect_launches() independently — migrate to consume
   session_f7clusters JSON as its event source (accel events only)
 - [ ] Removes duplicate detection logic; f7 events are richer (Bucket_A struct, env context)
@@ -1286,6 +1440,7 @@ different spray patterns (front P0026.1AA, rear P0027.1AA, 12.25 ohm each).
 - Suggest "calibration stable" badge when std_dev of last 5 ratios < 0.03
 
 ### BL-FUEL-13 — Odometer integration (km total from EEPROM)
+🔍 **AUDITED 2026-07-03: NOT a duplicate of BL-FUEL-17** (~line 1495) — sequential, not parallel. BL-FUEL-17 is the research task, this is the downstream integration that depends on it. Neither is built (`grep -rn odometer ecu/ web/` is empty). The "found at BUEYD/BUEWD/BUEZD offset -36" research note below is misfiled here — it's actually BL-FUEL-17's output, move it there. See AUDIT REPORT at top of this file.
 **Priority:** LOW
 - freebuff found odometer in BUEYD/BUEWD/BUEZD.xml at offset -36
 - Read actual odometer from eeprom.bin to cross-validate km counter
@@ -1340,6 +1495,7 @@ Implementation plan:
 - Endpoint: GET /maintenance/status — returns list of items sorted by km_remaining
 
 ### BL-FUEL-17 — Odometer EEPROM research
+🔍 **AUDITED 2026-07-03: NOT a duplicate of BL-FUEL-13** (~line 1442) — this is the research prerequisite, BL-FUEL-13 is the downstream integration. See AUDIT REPORT at top of this file.
 - Investigate if total km/miles are stored in the DDFI2 EEPROM
 - Check ecu/eeprom.py decode maps and reference eeprom_decoded.json
 - If found: surface value in /live and /fuel/status endpoints
@@ -1395,6 +1551,8 @@ Use readme_annotated.md (freebuff output) as draft template when implementing.
 
 
 # Backlog: UPS-Lite v1.3 — Power Management Features
+
+🔍 **AUDITED 2026-07-03: duplicate** of "UPS-Lite v1.3 HW Modifications" below (~line 1664), which has more implementation detail (IRLML6402 part number, wake-on-ignition circuit, tiered shutdown). Merge into that section, delete the duplicate content here (items #2, #3, #6: charge limiter, power cut, current monitoring). See AUDIT REPORT at top of this file.
 
 ## 2. Limitar carga al 80%% para cuidar vida util de la bateria
 
@@ -1507,6 +1665,8 @@ No necesita learning cycle manual.
 
 # Backlog: UPS-Lite v1.3 HW Modifications (requires soldering)
 
+🔍 **AUDITED 2026-07-03: duplicate** of "UPS-Lite v1.3 — Power Management Features" above (~line 1553). This section has more detail — keep this one, delete the duplicate content in the other section. See AUDIT REPORT at top of this file.
+
 ## Prioridad: ALTA
 - [ ] MOSFET power switch for sensors: cut 5V to BMP/AHT/GPS when Pi shuts down
   Components: 1x IRLML6402 (P-Ch MOSFET), 1x 10K resistor, 1x breadboard
@@ -1578,6 +1738,8 @@ No necesita learning cycle manual.
 
 # Backlog: Auditoría freebuff — TASK 025 (v2.7.25)
 
+🔍 **AUDITED 2026-07-03: the PROPOSAL tab item below is a duplicate** of "UX — PROPOSAL tab in Tuner page" (~line 953) and FASE 5.2 (~line 1832). Merge into one entry. See AUDIT REPORT at top of this file.
+
 ## Prioridad: ALTA
 - [ ] PROPOSAL tab en Tuner page (no implementado — freebuff task 025 top-1)
   Context: tuner.html tiene tabs BASE/DELTA/MOD con renderizado heatmap, pero NO existe
@@ -1623,6 +1785,8 @@ No necesita learning cycle manual.
 ---
 
 # Backlog: Investigacion freebuff - TASK 033 (Bug #13 daemon thread watchdog)
+
+🔍 **AUDITED 2026-07-03: likely duplicate** of "#13 — Daemon threads without watchdog" (~line 1047). This version has a worked-out concrete plan — keep this one. Not independently re-verified in this audit pass, do a quick manual check before merging. See AUDIT REPORT at top of this file.
 
 ## Prioridad: HECHA (Research) - Watchdog existe pero con gaps
 
@@ -1684,6 +1848,8 @@ Mitigacion:
 
 ## FASE 5.2 — PROPOSAL tab: quemar mapa completo desde propuesta automática
 
+🔍 **AUDITED 2026-07-03: duplicate** of "UX — PROPOSAL tab in Tuner page" (~line 953) and task025 (~line 1729). Merge into one entry. See AUDIT REPORT at top of this file.
+
 **Priority:** HIGH — depende de que FASE 6 genere un mapa completo (smoothed_pct)
 **Prerequisite:** FASE 5.1 click-to-edit VE ✅ ya implementado (tuner.html STAGE + burnStaged)
 
@@ -1732,6 +1898,8 @@ en una sola operación — no celda por celda.
 
 ## Backlog 7.7 — Batch compare all-sessions (freebuff task 031)
 
+🔍 **AUDITED 2026-07-03: duplicate** of FASE7 7.7 (~line 1251). Keep this version (more concrete plan), delete the other. See AUDIT REPORT at top of this file.
+
 ### Infrastructure already exists
 -  in f7.py — reuse directly, no reimplementation
 -  in f7.py — auto-generates clusters if missing
@@ -1758,6 +1926,8 @@ win = delta_vss_A[idx] > delta_vss_B[idx]. Ties = 0.5 each.
 
 ## FASE 5.3 — AI context export (freebuff task 035)
 
+🔍 **AUDITED 2026-07-03: duplicate** of "Phase 5.3 — AI-assisted parameter suggestions" (~line 1170). Merge into one entry — this one has more detail (whitelist/blacklist, exact key). See AUDIT REPORT at top of this file.
+
 ### Key finding
 BUEIB.xml has 477 eeoffsets but only 35 are user-facing tuning params.
 EGO/AFV always 100.0 in OL — exclude from AI context (misleading to LLM).
@@ -1779,6 +1949,8 @@ EGO/AFV always 100.0 in OL — exclude from AI context (misleading to LLM).
 ---
 
 ## Backlog 7.8 — Migrate Launch to consume F7 events (freebuff task 032)
+
+🔍 **AUDITED 2026-07-03: duplicate** of FASE7 7.8 (~line 1260). Keep this version (more concrete plan), delete the other. See AUDIT REPORT at top of this file.
 
 ### Recommendation: Dual mode
 Keep detect_launches() for sessions WITHOUT f7clusters (29/33).
@@ -1804,6 +1976,8 @@ Add _launch_from_f7clusters() for sessions that have F7 clusters.
 ---
 
 ## FASE 6.1 — F7 + VS zone fusion design (freebuff task 037)
+
+🔍 **AUDITED 2026-07-03: CONFIRMED-DONE, but REDUNDANT** — see AUDIT REPORT at top of this file. This is the same design as the "Combinación F7 + Sessions VS (task 001+005)" section above (~line 690) and `BACKLOG_PROPOSAL_V2.md` Phase 2 — all three describe the same shipped feature. Safe to delete this section as redundant once the task001+005 section is rewritten.
 
 ### Zone classification by peak TPS
 - WOT: tps_peak >= 85% -> trust VS only (few F7 WOT events)
@@ -1962,6 +2136,7 @@ Pendiente:
 - [ ] Eliminar inbox/changelog_gps_fase2.md después del commit
 
 ## BL-ECM-03 — Revert EEPROM version guard ✅ DONE (implementado, ver CHANGELOG v2.7.x)
+🔍 **AUDITED 2026-07-03: CONFIRMED-DONE** — see AUDIT REPORT at top of this file. Note: CHANGELOG v2.7.251 claims a duplicate entry was removed, but this remaining single entry was itself never deleted — exactly the bug this audit is checking for. Safe to delete this section.
 
 
 ### BL-XPR-01 — Dedicated XPR/Session map editor page
