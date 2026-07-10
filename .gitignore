@@ -26,6 +26,7 @@ network_state.json
 route_reference.json
 slope_reference.json
 gear_profile.json
+fuel_tracking.json
 # Archivos de debug temporales
 fix_*.py.save
 *.save.*
