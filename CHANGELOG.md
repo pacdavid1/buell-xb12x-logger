@@ -21,6 +21,23 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.285] — 2026-07-10
+### Added
+- BACKLOG-ANL14 disk-space watchdog (was a false DONE claim -- only a /health
+  metric existed, no polling/threshold/badge/auto-stop). `main.py` sysmon loop
+  now computes disk_used_pct every cycle, stops the ECU logger subprocess above
+  DISK_STOP_PCT (95%) to avoid writing to a full disk, and surfaces a DSK badge
+  on the dashboard (green/yellow/red at 85%/95%) via `hDisk` in app.js/index.html.
+### Fixed
+- BL-MAP-03 regression: the 5-swatch speed-color legend (spd2color buckets
+  0-20/20-60/60-120/120-160/160+ km/h) that shipped in the old Mapa tab was
+  silently deleted in v2.7.233 when that tab was replaced by gps_analysis.html,
+  and never ported over. Re-added as a `#speedLegend` overlay on the 2D map in
+  `gps_analysis.html`. Deleted the dead `.map-legend-bar` CSS left behind in
+  `index.html`.
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.284] — 2026-07-03
 ### Added
 - Backlog audit: two-pass sweep across all 10 BACKLOG*.md files (~137 items inventoried, 15 stale-DONE claims + 9 duplicate pairs verified against actual code, not just backlog text). Findings written directly into the audited files: full consolidated report in BACKLOG.md ("AUDIT REPORT" section at top), inline audit markers at every item's original location. 8 items confirmed genuinely done (safe to delete), 4 items confirmed shipped but with stale spec text (needs rewrite), 2 items were FALSE DONE claims and reopened with corrected scope -- one is a genuine regression (BL-MAP-03 speed-color legend existed and was silently deleted in commit 89fefe0/v2.7.233, never ported to its replacement page). 7 of 9 duplicate pairs confirmed and flagged for merge; 1 pair (BL-FUEL-13/17) found to be a dependency chain, not a duplicate; 1 ID collision (BL-GRAF-03 used for two unrelated features across BACKLOG.md and BACKLOG_3D_VIZ.md) flagged for rename.

@@ -12,6 +12,7 @@ import argparse
 import json
 import logging
 import os
+import shutil
 import signal
 import sys
 import subprocess
@@ -54,6 +55,8 @@ GPS_RESTART_DELAY   = 2.0
 MAIN_LOOP_HEARTBEAT = 1.0
 IPC_DIR             = Path('/tmp/buell')
 IPC_POLL_S          = 0.25   # how often IPC reader polls live.json
+DISK_WARN_PCT       = 85.0   # dashboard badge turns yellow
+DISK_STOP_PCT       = 95.0   # auto-stop ECU logger to avoid writing to a full disk
 
 
 def _get_version():
@@ -109,6 +112,7 @@ class BuellLogger:
         self._bat_voltages    = []
         self._bat_socs        = []
         self._boot_soc        = None
+        self._disk_stop_triggered = False
 
         self.network = NetworkManager(buell_dir=self.buell_dir)
         self.web     = WebServer(host='0.0.0.0', port=8080, buell_dir=self.buell_dir)
@@ -334,6 +338,19 @@ class BuellLogger:
                     self._stop_logger_subprocess(timeout=10.0)
                     time.sleep(0.5)  # extra margin for filesystem sync
                     os.execv(sys.executable, [sys.executable] + sys.argv)
+            except Exception as e:
+                self.logger.debug(f"sysmon: {e}")
+
+            try:
+                du = shutil.disk_usage('/')
+                stats['disk_free_gb']  = round(du.free / 1073741824, 1)
+                stats['disk_used_pct'] = round(100 - du.free / du.total * 100, 1)
+                if stats['disk_used_pct'] > DISK_STOP_PCT and not self._disk_stop_triggered:
+                    self.logger.error(
+                        f"DISK {stats['disk_used_pct']}% used ({stats['disk_free_gb']}GB free) "
+                        "— stopping ECU logger to avoid writing to a full disk")
+                    self._stop_logger_subprocess(timeout=10.0)
+                    self._disk_stop_triggered = True
             except Exception as e:
                 self.logger.debug(f"sysmon: {e}")
 

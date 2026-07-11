@@ -44,6 +44,12 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',Consolas,mono
   background:rgba(10,10,11,0.88);color:#c8c8cc;font-family:'JetBrains Mono',Consolas,monospace;
   font-size:8px;padding:3px 7px;border-radius:2px;pointer-events:none;
   border:1px solid #2a2a36;display:none;letter-spacing:.03em}
+#speedLegend{position:absolute;top:6px;left:6px;z-index:500;
+  background:rgba(10,10,11,0.88);color:#c8c8cc;font-family:'JetBrains Mono',Consolas,monospace;
+  font-size:8px;padding:3px 7px;border-radius:2px;pointer-events:none;
+  border:1px solid #2a2a36;display:flex;gap:6px;align-items:center;letter-spacing:.03em}
+#speedLegend .leg-item{display:flex;align-items:center;gap:3px}
+#speedLegend .leg-swatch{width:8px;height:8px;border-radius:1px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -70,6 +76,13 @@ body{background:#0a0a0b;color:#c8c8cc;font-family:'JetBrains Mono',Consolas,mono
 <div id="mapsRow">
   <div id="map2d" style="position:relative">
     <div id="coordOverlay"></div>
+    <div id="speedLegend" title="Track color by speed (km/h)">
+      <span class="leg-item"><span class="leg-swatch" style="background:#0000FF"></span>0-20</span>
+      <span class="leg-item"><span class="leg-swatch" style="background:#00FF00"></span>20-60</span>
+      <span class="leg-item"><span class="leg-swatch" style="background:#FFFF00"></span>60-120</span>
+      <span class="leg-item"><span class="leg-swatch" style="background:#FF0000"></span>120-160</span>
+      <span class="leg-item"><span class="leg-swatch" style="background:#FF00FF"></span>160+</span>
+    </div>
   </div>
   <canvas id="map3d" touch-action="none"></canvas>
 </div>

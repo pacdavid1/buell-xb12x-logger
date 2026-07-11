@@ -346,6 +346,13 @@ function updateHeader(d) {
     cpuEl.textContent = cp.toFixed(0)+'%';
     cpuEl.className = 'hs-val ' + (cp > 80 ? 'ac' : cp > 60 ? 'yw' : 'gn');
   }
+  const diskEl = $id('hDisk');
+  if(diskEl){
+    const dp = ss.disk_used_pct || 0;
+    diskEl.textContent = dp.toFixed(0)+'%';
+    diskEl.className = 'hs-val ' + (dp > 95 ? 'ac' : dp > 85 ? 'yw' : 'gn');
+    diskEl.title = ss.disk_free_gb != null ? ss.disk_free_gb.toFixed(1)+'GB free' : '';
+  }
   const tempEl = $id('hTemp');
   if(tempEl){
     const tp = ss.cpu_temp || 0;
