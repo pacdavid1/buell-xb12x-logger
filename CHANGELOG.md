@@ -21,6 +21,17 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.288] — 2026-07-13
+### Fixed
+- system_health.json was tracked in git despite being a pure runtime log
+  (the Pi appends to it continuously, causing a perpetual uncommitted diff
+  on every status check -- 654 lines of drift found this session). Added
+  to .gitignore alongside the other per-installation runtime state files
+  (fuel_tracking.json, gear_profile.json, etc.) and untracked with
+  `git rm --cached` (file stays on disk, both locally and on the Pi).
+### AI
+- Claude Fable 5
+
 ## [v2.7.287] — 2026-07-12
 ### Added
 - Calibration history + undo. Every injector_cc_per_ms change (reserve-
