@@ -21,6 +21,18 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.289] — 2026-07-13
+### Changed
+- BACKLOG.md: registered pending items found during today's /fuel and repo-
+  hygiene work -- BL-FUEL-01 (add_refuel's discrepancy_L/calc_remaining
+  logic looks unsound, not fixed, needs its own look), BL-FUEL-02 (stray
+  25MB backup tarball on the Pi), and a note flagging pre-existing
+  uncommitted local work (web/server.py GPS routes + web/handlers/gps.py)
+  that was deliberately left untouched across all of today's commits and
+  needs its author to review/commit or discard it.
+### AI
+- Claude Fable 5
+
 ## [v2.7.288] — 2026-07-13
 ### Fixed
 - system_health.json was tracked in git despite being a pure runtime log

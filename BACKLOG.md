@@ -2229,3 +2229,47 @@ tiene deuda de SyntaxErrors introducidos en patches, y el layout de tabs
 horizontales no escala a 16-21 mapas de DDFI-3.
 
 **Ruta:** `/map-editor` o `/tuner2` (decidir antes de implementar)
+
+---
+
+## Session 2026-07-13 — pending items found while fixing /fuel (v2.7.286-288)
+
+### BL-FUEL-01 — `add_refuel()` discrepancy_L / calc_remaining logic looks unsound
+**Priority:** LOW (display-only field, not wired into any calibration math)
+**Source:** found while fixing the _p2-continuation + reserve-calibration bugs
+
+`calc_remaining = last['liters'] - consumed_est` mixes two different baselines:
+`last['liters']` is how many liters were PUMPED in the previous refuel (not the
+tank's resulting level), while `consumed_est` is consumption since `reserve_ts`
+(not since that previous refuel). For a non-full-tank previous fill these are
+not the same reference point, so `calc_remaining`/`discrepancy_L` (shown in the
+fill-up history list) can be misleading. Not fixed this session — kept in scope
+to the two bugs the user actually reported (dropped `_p2` continuations, unsafe
+reserve auto-calibration) and the follow-up calibration-history/undo feature.
+Needs a fresh look at what `discrepancy_L` is supposed to mean before touching it.
+
+### BL-FUEL-02 — stray backup tarball on the Pi
+**Priority:** LOW (housekeeping)
+
+`/home/pi/buell/sessions_backup_20260704_171600.tgz` (~25MB, untracked, from
+2026-07-04) sits in the repo root on the Pi. Not causing problems (untracked,
+git ignores it), just clutter — move to an actual backup location or delete
+once confirmed unneeded.
+
+### Uncommitted local work found in this repo (NOT mine, do not discard)
+While fixing `/fuel`, found pre-existing UNCOMMITTED changes in the local
+working tree (`OneDrive/Escritorio/buell/`) to `web/server.py` (two new routes:
+`/gps_session_track`, `/gps_event_coords`, plus a `_handle_health` rewrite) and
+`web/handlers/gps.py`. These were deliberately left untouched and unstaged
+across all of today's commits (v2.7.286-288) — they still sit in the working
+tree, uncommitted, exactly as found. Needs the person who started that GPS
+work to review and commit it (or discard it) before it's lost to a future
+`git stash`/`git clean`.
+
+### bench/ HIL run (cross-repo pointer, tracked in buell_fable5)
+The DDFI2 virtual test bench (`buell_fable5/bench/`, v2.7.283) is built and
+golden-tested but has never run against real hardware. Still needs: CH343
+wired PC-to-Pi (cross TX/RX + GND, check TTL levels), run
+`bench/scenarios/accel_faults.json`, audit with `bench/verify.py`. Checklist
+in `buell_fable5/bench/README.md` — not duplicated here, just pointing at it
+since it's the same rider/bike project.
