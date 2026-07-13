@@ -9,6 +9,12 @@ from pathlib import Path
 INJECTOR_CC_PER_MS = 0.00533  # 320cc/min / 60000ms per injector
 TANK_TOTAL_L       = 16.7     # XB12X Ulysses total tank capacity
 RESERVE_L          = 3.1      # level at which reserve light activates
+# A tank can't physically reach the reserve mark (13.6L consumed) on less
+# than half a tank of logged fuel. Below this floor, "reserve activated" is
+# almost certainly an accidental button press, not a real low-fuel event --
+# recalibrating on it would poison injector_cc_per_ms with garbage.
+RESERVE_CALIBRATION_MIN_L = TANK_TOTAL_L * 0.5
+_CONTINUATION_SUFFIXES = ('_p2', '_p3', '_p4', '_p5')
 def _fuel_file(buell_dir: str = '') -> str:
     if buell_dir:
         p = Path(buell_dir) / 'fuel_tracking.json'
@@ -52,7 +58,7 @@ def toggle_reserve(active: bool, sessions_dir: str = '', buell_dir: str = '') ->
         if last_full and sessions_dir:
             try:
                 logger_consumed, _ = _calc_since(last_full['ts'], sessions_dir, cc)
-                if logger_consumed > 1.0:  # need at least 1L to calibrate meaningfully
+                if logger_consumed > RESERVE_CALIBRATION_MIN_L:
                     actual_consumed = TANK_TOTAL_L - RESERVE_L  # 13.6L
                     ratio = actual_consumed / logger_consumed
                     ratio = max(0.6, min(1.67, ratio))  # clamp: never adjust more than 40%
@@ -228,50 +234,68 @@ def _calc_since(from_ts: str, sessions_dir: str, cc_per_ms: float):
             continue
     return total_cc / 1000, total_km
 
-def _calc_ride_from_csv(csv_path: str, cc_per_ms: float) -> dict | None:
-    """Parse a single ride CSV and return consumption metrics, or None if insufficient data."""
-    import os
-    name = Path(csv_path).stem
-    if name.endswith(('_p2', '_p3', '_p4', '_p5')):
+def _ride_file_group(csv_path: str) -> list:
+    """Main ride CSV + any file-rotation continuations (_p2, _p3...), in order.
+
+    The logger rotates to a new file every 10000 rows within the SAME ride;
+    continuations are still that one ride's data and must be summed with it,
+    not silently dropped.
+    """
+    p = Path(csv_path)
+    if p.stem.endswith(_CONTINUATION_SUFFIXES):
+        return []  # a continuation is folded into its main file's group
+    group = [str(p)]
+    for suf in _CONTINUATION_SUFFIXES:
+        sibling = p.with_name(f'{p.stem}{suf}{p.suffix}')
+        if sibling.exists():
+            group.append(str(sibling))
+    return group
+
+
+def _calc_ride_group(paths: list, cc_per_ms: float) -> dict | None:
+    """Parse a ride's main CSV plus its rotation continuations as one ride."""
+    if not paths:
         return None
-    session = Path(csv_path).parent.name
+    name = Path(paths[0]).stem
+    session = Path(paths[0]).parent.name
     total_cc   = 0.0
     total_km   = 0.0
     rpm_max    = 0.0
     first_ts   = None
     last_ts    = None
     sample_cnt = 0
-    prev_unix  = None
-    try:
-        with open(csv_path) as f:
-            if f.readline().startswith('#'):
-                pass
-            else:
-                f.seek(0)
-            for row in csv.DictReader(f):
-                ts = row.get('timestamp_iso', '')
-                try:
-                    row_unix = datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp()
-                except Exception:
-                    continue
-                if first_ts is None:
-                    first_ts = ts
-                last_ts = ts
-                pw1 = float(row.get('pw1') or 0)
-                pw2 = float(row.get('pw2') or 0)
-                rpm = float(row.get('RPM') or 0)
-                if rpm > rpm_max:
-                    rpm_max = rpm
-                if prev_unix is not None:
-                    dt_s = row_unix - prev_unix
-                    kph  = float(row.get('VS_KPH') or 0)
-                    total_km += kph * dt_s / 3600
-                    inj = max(0.0, (rpm / 120.0) * dt_s)
-                    total_cc += (pw1 + pw2) * cc_per_ms * inj
-                prev_unix = row_unix
-                sample_cnt += 1
-    except Exception:
-        return None
+    for csv_path in paths:
+        prev_unix = None
+        try:
+            with open(csv_path) as f:
+                if f.readline().startswith('#'):
+                    pass
+                else:
+                    f.seek(0)
+                for row in csv.DictReader(f):
+                    ts = row.get('timestamp_iso', '')
+                    try:
+                        row_unix = datetime.fromisoformat(ts.replace('Z', '+00:00')).timestamp()
+                    except Exception:
+                        continue
+                    if first_ts is None:
+                        first_ts = ts
+                    last_ts = ts
+                    pw1 = float(row.get('pw1') or 0)
+                    pw2 = float(row.get('pw2') or 0)
+                    rpm = float(row.get('RPM') or 0)
+                    if rpm > rpm_max:
+                        rpm_max = rpm
+                    if prev_unix is not None:
+                        dt_s = row_unix - prev_unix
+                        kph  = float(row.get('VS_KPH') or 0)
+                        total_km += kph * dt_s / 3600
+                        inj = max(0.0, (rpm / 120.0) * dt_s)
+                        total_cc += (pw1 + pw2) * cc_per_ms * inj
+                    prev_unix = row_unix
+                    sample_cnt += 1
+        except Exception:
+            continue
     if sample_cnt < 10 or total_km < 0.1:
         return None
     liters = total_cc / 1000
@@ -304,7 +328,7 @@ def save_ride_consumption_cache(csv_path: str, buell_dir: str = '') -> dict | No
     """Compute and persist <ride>_consumption.json. Called at ride close."""
     import os
     cc = _load(buell_dir)['injector_cc_per_ms']
-    data = _calc_ride_from_csv(csv_path, cc)
+    data = _calc_ride_group(_ride_file_group(csv_path), cc)
     if data is None:
         return None
     cache_path = Path(csv_path).with_name(Path(csv_path).stem + '_consumption.json')
@@ -333,7 +357,7 @@ def calc_ride_consumption(sessions_dir: str, limit: int = 200, buell_dir: str = 
                     continue
             except Exception:
                 pass
-        data = _calc_ride_from_csv(csv_path, cc)
+        data = _calc_ride_group(_ride_file_group(csv_path), cc)
         if data is not None:
             results.append(data)
     results.sort(key=lambda r: r['date'], reverse=True)

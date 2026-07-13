@@ -21,6 +21,39 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.286] — 2026-07-12
+### Fixed
+- web/fuel_tracker.py: two stacked bugs found live on /fuel after today's
+  fill-up showed 5.92L consumed vs 1.74+1.77=3.51L summed from the per-ride
+  table. Root-caused and numerically reproduced to the cent (5.924L):
+  1. Per-ride consumption (`_calc_ride_from_csv`) explicitly skipped file-
+     rotation continuations (`_p2`/`_p3`...), silently dropping the tail of
+     any ride that crossed the 10000-row rotation -- today's ride lost its
+     last 0.6L/7.6km. Replaced with `_ride_file_group()` +
+     `_calc_ride_group()`, which sum the main file and its continuations as
+     one ride, used by both `save_ride_consumption_cache` (ride-close) and
+     `calc_ride_consumption` (listing/recompute path).
+  2. `toggle_reserve(active=True)` auto-calibrates `injector_cc_per_ms`
+     against the hard-coded 13.6L full-to-reserve window on ANY reserve
+     activation with >1L logged since the last fill -- an accidental tap
+     with only ~3.5L logged (this session) inflated the constant from
+     0.00533 to 0.007688 (+44%), retroactively skewing every future
+     consumption read. Added `RESERVE_CALIBRATION_MIN_L` (half a tank):
+     below that, reaching reserve is physically implausible, so the
+     calibration opportunity is skipped instead of trusted.
+- web/templates/fuel.html: ACTIVATE RESERVE now requires a second tap
+  within 3s ("TAP AGAIN TO CONFIRM") before firing -- the accidental single
+  tap that triggered bug #2 above. DEACTIVATE (correcting a mistake) stays
+  single-tap.
+### Data
+- Pi fuel_tracking.json: injector_cc_per_ms reset 0.007688 -> 0.00533
+  (matches what both existing ride caches were computed with -- no
+  legitimate calibration had occurred before today's accidental one).
+  ride_91B225_009_consumption.json regenerated with the fixed code
+  (1.769L -> 2.366L, now includes its _p2 tail).
+### AI
+- Claude Fable 5
+
 ## [v2.7.285] — 2026-07-10
 ### Added
 - BACKLOG-ANL14 disk-space watchdog (was a false DONE claim -- only a /health

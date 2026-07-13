@@ -160,7 +160,7 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
     <div class="onboard-step"><b>2.</b><span>Ride normally — the logger counts km and fuel pulse width</span></div>
     <div class="onboard-step"><b>3.</b><span>Fill up, enter liters, check <b>FULL TANK RESET</b>, press <b>SAVE FILL-UP</b></span></div>
     <div class="onboard-step"><b>4.</b><span>From the next reserve activation onward, all widgets show live data</span></div>
-    <div class="onboard-note">The system auto-calibrates the injector constant each cycle using the 13.6 L hard window (full→reserve)</div>
+    <div class="onboard-note">The system auto-calibrates the injector constant each cycle using the 13.6 L hard window (full→reserve). Calibration only runs if at least half a tank was logged since the last fill — an early reserve tap won't skew it.</div>
   </div>
   <div class="section">
     <div class="section-title">Trip since last reserve</div>
@@ -313,7 +313,25 @@ function toggleFullTank(){
   document.getElementById('fullTankRow').classList.toggle('on', _fullTank);
 }
 
+let _reserveConfirmTimer = null;
+
 async function toggleReserve(){
+  const btn = document.getElementById('btnReserve');
+  // Activating reserve is a one-way trigger the backend trusts as a real
+  // low-fuel event; a fat-fingered tap should not fire it silently.
+  // Deactivating (correcting a mistake) stays a single tap on purpose.
+  if(!_ra && btn.dataset.confirm !== '1'){
+    btn.dataset.confirm = '1';
+    btn.textContent = 'TAP AGAIN TO CONFIRM';
+    clearTimeout(_reserveConfirmTimer);
+    _reserveConfirmTimer = setTimeout(() => {
+      btn.dataset.confirm = '';
+      btn.textContent = 'ACTIVATE RESERVE';
+    }, 3000);
+    return;
+  }
+  btn.dataset.confirm = '';
+  clearTimeout(_reserveConfirmTimer);
   const r = await fetch('/fuel/reserve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({active:!_ra})});
   const d = await r.json();
   _ra = d.reserve_active;
