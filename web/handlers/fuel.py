@@ -44,3 +44,8 @@ class FuelHandlerMixin:
         buell = self.server_instance.buell_dir
         sessions_dir = str(buell / 'sessions')
         self._json(fuel_tracker.calc_ride_consumption(sessions_dir, buell_dir=str(buell)))
+
+    def _handle_fuel_calibration_undo(self, path=None, payload=None):
+        buell = self.server_instance.buell_dir
+        result = fuel_tracker.undo_last_calibration(buell_dir=str(buell))
+        self._json(result, 400 if 'error' in result else 200)

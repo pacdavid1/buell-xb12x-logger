@@ -225,6 +225,16 @@ input[type=number],select{flex:1;background:var(--bg);border:1px solid var(--bor
   </div>
 
   <div class="section">
+    <div class="section-title">Injector calibration</div>
+    <div class="gauge-stats" style="margin-bottom:8px">
+      <div class="g-stat"><div class="g-stat-val" id="calCurrentCc">--</div><div class="g-stat-lbl">cc/ms now</div></div>
+    </div>
+    <div id="calHistory"><div class="empty">No calibrations yet</div></div>
+    <button class="btn" id="btnCalUndo" style="border-color:var(--yellow);color:var(--yellow);margin-top:8px" onclick="undoCalibration()">UNDO LAST CALIBRATION</button>
+    <div class="status-msg" id="calMsg"></div>
+  </div>
+
+  <div class="section">
     <div class="section-title">Consumption by session</div>
     <div style="font-size:11px;color:var(--dim);margin-bottom:8px;margin-top:-6px">rides ≥5 km · weighted avg</div>
     <div class="cons-summary">
@@ -250,6 +260,7 @@ async function loadStatus(){
     updateGauge(d);
     updateReserveBtn(d);
     renderHistory(d.refuels || []);
+    renderCalibration(d.injector_cc_per_ms, d.calibration_history || []);
     const noData = !d.refuels || d.refuels.length === 0;
     document.getElementById('onboardBanner').classList.toggle('show', noData);
     document.querySelector('#onboardBanner > .onboard-title').onclick = function(e){
@@ -383,6 +394,41 @@ function renderHistory(refuels){
       + (parts.length ? '<div class="refuel-sub">' + parts.join(' &nbsp;') + '</div>' : '')
       + '</div>';
   }).join('');
+}
+
+function renderCalibration(cc, history){
+  document.getElementById('calCurrentCc').textContent = cc != null ? cc.toFixed(6) : '--';
+  const btn = document.getElementById('btnCalUndo');
+  btn.disabled = !history.length;
+  const el = document.getElementById('calHistory');
+  if(!history.length){ el.innerHTML = '<div class="empty">No calibrations yet</div>'; return; }
+  el.innerHTML = [...history].reverse().slice(0, 8).map(h => {
+    const trig = h.trigger === 'reserve_activation' ? 'reserve ON' : 'refuel';
+    const ctx = h.trigger === 'reserve_activation'
+      ? h.actual_L.toFixed(1) + 'L/' + h.logger_L.toFixed(2) + 'L logged'
+      : h.liters.toFixed(1) + 'L pumped/' + h.logger_L.toFixed(2) + 'L logged';
+    return '<div class="refuel-item">'
+      + '<div class="refuel-top"><span class="refuel-liters" style="font-size:15px">'
+      + h.old_cc.toFixed(6) + ' &rarr; ' + h.new_cc.toFixed(6) + '</span>'
+      + '<span class="refuel-date">' + fmtDate(h.ts) + '</span></div>'
+      + '<div class="refuel-sub"><span>' + trig + '</span><span>x' + h.ratio.toFixed(3) + '</span>'
+      + '<span>' + ctx + '</span></div></div>';
+  }).join('');
+}
+
+async function undoCalibration(){
+  const msg = document.getElementById('calMsg');
+  const btn = document.getElementById('btnCalUndo');
+  btn.disabled = true; msg.textContent = 'Undoing...';
+  try{
+    const r = await fetch('/fuel/calibration/undo', {method:'POST'});
+    const d = await r.json();
+    if(d.error){ msg.textContent = d.error; return; }
+    msg.textContent = 'Reverted to ' + d.injector_cc_per_ms.toFixed(6) + ' cc/ms';
+    setTimeout(() => { msg.textContent = ''; }, 6000);
+    loadStatus();
+  }catch(e){ msg.textContent = 'Error: ' + e; }
+  finally { btn.disabled = false; }
 }
 
 function fmtDate(iso){

@@ -15,6 +15,7 @@ RESERVE_L          = 3.1      # level at which reserve light activates
 # recalibrating on it would poison injector_cc_per_ms with garbage.
 RESERVE_CALIBRATION_MIN_L = TANK_TOTAL_L * 0.5
 _CONTINUATION_SUFFIXES = ('_p2', '_p3', '_p4', '_p5')
+CALIBRATION_HISTORY_MAX = 20
 def _fuel_file(buell_dir: str = '') -> str:
     if buell_dir:
         p = Path(buell_dir) / 'fuel_tracking.json'
@@ -34,7 +35,7 @@ def _load(buell_dir: str = '') -> dict:
             return json.load(f)
     except Exception:
         return {'reserve_active': False, 'reserve_ts': None, 'refuels': [],
-                'injector_cc_per_ms': INJECTOR_CC_PER_MS}
+                'injector_cc_per_ms': INJECTOR_CC_PER_MS, 'calibration_history': []}
 
 
 def _save(state: dict, buell_dir: str = '') -> None:
@@ -43,6 +44,28 @@ def _save(state: dict, buell_dir: str = '') -> None:
     with open(tmp, 'w') as f:
         json.dump(state, f, indent=2)
     import os; os.replace(tmp, ff)
+
+
+def _record_calibration(state: dict, trigger: str, old_cc: float, new_cc: float,
+                        ratio: float, context: dict) -> None:
+    """Append a calibration event so it can be audited/undone later."""
+    hist = state.setdefault('calibration_history', [])
+    hist.append({'ts': datetime.now(timezone.utc).isoformat(), 'trigger': trigger,
+                'old_cc': old_cc, 'new_cc': new_cc, 'ratio': round(ratio, 4),
+                **context})
+    del hist[:-CALIBRATION_HISTORY_MAX]
+
+
+def undo_last_calibration(buell_dir: str = '') -> dict:
+    """Revert injector_cc_per_ms to what it was before the last calibration."""
+    state = _load(buell_dir)
+    hist = state.get('calibration_history', [])
+    if not hist:
+        return {'error': 'no calibration to undo'}
+    last = hist.pop()
+    state['injector_cc_per_ms'] = last['old_cc']
+    _save(state, buell_dir)
+    return {'undone': last, 'injector_cc_per_ms': state['injector_cc_per_ms']}
 
 
 def toggle_reserve(active: bool, sessions_dir: str = '', buell_dir: str = '') -> dict:
@@ -63,6 +86,9 @@ def toggle_reserve(active: bool, sessions_dir: str = '', buell_dir: str = '') ->
                     ratio = actual_consumed / logger_consumed
                     ratio = max(0.6, min(1.67, ratio))  # clamp: never adjust more than 40%
                     new_cc = round(cc * (ratio * 0.3 + 0.7), 6)
+                    _record_calibration(state, 'reserve_activation', cc, new_cc, ratio,
+                                        {'actual_L': actual_consumed,
+                                         'logger_L': round(logger_consumed, 3)})
                     state['injector_cc_per_ms'] = new_cc
                     result['calibration_ratio']     = round(ratio, 4)
                     result['calibration_actual_L']  = actual_consumed
@@ -88,6 +114,13 @@ def add_refuel(liters: float, octane: int, sessions_dir: str, full_tank: bool = 
     state = _load(buell_dir)
     cc = state['injector_cc_per_ms']
     reserve_ts = state.get('reserve_ts')
+    # A reserve_ts already attributed to an earlier refuel is a stale window
+    # (e.g. a routine top-up long after the last reserve event) -- riding on
+    # it again would double-count km/L that already closed out that cycle.
+    reserve_spent = reserve_ts is not None and any(
+        r.get('reserve_ts') == reserve_ts for r in state.get('refuels', []))
+    if reserve_spent:
+        reserve_ts = None
     consumed_est, km_est = (None, None)
     if reserve_ts:
         consumed_est, km_est = _calc_since(reserve_ts, sessions_dir, cc)
@@ -115,10 +148,16 @@ def add_refuel(liters: float, octane: int, sessions_dir: str, full_tank: bool = 
         'discrepancy_L': discrepancy_l,
     }
 
-    # Calibration: only when not full_tank (full_tank resets rather than calibrates)
-    if not full_tank and consumed_est and consumed_est > 0.5 and liters > 0.5:
+    # Calibration: liters actually pumped vs. what the logger computed since a
+    # FRESH reserve activation is the real combined-consumption ground truth --
+    # runs on any refuel type (full tank or partial), never on a stale window.
+    if consumed_est and consumed_est > 0.5 and liters > 0.5:
         ratio = liters / consumed_est
-        state['injector_cc_per_ms'] = round(cc * ratio * 0.3 + cc * 0.7, 6)
+        ratio = max(0.6, min(1.67, ratio))  # same clamp as the reserve-activation path
+        new_cc = round(cc * ratio * 0.3 + cc * 0.7, 6)
+        _record_calibration(state, 'refuel', cc, new_cc, ratio,
+                            {'liters': liters, 'logger_L': round(consumed_est, 3)})
+        state['injector_cc_per_ms'] = new_cc
         entry['calibration_ratio'] = round(ratio, 4)
 
     # If full_tank: override calculated level to 16.7L on next status call
@@ -139,6 +178,7 @@ def get_status(sessions_dir: str, buell_dir: str = '') -> dict:
         'reserve_ts': state.get('reserve_ts'),
         'refuels': refuels,
         'injector_cc_per_ms': cc,
+        'calibration_history': state.get('calibration_history', []),
     }
 
     # --- Fuel level estimate from last fill-up ---

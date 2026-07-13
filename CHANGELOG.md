@@ -21,6 +21,35 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+## [v2.7.287] — 2026-07-12
+### Added
+- Calibration history + undo. Every injector_cc_per_ms change (reserve-
+  activation calibration, refuel calibration) now appends
+  {ts, trigger, old_cc, new_cc, ratio, context} to
+  `calibration_history` (capped at 20). New `undo_last_calibration()` /
+  `POST /fuel/calibration/undo` reverts to the pre-calibration cc. /fuel
+  page: new "Injector calibration" section showing current cc, the last 8
+  events, and an UNDO LAST CALIBRATION button (single-tap -- undo is the
+  corrective direction, same precedent as DEACTIVATE RESERVE).
+- Live dashboard: tank % now always visible next to the fixed ~KM widget
+  (gridWidgetB second line), independent of what "Widget A" is set to.
+  Root cause of "km updates live but % doesn't": both come from the same
+  `/fuel/status` payload refreshed every 30s (`fetchFuelStatus`) -- % was
+  simply never rendered anywhere unless the user manually picked fuel_% as
+  Widget A's mode. No backend cadence change was needed or made (30s
+  already sits inside the "once a minute is fine" bar).
+### Fixed
+- `add_refuel()` calibration (liters pumped vs. logger-computed consumption
+  since reserve) now runs on ANY refuel type, not just non-full-tank --
+  full-tank resets, the recommended/default flow, were silently discarded
+  as calibration signal before. Guarded by a new staleness check: a
+  `reserve_ts` already attributed to an earlier refuel is treated as spent
+  and ignored for both the km/L estimate and calibration, so a routine
+  top-up long after the last real reserve event can no longer reuse (and
+  corrupt) that old window.
+### AI
+- Claude Fable 5
+
 ## [v2.7.286] — 2026-07-12
 ### Fixed
 - web/fuel_tracker.py: two stacked bugs found live on /fuel after today's

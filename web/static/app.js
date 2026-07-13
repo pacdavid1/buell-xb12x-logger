@@ -158,6 +158,14 @@ async function fetchFuelStatus(){
                 : _km != null ? (_km>80?'#2ecc71':_km>30?'#f1c40f':'#e74c3c') : '#f1c40f';
       _gwb.querySelector('.gw-val').textContent = _v;
       _gwb.querySelector('.gw-val').style.color = _c;
+      // Second line: tank % always visible here regardless of Widget A's
+      // mode -- level_L/level_pct come from this same fetch, just weren't
+      // shown anywhere unless Widget A happened to be set to fuel_%.
+      const _gwv2 = _gwb.querySelector('.gw-val2');
+      if(_gwv2 && _fuelSt.level_pct != null){
+        _gwv2.textContent = _fuelSt.level_pct.toFixed(0) + '%';
+        _gwv2.style.color = _fuelColor(_fuelSt.level_pct);
+      }
     }
   }catch(e){}
 }
@@ -184,6 +192,7 @@ function buildCobertGrid() {
             +'display:flex;align-items:center;justify-content:center">~KM</div>'
             +'<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">'
             +'<div class="gw-val" style="font-family:var(--mono);font-size:16px;font-weight:700;color:#f1c40f;line-height:1">--</div>'
+            +'<div class="gw-val2" style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--dim);line-height:1">--</div>'
             +'</div>'
             +'</div>'
             +'</td>';

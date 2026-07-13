@@ -204,6 +204,7 @@ class DashboardHandler(
             '/eeprom/propose':    self._handle_eeprom_propose_post,
             '/fuel/reserve':      self._handle_fuel_reserve,
             '/fuel/refuel':       self._handle_fuel_refuel,
+            '/fuel/calibration/undo': self._handle_fuel_calibration_undo,
         }
         handler = _routes.get(path)
         if handler:
