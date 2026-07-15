@@ -23,6 +23,16 @@
 PROMPT_END -->
 
 
+
+## [v2.7.292] — 2026-07-15
+### Added
+- CSV columns `bat_voltage`, `bat_soc`, `bat_charging` — UPS state per ride
+  row. Until now battery data lived only in live sysmon/system_health.json,
+  so a mid-ride UPS drain (or a lying charge bit) left no forensic trail in
+  the ride CSV.
+### AI
+- Claude Fable 5 (Claude Code)
+
 ## [v2.7.291] — 2026-07-15
 ### Fixed
 - **UPS low-battery shutdown never fired**: the CW2015 "charging" bit

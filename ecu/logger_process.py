@@ -396,6 +396,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                 data['humidity_pct'] = ss.get('humidity_pct')
                 data['bat_voltage']  = ss.get('bat_voltage')
                 data['bat_soc']      = ss.get('bat_soc')
+                data['bat_charging'] = ss.get('bat_charging')
             except Exception as e:
                 log.debug(f"sysmon IPC: {e}")
 
