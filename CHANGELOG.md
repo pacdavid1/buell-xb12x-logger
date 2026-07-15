@@ -25,6 +25,24 @@ PROMPT_END -->
 
 
 
+
+## [v2.7.294] — 2026-07-15
+### Changed
+- **Backlog hygiene — 2026-07-03 audit finally actioned**: moved finished
+  planning files to archive/ (BACKLOG_PROPOSAL_V2.md, BACKLOG_ECM_DEFS.md,
+  BACKLOG_EEPROM_READ_LOGIC.md — all confirmed shipped, residuals tracked in
+  BACKLOG.md) and extracted the audit section itself to
+  archive/BACKLOG_AUDIT_2026-07-03.md (its two reopens were fixed in v2.7.285).
+  Nothing deleted — archive/ is the developer diary.
+### Added
+- docs/HARDENING_PLAN.md — measured Pi baseline (RAM 48% is mostly OS daemons;
+  buell code is ~17%; the real finding is main.py at ~30% CPU idle), runtime
+  robustness queue, RAM/CPU service-separation design (analysis-as-mortal-worker,
+  ride-time 503 guard, lazy sklearn imports), and the backlog keep/archive
+  triage (what stays open vs what is explicitly closed).
+### AI
+- Claude Fable 5 (Claude Code)
+
 ## [v2.7.293] — 2026-07-15
 ### Changed
 - CLAUDE.md OL section corrected: the narrowband sensor is NOT disconnected —
