@@ -53,6 +53,8 @@ except ImportError:
 
 # ── Constants ──────────────────────────────────────────────────────────────────
 GPS_RESTART_DELAY   = 2.0
+SENSOR_FAIL_BACKOFF_N = 5      # consecutive I2C failures before backing off
+SENSOR_FAIL_BACKOFF_S = 300.0  # a doomed I2C read costs ~0.8 s kernel CPU (measured 2026-07-15)
 MAIN_LOOP_HEARTBEAT = 1.0
 IPC_DIR             = Path('/tmp/buell')
 IPC_POLL_S          = 0.25   # how often IPC reader polls live.json
@@ -125,6 +127,10 @@ class BuellLogger:
         self.gps     = GPSReader()
         self._bmp280 = None
         self._aht20  = None
+        self._bmp_fail = 0
+        self._bmp_retry_at = 0.0
+        self._aht_fail = 0
+        self._aht_retry_at = 0.0
         self._cw2015 = None
         self._smbus  = None
 
@@ -357,22 +363,40 @@ class BuellLogger:
             except Exception as e:
                 self.logger.debug(f"sysmon: {e}")
 
-            if self._bmp280:
+            # A read against a dead I2C device burns ~0.8 s of kernel CPU
+            # (measured 2026-07-15: BMP280 off the bus made sysmon eat ~30%
+            # CPU). After N consecutive failures, back off instead of
+            # hammering the bus every cycle.
+            if self._bmp280 and time.monotonic() >= self._bmp_retry_at:
                 try:
                     _p = round(self._bmp280.get_pressure(),    2)
                     _t = round(self._bmp280.get_temperature(), 2)
                     stats['baro_hPa']    = _p if 650 <= _p <= 1100 else None
                     stats['baro_temp_c'] = _t if -10 <= _t <= 60  else None
+                    self._bmp_fail = 0
                 except Exception:
                     stats['baro_hPa']    = None
                     stats['baro_temp_c'] = None
+                    self._bmp_fail += 1
+                    if self._bmp_fail >= SENSOR_FAIL_BACKOFF_N:
+                        self._bmp_retry_at = time.monotonic() + SENSOR_FAIL_BACKOFF_S
+                        self.logger.warning(
+                            f"BMP280 unreachable x{self._bmp_fail} — backing off "
+                            f"{SENSOR_FAIL_BACKOFF_S:.0f}s (dead I2C read costs ~0.8s CPU)")
 
-            if self._aht20:
+            if self._aht20 and time.monotonic() >= self._aht_retry_at:
                 try:
                     _hum, _tmp = self._aht20.read()
                     stats['humidity_pct'] = _hum
+                    self._aht_fail = 0
                 except Exception:
                     stats['humidity_pct'] = None
+                    self._aht_fail += 1
+                    if self._aht_fail >= SENSOR_FAIL_BACKOFF_N:
+                        self._aht_retry_at = time.monotonic() + SENSOR_FAIL_BACKOFF_S
+                        self.logger.warning(
+                            f"AHT20 unreachable x{self._aht_fail} — backing off "
+                            f"{SENSOR_FAIL_BACKOFF_S:.0f}s (dead I2C read costs ~0.8s CPU)")
 
             if self._cw2015:
                 try:

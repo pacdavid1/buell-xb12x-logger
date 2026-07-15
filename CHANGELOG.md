@@ -26,6 +26,19 @@ PROMPT_END -->
 
 
 
+
+## [v2.7.295] — 2026-07-15
+### Fixed
+- **~30% idle CPU burn in main.py (sysmon thread)**: BMP280 (0x77) and AHT20
+  (0x38) are physically off the I2C bus (instant NAK), but sysmon kept polling
+  every 2 s and each doomed BMP280 transaction costs ~0.83 s of kernel CPU
+  (measured via strace: single ioctl ENXIO in 830 ms). Sensor reads now back
+  off for 300 s after 5 consecutive failures, with a WARN log. CPU also cost
+  heat (64.5 °C idle) and UPS runtime. HARDWARE follow-up: check wiring/power
+  of the BMP280+AHT20 board — CW2015 on the same bus answers fine.
+### AI
+- Claude Fable 5 (Claude Code)
+
 ## [v2.7.294] — 2026-07-15
 ### Changed
 - **Backlog hygiene — 2026-07-03 audit finally actioned**: moved finished
