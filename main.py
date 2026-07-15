@@ -29,6 +29,7 @@ from ecu.eeprom_params import decode_params
 from ecu.version_resolver import resolve_ecu
 from ecu.session import SessionManager, CellTracker
 from gps.reader import GPSReader
+from sensors.battery_guard import battery_discharging, prune_history
 try:
     import smbus2 as _smbus2
     from bmp280 import BMP280 as _BMP280
@@ -111,7 +112,9 @@ class BuellLogger:
         self._sysmon_heartbeat      = float('inf')
         self._bat_voltages    = []
         self._bat_socs        = []
+        self._bat_history     = []   # (monotonic_t, voltage, smoothed_soc) over BAT_DISCHARGE_HORIZON_S
         self._boot_soc        = None
+        self._last_veto_log   = 0.0
         self._disk_stop_triggered = False
 
         self.network = NetworkManager(buell_dir=self.buell_dir)
@@ -432,7 +435,18 @@ class BuellLogger:
             _soc = stats.get('bat_soc')
             _v   = stats.get('bat_voltage')
             _is_charging = stats.get('bat_charging', False)
-            if not _is_charging and self._boot_soc is not None:
+
+            # Discharge detector: the CW2015 "charging" bit is unreliable
+            # (reg 0x08 is RRT_ALERT, not a charge indicator) and vetoed the
+            # shutdown on 2026-07-14 while the pack drained 30%->14%. A pack
+            # losing SOC/voltage over 10 min is discharging, whatever it says.
+            _mono = time.monotonic()
+            if _v is not None or _soc is not None:
+                self._bat_history.append((_mono, _v, _soc))
+                self._bat_history = prune_history(self._bat_history, _mono)
+            _discharging = battery_discharging(self._bat_history, _mono)
+
+            if (_discharging or not _is_charging) and self._boot_soc is not None:
                 _threshold, _v_threshold = self._get_shutdown_threshold()
                 _v_crit  = _threshold <= 0
                 _soc_low = _soc is not None and _soc < (_threshold if _threshold > 0 else 10.0)
@@ -443,10 +457,22 @@ class BuellLogger:
                     self.logger.warning(
                         f"BATTERY: {_v_s} / {_soc_s} "
                         f"(boot={self._boot_soc:.0f}%, soc_thr={_threshold:.0f}%, "
-                        f"v_thr={_v_threshold:.2f}V) — shutting down")
+                        f"v_thr={_v_threshold:.2f}V, chg_claim={_is_charging}, "
+                        f"discharging={_discharging}) — shutting down")
                     self._poweroff_requested = True
                     self._running = False
                     return
+            elif _is_charging and self._boot_soc is not None:
+                # Shutdown vetoed by the charge claim: make the veto visible
+                # so a lying CHG_IND is diagnosable from the journal.
+                _threshold, _ = self._get_shutdown_threshold()
+                if (_soc is not None and _threshold > 0 and _soc < _threshold
+                        and _mono - self._last_veto_log > 300):
+                    self._last_veto_log = _mono
+                    self.logger.info(
+                        f"BATTERY: SOC {_soc:.0f}% below threshold "
+                        f"{_threshold:.0f}% but charge claimed and no "
+                        f"discharge trend — shutdown deferred")
 
             # Merge cpu/baro/battery into web serial_stats (bps/pct come from IPC reader)
             with self.web._data_lock:

@@ -22,6 +22,24 @@
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
 
+
+## [v2.7.291] — 2026-07-15
+### Fixed
+- **UPS low-battery shutdown never fired**: the CW2015 "charging" bit
+  (register 0x08 bit4) is not a charge indicator — per datasheet 0x08 is
+  RRT_ALERT, so the bit can sit high indefinitely. On 2026-07-14 it claimed
+  "charging" while the pack drained 30%→14% (journal + system_health.json
+  evidence) and vetoed the shutdown; the Pi never powered off. New
+  `sensors/battery_guard.py` discharge detector (SOC −2% or −0.03 V over a
+  10-min window) now overrides the charge claim; shutdown warning logs
+  `chg_claim`/`discharging`, and a vetoed shutdown below threshold is logged
+  every 5 min so a lying CHG_IND is diagnosable from the journal.
+### Added
+- `tests/test_battery_guard.py` — 6 golden tests including a reproduction of
+  the 2026-07-14 drain profile.
+### AI
+- Claude Fable 5 (Claude Code)
+
 ## [v2.7.290] — 2026-07-14
 ### Fixed
 - **BL-FABLE5-C1 (CRITICAL)**: ECO winner sign was inverted in vs_engine.py —
