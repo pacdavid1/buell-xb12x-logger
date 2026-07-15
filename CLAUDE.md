@@ -123,7 +123,12 @@ gated behind a firmware family check.
 ### Sensor configuration — OL mode (CRITICAL context)
 
 The bike runs in **Open Loop (OL) without a wideband O2 sensor**.
-The narrowband EGO sensor is intentionally disconnected.
+Closed loop is disabled (EGO_Corr/AFV locked at 100) but the narrowband
+sensor IS connected and reporting: `O2_ADC` (rear cylinder, RT offset 34,
+volts = ADC × 0.004887585) shows real switching — validated 2026-07-15 on
+91B225 R9: 0–0.76 V range, mean 0.62 V, `fl_o2_active` toggling. The RAW
+NB voltage is usable as a rich/lean indicator (see IDEA-036); EGO_Corr and
+AFV remain locked and useless.
 
 **Confirmed in data (248AE2 sample, 500 rows):**
 - `EGO_Corr` = 100.0 always (locked — no signal)

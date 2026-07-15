@@ -615,6 +615,33 @@ vibration sensing, how other twins do per-cylinder trim). Then BL-VS-PERCYL (the
 somewhere to put a per-cylinder signal once we have one. Rider notes (vibration/behavior) are the
 zero-cost human channel that validates any of these without a wideband. Builds on [[project-pipeline-dataflow]].
 
+### IDEA-036 — The narrowband is ALIVE: O2_ADC as a free rich/lean gate for the rear cylinder
+**Señal:** `O2_ADC` (CSV column since the rt_defs era; RT offset 34, 2 bytes, rear cylinder;
+volts = ADC × 0.004887585) + `fl_o2_active` (sensor-ready flag) + `fl_closed_loop`/`fl_rich`.
+**Dato validado (2026-07-15, ride 91B225_009, 10k rows):** 0–0.758 V range, mean 0.616 V,
+sd ~0.09 V, 67% of samples >0.6 V (rich), 1.3% <0.3 V (lean), `fl_o2_active` toggling 0/1.
+That is a REAL switching narrowband, not a floating pin — the "sensor intentionally
+disconnected" note in CLAUDE.md was stale (closed loop is off, the sensor is not gone).
+**Técnica:** a narrowband is only quantitative near stoich (it saturates >0.6 V rich,
+<0.3 V lean), so treat it as a **ternary classifier per RPM×TPS cell**: RICH / LEAN /
+NEAR-STOICH (switching). Three uses, cheapest first:
+1. **Safety veto for proposal.py**: if the ECO winner would take fuel out of a cell whose
+   O2_ADC already reads LEAN (median <0.3 V with fl_o2_active=1), block the change. This is
+   exactly the "error signal" gap IDEA-034 named — partial (rear head only, binary) but free.
+2. **Cell labeling in Sessions VS**: median NB state per SWEET cell as a third column next to
+   dpw_eff — a cell that is rich AND slower is a confident lean candidate; rich and faster is
+   the map working as intended.
+3. **Switching-frequency map**: cells where the NB crosses 0.45 V often are near stoich —
+   the only cells where the DDFI2's open-loop map is already close to lambda 1. Those are
+   anchor cells for any future WB calibration (drive there first when the WB arrives).
+**Caveats:** rear cylinder only (front head unmeasured — ties into IDEA-035 per-cylinder
+asymmetry: the rear runs hotter/richer per glassbox ronda 3, so rear-NB "rich" does NOT mean
+front is rich); NB voltage drifts with sensor temperature (gate everything by fl_o2_active);
+never feed it into anything as an AFR number — it is a comparator, not a gauge.
+**Requiere:** nothing new on the bike. Code-wise: a per-cell NB-state aggregation in
+vs_engine (small) + the proposal veto (smaller). The OL rule in CLAUDE.md ("nothing may
+depend on EGO_Corr/AFV") stays intact — this uses the RAW sensor, not the ECU correction.
+
 ## Descartadas
 
 ## Convertidas a BACKLOG

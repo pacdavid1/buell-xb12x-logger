@@ -24,6 +24,19 @@ PROMPT_END -->
 
 
 
+
+## [v2.7.293] — 2026-07-15
+### Changed
+- CLAUDE.md OL section corrected: the narrowband sensor is NOT disconnected —
+  `O2_ADC` (rear cylinder) shows real switching (validated on 91B225 R9:
+  0–0.76 V, mean 0.62 V, fl_o2_active toggling). Closed loop remains off;
+  EGO_Corr/AFV remain locked at 100 and useless.
+- IDEAS.md: new IDEA-036 — O2_ADC as a free ternary rich/lean gate per cell
+  (proposal safety veto, Sessions VS cell labeling, switching-frequency map
+  as future WB anchor cells).
+### AI
+- Claude Fable 5 (Claude Code)
+
 ## [v2.7.292] — 2026-07-15
 ### Added
 - CSV columns `bat_voltage`, `bat_soc`, `bat_charging` — UPS state per ride
