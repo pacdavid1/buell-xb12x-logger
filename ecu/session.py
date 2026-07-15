@@ -993,6 +993,12 @@ class RideErrorLog:
                     msg=str(exc_msg)[:120],
                     consecutive_errors_before=consecutive_before)
 
+    def write_failure(self, elapsed_s, where, exc_msg, streak=1):
+        """A CSV write or fuel-tracker update raised. Before v2.7.290 this
+        killed the logger subprocess and truncated the ride silently."""
+        self._event(elapsed_s, "write_failure",
+                    where=where, msg=str(exc_msg)[:120], streak=streak)
+
     def dirty_bytes(self, elapsed_s, byte0_hex, sync_recovered):
         self._event(elapsed_s, "dirty_bytes",
                     byte0_hex=byte0_hex,

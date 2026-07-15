@@ -154,6 +154,8 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
 
     ride_active       = False
     ecu_version       = None
+    _write_fail_streak = 0      # consecutive write_sample failures (throttles errorlog spam)
+    _tracker_fail_streak = 0    # consecutive tracker.update failures (throttles errorlog spam)
     session_verified  = False   # True only once the session checksum came from a LIVE ECU EEPROM read
     _last_verify_t    = 0.0
     _last_unverified_warn = 0.0
@@ -417,9 +419,28 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
             except Exception as e:
                 log.debug(f"VSS cal: {e}")
 
-            session.write_sample(data, time.time())
+            # CRITICAL path: an unhandled exception here kills the logger
+            # subprocess and truncates the ride (glassbox finding 2026-07-12).
+            # Log and keep looping -- losing one sample beats losing the ride.
+            try:
+                session.write_sample(data, time.time())
+                _write_fail_streak = 0
+            except Exception as e:
+                _write_fail_streak += 1
+                if _write_fail_streak == 1 or _write_fail_streak % 100 == 0:
+                    log.error(f"write_sample failed (streak={_write_fail_streak}): {e}")
+                    error_log.write_failure(elapsed_s=elapsed_s, where='write_sample',
+                                            exc_msg=e, streak=_write_fail_streak)
 
-        tracker.update(data)
+        try:
+            tracker.update(data)
+            _tracker_fail_streak = 0
+        except Exception as e:
+            _tracker_fail_streak += 1
+            if _tracker_fail_streak == 1 or _tracker_fail_streak % 100 == 0:
+                log.error(f"tracker.update failed (streak={_tracker_fail_streak}): {e}")
+                error_log.write_failure(elapsed_s=elapsed_s, where='tracker.update',
+                                        exc_msg=e, streak=_tracker_fail_streak)
 
         # Ride stop
         if ride_active and rpm < RPM_STOP:

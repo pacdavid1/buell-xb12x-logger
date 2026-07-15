@@ -21,6 +21,35 @@
        ls /home/pi/buell/fix_*.py && rm /home/pi/buell/fix_*.py
      Never commit fix_*.py files to the repo — they are temporary patch scripts.
 PROMPT_END -->
+
+## [v2.7.290] — 2026-07-14
+### Fixed
+- **BL-FABLE5-C1 (CRITICAL)**: ECO winner sign was inverted in vs_engine.py —
+  every ECO/BALANCE decision crowned the RICHER map (more fuel) instead of the
+  leaner one. Extracted `_eco_winner()` (dpw_eff = B−A, positive → A leaner)
+  and fixed all 3 decision sites: VS-only, F7 fusion, GP gap-fill. On VS↔F7
+  sign conflict the cell now abstains (new `skipped_conflicting_f7` stat)
+  instead of the old "richer wins" bias — conflicting evidence is not evidence
+  (same policy as proposal.py eco-vs-sport conflicts).
+- **vdyno J1349 correction read `IAT_Corr` as Celsius** — IAT_Corr is the
+  ECU's correction factor in percent (92–118), not a temperature; the real
+  intake temp column is `MAT`. The bug inflated vdyno power ~10–12%
+  systematically. Now uses MAT with plausibility guards (−20..60 °C,
+  800..1100 hPa); correction is skipped when data is implausible.
+- **logger_process.py write path hardened**: `session.write_sample` and
+  `tracker.update` had no exception handling — one exception killed the logger
+  subprocess and silently truncated the ride (glassbox finding, candidate #1
+  for unexplained ride gaps). Both are now wrapped; failures are logged to the
+  ride errorlog as `write_failure` events (streak-throttled to avoid spam).
+### Added
+- `tests/test_eco_and_j1349.py` — 8 golden tests with analytically known
+  answers (eco semantics, F7 fusion/abstention, sport unchanged, J1349 MAT).
+- `RideErrorLog.write_failure()` event type in ecu/session.py.
+- BACKLOG_FABLE5_RESCUE.md: delta re-audit 2026-07-14 (DELTA-3..7: bench/ port,
+  graf2 overlay, glassbox logger findings, portable UI features).
+### AI
+- Claude Fable 5 (Claude Code)
+
 ## [v2.7.289] — 2026-07-13
 ### Changed
 - BACKLOG.md: registered pending items found during today's /fuel and repo-

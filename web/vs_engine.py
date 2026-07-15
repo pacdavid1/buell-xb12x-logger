@@ -41,6 +41,13 @@ def _zone_by_tps_peak(tps_peak):
     return 'LIGHT'
 
 
+def _eco_winner(delta_ms):
+    """ECO winner from a B-minus-A PW delta (ms). Positive delta means B
+    injects MORE fuel, so the leaner (eco) map is A. BL-FABLE5-C1: the old
+    rule was inverted and always crowned the richer map."""
+    return 'A' if delta_ms > 0 else 'B'
+
+
 def _f7_delta_to_cells(f7_matches):
     """Map F7 cross-session matches to EEPROM cells using the same RPM/TPS
     binning as vs_delta.
@@ -162,6 +169,7 @@ def _build_ci(buell_dir, sa, sb):
         f7_cells={}
     ci={}
     skipped_insig=0
+    skipped_conflict=0
     fused_with_f7=0
     for r in delta:
         if r['na']<MN or r['nb']<MN: continue
@@ -183,17 +191,18 @@ def _build_ci(buell_dir, sa, sb):
             if f7c and f7c['zone']!='WOT' and f7c['confidence']>0:
                 f7_delta=f7c['f7_delta']
                 if (vs_delta<0)!=(f7_delta<0):
-                    # Signs disagree: bias toward the richer verdict (higher
-                    # PW = more fuel = safer in open-loop without a wideband).
-                    fused=max(vs_delta,f7_delta)
-                else:
-                    w=f7c['confidence']
-                    fused=(vs_delta+f7_delta*w)/(1.0+w)
+                    # VS and F7 contradict each other about which map is
+                    # leaner. Conflicting evidence is not evidence: abstain
+                    # (same policy as proposal.py eco-vs-sport conflicts).
+                    skipped_conflict+=1
+                    continue
+                w=f7c['confidence']
+                fused=(vs_delta+f7_delta*w)/(1.0+w)
                 fused_with_f7+=1
-                ci[key]['eco']='A' if fused<0 else 'B'
+                ci[key]['eco']=_eco_winner(fused)
                 ci[key]['eco_delta']=fused
             else:
-                ci[key]['eco']='A' if vs_delta<0 else 'B'
+                ci[key]['eco']=_eco_winner(vs_delta)
                 ci[key]['eco_delta']=vs_delta
         elif fl=='SPICY_WOT':
             # ddvss has no GAP1-equivalent significance test yet, so the
@@ -206,10 +215,11 @@ def _build_ci(buell_dir, sa, sb):
         margin=1.96*g['std']
         lo,hi=g['mean']-margin,g['mean']+margin
         if not (lo>0 or hi<0): continue  # GP posterior CI crosses zero -- leave unfilled
-        ci[key]={'eco':'A' if g['mean']<0 else 'B','eco_delta':g['mean'],
+        ci[key]={'eco':_eco_winner(g['mean']),'eco_delta':g['mean'],
                  'sport':None,'gp_filled':True,'pw_eff_a':None,'pw_eff_b':None}
         filled_by_gp+=1
-    stats={'skipped_insignificant':skipped_insig,'fused_with_f7':fused_with_f7,'filled_by_gp':filled_by_gp}
+    stats={'skipped_insignificant':skipped_insig,'skipped_conflicting_f7':skipped_conflict,
+           'fused_with_f7':fused_with_f7,'filled_by_gp':filled_by_gp}
     return ci, delta, stats
 
 

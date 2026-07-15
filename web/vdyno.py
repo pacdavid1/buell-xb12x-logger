@@ -124,17 +124,22 @@ def _seg_physics(seg, cfg):
     F   = m * a + 0.5 * cfg['rho'] * cfg['CdA'] * vss_s ** 2 + cfg['Crr'] * m * _G
     P_w = F * vss_s  # watts
 
-    # SAE J1349 correction factor for air density
+    # SAE J1349 correction factor for air density.
+    # Temperature comes from MAT (manifold air temp, Celsius). IAT_Corr is
+    # NOT a temperature -- it is the ECU's correction factor in percent
+    # (92-118); feeding it here as Celsius inflated power ~10-12%
+    # (BL-FABLE5-RESCUE delta finding, 2026-07-14).
     try:
-        iats = [float(r.get('IAT_Corr') or 0) for r in seg if r.get('IAT_Corr')]
+        mats = [float(r.get('MAT') or 0) for r in seg if r.get('MAT')]
         baros = [float(r.get('baro_hPa') or 0) for r in seg if r.get('baro_hPa')]
-        if iats and baros:
-            iat_c = float(np.mean(iats))  # IAT in Celsius
+        if mats and baros:
+            mat_c = float(np.mean(mats))  # intake air temp in Celsius
             baro_hpa = float(np.mean(baros))  # baro in hPa
-            iat_f = iat_c * 9.0 / 5.0 + 32.0  # Celsius to Fahrenheit
-            baro_inhg = baro_hpa * 0.02953  # hPa to inHg
-            j1349_cf = (29.23 / baro_inhg) * ((iat_f + 460.0) / 537.0) ** 0.5
-            P_w = P_w * j1349_cf
+            if -20.0 < mat_c < 60.0 and 800.0 < baro_hpa < 1100.0:
+                mat_f = mat_c * 9.0 / 5.0 + 32.0  # Celsius to Fahrenheit
+                baro_inhg = baro_hpa * 0.02953  # hPa to inHg
+                j1349_cf = (29.23 / baro_inhg) * ((mat_f + 460.0) / 537.0) ** 0.5
+                P_w = P_w * j1349_cf
     except Exception:
         pass  # skip correction if data is missing
 

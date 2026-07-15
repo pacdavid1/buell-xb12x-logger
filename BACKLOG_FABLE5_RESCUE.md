@@ -1,9 +1,65 @@
 # BACKLOG — Rescue from buell_fable5 fork
 
 > Source fork: `buell_fable5` (commit `b16d932`, 2026-07-05)
-> Audited: 2026-07-06
+> Audited: 2026-07-06 · Delta re-audit: 2026-07-14 (fable5 v2.7.281-285 + glassbox rounds 1-3)
 > Purpose: catalog everything worth rescuing from the fable5 experiment back into
 > the main buell repo, prioritized by impact and effort.
+
+## Status (2026-07-14, branch `fable5-rescue`)
+
+- ✅ **BL-FABLE5-C1 DONE** — `_eco_winner()` extracted, all 3 decision sites fixed
+  (VS-only, F7 fusion, GP fill). On VS↔F7 sign conflict the cell now ABSTAINS
+  (`skipped_conflicting_f7` stat) instead of the old "richer wins" bias — same
+  policy as proposal.py eco-vs-sport conflicts. Golden tests in
+  `tests/test_eco_and_j1349.py`.
+- ✅ **DELTA-1 DONE** — vdyno J1349 now reads `MAT` (Celsius) instead of
+  `IAT_Corr` (a 92-118% factor, not a temperature). The bug inflated vdyno power
+  ~10-12% systematically. Plausibility guard -20..60 C / 800..1100 hPa.
+- ✅ **DELTA-2 DONE** — `logger_process.py` write path hardened: try/except around
+  `session.write_sample` + `tracker.update` with `write_failure` errorlog events
+  (streak-throttled). An exception there used to kill the subprocess and truncate
+  the ride silently (glassbox finding, candidate #1 for unexplained gaps).
+
+## Delta items from post-fork fable5 work (NOT yet rescued)
+
+### DELTA-3 — bench/ virtual ECU test bench (fable5 v2.7.283) 🔴 HIGH
+The DDFI2 simulator (PC → CH343 → Pi serial) with programmed fault injection
+(silence/garbage/bad_checksum/truncate/latency/ecu_reset, accel/decel-correlated)
+tests `ecu/` code that is IDENTICAL in both repos. Port `bench/` as-is; the HIL
+run validates the PRODUCTION logger, not just the fork. 8 golden tests against
+the real decoder included. Pending HIL wiring checklist lives in bench/README.md.
+
+### DELTA-4 — graf2 measure-pipeline overlay (fable5 v2.7.281) 🟡 MEDIUM
+`web/handlers/measure_overlay.py` + graf2.js changes: ok/suspect/rejected event
+bands as annotation source. Depends on `measure/` package → blocked by
+BL-FABLE5-MEASURE. Do not port standalone.
+
+### DELTA-5 — glassbox logger-side findings (rounds 1-3, PROPUESTA FABLE5/FEEDBACK.md) 🟡 MEDIUM
+- Errorlog misfiling: session A295AD logs stored under 91B225's folder;
+  `ride_006_errorlog.json` internally says "ride 3". Numbering does not match
+  content.
+- No errorlog was written for 91B225 R2 — the ride with five 31-35 s gaps.
+  The journal misses exactly the failure that cost the most data.
+- `di_clutch` / `di_neutral` dead (always 0 across 4 epochs) — not wired or not
+  decoded; engaged-mask conditions are no-ops. Clutch switch is the planned fix.
+- Sessions with VS_KPH=0 for the whole ride (A295AD R1/R2, 47BF04 R3) — static
+  sessions or dead VSS; tag them to exclude from physics.
+- Brake input flag (binary, like reserve switch): ECU has no brake bit in DIn →
+  external hardware, pattern identical to di_clutch (CSV_COLUMNS →
+  OPTIONAL_COLUMNS → capability → mask).
+
+### DELTA-6 — glassbox UI features portable to buell 🟢 LOW
+Ride health rating 0-100 (transparent penalty list), GPS-frozen detection
+(purple bands), logger-gap bands (grey), user marks (drag + note, persisted).
+Port into existing pages (graf2/gps_analysis) — keep the house theme, no new
+tabs. Also: audit `web/server.py` Cache-Control on data APIs (glassbox weight
+bug was a stale-HTTP-cache bug; same class of issue applies here).
+
+### DELTA-7 — fable5-side bug both repos share the pattern of 🟢 NOTE
+fable5 `measure/physics.py:_resolve_rho` still reads `IAT_Corr` as Celsius
+(guard masks it: `rho_source='measured'` can never fire). Registered in fable5's
+FEEDBACK.md for M1 — fix belongs in the fable5 repo, listed here only so the
+pattern is not re-imported with BL-FABLE5-MEASURE.
 
 The fable5 fork was a clean rewrite of the analysis pipeline (`measure/` package)
 with validated PW research, golden tests, and a formal calculation audit. The base
