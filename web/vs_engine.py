@@ -11,6 +11,7 @@ import sys as _sys
 _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from ecu.eeprom import decode_eeprom_maps as _decode_eeprom_maps
 from web.launch import _compare_sessions
+from web.o2 import eco_lean_veto
 from web.utils import _session_version
 from ecu.version_resolver import resolve_ecu as _resolve_ecu
 
@@ -170,6 +171,7 @@ def _build_ci(buell_dir, sa, sb):
     ci={}
     skipped_insig=0
     skipped_conflict=0
+    skipped_lean_o2=0
     fused_with_f7=0
     for r in delta:
         if r['na']<MN or r['nb']<MN: continue
@@ -198,12 +200,21 @@ def _build_ci(buell_dir, sa, sb):
                     continue
                 w=f7c['confidence']
                 fused=(vs_delta+f7_delta*w)/(1.0+w)
+                eco=_eco_winner(fused)
+                eco_delta=fused
                 fused_with_f7+=1
-                ci[key]['eco']=_eco_winner(fused)
-                ci[key]['eco_delta']=fused
             else:
-                ci[key]['eco']=_eco_winner(vs_delta)
-                ci[key]['eco_delta']=vs_delta
+                eco=_eco_winner(vs_delta)
+                eco_delta=vs_delta
+            # IDEA-036 safety veto: never crown an eco winner whose own
+            # cell already reads LEAN on the narrowband (rear cyl,
+            # fl_o2_active-gated). Removing fuel from a lean cell is the
+            # one failure mode this free sensor can actually catch.
+            if eco_lean_veto(eco, r.get('o2_a'), r.get('o2_b')):
+                skipped_lean_o2+=1
+                continue
+            ci[key]['eco']=eco
+            ci[key]['eco_delta']=eco_delta
         elif fl=='SPICY_WOT':
             # ddvss has no GAP1-equivalent significance test yet, so the
             # sport winner is still picked from raw sign — gating this needs
@@ -219,6 +230,7 @@ def _build_ci(buell_dir, sa, sb):
                  'sport':None,'gp_filled':True,'pw_eff_a':None,'pw_eff_b':None}
         filled_by_gp+=1
     stats={'skipped_insignificant':skipped_insig,'skipped_conflicting_f7':skipped_conflict,
+           'skipped_lean_o2':skipped_lean_o2,
            'fused_with_f7':fused_with_f7,'filled_by_gp':filled_by_gp}
     return ci, delta, stats
 
@@ -291,7 +303,7 @@ def _merge_maps(buell_dir, sa, sb, mode='BALANCE'):
 def _fmtk(n):
     if n >= 1000: return f"{n/1000:.1f}k"
     return str(n)
-CACHE_VERSION = 11  # bumped: injector dead-time correction on pw_eff (BL-DI-01, v2.7.277)
+CACHE_VERSION = 12  # bumped: per-cell NB O2 labels in delta rows (IDEA-036, v2.7.296)
 _cache_lock = threading.Lock()
 
 def _eeprom_to_msq(eeprom, session=''):

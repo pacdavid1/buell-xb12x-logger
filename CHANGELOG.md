@@ -27,6 +27,34 @@ PROMPT_END -->
 
 
 
+## [v2.7.296] — 2026-07-18
+### Added
+- **IDEA-036 items 1+2 — NB O2 as per-cell rich/lean comparator** (bench-tested
+  in buell_fable5 v2.7.286 first, then ported here per the test-fork workflow):
+  - `web/o2.py`: V = O2_ADC×5/1023; >0.60 V rich / <0.30 V lean / mixed
+    switching; label only when ≥70% of fl_o2_active-gated samples sit on one
+    side (min 4). Comparator, never an AFR meter. EGO_Corr/AFV rule intact.
+  - `web/launch.py`: rows carry o2_v + fl_o2; build_index accumulates per-cell
+    O2 counters (BITTER exclusion already keeps decel-fuel-cut lean spikes out);
+    delta rows carry o2_a/o2_b labels + mean volts (CACHE_VERSION 11→12).
+  - `web/vs_engine.py _build_ci`: **lean-cell safety veto** — an eco winner
+    whose own cell reads LEAN is never crowned (new stat `skipped_lean_o2`).
+  - `web/templates/sessions_vs.html`: O2 RR column (A/B label + volts).
+  - `tests/test_o2.py`: 11 golden tests (thresholds, dominance, veto).
+### Context
+- Field evidence behind the thresholds: 47BF04 R2 t=375–379 s — NB pegged
+  0.00 V for 3 s at 23% TPS / 3250–3500 RPM sustained with fl_o2_active=1,
+  instant 0.6 V recovery on throttle close (real lean, not a dropout; decel
+  fuel cut produces the same 0 V signature as positive control). End-to-end
+  653DC0 vs 47BF04: 150/153 delta cells labeled, veto fired on 3 cells,
+  and 4400–4800 RPM / TPS 25–30 reads LEAN in BOTH sessions (persistent
+  lean region across map epochs — matches the glassbox cube rear-lean zone).
+- Doc bug registered: docs/08_ANALYSIS_TUNING.md still describes O2_ADC as
+  8-bit 0–255 with 128=stoich; the validated scale is 10-bit 0–1023,
+  V = ADC×0.004887585 (IDEA-036). Not corrected in this commit.
+### AI
+- Claude Fable 5 (Claude Code)
+
 ## [v2.7.295] — 2026-07-15
 ### Fixed
 - **~30% idle CPU burn in main.py (sysmon thread)**: BMP280 (0x77) and AHT20

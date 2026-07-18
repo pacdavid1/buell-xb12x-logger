@@ -641,6 +641,13 @@ never feed it into anything as an AFR number — it is a comparator, not a gauge
 **Requiere:** nothing new on the bike. Code-wise: a per-cell NB-state aggregation in
 vs_engine (small) + the proposal veto (smaller). The OL rule in CLAUDE.md ("nothing may
 depend on EGO_Corr/AFV") stays intact — this uses the RAW sensor, not the ECU correction.
+**STATUS (v2.7.296, 2026-07-18):** uses 1+2 IMPLEMENTED (web/o2.py comparator +
+per-cell labels in launch.build_index/delta + eco lean veto in _build_ci
+`skipped_lean_o2` + O2 RR column in sessions_vs). Bench-tested in buell_fable5
+v2.7.286 first. Field result: 3200–3600/TPS 20–30 lean confirmed in 47BF04
+(0.00 V sustained under load, fl_o2_active=1); 4400–4800/TPS 25–30 lean in BOTH
+653DC0 and 47BF04 — persistent lean region. Use 3 (switching-frequency anchor
+map for WB calibration) still pending.
 
 ## Descartadas
 

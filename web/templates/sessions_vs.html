@@ -140,7 +140,8 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
           <th colspan="3" style="color:#60c0ff;text-align:center;border-right:1px solid var(--bd)">SPARK RR</th>
           <th colspan="3" style="color:#33ff99;text-align:center;border-right:1px solid var(--bd)">ACCEL</th>
           <th colspan="3" style="color:#ff9944;text-align:center;border-right:1px solid var(--bd)">VSS</th>
-          <th colspan="3" style="color:#ff4444;text-align:center">TEMP</th>
+          <th colspan="3" style="color:#ff4444;text-align:center;border-right:1px solid var(--bd)">TEMP</th>
+          <th colspan="2" style="color:#2cdd6e;text-align:center" title="Narrowband O2 rear cyl (IDEA-036): side of stoich per cell, fl_o2_active-gated. Comparator, not AFR.">O2 RR</th>
         </tr>
         <tr>
           <th data-key="rpm_lo">RPM</th><th data-key="tps_lo">TPS%</th>
@@ -151,7 +152,8 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
           <th data-key="spk2_a">A</th><th data-key="spk2_b">B</th><th data-key="dspk2" style="border-right:1px solid var(--bd)">dSPK2</th>
           <th data-key="dvss_a">A</th><th data-key="dvss_b">B</th><th data-key="ddvss" style="border-right:1px solid var(--bd)">dACC</th>
           <th data-key="spd_a">A</th><th data-key="spd_b">B</th><th data-key="dspd" style="border-right:1px solid var(--bd)">dVSS</th>
-          <th data-key="clt_a">CLT_A</th><th data-key="clt_b">CLT_B</th><th data-key="dclt">dCLT</th>
+          <th data-key="clt_a">CLT_A</th><th data-key="clt_b">CLT_B</th><th data-key="dclt" style="border-right:1px solid var(--bd)">dCLT</th>
+          <th data-key="o2_a">A</th><th data-key="o2_b">B</th>
         </tr>
       </thead>
       <tbody id="dtBody"></tbody>
@@ -161,6 +163,13 @@ table.dt tr:hover td{background:rgba(255,255,255,.03)}
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
 function escapeHtml(s){if(typeof s==='undefined'||s===null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+// NB O2 cell (IDEA-036): rich amber / lean blue / switching green; volts as context.
+var O2_COLORS={rich:'#f5a623',lean:'#3d9eff',switching:'#2cdd6e'};
+function o2Cell(label,volts){
+  if(!label)return'<td class="neu">—</td>';
+  var v=(volts!=null)?' <span style="opacity:.55;font-size:10px">'+volts.toFixed(2)+'V</span>':'';
+  return'<td style="color:'+(O2_COLORS[label]||'#c8c8cc')+'">'+label+v+'</td>';
+}
 var _data=null,_launchPowerData=null,_curFlavor='SWEET',_curMode='SPORT',MIN_N=10;
 
 async function init(){
@@ -392,7 +401,9 @@ function renderBody(rows){
       +'<td class="'+(r.dspd!=null&&r.dspd>0.5?'pos':r.dspd!=null&&r.dspd<-0.5?'neg':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dspd!=null?(r.dspd>=0?'+':'')+r.dspd.toFixed(1):'—')+'</td>'
       +'<td style="color:#ff4444">'+r.clt_a.toFixed(0)+'</td>'
       +'<td style="color:#ff4444">'+r.clt_b.toFixed(0)+'</td>'
-      +'<td class="'+(cltBias?'pos':'neu')+'">'+(r.dclt>=0?'+':'')+r.dclt.toFixed(1)+'</td>'
+      +'<td class="'+(cltBias?'pos':'neu')+'" style="border-right:1px solid var(--bd)">'+(r.dclt>=0?'+':'')+r.dclt.toFixed(1)+'</td>'
+      +o2Cell(r.o2_a,r.o2_v_a)
+      +o2Cell(r.o2_b,r.o2_v_b)
       +'</tr>';
   }
   tbody.innerHTML=html;

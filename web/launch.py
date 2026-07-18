@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 
 from web.f7 import _f7_load_session_clusters, _f7_match_cross_session
+from web.o2 import NB_LEAN_V, NB_RICH_V, O2_ADC_TO_V, classify_o2_counts
 from ecu.ecm_defs import decode_batt_correction as _decode_batt_correction, deadtime_ms as _deadtime_ms
 from ecu.session import list_ride_csvs
 from web.utils import _session_version
@@ -386,6 +387,11 @@ def _compare_sessions(buell_dir, sa, sb):
                         'fl_decel':r.get('fl_decel','0').strip() in ('1','True','true'),
                         'fl_fc':   r.get('fl_fuel_cut','0').strip() in ('1','True','true'),
                         'fl_eng':  r.get('fl_engine_run','1').strip() in ('1','True','true'),
+                        # NB O2 rear cyl (IDEA-036): volts + sensor-lit gate.
+                        # Missing columns -> 0 V with fl_o2=False, which the
+                        # cell aggregation ignores entirely.
+                        'o2_v':    sf(r.get('O2_ADC', 0)) * O2_ADC_TO_V,
+                        'fl_o2':   r.get('fl_o2_active','0').strip() in ('1','True','true'),
                     })
                 except Exception as e:
                     logging.getLogger("WebServer").debug("csv row skip: %s" % e)
@@ -446,6 +452,8 @@ def _compare_sessions(buell_dir, sa, sb):
             # Welford online para std_rpm y std_tps
             'rpm_m':0.0,'rpm_m2':0.0,'tps_m':0.0,'tps_m2':0.0,
             'pweff_m':0.0,'pweff_m2':0.0,
+            # NB O2 counters (fl_o2_active-gated rows only)
+            'o2_n':0,'o2_rich':0,'o2_lean':0,'o2_v':0.0,
         })
         fc  = defaultdict(int)
         for r in rows:
@@ -480,6 +488,16 @@ def _compare_sessions(buell_dir, sa, sb):
             if r.get('slope') is not None:
                 c['slope']   += r['slope']
                 c['slope_n'] += 1
+            # NB O2 (IDEA-036): only rows where the ECU says the sensor is
+            # lit. BITTER rows (warmup, AE, fuel cut) never reach here, so
+            # decel-cut lean spikes do not pollute the cell label.
+            if r.get('fl_o2'):
+                c['o2_n'] += 1
+                c['o2_v'] += r['o2_v']
+                if r['o2_v'] > NB_RICH_V:
+                    c['o2_rich'] += 1
+                elif r['o2_v'] < NB_LEAN_V:
+                    c['o2_lean'] += 1
             # Welford online std_rpm
             n2 = c['n']
             delta_rpm = r['rpm'] - c['rpm_m']
@@ -518,6 +536,8 @@ def _compare_sessions(buell_dir, sa, sb):
                 'std_rpm': round((c['rpm_m2']/n)**0.5, 1) if n>1 else 0.0,
                 'std_tps': round((c['tps_m2']/n)**0.5, 2) if n>1 else 0.0,
                 'std_pweff': round((c['pweff_m2']/n)**0.5, 4) if n>1 else 0.0,
+                **classify_o2_counts(c['o2_n'], c['o2_rich'],
+                                     c['o2_lean'], c['o2_v']),
             }
         return result, dict(fc)
 
@@ -605,6 +625,9 @@ def _compare_sessions(buell_dir, sa, sb):
             'dpw_eff_ci_lo': round(_ci_lo, 3),
             'dpw_eff_ci_hi': round(_ci_hi, 3),
             'dpw_eff_sig':   _sig,
+            'o2_a':     a['o2_label'],  'o2_b':     b['o2_label'],
+            'o2_v_a':   a['o2_v_mean'], 'o2_v_b':   b['o2_v_mean'],
+            'o2_rich_a': a['o2_rich_frac'], 'o2_rich_b': b['o2_rich_frac'],
         })
     delta.sort(key=lambda x: (x['flavor'], -(x['na']+x['nb'])))
 
