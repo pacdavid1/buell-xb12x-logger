@@ -27,6 +27,23 @@ PROMPT_END -->
 
 
 
+## [v2.7.297] — 2026-07-19
+### Fixed
+- **Windows IPC write bug — live dashboard data froze after first frame**:
+  `main.py:_ipc_write` and `ecu/logger_process.py:_write` used
+  `tmp.rename(path)` for the atomic write-then-swap. On POSIX this replaces
+  the destination silently (why it always worked on the Pi); on Windows
+  `Path.rename()` raises `FileExistsError` once the destination already
+  exists, and the bare `except Exception: pass` swallowed it — so `live.json`,
+  `cells.json`, `ecu_init.json`, `gps.json`, `sysmon.json` all froze at their
+  first frame while their `.tmp` siblings kept updating underneath. Found
+  running the logger locally on Windows against the real ECU over CH343/COM4:
+  dashboard connected (`ecu_connected: true`) but TPS/RPM/clock never moved.
+  Fix: `tmp.replace(path)` in both places — atomic on POSIX and Windows,
+  no behavior change on the Pi (Linux `rename` and `replace` are equivalent).
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.296] — 2026-07-18
 ### Added
 - **IDEA-036 items 1+2 — NB O2 as per-cell rich/lean comparator** (bench-tested

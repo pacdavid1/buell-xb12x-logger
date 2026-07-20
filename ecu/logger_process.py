@@ -75,11 +75,12 @@ def _read(path: Path, default=None):
 
 
 def _write(path: Path, data):
-    """Atomic write via rename (safe on tmpfs)."""
+    """Atomic write via temp file replace (Path.rename does not overwrite
+    an existing destination on Windows; Path.replace does)."""
     tmp = path.with_suffix('.tmp')
     try:
         tmp.write_text(json.dumps(data))
-        tmp.rename(path)
+        tmp.replace(path)
     except Exception:
         pass
 

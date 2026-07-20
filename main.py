@@ -80,11 +80,12 @@ LOGGER_VERSION = _get_version()
 
 
 def _ipc_write(path: Path, data: dict):
-    """Atomic IPC write via temp file rename (safe on tmpfs)."""
+    """Atomic IPC write via temp file replace (Path.rename does not
+    overwrite an existing destination on Windows; Path.replace does)."""
     tmp = path.with_suffix('.tmp')
     try:
         tmp.write_text(json.dumps(data))
-        tmp.rename(path)
+        tmp.replace(path)
     except Exception:
         pass
 
