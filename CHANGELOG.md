@@ -27,6 +27,29 @@ PROMPT_END -->
 
 
 
+## [v2.7.299] — 2026-07-19
+### Added
+- **Map Editor: multi-cell selection + batch edit tools** (bridge for manual
+  tuning while the automatic data-driven proposal pipeline isn't ready yet):
+  - Shift-click a second cell to select the rectangle between it and the
+    last plain-clicked cell (within the same map). Selected cells get a
+    blue outline; a toolbar appears with the cell count.
+  - **Scale %**: multiply every selected cell by (1 + pct/100) in one step,
+    instead of editing each cell by hand.
+  - **Smooth %**: blend each selected cell toward its 4-neighbor average
+    (up/down/left/right, including neighbors outside the selection) by a
+    configurable strength. Uses a pre-pass snapshot so every cell in one
+    pass blends toward original neighbor values, not already-smoothed ones.
+    A single pass intentionally does not fully flatten a rough map --
+    the +-15% guard at burn/save time still applies per cell, so a strong
+    smooth may need a couple of passes. That's consistent with this
+    project's incremental-tuning philosophy (never jump, always step).
+  - Both tools stage into the same STAGE object the existing per-cell
+    editor uses, so BURN, SAVE, and RESET all work on batch-edited cells
+    exactly like hand-edited ones -- no separate code path.
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.298] — 2026-07-19
 ### Added
 - **Import XPR as session**: `ecu/xpr_import.py` (shared by CLI and web) trims

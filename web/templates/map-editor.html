@@ -66,6 +66,14 @@ table.save-modal-table td{padding:3px 6px;border-bottom:1px solid var(--bd);colo
 .save-modal-actions button{font-family:var(--mn);font-size:var(--fs-md);padding:5px 14px;border-radius:2px;cursor:pointer}
 #saveModalCancel{background:transparent;color:var(--dm);border:1px solid var(--bd)}
 #saveModalConfirm{background:#2d7dd2;color:#fff;border:none;font-weight:700}
+/* multi-select toolbar */
+#selTools{display:none;align-items:center;gap:10px;background:var(--p);border-bottom:1px solid var(--bd);padding:6px 12px;font-family:var(--mn);font-size:var(--fs-md);color:var(--tx)}
+#selTools label{color:var(--dm);display:flex;align-items:center;gap:4px}
+#selTools input{width:55px;background:var(--bg);border:1px solid var(--bd);color:var(--tx);font-family:var(--mn);font-size:var(--fs-md);padding:3px 6px;border-radius:2px}
+#selTools button{font-family:var(--mn);font-size:var(--fs-md);padding:4px 10px;border-radius:2px;cursor:pointer;background:transparent;border:1px solid var(--bd);color:var(--tx)}
+#selTools button:hover{border-color:#2d7dd2;color:#2d7dd2}
+#selCount{color:#2d7dd2;font-weight:700}
+td.cell-selected{outline:2px solid #2d7dd2;outline-offset:-2px}
 
 /* nav */
 .nav-menu{position:relative;flex-shrink:0}
@@ -188,6 +196,15 @@ table.em td input{position:absolute;inset:0;width:100%;height:100%;background:rg
   </div>
 </div>
 
+<div id="selTools">
+  <span id="selCount"></span>
+  <label>Scale <input type="number" id="selScalePct" value="10" step="1">%</label>
+  <button onclick="applyScaleToSelection()">Apply Scale</button>
+  <label>Smooth <input type="number" id="selSmoothPct" value="40" step="5" min="0" max="100">%</label>
+  <button onclick="applySmoothToSelection()">Apply Smooth</button>
+  <button onclick="clearSelection()">Clear Selection</button>
+</div>
+
 <div class="main" id="main">
   <div class="state-msg">Select a session to begin.</div>
 </div>
@@ -228,6 +245,8 @@ var AXES_DATA = {};
 var CUR_SESSION = '';
 var MAX_STAGE = 50;
 var _pendingChanges = [];
+var SEL = null;          // { key, r1, r2, c1, c2 } -- rectangular multi-select, shift-click to set
+var _lastClicked = null; // { key, ri, ci } -- anchor for shift-click range selection
 
 // per-map camera state: { ang, tilt, drag, lx, ly }
 var CAMS = {};
@@ -775,8 +794,23 @@ function getRange(units, data) {
 var _activeInp = null;
 function onCellClick(e) {
   var td = e.currentTarget;
-  if (td.querySelector('input')) return;
   var key = td.dataset.key, ri = parseInt(td.dataset.ri), ci = parseInt(td.dataset.ci);
+  if (e.shiftKey) {
+    if (_lastClicked && _lastClicked.key === key) {
+      SEL = {
+        key: key,
+        r1: Math.min(_lastClicked.ri, ri), r2: Math.max(_lastClicked.ri, ri),
+        c1: Math.min(_lastClicked.ci, ci), c2: Math.max(_lastClicked.ci, ci)
+      };
+      applySelectionHighlight();
+    }
+    e.stopPropagation();
+    e.preventDefault();
+    return;
+  }
+  _lastClicked = { key: key, ri: ri, ci: ci };
+  clearSelection();
+  if (td.querySelector('input')) return;
   var stk = ri + ',' + ci;
   var isNew = (STAGE[key] || {})[stk] === undefined;
   if (isNew) {
@@ -831,6 +865,87 @@ function onCellEnter(e) {
 }
 function onCellLeave()  { _tip.style.display = 'none'; }
 function onCellMove(e)  { _tip.style.left = (e.clientX + 14) + 'px'; _tip.style.top = (e.clientY - 30) + 'px'; }
+
+// ── multi-cell selection (shift-click a second cell to select the rectangle) ─
+function clearSelection() {
+  SEL = null;
+  document.querySelectorAll('td.cell-selected').forEach(function(td) { td.classList.remove('cell-selected'); });
+  document.getElementById('selTools').style.display = 'none';
+}
+
+function applySelectionHighlight() {
+  document.querySelectorAll('td.cell-selected').forEach(function(td) { td.classList.remove('cell-selected'); });
+  if (!SEL) return;
+  document.querySelectorAll('td[data-key="' + SEL.key + '"]').forEach(function(td) {
+    var ri = parseInt(td.dataset.ri), ci = parseInt(td.dataset.ci);
+    if (ri >= SEL.r1 && ri <= SEL.r2 && ci >= SEL.c1 && ci <= SEL.c2) td.classList.add('cell-selected');
+  });
+  var n = (SEL.r2 - SEL.r1 + 1) * (SEL.c2 - SEL.c1 + 1);
+  document.getElementById('selCount').textContent = n + ' cell' + (n === 1 ? '' : 's') + ' selected · ' + (MAPS_DATA[SEL.key].label || SEL.key);
+  document.getElementById('selTools').style.display = 'flex';
+}
+
+function stageCellValue(key, ri, ci, v) {
+  var stk = ri + ',' + ci;
+  if (!STAGE[key]) STAGE[key] = {};
+  STAGE[key][stk] = v;
+  var td = document.querySelector('td[data-key="' + key + '"][data-ri="' + ri + '"][data-ci="' + ci + '"]');
+  if (td) {
+    td.textContent = v.toFixed(0);
+    td.classList.add('staged');
+    td.style.background = cellBg(v, getRange(MAPS_DATA[key].units));
+  }
+}
+
+function _selCurVal(key, m, ri, ci) {
+  var s = (STAGE[key] || {})[ri + ',' + ci];
+  return s !== undefined ? s : m.data[ri][ci];
+}
+
+function applyScaleToSelection() {
+  if (!SEL) return;
+  var pct = parseFloat(document.getElementById('selScalePct').value);
+  if (isNaN(pct)) { toast('Enter a percentage'); return; }
+  var key = SEL.key, m = MAPS_DATA[key];
+  for (var ri = SEL.r1; ri <= SEL.r2; ri++) {
+    for (var ci = SEL.c1; ci <= SEL.c2; ci++) {
+      var base = _selCurVal(key, m, ri, ci);
+      stageCellValue(key, ri, ci, Math.round(base * (1 + pct / 100) * 10) / 10);
+    }
+  }
+  redrawViz(key); updateBurnBar(); updateBadge(key);
+  toast('Scaled ' + ((SEL.r2 - SEL.r1 + 1) * (SEL.c2 - SEL.c1 + 1)) + ' cells by ' + pct + '%');
+}
+
+function applySmoothToSelection() {
+  if (!SEL) return;
+  var key = SEL.key, m = MAPS_DATA[key];
+  var rows = m.data.length, cols = m.data[0].length;
+  var strength = parseFloat(document.getElementById('selSmoothPct').value) / 100;
+  if (isNaN(strength)) strength = 0.4;
+  // Snapshot pre-smooth values so every cell in this pass blends toward its
+  // ORIGINAL neighbors, not neighbors already moved earlier in the same loop.
+  var snapshot = {};
+  for (var ri = SEL.r1; ri <= SEL.r2; ri++)
+    for (var ci = SEL.c1; ci <= SEL.c2; ci++)
+      snapshot[ri + ',' + ci] = _selCurVal(key, m, ri, ci);
+
+  for (var ri2 = SEL.r1; ri2 <= SEL.r2; ri2++) {
+    for (var ci2 = SEL.c1; ci2 <= SEL.c2; ci2++) {
+      var neighbors = [];
+      if (ri2 > 0)         neighbors.push(_selCurVal(key, m, ri2 - 1, ci2));
+      if (ri2 < rows - 1)  neighbors.push(_selCurVal(key, m, ri2 + 1, ci2));
+      if (ci2 > 0)         neighbors.push(_selCurVal(key, m, ri2, ci2 - 1));
+      if (ci2 < cols - 1)  neighbors.push(_selCurVal(key, m, ri2, ci2 + 1));
+      if (!neighbors.length) continue;
+      var avg = neighbors.reduce(function(a, b) { return a + b; }, 0) / neighbors.length;
+      var orig = snapshot[ri2 + ',' + ci2];
+      stageCellValue(key, ri2, ci2, Math.round((orig + strength * (avg - orig)) * 10) / 10);
+    }
+  }
+  redrawViz(key); updateBurnBar(); updateBadge(key);
+  toast('Smoothed toward neighbors (' + Math.round(strength * 100) + '%) -- burn/save guard caps big jumps, may need another pass');
+}
 
 // ── save as new session (no burn) ───────────────────────────────────────────
 function _stagedChangesWithContext() {
