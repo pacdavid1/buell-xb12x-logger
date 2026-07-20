@@ -209,13 +209,45 @@ class EepromHandlerMixin:
         result['reverted_to'] = target_id
         self._json(result)
 
+    def _handle_eeprom_import_xpr(self, path=None, payload=None):
+        """POST /eeprom/import_xpr
+        Body: { filename, data_b64, note?, version? }
+        Import an .xpr/EEPROM file as a new session. Pure filesystem --
+        never touches the ECU. Used by the Map Editor's Import XPR button.
+        """
+        import base64
+        from ecu.xpr_import import DEFAULT_VERSION, import_xpr_bytes
+        body = payload or {}
+        filename = body.get('filename', 'upload.xpr')
+        data_b64 = body.get('data_b64')
+        if not data_b64:
+            self._json({'error': 'data_b64 is required'})
+            return
+        try:
+            data = base64.b64decode(data_b64)
+        except Exception as e:
+            self._json({'error': f'invalid base64: {e}'})
+            return
+        if len(data) > 65536:
+            self._json({'error': 'file too large for an EEPROM export'})
+            return
+        version = body.get('version') or DEFAULT_VERSION
+        note = body.get('note', '')
+        buell_dir = self.server_instance.buell_dir
+        try:
+            result = import_xpr_bytes(data, buell_dir / 'sessions', version, note, filename)
+        except ValueError as e:
+            self._json({'error': f'import failed: {e}'})
+            return
+        self._json({'ok': True, **result})
+
     def _handle_eeprom_burn(self, path=None, payload=None):
         """Burn proposed map changes to ECU EEPROM.
         POST body: { maps: { fuel_front?, fuel_rear?, spark_front?, spark_rear? } }
         Only allowed when no ride is active. Saves backup before burn.
         """
         import base64
-        from ecu.eeprom import encode_eeprom_maps
+        from ecu.eeprom import apply_map_changes, encode_eeprom_maps
         if getattr(self.server_instance, 'ride_active', False):
             self._json({'error': 'cannot burn while ride is active'})
             return
@@ -245,35 +277,15 @@ class EepromHandlerMixin:
             self._json({'error': 'eeprom.bin not found for session ' + str(cs)})
             return
         current_bin = eeprom_path.read_bytes()
+        version = _session_version(eeprom_path)
         try:
             if changes:
-                if len(changes) > 20:
-                    self._json({'error': 'too many changes: ' + str(len(changes)) + ' (max 20 per burn)'})
-                    return
-                full = _decode_eeprom_maps_full(current_bin, _session_version(eeprom_path))
-                current_maps = full.get('maps', {})
-                for ch in changes:
-                    mk  = ch.get('map')
-                    ri  = int(ch.get('ri', 0))
-                    ci  = int(ch.get('ci', 0))
-                    val = float(ch.get('val', 0))
-                    entry = current_maps.get(mk)
-                    if not entry or not isinstance(entry.get('data'), list):
-                        continue
-                    data = entry['data']
-                    if ri >= len(data) or ci >= len(data[ri]):
-                        continue
-                    orig = data[ri][ci]
-                    # Apply alpha scaling (GAP 6): effective = orig + alpha*(proposed - orig)
-                    effective = orig + alpha * (val - orig) if orig is not None else val
-                    if orig is not None and orig > 0 and abs(effective - orig) > orig * 0.15:
-                        self._json({'error': 'cell [' + str(ri) + ',' + str(ci) + '] exceeds +-15%: '
-                                    + str(round(orig, 1)) + ' to ' + str(round(effective, 1))})
-                        return
-                    if mk not in maps:
-                        maps[mk] = [row[:] for row in data]
-                    maps[mk][ri][ci] = round(effective, 4)
-            proposed = encode_eeprom_maps(current_bin, maps, _session_version(eeprom_path))
+                proposed = apply_map_changes(current_bin, changes, alpha, version)
+            else:
+                proposed = encode_eeprom_maps(current_bin, maps, version)
+        except ValueError as e:
+            self._json({'error': str(e)})
+            return
         except Exception as e:
             self._json({'error': 'encode failed: ' + str(e)})
             return
@@ -333,6 +345,53 @@ class EepromHandlerMixin:
         except Exception as e:
             result['ledger_error'] = str(e)
         self._json(result)
+
+    def _handle_eeprom_save_session(self, path=None, payload=None):
+        """POST /eeprom/save_session
+        Body: { session?, changes: [...], alpha?, note? }
+        Apply staged cell edits and save the result as a NEW session --
+        pure filesystem, never touches the ECU. Lets a map be edited and
+        compared before deciding to actually burn it (see /eeprom/burn).
+        """
+        from ecu.eeprom import apply_map_changes
+        from ecu.session import SessionManager
+        body = payload or {}
+        changes = body.get('changes', [])
+        if not changes:
+            self._json({'error': 'no changes provided'})
+            return
+        alpha = max(0.1, min(1.0, float(body.get('alpha', 1.0))))
+        buell_dir = self.server_instance.buell_dir
+        src_session = body.get('session') or getattr(self.server_instance.session, 'current_checksum', None)
+        if not src_session:
+            self._json({'error': 'no session specified and no active session'})
+            return
+        eeprom_path = buell_dir / 'sessions' / src_session / 'eeprom.bin'
+        if not eeprom_path.exists():
+            self._json({'error': 'eeprom.bin not found for session ' + src_session})
+            return
+        current_bin = eeprom_path.read_bytes()
+        version = _session_version(eeprom_path)
+        try:
+            proposed = apply_map_changes(current_bin, changes, alpha, version)
+        except ValueError as e:
+            self._json({'error': str(e)})
+            return
+
+        session = SessionManager(buell_dir / 'sessions')
+        is_new = session.open_session(version, proposed)
+        session.save_eeprom(proposed)
+        session.session_metadata['derived_from'] = {
+            'session': src_session, 'changes': changes, 'alpha': round(alpha, 2)}
+        session.session_metadata.setdefault('rider_notes', []).append({
+            'source': 'map_edit', 'base_session': src_session,
+            'note': body.get('note', '')})
+        session._save_metadata()
+        self._json({
+            'ok': True, 'checksum': session.current_checksum,
+            'base_session': src_session, 'is_new': is_new,
+            'n_changes': len(changes),
+        })
 
     def _handle_burns_list(self, path=None):
         """GET /burns — burn ledger entries, newest first."""

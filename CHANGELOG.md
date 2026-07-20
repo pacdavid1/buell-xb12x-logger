@@ -27,6 +27,40 @@ PROMPT_END -->
 
 
 
+## [v2.7.298] — 2026-07-19
+### Added
+- **Import XPR as session**: `ecu/xpr_import.py` (shared by CLI and web) trims
+  an ECMSpy `.xpr` export to the expected EEPROM size and saves it as a
+  normal session via `SessionManager` — no ECU connection needed. Reused by
+  `tools/import_xpr.py` (CLI) and the new `POST /eeprom/import_xpr` endpoint.
+  Map Editor gets an "Import XPR" button (native file picker, reads the file
+  client-side, posts base64 — same pattern `/eeprom/burn` already uses).
+  Format note: an `.xpr` is a raw EEPROM image plus a few ECMSpy trailer
+  bytes; `decode_eeprom_maps` already reads it once trimmed, no XPR-specific
+  parsing needed.
+- **Save staged edits as a new session, without burning** (`POST
+  /eeprom/save_session`): applies staged cell changes through the same
+  `apply_map_changes()` path as burn (same ±15% guard), but only writes to
+  `sessions/<new_checksum>/` — never touches the ECU. Map Editor's new SAVE
+  button opens a modal listing the base session, a read-only table of every
+  staged change (map, RPM, Load, before → after), and a free-text note field
+  before confirming.
+### Fixed
+- **BL-BUG-04 — Map Editor BURN button (404)**: `map-editor.html` posted to
+  `/tuner/burn`, which was never registered in `web/server.py` (only
+  `/eeprom/burn` exists) — the button silently 404'd. Also fixed a second,
+  previously-masked bug in the same function: the success check was
+  `if (d.ok)`, but `/eeprom/burn`'s response never sets an `ok` field, so
+  even a fixed URL would have kept reporting "Burn failed: ?" on success.
+  Pointed the fetch at `/eeprom/burn` and fixed the check to `if (!d.error)`,
+  matching the working pattern already used by `tuner.html`.
+### Changed
+- Extracted `apply_map_changes()` into `ecu/eeprom.py` (validate + apply a
+  `changes` list with the ±15% guard, then encode) so `/eeprom/burn` and the
+  new `/eeprom/save_session` share one implementation instead of two copies.
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.297] — 2026-07-19
 ### Fixed
 - **Windows IPC write bug — live dashboard data froze after first frame**:

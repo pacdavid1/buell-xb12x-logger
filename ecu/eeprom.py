@@ -56,6 +56,41 @@ def decode_eeprom_maps_full(eeprom_bytes, version=None):
     from ecu.ecm_defs import decode_maps_full
     return decode_maps_full(eeprom_bytes, version or "BUEIB310")
 
+def apply_map_changes(current_bin: bytes, changes: list,
+                      alpha: float = 1.0, version: str | None = None) -> bytes:
+    """Validate and apply a list of {map, ri, ci, val} cell edits on top of
+    current_bin, enforcing the +-15% per-cell guard (GAP 6 alpha-scaled).
+    Shared by /eeprom/burn and /eeprom/save_session so both stay in sync.
+    Returns the new EEPROM bytes. Raises ValueError with a user-facing
+    message if a change is rejected -- callers decide how to surface that.
+    """
+    if len(changes) > 20:
+        raise ValueError(f'too many changes: {len(changes)} (max 20 per burn)')
+    full = decode_eeprom_maps_full(current_bin, version)
+    current_maps = full.get('maps', {})
+    maps: dict = {}
+    for ch in changes:
+        mk  = ch.get('map')
+        ri  = int(ch.get('ri', 0))
+        ci  = int(ch.get('ci', 0))
+        val = float(ch.get('val', 0))
+        entry = current_maps.get(mk)
+        if not entry or not isinstance(entry.get('data'), list):
+            continue
+        data = entry['data']
+        if ri >= len(data) or ci >= len(data[ri]):
+            continue
+        orig = data[ri][ci]
+        effective = orig + alpha * (val - orig) if orig is not None else val
+        if orig is not None and orig > 0 and abs(effective - orig) > orig * 0.15:
+            raise ValueError('cell [' + str(ri) + ',' + str(ci) + '] exceeds +-15%: '
+                              + str(round(orig, 1)) + ' to ' + str(round(effective, 1)))
+        if mk not in maps:
+            maps[mk] = [row[:] for row in data]
+        maps[mk][ri][ci] = round(effective, 4)
+    return encode_eeprom_maps(current_bin, maps, version)
+
+
 def encode_eeprom_maps(eeprom_bytes: bytes, maps: dict,
                        version: str | None = None) -> bytes:
     """Apply decoded map tables back into EEPROM bytes.

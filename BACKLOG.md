@@ -456,23 +456,6 @@ killed and restarted the logger mid-request. Cached pairs respond fine.
 Fix ideas: stream CSV parsing in _compare_sessions (chunked rows instead of
 full-file lists), or precompute VS cache in background after each session close.
 
-### BL-BUG-04 — Map Editor burn endpoint missing (/tuner/burn 404)
-**Priority:** HIGH — burn is a core safety-relevant feature, currently non-functional
-**Found:** 2026-07-02 (systematic pipeline-doc validation pass; confirmed live)
-
-`web/templates/map-editor.html` POSTs to `/tuner/burn` on the burn button.
-That route does not exist in `web/server.py`'s routing table — only `/burns`
-(GET, list) and `/eeprom/burn` are registered. Confirmed live against
-`serve_local.py`: `curl -X POST http://127.0.0.1:8080/tuner/burn` returns
-`404 {"error": "unknown endpoint"}`. Fails safe (nothing gets written to
-EEPROM) but the Map Editor's burn button does not work at all today.
-
-Fix: wire `/tuner/burn` to the same logic `/eeprom/burn` already uses, or
-point the frontend at `/eeprom/burn` directly if the request/response shapes
-match. **Touches an EEPROM burn path — requires a branch per CLAUDE.md git
-branch policy, not a direct commit to main, and explicit user approval
-before starting.**
-
 ### BL-GRAF-03 — GRAF2: remove floating cursor readout ✅ DONE v2.7.252 (2026-06-30)
 🔍 **AUDITED 2026-07-03: CONFIRMED-DONE** — see AUDIT REPORT at top of this file. ⚠️ Naming collision: `BACKLOG_3D_VIZ.md` has an unrelated OPEN item also called BL-GRAF-03 — do not confuse when deleting this one. Safe to delete this section.
 Removed #cur-readout panel (-32 lines). Cursor values shown inline in block header chips.
@@ -998,25 +981,6 @@ The VE subtab already reads and displays the decoded EEPROM (fuel maps, spark ma
 named parameters). The BUEIB.xml covers 99% of the EEPROM (1204/1206 bytes,
 238 named parameters). `write_full_eeprom()` is implemented and tested.
 The missing piece is the UI layer and parameter-level burn controls.
-
-### Phase 5.1 — Fuel + Spark map editor (safe zone only)
-
-🔍 **AUDITED 2026-07-03: intent satisfied, but with a real contradiction found.** See AUDIT REPORT at top of this file. `tuner.html` already implements this end-to-end (STAGE + commitStage() with ±15% gate + burnStaged() → `/eeprom/burn`, confirmed live). BUT `map-editor.html` is a separate, still-broken duplicate page whose burn button POSTs to `/tuner/burn` (no route, 404) — that's the exact same bug as **BL-BUG-04** below, which stays open correctly. Action: delete this spec (satisfied by tuner.html), keep BL-BUG-04 open, decide separately whether to fix or remove map-editor.html's dead burn button.
-
-The 4 maps (Fuel Front, Fuel Rear, Spark Front, Spark Rear) are the primary
-tuning targets. These live in the safe write zone (offsets 670–1205).
-
-- [ ] Make each VE heatmap cell editable (click → input field → enter new value)
-- [ ] "Stage" changes locally (highlight modified cells in yellow/orange)
-- [ ] Show a diff summary: N cells changed, max delta ±X%
-- [ ] Safety gate: reject changes > ±15% of current value per cell
-- [ ] "Burn to ECU" button → calls write_full_eeprom() → shows progress + result
-- [ ] "Discard changes" button → revert staged cells to current ECU values
-- [ ] Auto-backup: save current EEPROM as XPR before any burn
-
-Endpoint needed:
-- POST /eeprom/burn { session: X, maps: { fuel_front: [[...]], ... } }
-  → decodes proposed maps → builds full 1206-byte blob → calls write_full_eeprom()
 
 ### Phase 5.2 — Configuration parameters editor
 

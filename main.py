@@ -167,6 +167,7 @@ class BuellLogger:
         self.web.cell_tracker = self.tracker
         self.web.gps          = self.gps
         self.web.session      = self.session
+        self.web._ipc_dir     = self._ipc_dir
 
         obj_path = self.buell_dir / 'objectives.json'
         self.objectives_cfg = {}

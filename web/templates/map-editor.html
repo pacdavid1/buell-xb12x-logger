@@ -39,6 +39,8 @@ body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;
 .sess-sel label{font-family:var(--mn);font-size:var(--fs-md);color:var(--a2);letter-spacing:.08em;text-transform:uppercase}
 .sess-sel select{background:var(--bg);border:1px solid var(--bd);color:#fff;font-family:var(--mn);font-size:var(--fs-xl);padding:4px 8px;border-radius:2px;cursor:pointer;min-width:130px}
 .sess-sel select:focus{outline:none;border-color:var(--ac)}
+#importXprBtn{font-family:var(--mn);font-size:var(--fs-md);padding:4px 10px;background:transparent;color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer}
+#importXprBtn:hover{color:var(--tx);border-color:var(--ac)}
 
 /* burn bar */
 .burn-bar{display:flex;align-items:center;gap:6px}
@@ -47,6 +49,23 @@ body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;
 #burnBtn:not([disabled]){opacity:1}
 #resetBtn{font-family:var(--mn);font-size:var(--fs-md);padding:4px 10px;background:transparent;color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer;opacity:.35}
 #resetBtn:not([disabled]){opacity:1;color:var(--tx)}
+#saveBtn{font-family:var(--mn);font-size:var(--fs-md);font-weight:700;padding:4px 10px;background:transparent;color:#2d7dd2;border:1px solid #2d7dd2;border-radius:2px;cursor:pointer;opacity:.35}
+#saveBtn:not([disabled]){opacity:1}
+/* save modal */
+#saveModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;align-items:center;justify-content:center}
+.save-modal-box{background:var(--p);border:1px solid var(--bd);border-radius:4px;padding:16px;width:min(560px,90vw);max-height:80vh;display:flex;flex-direction:column;gap:10px}
+.save-modal-box h3{font-family:var(--mn);font-size:var(--fs-lg);color:var(--tx);margin:0}
+.save-modal-base{font-family:var(--mn);font-size:var(--fs-md);color:var(--a2)}
+.save-modal-base b{color:var(--tx)}
+#saveModalBody{overflow-y:auto;max-height:35vh}
+table.save-modal-table{width:100%;border-collapse:collapse;font-family:var(--mn);font-size:var(--fs-sm)}
+table.save-modal-table th{text-align:left;color:var(--dm);font-weight:400;padding:3px 6px;border-bottom:1px solid var(--bd)}
+table.save-modal-table td{padding:3px 6px;border-bottom:1px solid var(--bd);color:var(--tx)}
+#saveModalNote{width:100%;min-height:60px;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:2px;font-family:var(--mn);font-size:var(--fs-md);padding:6px;resize:vertical;box-sizing:border-box}
+.save-modal-actions{display:flex;justify-content:flex-end;gap:8px}
+.save-modal-actions button{font-family:var(--mn);font-size:var(--fs-md);padding:5px 14px;border-radius:2px;cursor:pointer}
+#saveModalCancel{background:transparent;color:var(--dm);border:1px solid var(--bd)}
+#saveModalConfirm{background:#2d7dd2;color:#fff;border:none;font-weight:700}
 
 /* nav */
 .nav-menu{position:relative;flex-shrink:0}
@@ -134,6 +153,9 @@ table.em td input{position:absolute;inset:0;width:100%;height:100%;background:rg
       <select id="sessionSel" onchange="loadSession(this.value)">
         <option value="">-- select --</option>
       </select>
+      <button id="importXprBtn" onclick="document.getElementById('xprFileInput').click()"
+        title="Import an .xpr (ECMSpy) or raw EEPROM .bin as a new session">Import XPR</button>
+      <input type="file" id="xprFileInput" accept=".xpr,.bin" style="display:none" onchange="importXprFile(this.files[0])">
     </div>
     <div class="fs-ctrl">
       <span class="fs-lbl">A</span>
@@ -145,6 +167,7 @@ table.em td input{position:absolute;inset:0;width:100%;height:100%;background:rg
     </div>
     <div class="burn-bar">
       <span id="stageCount"></span>
+      <button id="saveBtn" disabled onclick="openSaveModal()" title="Save these edits as a new session, without burning to the ECU">SAVE</button>
       <button id="resetBtn" disabled onclick="resetStaged()">RESET</button>
       <button id="burnBtn" disabled onclick="burnStaged()">BURN</button>
     </div>
@@ -172,6 +195,19 @@ table.em td input{position:absolute;inset:0;width:100%;height:100%;background:rg
 <div id="cellTip"></div>
 <div id="toast"></div>
 
+<div id="saveModal" onclick="if(event.target===this)closeSaveModal()">
+  <div class="save-modal-box">
+    <h3>Save as new session</h3>
+    <div class="save-modal-base">Base session: <b id="saveModalBase"></b></div>
+    <div id="saveModalBody"></div>
+    <textarea id="saveModalNote" placeholder="Notes about this edit (optional)"></textarea>
+    <div class="save-modal-actions">
+      <button id="saveModalCancel" onclick="closeSaveModal()">Cancel</button>
+      <button id="saveModalConfirm" onclick="submitSaveSession()">Save</button>
+    </div>
+  </div>
+</div>
+
 <div class="font-panel" id="fontPanel">
   <div class="fp-head" id="fpHead">
     <span>Font Sizes</span>
@@ -191,6 +227,7 @@ var MAPS_DATA = {};
 var AXES_DATA = {};
 var CUR_SESSION = '';
 var MAX_STAGE = 50;
+var _pendingChanges = [];
 
 // per-map camera state: { ang, tilt, drag, lx, ly }
 var CAMS = {};
@@ -245,6 +282,38 @@ async function loadSessions() {
     var sid = params.get('session');
     if (sid) { sel.value = sid; loadSession(sid); }
   } catch(e) { setMsg('Could not load sessions: ' + e.message); }
+}
+
+// ── import XPR ───────────────────────────────────────────────────────────────
+async function importXprFile(file) {
+  if (!file) return;
+  var note = prompt('Note for this session (optional):', 'Imported from ' + file.name) || '';
+  try {
+    var buf = await file.arrayBuffer();
+    var bytes = new Uint8Array(buf);
+    var binary = '';
+    for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    var b64 = btoa(binary);
+    var r = await fetch('/eeprom/import_xpr', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, data_b64: b64, note: note })
+    });
+    var d = await r.json();
+    if (d.error) { toast('Import failed: ' + d.error, true); return; }
+    var sel = document.getElementById('sessionSel');
+    var opt = document.createElement('option');
+    opt.value = d.checksum;
+    opt.textContent = d.checksum + '  ·  imported  ·  bike #' + d.bike_serial;
+    sel.appendChild(opt);
+    sel.value = d.checksum;
+    toast((d.is_new ? 'Imported new session ' : 'Updated session ') + d.checksum);
+    loadSession(d.checksum);
+  } catch (e) {
+    toast('Import error: ' + e.message, true);
+  } finally {
+    document.getElementById('xprFileInput').value = '';
+  }
 }
 
 // ── load maps ────────────────────────────────────────────────────────────────
@@ -763,11 +832,85 @@ function onCellEnter(e) {
 function onCellLeave()  { _tip.style.display = 'none'; }
 function onCellMove(e)  { _tip.style.left = (e.clientX + 14) + 'px'; _tip.style.top = (e.clientY - 30) + 'px'; }
 
+// ── save as new session (no burn) ───────────────────────────────────────────
+function _stagedChangesWithContext() {
+  var changes = [], rows = [];
+  for (var mk in STAGE) {
+    var m = MAPS_DATA[mk];
+    var xAxis = AXES_DATA[m.xaxis] || { data: [], units: '' };
+    var yAxis = AXES_DATA[m.yaxis] || { data: [], units: '' };
+    for (var stk in STAGE[mk]) {
+      var p = stk.split(',');
+      var ri = parseInt(p[0]), ci = parseInt(p[1]);
+      var newVal = STAGE[mk][stk];
+      var oldVal = m.data[ri][ci];
+      changes.push({ map: mk, ri: ri, ci: ci, val: newVal });
+      rows.push({
+        label: m.label || mk,
+        x: xAxis.data[ci] !== undefined ? xAxis.data[ci] : ci, xUnits: xAxis.units || '',
+        y: yAxis.data[ri] !== undefined ? yAxis.data[ri] : ri, yUnits: yAxis.units || '',
+        old: oldVal, new: newVal
+      });
+    }
+  }
+  return { changes: changes, rows: rows };
+}
+
+function openSaveModal() {
+  var built = _stagedChangesWithContext();
+  if (!built.changes.length) return;
+  _pendingChanges = built.changes;
+  document.getElementById('saveModalBase').textContent = CUR_SESSION;
+  var html = '<table class="save-modal-table"><tr><th>Map</th><th>RPM</th><th>Load</th><th>Before</th><th>After</th></tr>';
+  built.rows.forEach(function(r) {
+    html += '<tr><td>' + r.label + '</td><td>' + r.x + ' ' + r.xUnits + '</td><td>' + r.y + ' ' + r.yUnits + '</td>'
+          + '<td>' + r.old.toFixed(1) + '</td><td>' + r.new.toFixed(1) + '</td></tr>';
+  });
+  html += '</table>';
+  document.getElementById('saveModalBody').innerHTML = html;
+  document.getElementById('saveModalNote').value = '';
+  document.getElementById('saveModalConfirm').disabled = false;
+  document.getElementById('saveModal').style.display = 'flex';
+}
+
+function closeSaveModal() {
+  document.getElementById('saveModal').style.display = 'none';
+}
+
+async function submitSaveSession() {
+  var note = document.getElementById('saveModalNote').value;
+  var btn = document.getElementById('saveModalConfirm');
+  btn.disabled = true;
+  try {
+    var r = await fetch('/eeprom/save_session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session: CUR_SESSION, changes: _pendingChanges, note: note })
+    });
+    var d = await r.json();
+    if (d.error) { toast('Save failed: ' + d.error, true); btn.disabled = false; return; }
+    var sel = document.getElementById('sessionSel');
+    var opt = document.createElement('option');
+    opt.value = d.checksum;
+    opt.textContent = d.checksum + '  ·  edited from ' + d.base_session;
+    sel.appendChild(opt);
+    sel.value = d.checksum;
+    toast('Saved as new session ' + d.checksum + ' (not burned)');
+    STAGE = {}; updateBurnBar();
+    closeSaveModal();
+    loadSession(d.checksum);
+  } catch (e) {
+    toast('Error: ' + e.message, true);
+    btn.disabled = false;
+  }
+}
+
 // ── burn / reset ──────────────────────────────────────────────────────────────
 function updateBurnBar() {
   var total = Object.values(STAGE).reduce(function(s,m){ return s + Object.keys(m).length; }, 0);
   document.getElementById('stageCount').textContent = total ? total + ' cell' + (total===1?'':'s') + ' staged' : '';
   document.getElementById('burnBtn').disabled = !total;
+  document.getElementById('saveBtn').disabled = !total;
   document.getElementById('resetBtn').disabled = !total;
 }
 
@@ -790,18 +933,19 @@ async function burnStaged() {
   if (!changes.length) return;
   document.getElementById('burnBtn').disabled = true;
   try {
-    var r = await fetch('/tuner/burn', {
+    var r = await fetch('/eeprom/burn', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session: CUR_SESSION, changes: changes })
+      body: JSON.stringify({ changes: changes })
     });
     var d = await r.json();
-    if (d.ok) {
-      toast('Burned ' + changes.length + ' cell' + (changes.length===1?'':'s') + ' to ECU');
+    if (!d.error) {
+      var alphaStr = d.alpha_used && d.alpha_used < 1 ? ' (alpha=' + d.alpha_used + ')' : '';
+      toast('Burned ' + changes.length + ' cell' + (changes.length===1?'':'s') + ' to ECU' + alphaStr);
       STAGE = {}; updateBurnBar();
       await loadSession(CUR_SESSION);
     } else {
-      toast('Burn failed: ' + (d.error || '?'), true);
+      toast('Burn failed: ' + d.error, true);
       document.getElementById('burnBtn').disabled = false;
     }
   } catch(e) {

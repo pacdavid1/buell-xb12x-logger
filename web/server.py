@@ -201,6 +201,8 @@ class DashboardHandler(
             '/coverage/targets': self._handle_coverage_targets,
             '/eeprom/burn':       self._handle_eeprom_burn,
             '/eeprom/revert':     self._handle_eeprom_revert,
+            '/eeprom/import_xpr': self._handle_eeprom_import_xpr,
+            '/eeprom/save_session': self._handle_eeprom_save_session,
             '/eeprom/propose':    self._handle_eeprom_propose_post,
             '/fuel/reserve':      self._handle_fuel_reserve,
             '/fuel/refuel':       self._handle_fuel_refuel,
