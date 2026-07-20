@@ -27,6 +27,26 @@ PROMPT_END -->
 
 
 
+## [v2.7.300] — 2026-07-19
+### Fixed
+- **Map Editor: selection toolbar scrolled out of view**: `#selTools` sat
+  outside `.main` (the intended scroll container) in normal document flow.
+  `.main`'s `overflow-y:auto` never actually engaged (its `scrollHeight`
+  equaled its `clientHeight` -- classic flexbox sizing gap even with
+  `min-height:0` added), so the page scrolled at the window/body level
+  instead, carrying the header and toolbar away with everything else.
+  Wrapped `.hd` + `#selTools` in a `#topBar` with `position:sticky;top:0`,
+  which pins both to the viewport regardless of which element ends up
+  scrolling -- confirmed staying at `top:0` after a 3000px window scroll.
+- **Shift-click selection painted the browser's native text-selection
+  highlight** across a wide, seemingly-arbitrary span of rows, on top of
+  (and instead of) the intended blue cell-selection outline -- `click`
+  `preventDefault()` doesn't stop native selection, which engages on
+  `mousedown`. Added `user-select:none` to `table.em` so shift-click only
+  drives the custom rectangle selection, no native range highlight.
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.299] — 2026-07-19
 ### Added
 - **Map Editor: multi-cell selection + batch edit tools** (bridge for manual
