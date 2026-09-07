@@ -27,7 +27,7 @@ No dyno — tuning is entirely data-driven from real street rides.
 
 **Source of truth:** GitHub (`https://github.com/pacdavid1/buell-xb12x-logger`).
 **Local (Windows):** `OneDrive/Escritorio/buell/` — where code is edited and tested.
-**Production target:** Raspberry Pi at `192.168.100.80` — pulls from GitHub.
+**Production target:** Raspberry Pi at `pi-ecm` — pulls from GitHub.
 
 **Workflow:**
 ```
@@ -37,9 +37,30 @@ Local edit → test (serve_local.py) → commit → git push → Pi: git pull
 ```
 
 **Local dashboard:** `http://127.0.0.1:8080` (via `python serve_local.py --serve`)
-**Pi dashboard:** `http://192.168.100.80:8080` or hotspot `http://10.42.0.1:8080`
+**Pi dashboard:** `http://pi-ecm:8080` or hotspot `http://10.42.0.1:8080`
 
 **Graphify:** Run locally after any commit: `graphify update .`
+
+## OEM reference manuals — CRITICAL, consult before any hardware/electrical claim
+
+Real OEM service/electrical manuals live locally, extracted to Markdown:
+`C:\Users\pacda\OneDrive\Escritorio\MANUALES BUELL MD\`
+
+Before answering any question about ECU pinout, wiring, relays, DTCs, connectors,
+sensor behavior, or anything electrical — **read/grep these first**. Do not answer
+from general automotive knowledge or guess when a real OEM source exists locally.
+
+Index: `MANUALES BUELL MD\README.md` (9 manuals, ~2576 pages, all text-searchable).
+
+Most relevant for the XB12X (DDFI2):
+- `2008_XB_Electrical_Diagnostics\2008_XB_Electrical_Diagnostics.md` — wiring diagrams, DTCs, ECM pinout
+- `BUELL_Electric_Manual_XB\BUELL_Electric_Manual_XB.md` — XB wiring + electrical diagnostics
+- `BUELL_2008_Series\BUELL_2008_Series.md` — full 2008 lineup service manual
+
+Search: `rg -i "keyword" "C:\Users\pacda\OneDrive\Escritorio\MANUALES BUELL MD"`
+
+If a manual answers the question, cite which manual/section. If none of them cover it,
+say so explicitly instead of filling the gap with assumption.
 
 ## The tuning cycle (core mental model)
 
@@ -291,7 +312,7 @@ with open(path, 'w') as f: f.write(content)
 ### After commit — optional Pi deploy
 
 ```bash
-ssh pi@192.168.100.80 "cd /home/pi/buell && git pull && sudo systemctl restart buell-logger"
+ssh pi@pi-ecm "cd /home/pi/buell && git pull && sudo systemctl restart buell-logger"
 ```
 Only needed when the changes affect ECU serial, EEPROM burn, or main.py.
 CSS/HTML/JS changes only need a browser refresh on the Pi's dashboard.
@@ -313,9 +334,9 @@ python serve_local.py --serve
 
 ### Deploy to Pi (after commit + push)
 ```bash
-ssh pi@192.168.100.80 "cd /home/pi/buell && git pull"
+ssh pi@pi-ecm "cd /home/pi/buell && git pull"
 # If server.py or main.py changed:
-ssh pi@192.168.100.80 "sudo systemctl restart buell-logger"
+ssh pi@pi-ecm "sudo systemctl restart buell-logger"
 ```
 
 ## Type hints (mandatory when touching Python files)
@@ -365,12 +386,12 @@ python serve_local.py --serve
 
 ### Pi (production)
 ```bash
-ssh pi@192.168.100.80 "sudo systemctl restart buell-logger"
-# Dashboard: http://192.168.100.80:8080
+ssh pi@pi-ecm "sudo systemctl restart buell-logger"
+# Dashboard: http://pi-ecm:8080
 # Or via hotspot: http://10.42.0.1:8080
 
 # Validate
-curl -s http://192.168.100.80:8080/live | python3 -c 'import sys,json; print(json.load(sys.stdin).get("session_id","?"))'
+curl -s http://pi-ecm:8080/live | python3 -c 'import sys,json; print(json.load(sys.stdin).get("session_id","?"))'
 ```
 
 ## Validate after any change
@@ -388,9 +409,9 @@ python serve_local.py
 
 ### Pi (after deploy)
 ```bash
-ssh pi@192.168.100.80 "cd /home/pi/buell && python3 -c 'from web.server import WebServer; print(\"OK\")'"
+ssh pi@pi-ecm "cd /home/pi/buell && python3 -c 'from web.server import WebServer; print(\"OK\")'"
 # Endpoint check
-curl -s 'http://192.168.100.80:8080/session_events/data?session=248AE2' | python3 -c \
+curl -s 'http://pi-ecm:8080/session_events/data?session=248AE2' | python3 -c \
   'import sys,json; d=json.load(sys.stdin); print("clusters:", d.get("n_clusters"), "events:", d.get("n_events"))'
 ```
 
@@ -448,7 +469,7 @@ It writes research, audits, and task assignments to a local folder.
 
 freebuff used to write to `/home/pi/buell/inbox/` via SSH.
 For sessions where that Pi path is accessible:
-  ssh pi@192.168.100.80 "ls /home/pi/buell/inbox/ 2>/dev/null || echo 'inbox empty'"
+  ssh pi@pi-ecm "ls /home/pi/buell/inbox/ 2>/dev/null || echo 'inbox empty'"
 
 ### Response file format
 

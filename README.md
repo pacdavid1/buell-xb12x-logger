@@ -95,7 +95,7 @@ Full history: **[CHANGELOG.md](CHANGELOG.md)** (284 entries, 166 KB)
 |-----------|--------|
 | **Bike** | Buell XB12X (2009), 1203cc Thunderstorm V-Twin |
 | **ECU** | Delphi DDFI2 (BUEIB), Alpha-N fueling, Open Loop |
-| **Logger** | Raspberry Pi at 192.168.100.80, port 8080 |
+| **Logger** | Raspberry Pi at pi-ecm, port 8080 |
 | **Serial** | CH343P USB-Serial, 9600 8N1 |
 | **Sensors** | BMP280 (baro/temp), AHT20 (humidity), CW2015 (battery), UBX GPS |
 
@@ -149,13 +149,13 @@ Two AI agents work in parallel:
 ## Quick Start
 
 ```bash
-ssh pi@192.168.100.80
+ssh pi@pi-ecm
 cd /home/pi/buell
 nohup python3 main.py --port /dev/ttyECU --sessions-dir /home/pi/buell/sessions --buell-dir /home/pi/buell > /tmp/buell.log 2>&1 &
 curl -s http://localhost:8080/live
 ```
 
-Open **http://192.168.100.80:8080** in your browser.
+Open **http://pi-ecm:8080** in your browser.
 
 ---
 

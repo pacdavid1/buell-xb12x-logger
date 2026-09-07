@@ -27,6 +27,18 @@ PROMPT_END -->
 
 
 
+## [v2.7.301] — 2026-09-06
+### Changed
+- **Pi reachability: replaced hardcoded LAN IP with Tailscale hostname**: after
+  moving houses, the Pi's old static LAN IP (`192.168.100.80`) stopped resolving
+  because it only existed on the previous home wifi. The Pi already has Tailscale
+  installed and reachable at hostname `pi-ecm` (`100.78.186.123`), which works
+  regardless of which local network the Pi or the accessing device are on.
+  Replaced all `192.168.100.80` references in `CLAUDE.md`, `README.md`, and
+  `docs/presentation.html` with `pi-ecm`. Left `10.42.0.1` untouched everywhere --
+  that is the Pi's own hotspot AP address (used when the Pi creates its own
+  fallback wifi with no internet), a distinct case where Tailscale does not apply.
+
 ## [v2.7.300] — 2026-07-19
 ### Fixed
 - **Map Editor: selection toolbar scrolled out of view**: `#selTools` sat
