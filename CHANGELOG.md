@@ -27,6 +27,24 @@ PROMPT_END -->
 
 
 
+## [v2.7.302] — 2026-09-06
+### Fixed
+- **Dashboard "charging" indicator trusted a bit that can lie indefinitely**:
+  `_sysmon_loop` in `main.py` set the reported `bat_charging`/`bat_trend` from
+  the raw CW2015 hardware bit only, under a comment claiming it was
+  "authoritative." `sensors/battery_guard.py` had already documented (2026-07-14
+  incident) that this same bit is actually `RRT_ALERT`, not a charge indicator,
+  and can get stuck reporting "charging" while the pack drains. The safer
+  `battery_discharging()` trend detector was already computed but only used to
+  veto the low-battery shutdown, never to correct what's displayed. Moved the
+  discharge-trend computation before the `bat_charging` decision and made a
+  demonstrated discharge override the hardware bit — the UI can now show
+  "not charging" even while the CW2015 keeps claiming otherwise.
+- Physical red LED on the UPS-Lite board investigated separately (likely driven
+  directly by a charge-management IC, independent of the CW2015/software path)
+  — pending a hands-on test (full power-input disconnect) before concluding
+  whether it's a hardware fault or normal trickle-charge maintenance behavior.
+
 ## [v2.7.301] — 2026-09-06
 ### Changed
 - **Pi reachability: replaced hardcoded LAN IP with Tailscale hostname**: after

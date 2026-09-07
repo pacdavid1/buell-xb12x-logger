@@ -434,8 +434,31 @@ class BuellLogger:
                 else:
                     self.logger.warning("Boot SOC skipped: reading is 0 or None (sensor not ready)")
 
-            # Hardware CHG_IND pin is authoritative; fall back to voltage trend
-            if _hw_charging is not None:
+            # Discharge detector: the CW2015 "charging" bit is unreliable
+            # (reg 0x08 is RRT_ALERT, not a charge indicator) and vetoed the
+            # shutdown on 2026-07-14 while the pack drained 30%->14%. A pack
+            # losing SOC/voltage over 10 min is discharging, whatever it says.
+            # Computed BEFORE the bat_charging decision (moved 2026-09-06) so
+            # it can correct the reported status too, not just the shutdown
+            # veto -- the dashboard's charging indicator was trusting the same
+            # lying bit, showing "charging" while the pack was demonstrably
+            # draining.
+            _mono = time.monotonic()
+            _v_for_hist   = stats.get('bat_voltage')
+            _soc_for_hist = stats.get('bat_soc')
+            if _v_for_hist is not None or _soc_for_hist is not None:
+                self._bat_history.append((_mono, _v_for_hist, _soc_for_hist))
+                self._bat_history = prune_history(self._bat_history, _mono)
+            _discharging = battery_discharging(self._bat_history, _mono)
+
+            # A demonstrated discharge trend overrides the CW2015 bit -- it can
+            # only prove "losing charge," so it's trusted over a bit that can
+            # get stuck saying "charging" indefinitely. Otherwise fall back to
+            # the raw pin, then to the voltage-trend heuristic.
+            if _discharging:
+                stats['bat_charging'] = False
+                stats['bat_trend']    = 'down'
+            elif _hw_charging is not None:
                 stats['bat_charging'] = _hw_charging
                 stats['bat_trend']    = 'up' if _hw_charging else 'stable'
             elif len(self._bat_voltages) >= 3:
@@ -461,16 +484,6 @@ class BuellLogger:
             _soc = stats.get('bat_soc')
             _v   = stats.get('bat_voltage')
             _is_charging = stats.get('bat_charging', False)
-
-            # Discharge detector: the CW2015 "charging" bit is unreliable
-            # (reg 0x08 is RRT_ALERT, not a charge indicator) and vetoed the
-            # shutdown on 2026-07-14 while the pack drained 30%->14%. A pack
-            # losing SOC/voltage over 10 min is discharging, whatever it says.
-            _mono = time.monotonic()
-            if _v is not None or _soc is not None:
-                self._bat_history.append((_mono, _v, _soc))
-                self._bat_history = prune_history(self._bat_history, _mono)
-            _discharging = battery_discharging(self._bat_history, _mono)
 
             if (_discharging or not _is_charging) and self._boot_soc is not None:
                 _threshold, _v_threshold = self._get_shutdown_threshold()
