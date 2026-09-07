@@ -386,6 +386,12 @@ function updateHeader(d) {
     humEl.textContent = hu != null ? hu.toFixed(1) : '--';
     humEl.className = 'hs-val gn';
   }
+  const tc1El = $id('hTc1');
+  if(tc1El){
+    const tc = ss.thermo1_c;
+    tc1El.textContent = tc != null ? tc.toFixed(1) : '--';
+    tc1El.className = 'hs-val gn';
+  }
   const batPctEl = $id('hBatPct');
   const batPctVal = $id('hBatPctVal');
   if(batPctEl){
