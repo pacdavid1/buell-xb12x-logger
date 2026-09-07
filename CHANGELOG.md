@@ -27,6 +27,22 @@ PROMPT_END -->
 
 
 
+## [v2.7.303] — 2026-09-06
+### Added
+- **`HARDWARE_INVENTORY.md`**: new single source of truth for physical parts
+  and tools on hand, on order, and pending confirmation -- previously this
+  only lived in chat history / assistant memory, with no project-visible
+  record. Documents the current sensor rebuild: 2x MAX6675 (SPI) + 1x MAX31850
+  (1-Wire) thermocouples, 2x ADS1115, AHT20+BMP280 x7, EV50-K2405 DC-DC
+  converter, ZMY-0264 4-channel optocoupler module, UPS-Lite HAT.
+### Fixed
+- **`docs/07_SENSOR_EXPANSION_PLAN.md` corrected against actual hardware**:
+  the plan assumed MAX31850-only thermocouples and MCP3008/SPI for analog
+  sensing; physical inventory check found 2 of the 3 thermocouples on hand are
+  actually MAX6675 (SPI, dedicated CS per unit -- CE0/CE1 cover both), and the
+  ADC on hand is ADS1115 (I2C+PGA), not MCP3008. Updated the GPIO/bus plan in
+  section 4 accordingly.
+
 ## [v2.7.302] — 2026-09-06
 ### Fixed
 - **Dashboard "charging" indicator trusted a bit that can lie indefinitely**:
