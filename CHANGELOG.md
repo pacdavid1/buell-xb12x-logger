@@ -27,6 +27,21 @@ PROMPT_END -->
 
 
 
+## [v2.7.304] — 2026-09-13
+### Fixed
+- **"Forget network" left a duplicate profile behind for netplan-managed
+  wifi**: a network originally configured via a netplan YAML gets two
+  NetworkManager connection profiles with the same SSID -- a plain one and
+  a `netplan-wlan0-<ssid>`-prefixed one backed by the YAML file. The dashboard
+  lists both as separate rows; `forget_wifi()` only deleted the single
+  profile name it was given, so removing one left the other showing the same
+  SSID in the saved-networks list, making "eliminar" look broken. Found and
+  reproduced 2026-09-13 with a leftover "Totalplay-31AB" pair after a house
+  move (deleting the netplan-owned profile via `nmcli` does correctly clean
+  up its backing YAML file too -- confirmed live -- the bug was only that the
+  sibling plain profile was never touched). `forget_wifi()` now resolves the
+  clicked profile's SSID and deletes every profile sharing it.
+
 ## [v2.7.303] — 2026-09-06
 ### Added
 - **`HARDWARE_INVENTORY.md`**: new single source of truth for physical parts

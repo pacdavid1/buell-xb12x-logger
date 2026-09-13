@@ -372,9 +372,25 @@ class NetworkManager:
                     saved.append({"name": name, "ssid": ssid})
         return saved
 
-    def forget_wifi(self, profile_name):
-        ok, _ = self._run(["sudo", "nmcli", "con", "delete", profile_name], timeout=10)
-        return ok
+    def forget_wifi(self, profile_name) -> bool:
+        """Delete a saved wifi profile, plus any other profile sharing the
+        same SSID -- a netplan-managed connection (name prefixed
+        "netplan-wlan0-...") and a plain nmcli one can both exist for the
+        same network. Deleting only the clicked profile left the sibling
+        behind, so the network reappeared in the saved list even though the
+        user asked to remove it (found 2026-09-13 with a leftover
+        "Totalplay-31AB" pair after a house move)."""
+        saved = self.saved_wifi()
+        target_ssid = next((e["ssid"] for e in saved if e["name"] == profile_name), None)
+        names_to_delete = (
+            [e["name"] for e in saved if e["ssid"] == target_ssid]
+            if target_ssid else [profile_name]
+        )
+        all_ok = True
+        for name in names_to_delete:
+            ok, _ = self._run(["sudo", "nmcli", "con", "delete", name], timeout=10)
+            all_ok = all_ok and ok
+        return all_ok
 
     def start_monitor(self):
         if self._monitor_active:
