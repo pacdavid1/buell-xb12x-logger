@@ -43,6 +43,12 @@ try:
 except ImportError:
     _AHT20_OK = False
 
+try:
+    from sensors.max31850 import MAX31850 as _MAX31850, list_connected as _max31850_list_connected
+    _MAX31850_OK = True
+except ImportError:
+    _MAX31850_OK = False
+
 from tools.health_journal import check as _health_check
 
 try:
@@ -132,6 +138,9 @@ class BuellLogger:
         self._bmp_retry_at = 0.0
         self._aht_fail = 0
         self._aht_retry_at = 0.0
+        self._max31850 = None
+        self._max_fail = 0
+        self._max_retry_at = 0.0
         self._cw2015 = None
         self._smbus  = None
 
@@ -154,6 +163,17 @@ class BuellLogger:
                     self.logger.warning("AHT20 did not respond to begin()")
             except Exception as e:
                 self.logger.warning(f"AHT20 unavailable: {e}")
+
+        if _MAX31850_OK:
+            try:
+                _max_ids = _max31850_list_connected()
+                if _max_ids:
+                    self._max31850 = _MAX31850(_max_ids[0])
+                    self.logger.info(f"MAX31850 initialized OK ({_max_ids[0]})")
+                else:
+                    self.logger.warning("MAX31850 not detected on 1-Wire bus")
+            except Exception as e:
+                self.logger.warning(f"MAX31850 unavailable: {e}")
 
         if _CW2015_OK:
             try:
@@ -399,6 +419,20 @@ class BuellLogger:
                         self.logger.warning(
                             f"AHT20 unreachable x{self._aht_fail} — backing off "
                             f"{SENSOR_FAIL_BACKOFF_S:.0f}s (dead I2C read costs ~0.8s CPU)")
+
+            if self._max31850 and time.monotonic() >= self._max_retry_at:
+                try:
+                    _tc = self._max31850.get_temperature()
+                    stats['thermo1_c'] = round(_tc, 1) if _tc is not None else None
+                    self._max_fail = 0
+                except Exception:
+                    stats['thermo1_c'] = None
+                    self._max_fail += 1
+                    if self._max_fail >= SENSOR_FAIL_BACKOFF_N:
+                        self._max_retry_at = time.monotonic() + SENSOR_FAIL_BACKOFF_S
+                        self.logger.warning(
+                            f"MAX31850 unreachable x{self._max_fail} — backing off "
+                            f"{SENSOR_FAIL_BACKOFF_S:.0f}s")
 
             if self._cw2015:
                 try:
