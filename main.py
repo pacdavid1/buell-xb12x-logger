@@ -719,7 +719,7 @@ class BuellLogger:
         if not self._poweroff_requested:
             return
         import serial as _serial, struct as _struct
-        GPS_PORT = '/dev/ttyS0'
+        GPS_PORT = '/dev/serial0'
         GPS_BAUD = 9600
         try:
             subprocess.run(['sudo', 'systemctl', 'stop', 'gpsd', 'gpsd.socket'],

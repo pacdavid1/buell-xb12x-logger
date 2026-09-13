@@ -25,6 +25,34 @@ PROMPT_END -->
 
 
 
+## [v2.7.306] — 2026-09-13
+### Fixed
+- **Applied the M8N UART routing fix planned in v2.7.305**: added `dtoverlay=disable-bt`
+  to the real `/boot/firmware/config.txt` on the Pi (`[all]` section) and removed
+  `console=serial0,115200` from `/boot/firmware/cmdline.txt`. After reboot,
+  `/dev/serial0` now resolves to `ttyAMA0` (PL011) instead of `ttyS0` (mini-UART);
+  `hciconfig` shows no `hci0` device. Repointed `/etc/default/gpsd` from
+  `/dev/ttyS0` to `/dev/serial0`, replaced the `99-ttyS0-gps.rules` udev rule with
+  `99-ttyAMA0-gps.rules`, and fixed `main.py`'s `_sleep_gps()` (`GPS_PORT`) to match
+  — it was opening `/dev/ttyS0` directly with pyserial to send the UBX-RXM-PMREQ
+  backup-mode command and would have silently failed post-migration (caught only
+  by a non-critical warning). gpsd now correctly auto-detects the receiver on
+  `/dev/serial0` (`driver":"u-blox"`) and, for the first time, reports real
+  firmware info instead of the corrupted `m8n_config_backup.json` guess:
+  `FWVER=SPG 3.01, PROTVER=18.00, GNSS=GPS;GLO;BDS,QZSS` (no Galileo enabled on
+  this firmware). Fix rate confirmed still 1Hz (`"cycle":1.00`) — raising it is
+  separate follow-up work, see BACKLOG.md BL-GPS-HZ. On-device backups of every
+  file touched (`.bak-preuart` suffix) plus the git-tracked copies in
+  `gps/pi_boot_backup/` (v2.7.305) give two independent rollback paths.
+  Not yet confirmed whether this fixes BL-GPS-06 (needs a real outdoor ride to
+  know if the ~22% gpsd-TPV-dropout still happens) — a short reconnect burst was
+  observed in the logs but it coincided exactly with the manual gpsd restarts
+  done during this fix, not spontaneous mid-ride behavior, so it isn't evidence
+  either way yet.
+
+### AI
+- Claude Sonnet 5 (applied and verified the fix planned in v2.7.305)
+
 ## [v2.7.305] — 2026-09-13
 ### Investigation
 - **M8N/GPS UART routing bug found, not yet applied on the Pi**: the GPS receiver is
