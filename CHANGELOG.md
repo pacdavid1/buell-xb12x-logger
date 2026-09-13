@@ -25,6 +25,40 @@ PROMPT_END -->
 
 
 
+## [v2.7.305] — 2026-09-13
+### Investigation
+- **M8N/GPS UART routing bug found, not yet applied on the Pi**: the GPS receiver is
+  on `/dev/ttyS0` (mini-UART, clock derived from the core/VPU clock — drifts under
+  CPU frequency scaling, a known cause of NMEA/UBX framing corruption on Raspberry
+  Pi). A previous session already diagnosed this and wrote
+  `dtoverlay=disable-bt` / `enable_uart=1` to free the PL011 (`ttyAMA0`) for the GPS
+  — but wrote it to `/boot/config.txt`, which on this OS is only the deprecation
+  stub ("moved to /boot/firmware/config.txt"), lives on the root ext4 filesystem,
+  and is never read by the bootloader (the real, active file on the FAT boot
+  partition is `/boot/firmware/config.txt`). The fix never took effect.
+  `/boot/firmware/cmdline.txt` also still has `console=serial0,115200`, so the
+  kernel serial console shares the same wire as the GPS. Plan: apply
+  `disable-bt` to the real `config.txt`, strip the console redirect from
+  `cmdline.txt`, reboot, verify `/dev/serial0` resolves to `ttyAMA0`, then update
+  the three places that hardcode `/dev/ttyS0` (`/etc/default/gpsd`,
+  `99-ttyS0-gps.rules`, and `main.py:688` inside `_sleep_gps()`). Backup of the
+  live pre-fix boot files committed to `gps/pi_boot_backup/` since
+  `/boot/firmware` on the Pi isn't git-tracked. See BACKLOG.md BL-GPS-06 (likely
+  related — not confirmed as the root cause, the power-save-mode hypothesis
+  there is still open too) and the new BL-GPS-HZ entry (raising the receiver's
+  fix rate alone won't increase logged GPS resolution — the `_sysmon_loop`
+  IPC snapshot cadence, not the receiver, is the current bottleneck).
+- Also decoded `gps/m8n_config_backup.json` by hand against the official u-blox M8
+  protocol spec (UBX-13003221) and found 2 of its 6 entries mislabeled: the entry
+  named "CFG-GNSS" is actually a UBX-NAV-SAT capture (0x01/0x35, not CFG-GNSS's
+  real 0x06/0x3E), and "MON-VER" is actually UBX-NAV-POSECEF (0x01/0x01, 20-byte
+  payload matches POSECEF exactly, not MON-VER's variable ASCII layout). Do not
+  trust that file for GNSS constellation or firmware version info until it's
+  regenerated correctly from a live device read.
+
+### AI
+- Claude Sonnet 5 (investigation, backup, BACKLOG/CHANGELOG notes)
+
 
 
 ## [v2.7.304] — 2026-09-13

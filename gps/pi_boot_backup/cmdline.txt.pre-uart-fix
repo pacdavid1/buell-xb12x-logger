@@ -1,0 +1,1 @@
+console=serial0,115200 console=tty1 root=PARTUUID=164e8919-02 rootfstype=ext4 fsck.repair=yes rootwait usbcore.autosuspend=-1 dwc_otg.speed=1 dwc2.lpm_enable=0 dwc2.nak_holdoff=0 dwc2.enable_dynamic_fifo=1 cfg80211.ieee80211_regdom=MX

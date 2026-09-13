@@ -127,8 +127,60 @@ independiente; el dato falta porque gpsd no lo entrego). Un CSV GPS dedicado a 1
 nativo con timestamp de gpsd es una mejora de CALIDAD posterior (huecos honestos, sin
 smear de coordenada congelada, sobrevive crash del logger), no el arreglo del bug.
 
+**Actualizacion 2026-09-13 -- tercera hipotesis de causa raiz, sin confirmar aun:**
+el M8N esta en `/dev/ttyS0` (mini-UART, MMIO 0x3f215040, driver 16550/AUX). Su reloj
+deriva del core/VPU clock, no de un cristal dedicado como el PL011 (`ttyAMA0`) --
+puede driftear con el escalado de frecuencia de la CPU, causa clasica de framing NMEA/UBX
+corrupto en Pi. `/boot/config.txt` tiene un bloque `dtoverlay=disable-bt` (para liberar el
+PL011 para el GPS) que una sesion anterior escribio en el archivo equivocado -- es el stub
+de deprecacion ("moved to /boot/firmware/config.txt"), vive en ext4, el bootloader nunca
+lo lee. El fix nunca se aplico. Ademas `/boot/firmware/cmdline.txt` todavia tiene
+`console=serial0,115200`: la consola del kernel comparte el mismo cable que el GPS.
+No descarta la hipotesis del modo backup/power-save (commit 6dcbdcd) -- pueden ser
+causas independientes o compuestas. Backup de los boot files pre-fix en
+`gps/pi_boot_backup/`. Ver tambien BL-GPS-HZ mas abajo (tasa de fix / resolucion).
+
 Impacto: MEDIO -- degrada la traza GPS y el analisis GPS (grade/altitud/replay).
 Esfuerzo: BAJO la capa amplificador; MEDIO la causa raiz (requiere ride de prueba).
+
+---
+
+### BL-GPS-HZ -- subir la tasa de fix del M8N no aumenta la resolucion grabada tal cual (2026-09-13)
+
+Investigado al planear subir CFG-RATE del M8N (hoy 1Hz) a 5-10Hz para mas resolucion
+espacial. Trazado el camino GPS -> disco:
+
+`GPSReader._run()` (gps/reader.py) actualiza `self._fix` en memoria a la tasa que
+entregue gpsd -- eso ya escala solo con CFG-RATE, no hay cambio de codigo ahi.
+Pero nadie escribe un CSV por-fix del GPS. El unico camino a disco es:
+`main.py _sysmon_loop()` llama `self.gps.get_fix().as_dict()` y escribe `gps.json`
+(IPC), luego `time.sleep(GPS_RESTART_DELAY)` con `GPS_RESTART_DELAY = 2.0` (main.py:55,
+527, 548) -- es decir, el snapshot que ve el resto del sistema se refresca cada ~2s,
+sea cual sea la tasa real del receptor. `ecu/logger_process.py` lee ese `gps.json` y
+lo funde en cada fila del CSV del ECU (que si corre a tasa alta) -- por eso columnas
+como `gps_lat`/`gps_speed_kmh` hoy aparecen repetidas (sample-and-hold) durante ~2s
+seguidos en el CSV, confirmado leyendo el codigo (main.py:525-548,
+ecu/logger_process.py:404-416).
+
+Conclusion: subir CFG-RATE a 8-10Hz reduce el staleness dentro de esa ventana de 2s
+(fix mas fresco cuando el sysmon loop lo toma) pero NO aumenta los puntos/segundo
+grabados en el CSV -- el cuello de botella esta en el sampling de `_sysmon_loop`, no
+en el receptor. Para lograr mas resolucion real hay que desacoplar el muestreo GPS
+del loop de sysmon (que tambien lee sensores I2C mas lentos, BMP280/AHT20/CW2015, no
+tiene sentido subirle la tasa a todo el loop). Opcion recomendada: loop/hilo propio
+que muestree `GPSReader.get_fix()` a su propia cadencia (o consuma gpsd directo) y
+escriba el CSV GPS dedicado que BL-GPS-06 ya proponia como mejora de calidad --
+resuelve ambos backlogs con el mismo modulo. No se recomienda una tasa "adaptativa"
+por velocidad (mas puntos si va mas rapido): la tasa del receptor es una config UBX
+que no conviene cambiar en caliente durante un ride (riesgo de desync con gpsd), y
+la logica de traza ya tiene todo lo que necesita en `t`/`lat`/`lon` por punto para
+decimar o interpolar despues si hiciera falta -- agregar "modo rapido/lento" en el
+receptor es complejidad sin beneficio claro sobre grabar siempre a tasa fija alta.
+
+Impacto: MEDIO -- afecta la resolucion de la traza para deteccion de giros/lean y
+para el analisis GPS, pero no es un bug (nada esta roto), es una limitacion de diseno.
+Esfuerzo: MEDIO -- nuevo hilo/loop de logging GPS independiente del sysmon loop.
+Relacionado: BL-GPS-06 (mismo modulo resuelve el CSV dedicado que ahi se proponia).
 
 ---
 
