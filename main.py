@@ -68,6 +68,18 @@ GPS_RESTART_DELAY   = 2.0
 SENSOR_FAIL_BACKOFF_N = 5      # consecutive I2C failures before backing off
 SENSOR_FAIL_BACKOFF_S = 300.0  # a doomed I2C read costs ~0.8 s kernel CPU (measured 2026-07-15)
 MAIN_LOOP_HEARTBEAT = 1.0
+IMU_LOOP_INTERVAL_S = 0.1      # 10Hz -- headroom over the dashboard's 8Hz poll, so every
+                                # poll sees a fresh sample. Split into its own thread
+                                # (2026-09-14) because the environmental sensors in
+                                # _sysmon_loop can't run this fast: AHT20 alone blocks
+                                # ~90ms per read (its physical conversion time), which
+                                # would eat most of a 100-125ms budget on every tick.
+IMU_ACCEL_MAX_PLAUSIBLE_G = 3.5  # +/-2g full scale on all 3 axes saturated at once maxes
+                                   # out around sqrt(3)*2 ~= 3.46g; anything past this is a
+                                   # torn I2C read (bytes from two different samples mixed
+                                   # mid-burst-read), not real data. Found 2026-09-14: the
+                                   # dashboard showed 8g with ACCEL_CONFIG confirmed at
+                                   # reset default (+/-2g) via i2cget -- physically impossible.
 IPC_DIR             = Path('/tmp/buell')
 IPC_POLL_S          = 0.25   # how often IPC reader polls live.json
 DISK_WARN_PCT       = 85.0   # dashboard badge turns yellow
@@ -151,7 +163,8 @@ class BuellLogger:
         self._smbus  = None
         self._mpu6050 = None
         self._mpu_fail = 0
-        self._mpu_retry_at = 0.0
+        self._imu_thread = None
+        self._imu_heartbeat = float('inf')
 
         if _BMP280_OK or _AHT20_OK or _CW2015_OK:
             try:
@@ -456,22 +469,6 @@ class BuellLogger:
                             f"MAX31850 unreachable x{self._max_fail} — backing off "
                             f"{SENSOR_FAIL_BACKOFF_S:.0f}s")
 
-            if self._mpu6050 and time.monotonic() >= self._mpu_retry_at:
-                try:
-                    stats.update(self._mpu6050.read_all())
-                    self._mpu_fail = 0
-                except Exception:
-                    for _k in ('imu_accel_x_g', 'imu_accel_y_g', 'imu_accel_z_g',
-                               'imu_gyro_x_dps', 'imu_gyro_y_dps', 'imu_gyro_z_dps',
-                               'imu_temp_c'):
-                        stats[_k] = None
-                    self._mpu_fail += 1
-                    if self._mpu_fail >= SENSOR_FAIL_BACKOFF_N:
-                        self._mpu_retry_at = time.monotonic() + SENSOR_FAIL_BACKOFF_S
-                        self.logger.warning(
-                            f"MPU6050 unreachable x{self._mpu_fail} — backing off "
-                            f"{SENSOR_FAIL_BACKOFF_S:.0f}s")
-
             if self._cw2015:
                 try:
                     _bat = self._cw2015.read_all()
@@ -619,6 +616,50 @@ class BuellLogger:
             self._sysmon_heartbeat = time.monotonic()
             time.sleep(GPS_RESTART_DELAY)
 
+    def _imu_loop(self):
+        """MPU6050 thread — split from _sysmon_loop (2026-09-14) so the IMU can be
+        read at 10Hz without waiting on AHT20's ~90ms blocking conversion time or
+        the rest of the slow environmental/battery sensors. Merges into the same
+        web.serial_stats dict sysmon writes to (shared lock), and writes the full
+        current merged snapshot to sysmon.json each tick -- not just the IMU
+        fields -- so this thread's fast writes never erase the slower sensors'
+        last-known values that sysmon.json also carries for CSV injection."""
+        self._imu_heartbeat = time.monotonic()
+        while self._running:
+            if self._mpu6050:
+                try:
+                    reading = self._mpu6050.read_all()
+                    ax = reading.get('imu_accel_x_g')
+                    ay = reading.get('imu_accel_y_g')
+                    az = reading.get('imu_accel_z_g')
+                    if ax is not None and ay is not None and az is not None:
+                        _mag = (ax * ax + ay * ay + az * az) ** 0.5
+                        if _mag > IMU_ACCEL_MAX_PLAUSIBLE_G:
+                            reading = {k: None for k in reading}
+                    self._mpu_fail = 0
+                except Exception:
+                    reading = {
+                        'imu_accel_x_g': None, 'imu_accel_y_g': None, 'imu_accel_z_g': None,
+                        'imu_gyro_x_dps': None, 'imu_gyro_y_dps': None, 'imu_gyro_z_dps': None,
+                        'imu_temp_c': None,
+                    }
+                    self._mpu_fail += 1
+                    # Native i2c-1 NACKs fail fast (no bit-banged stall cost), so no
+                    # need to back off the reads themselves -- just throttle the log
+                    # line so a disconnected sensor doesn't spam it at 10Hz.
+                    if self._mpu_fail == SENSOR_FAIL_BACKOFF_N or self._mpu_fail % 100 == 0:
+                        self.logger.warning(f"MPU6050 unreachable x{self._mpu_fail}")
+
+                with self.web._data_lock:
+                    existing = self.web.serial_stats if self.web.serial_stats else {}
+                    existing.update(reading)
+                    self.web.serial_stats = existing
+                    _snapshot = dict(existing)
+                _ipc_write(self._ipc_dir / 'sysmon.json', _snapshot)
+
+            self._imu_heartbeat = time.monotonic()
+            time.sleep(IMU_LOOP_INTERVAL_S)
+
     # ── Misc ──────────────────────────────────────────────────────────────────
 
     def _get_shutdown_threshold(self):
@@ -663,6 +704,10 @@ class BuellLogger:
         self._sysmon_thread = threading.Thread(target=self._sysmon_loop, daemon=True, name="sysmon")
         self._sysmon_thread.start()
 
+        # 3b. Start IMU thread (separate from sysmon -- see _imu_loop docstring)
+        self._imu_thread = threading.Thread(target=self._imu_loop, daemon=True, name="imu")
+        self._imu_thread.start()
+
         # 4. Spawn ECU logger subprocess
         self._ipc_dir.mkdir(parents=True, exist_ok=True)
         self._start_logger_subprocess()
@@ -706,13 +751,17 @@ class BuellLogger:
     def _check_threads(self):
         """Watchdog: restart dead or hung background threads and subprocess."""
         now = time.monotonic()
-        heartbeats    = {"ipc-reader": self._ipc_reader_heartbeat, "sysmon": self._sysmon_heartbeat}
-        stale_limits  = {"ipc-reader": 10.0,                       "sysmon": 15.0}
-        thread_map    = {"ipc-reader": "_ipc_reader_thread",       "sysmon": "_sysmon_thread"}
+        heartbeats    = {"ipc-reader": self._ipc_reader_heartbeat, "sysmon": self._sysmon_heartbeat,
+                         "imu":        self._imu_heartbeat}
+        stale_limits  = {"ipc-reader": 10.0,                       "sysmon": 15.0,
+                         "imu":        5.0}
+        thread_map    = {"ipc-reader": "_ipc_reader_thread",       "sysmon": "_sysmon_thread",
+                         "imu":        "_imu_thread"}
         thread_targets= {"ipc-reader": (self._ipc_reader_loop, "ipc-reader"),
-                         "sysmon":     (self._sysmon_loop,     "sysmon")}
+                         "sysmon":     (self._sysmon_loop,     "sysmon"),
+                         "imu":        (self._imu_loop,        "imu")}
 
-        for name in ("ipc-reader", "sysmon"):
+        for name in ("ipc-reader", "sysmon", "imu"):
             thread = getattr(self, thread_map[name])
             if thread is None:
                 continue

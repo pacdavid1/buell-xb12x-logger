@@ -25,6 +25,31 @@ PROMPT_END -->
 
 
 
+## [v2.7.312] — 2026-09-14
+### Changed
+- **MPU6050 IMU split into its own 10Hz thread**, separate from `_sysmon_loop`.
+  The 8Hz dashboard poll rate (v2.7.311) didn't actually help the IMU: the
+  shared sysmon loop only produced a fresh sample every 2s (`GPS_RESTART_DELAY`,
+  reused as the loop's overall sleep), and AHT20's ~90ms mandatory blocking
+  conversion time makes it unsafe to just shrink that shared sleep to
+  ~100-125ms -- it would eat most of the budget on every tick. New `_imu_loop`
+  thread reads the MPU6050 at `IMU_LOOP_INTERVAL_S=0.1` (10Hz, headroom over
+  the 8Hz poll), merges into the same `web.serial_stats` dict under the
+  existing lock, and writes the full current merged snapshot to `sysmon.json`
+  each tick (not just the IMU fields) so its fast writes never erase the
+  slower sensors' last-known values that `sysmon.json` also carries for CSV
+  injection. Registered in the thread watchdog (`_check_threads`) alongside
+  ipc-reader/sysmon.
+### Fixed
+- **IMU accel readings could show physically impossible values** (dashboard
+  showed 8g with `ACCEL_CONFIG` confirmed at reset default `+/-2g` via
+  `i2cget` -- max possible with all 3 axes saturated is `sqrt(3)*2 ~= 3.46g`).
+  A torn I2C burst read (bytes from two different samples mixed mid-read) can
+  decode to a garbage value outside the sensor's real range. `_imu_loop` now
+  discards a reading (all fields None) when accel magnitude exceeds
+  `IMU_ACCEL_MAX_PLAUSIBLE_G=3.5`, same plausibility-bound pattern already
+  used for BMP280.
+
 ## [v2.7.311] — 2026-09-13
 ### Changed
 - **Dashboard poll rate raised 2Hz -> 8Hz (500ms -> 125ms)**, made safe first:
