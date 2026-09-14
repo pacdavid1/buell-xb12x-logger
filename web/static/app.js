@@ -850,7 +850,7 @@ function launchReadyTick(d) {
   }
 }
 
-_liveInterval = setInterval(fetchLive, 500);
+_liveInterval = setInterval(fetchLive, 125);
 
 
 // ── EEPROM MAPS ──────────────────────────────────────────────────
@@ -1599,7 +1599,7 @@ function exitHistory(){
   window._viewingHistory=false;
   // Restart live polling intervals (they were stopped in viewSelectedRides)
   _cobertInterval = setInterval(pollCobertGrid, 1000);
-  _liveInterval = setInterval(fetchLive, 500);
+  _liveInterval = setInterval(fetchLive, 125);
   _fuelInterval = setInterval(fetchFuelStatus, 30000);
   _freezeInterval = setInterval(()=>{
     const frozen = (Date.now() - _lastLiveOk) > 5000;

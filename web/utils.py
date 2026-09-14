@@ -16,7 +16,14 @@ def _session_version(bin_path):
         return None
 
 
+_version_cache = None  # memoized -- CHANGELOG.md doesn't change while the process runs, so
+                        # re-reading and regexing it on every /live.json poll (up to 8/s) is pure waste
+
+
 def _get_version():
+    global _version_cache
+    if _version_cache is not None:
+        return _version_cache
     try:
         # Derive path from this file's location (works on Windows + Pi alike).
         # Use utf-8 encoding explicitly (Windows default cp1252 can't decode CHANGELOG.md).
@@ -25,6 +32,7 @@ def _get_version():
         if end_comment != -1:
             cl = cl[end_comment:]
         m = re.search(r"## \[([^\]]+)\]", cl)
-        return m.group(1) if m else "unknown"
+        _version_cache = m.group(1) if m else "unknown"
     except Exception:
-        return "unknown"
+        _version_cache = "unknown"
+    return _version_cache

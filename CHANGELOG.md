@@ -25,6 +25,22 @@ PROMPT_END -->
 
 
 
+## [v2.7.311] — 2026-09-13
+### Changed
+- **Dashboard poll rate raised 2Hz -> 8Hz (500ms -> 125ms)**, made safe first:
+  `/live.json` was calling `network.current_mode()` + `.get_ip()` on every
+  single poll, each shelling out to `nmcli` (2-3 subprocess spawns/request),
+  plus `_get_version()` re-reading and regexing all of `CHANGELOG.md` from
+  disk every time -- real Pi CPU cost, not "just the browser's problem" as
+  first assumed. Added a 3s TTL cache in `network/manager.py` for
+  `current_mode()`/`get_ip()` specifically (the dashboard-facing entry
+  points) -- internal callers (`_wifi_connected()`/`_hotspot_active()`, used
+  by the wifi-switch state machine and the "sin red" hotspot-fallback
+  monitor thread) are untouched and still read live, so real network
+  transitions are still detected promptly. Memoized `_get_version()` in
+  `web/utils.py` -- CHANGELOG.md doesn't change while the process runs, so
+  re-parsing it every request was pure waste regardless of poll rate.
+
 ## [v2.7.310] — 2026-09-13
 ### Fixed
 - **MPU-6050 driver rejected a working sensor**: `begin()` only accepted

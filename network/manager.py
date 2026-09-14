@@ -15,6 +15,9 @@ from pathlib import Path
 _DEFAULT_BUELL_DIR = Path(__file__).resolve().parent.parent
 _STATE_FILE_DEFAULT = _DEFAULT_BUELL_DIR / 'network_state.json'
 
+NETWORK_STATUS_CACHE_TTL_S = 3.0  # see _refresh_status_cache() for why
+
+
 class NetworkManager:
 
     HOTSPOT_CON      = "buell-hotspot"
@@ -30,6 +33,8 @@ class NetworkManager:
         self._state_lock     = threading.Lock()
         state_file = Path(buell_dir) / 'network_state.json' if buell_dir else _STATE_FILE_DEFAULT
         self._state_file = state_file
+        self._status_cache    = {"mode": "none", "ip": "0.0.0.0"}
+        self._status_cache_ts = 0.0
 
     @staticmethod
     def _run(cmd, timeout=10):
@@ -62,14 +67,7 @@ class NetworkManager:
         ])
         return ok and self.HOTSPOT_CON in out
 
-    def current_mode(self):
-        if self._wifi_connected():
-            return "wifi"
-        if self._hotspot_active():
-            return "hotspot"
-        return "none"
-
-    def get_ip(self):
+    def _resolve_wifi_ip(self):
         ok, out = self._run([
             "nmcli", "-t", "-f", "IP4.ADDRESS",
             "dev", "show", "wlan0"
@@ -80,9 +78,39 @@ class NetworkManager:
                     ip = line.split(":")[-1].split("/")[0].strip()
                     if ip:
                         return ip
-        if self._hotspot_active():
-            return self.HOTSPOT_IP
-        return "0.0.0.0"
+        return None
+
+    def _refresh_status_cache(self):
+        """Recompute mode+IP together and cache them.
+
+        current_mode()/get_ip() are the dashboard's hot path -- /live.json
+        calls both on every poll (up to 8/s), and each used to shell out to
+        nmcli independently (2-3 subprocess spawns per poll on a Pi Zero).
+        Network mode/IP don't change that fast, so cache with a short TTL.
+        Internal callers (the wifi-switch state machine, the "sin red"
+        monitor thread) keep calling _wifi_connected()/_hotspot_active()
+        directly, uncached -- those need to observe real transitions, not a
+        stale snapshot.
+        """
+        if self._wifi_connected():
+            mode, ip = "wifi", (self._resolve_wifi_ip() or "0.0.0.0")
+        elif self._hotspot_active():
+            mode, ip = "hotspot", self.HOTSPOT_IP
+        else:
+            mode, ip = "none", "0.0.0.0"
+        self._status_cache = {"mode": mode, "ip": ip}
+        self._status_cache_ts = time.monotonic()
+
+    def _get_status_cache(self) -> dict:
+        if time.monotonic() - self._status_cache_ts > NETWORK_STATUS_CACHE_TTL_S:
+            self._refresh_status_cache()
+        return self._status_cache
+
+    def current_mode(self):
+        return self._get_status_cache()["mode"]
+
+    def get_ip(self):
+        return self._get_status_cache()["ip"]
 
     def get_wifi_ip(self):
         try:
