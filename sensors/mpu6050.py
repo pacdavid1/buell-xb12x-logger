@@ -21,6 +21,13 @@ REG_ACCEL_XOUT_H = 0x3B
 REG_TEMP_OUT_H   = 0x41
 REG_GYRO_XOUT_H  = 0x43
 
+# WHO_AM_I is fixed per silicon, not per address/AD0. Genuine MPU-6050 = 0x68.
+# Many cheap "GY-521/MPU-6050" breakouts are actually populated with an
+# MPU-6500 die instead (0x70) -- register-compatible for accel/gyro/temp at
+# the addresses and default full-scale ranges used here, just a different ID.
+# Confirmed on this board via i2cget 2026-09-13: reads 0x70, not 0x68.
+VALID_WHO_AM_I = {0x68, 0x70}
+
 ACCEL_SENS_LSB_PER_G    = 16384.0  # +/-2g full scale (reset default)
 GYRO_SENS_LSB_PER_DEG_S = 131.0    # +/-250 deg/s full scale (reset default)
 
@@ -53,9 +60,10 @@ class MPU6050:
                 self._bus.write_byte_data(self._addr, REG_PWR_MGMT_1, 0x00)
                 time.sleep(0.01)
                 who = self._bus.read_i2c_block_data(self._addr, REG_WHO_AM_I, 1)[0]
-                if who == 0x68:  # fixed value regardless of AD0/actual address
+                if who in VALID_WHO_AM_I:
                     self._initialized = True
                     return True
+                last_error = ValueError(f"unexpected WHO_AM_I=0x{who:02x}")
             except Exception as e:
                 last_error = e
             if attempt < INIT_RETRIES - 1:

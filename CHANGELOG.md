@@ -25,6 +25,15 @@ PROMPT_END -->
 
 
 
+## [v2.7.310] — 2026-09-13
+### Fixed
+- **MPU-6050 driver rejected a working sensor**: `begin()` only accepted
+  `WHO_AM_I == 0x68`. Live `i2cget` on this exact board (2026-09-13) reads
+  `0x70` -- the classic signature of a cheap breakout actually populated with
+  an MPU-6500 die instead of a genuine MPU-6050. Register-compatible for
+  accel/gyro/temp at the addresses and default full-scale ranges this driver
+  uses, just a different WHO_AM_I. `begin()` now accepts both 0x68 and 0x70.
+
 ## [v2.7.309] — 2026-09-13
 ### Added
 - **MPU-6050 6-axis IMU integration**: new `sensors/mpu6050.py` driver
