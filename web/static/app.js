@@ -392,6 +392,18 @@ function updateHeader(d) {
     tc1El.textContent = tc != null ? tc.toFixed(1) : '--';
     tc1El.className = 'hs-val gn';
   }
+  const imuEl = $id('hImu');
+  if(imuEl){
+    const ax = ss.imu_accel_x_g, ay = ss.imu_accel_y_g, az = ss.imu_accel_z_g;
+    if(ax != null && ay != null && az != null){
+      const mag = Math.sqrt(ax*ax + ay*ay + az*az);
+      imuEl.textContent = mag.toFixed(2)+'g';
+      imuEl.className = 'hs-val gn';
+    } else {
+      imuEl.textContent = '--';
+      imuEl.className = 'hs-val';
+    }
+  }
   const batPctEl = $id('hBatPct');
   const batPctVal = $id('hBatPctVal');
   if(batPctEl){

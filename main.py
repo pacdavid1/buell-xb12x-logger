@@ -57,6 +57,12 @@ try:
 except ImportError:
     _CW2015_OK = False
 
+try:
+    from sensors.mpu6050 import MPU6050 as _MPU6050
+    _MPU6050_OK = True
+except ImportError:
+    _MPU6050_OK = False
+
 # ── Constants ──────────────────────────────────────────────────────────────────
 GPS_RESTART_DELAY   = 2.0
 SENSOR_FAIL_BACKOFF_N = 5      # consecutive I2C failures before backing off
@@ -143,6 +149,9 @@ class BuellLogger:
         self._max_retry_at = 0.0
         self._cw2015 = None
         self._smbus  = None
+        self._mpu6050 = None
+        self._mpu_fail = 0
+        self._mpu_retry_at = 0.0
 
         if _BMP280_OK or _AHT20_OK or _CW2015_OK:
             try:
@@ -182,6 +191,19 @@ class BuellLogger:
                 self.logger.info("CW2015 (UPS-Lite) initialized OK i2c-1 (0x62)")
             except Exception as e:
                 self.logger.warning(f"CW2015 unavailable: {e}")
+
+        if _MPU6050_OK:
+            try:
+                if not hasattr(self, '_ups_bus'):
+                    self._ups_bus = _smbus2.SMBus(1)
+                _mpu = _MPU6050(i2c_dev=self._ups_bus)
+                if _mpu.begin():
+                    self._mpu6050 = _mpu
+                    self.logger.info("MPU6050 initialized OK i2c-1 (0x68)")
+                else:
+                    self.logger.warning("MPU6050 did not respond to begin()")
+            except Exception as e:
+                self.logger.warning(f"MPU6050 unavailable: {e}")
 
         self.web.network      = self.network
         self.web.cell_tracker = self.tracker
@@ -432,6 +454,22 @@ class BuellLogger:
                         self._max_retry_at = time.monotonic() + SENSOR_FAIL_BACKOFF_S
                         self.logger.warning(
                             f"MAX31850 unreachable x{self._max_fail} — backing off "
+                            f"{SENSOR_FAIL_BACKOFF_S:.0f}s")
+
+            if self._mpu6050 and time.monotonic() >= self._mpu_retry_at:
+                try:
+                    stats.update(self._mpu6050.read_all())
+                    self._mpu_fail = 0
+                except Exception:
+                    for _k in ('imu_accel_x_g', 'imu_accel_y_g', 'imu_accel_z_g',
+                               'imu_gyro_x_dps', 'imu_gyro_y_dps', 'imu_gyro_z_dps',
+                               'imu_temp_c'):
+                        stats[_k] = None
+                    self._mpu_fail += 1
+                    if self._mpu_fail >= SENSOR_FAIL_BACKOFF_N:
+                        self._mpu_retry_at = time.monotonic() + SENSOR_FAIL_BACKOFF_S
+                        self.logger.warning(
+                            f"MPU6050 unreachable x{self._mpu_fail} — backing off "
                             f"{SENSOR_FAIL_BACKOFF_S:.0f}s")
 
             if self._cw2015:

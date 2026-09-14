@@ -25,6 +25,19 @@ PROMPT_END -->
 
 
 
+## [v2.7.309] — 2026-09-13
+### Added
+- **MPU-6050 6-axis IMU integration**: new `sensors/mpu6050.py` driver
+  (accelerometer x/y/z in g, gyroscope x/y/z in deg/s, die temp in C) wired
+  into `_sysmon_loop` on i2c-1 (0x68, shares the bus with CW2015 at 0x62 --
+  confirmed no address conflict via `i2cdetect`). Follows the same
+  init/read/backoff pattern as BMP280/AHT20/MAX31850. Dashboard shows total
+  accel magnitude as a sanity tile (slot 23, "IMU" -- should read ~1.00g at
+  rest). Lean angle is intentionally NOT computed yet -- a raw accelerometer
+  angle is corrupted by cornering/braking acceleration exactly when lean
+  angle matters most; that needs sensor fusion (gyro + accel) as a separate
+  next step once raw readings are validated on the bike.
+
 ## [v2.7.308] — 2026-09-13
 ### Added
 - **`gps/mga_dbd_backup.sh`**: periodic read-only backup of the M8N's UBX-MGA-DBD
