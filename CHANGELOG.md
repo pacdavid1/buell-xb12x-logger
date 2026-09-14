@@ -25,6 +25,20 @@ PROMPT_END -->
 
 
 
+## [v2.7.313] — 2026-09-14
+### Added
+- **MPU6050 accel/gyro offset calibration**: uncalibrated cheap MEMS parts
+  read a nonzero bias at rest -- confirmed on this board: resting accel
+  magnitude read 1.08g instead of 1.00g, gyro_y sat around 8 deg/s instead
+  of 0. `MPU6050.calibrate()` averages 200 samples against the sensor's
+  current still pose (gyro ideal is (0,0,0) on every axis; accel ideal is a
+  unit-g vector on whichever axis is closest to vertical right now) and
+  `save_calibration()`/`load_calibration()` persist it to
+  `mpu6050_calibration.json` in `buell_dir`. `read_all()` now subtracts the
+  loaded offset automatically. New `tools/calibrate_imu.py` runs it manually
+  over SSH (stop the service first so it isn't fighting over the I2C bus).
+  Re-run if the sensor is remounted in a different orientation.
+
 ## [v2.7.312] — 2026-09-14
 ### Changed
 - **MPU6050 IMU split into its own 10Hz thread**, separate from `_sysmon_loop`.

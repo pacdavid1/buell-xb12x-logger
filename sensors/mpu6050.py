@@ -9,9 +9,19 @@ apply directly. Lean angle is NOT computed here: a raw accelerometer angle is
 corrupted by cornering/braking acceleration exactly when lean angle matters
 most. That needs sensor fusion (gyro + accel) layered on top of these raw
 readings, not a change to this driver.
+
+Offset calibration: cheap/uncalibrated MEMS parts commonly read ~30-100mg of
+combined accel bias and a few deg/s of gyro bias at rest (confirmed on this
+board 2026-09-14: resting magnitude read 1.08g instead of 1.00g, and gyro_y
+sat around 8 deg/s instead of 0). calibrate() measures that bias against a
+single known-still reference pose and persists it via save_calibration();
+read_all() subtracts it automatically once loaded. Re-run calibration if the
+sensor is remounted in a different orientation.
 """
 
+import json
 import time
+from pathlib import Path
 
 I2C_ADDR = 0x68
 
@@ -34,19 +44,40 @@ GYRO_SENS_LSB_PER_DEG_S = 131.0    # +/-250 deg/s full scale (reset default)
 INIT_RETRIES = 3
 INIT_DELAY_S = 0.05
 
+CALIBRATE_SAMPLES    = 200
+CALIBRATE_DELAY_S    = 0.005  # ~1s total at 200 samples, matches the 10Hz IMU thread's pace
+
 
 def _to_signed16(high: int, low: int) -> int:
     value = (high << 8) | low
     return value - 65536 if value >= 32768 else value
 
 
+def load_calibration(path) -> dict | None:
+    """Load a previously saved offset dict, or None if absent/unreadable."""
+    try:
+        return json.loads(Path(path).read_text())
+    except Exception:
+        return None
+
+
+def save_calibration(path, offsets: dict) -> None:
+    Path(path).write_text(json.dumps(offsets, indent=2))
+
+
 class MPU6050:
     """Driver for the MPU-6050 6-axis IMU."""
 
-    def __init__(self, i2c_dev, i2c_addr: int = I2C_ADDR) -> None:
+    def __init__(self, i2c_dev, i2c_addr: int = I2C_ADDR, calibration_path=None) -> None:
         self._bus = i2c_dev
         self._addr = i2c_addr
         self._initialized = False
+        self._calibration_path = calibration_path
+        self._offsets = {'ax': 0.0, 'ay': 0.0, 'az': 0.0, 'gx': 0.0, 'gy': 0.0, 'gz': 0.0}
+        if calibration_path is not None:
+            saved = load_calibration(calibration_path)
+            if saved:
+                self._offsets.update(saved)
 
     def begin(self) -> bool:
         """Wake the sensor from its power-on sleep state.
@@ -72,8 +103,24 @@ class MPU6050:
             raise RuntimeError(f"MPU6050 begin failed after {INIT_RETRIES} attempts: {last_error}")
         return False
 
+    def _read_raw(self) -> dict:
+        """Read accel (g) + gyro (deg/s) + temp (C) with NO offset correction applied."""
+        accel = self._bus.read_i2c_block_data(self._addr, REG_ACCEL_XOUT_H, 6)
+        gyro  = self._bus.read_i2c_block_data(self._addr, REG_GYRO_XOUT_H, 6)
+        temp  = self._bus.read_i2c_block_data(self._addr, REG_TEMP_OUT_H, 2)
+        return {
+            'ax': _to_signed16(accel[0], accel[1]) / ACCEL_SENS_LSB_PER_G,
+            'ay': _to_signed16(accel[2], accel[3]) / ACCEL_SENS_LSB_PER_G,
+            'az': _to_signed16(accel[4], accel[5]) / ACCEL_SENS_LSB_PER_G,
+            'gx': _to_signed16(gyro[0], gyro[1]) / GYRO_SENS_LSB_PER_DEG_S,
+            'gy': _to_signed16(gyro[2], gyro[3]) / GYRO_SENS_LSB_PER_DEG_S,
+            'gz': _to_signed16(gyro[4], gyro[5]) / GYRO_SENS_LSB_PER_DEG_S,
+            'temp_c': _to_signed16(temp[0], temp[1]) / 340.0 + 36.53,
+        }
+
     def read_all(self) -> dict:
-        """Read accelerometer (g), gyroscope (deg/s) and die temperature (C).
+        """Read accelerometer (g), gyroscope (deg/s) and die temperature (C),
+        with the stored calibration offset (if any) subtracted.
 
         Returns a dict with every field None on failure, mirroring
         CW2015.read_all() so callers merge it into serial_stats the same way.
@@ -86,29 +133,53 @@ class MPU6050:
                 return self._empty()
 
         try:
-            accel = self._bus.read_i2c_block_data(self._addr, REG_ACCEL_XOUT_H, 6)
-            gyro  = self._bus.read_i2c_block_data(self._addr, REG_GYRO_XOUT_H, 6)
-            temp  = self._bus.read_i2c_block_data(self._addr, REG_TEMP_OUT_H, 2)
-
-            ax = _to_signed16(accel[0], accel[1]) / ACCEL_SENS_LSB_PER_G
-            ay = _to_signed16(accel[2], accel[3]) / ACCEL_SENS_LSB_PER_G
-            az = _to_signed16(accel[4], accel[5]) / ACCEL_SENS_LSB_PER_G
-            gx = _to_signed16(gyro[0], gyro[1]) / GYRO_SENS_LSB_PER_DEG_S
-            gy = _to_signed16(gyro[2], gyro[3]) / GYRO_SENS_LSB_PER_DEG_S
-            gz = _to_signed16(gyro[4], gyro[5]) / GYRO_SENS_LSB_PER_DEG_S
-            temp_c = _to_signed16(temp[0], temp[1]) / 340.0 + 36.53
-
+            raw = self._read_raw()
+            o = self._offsets
             return {
-                'imu_accel_x_g':  round(ax, 3),
-                'imu_accel_y_g':  round(ay, 3),
-                'imu_accel_z_g':  round(az, 3),
-                'imu_gyro_x_dps': round(gx, 2),
-                'imu_gyro_y_dps': round(gy, 2),
-                'imu_gyro_z_dps': round(gz, 2),
-                'imu_temp_c':     round(temp_c, 1),
+                'imu_accel_x_g':  round(raw['ax'] - o['ax'], 3),
+                'imu_accel_y_g':  round(raw['ay'] - o['ay'], 3),
+                'imu_accel_z_g':  round(raw['az'] - o['az'], 3),
+                'imu_gyro_x_dps': round(raw['gx'] - o['gx'], 2),
+                'imu_gyro_y_dps': round(raw['gy'] - o['gy'], 2),
+                'imu_gyro_z_dps': round(raw['gz'] - o['gz'], 2),
+                'imu_temp_c':     round(raw['temp_c'], 1),
             }
         except Exception:
             return self._empty()
+
+    def calibrate(self, sample_count: int = CALIBRATE_SAMPLES) -> dict:
+        """Measure bias against a single known-still reference pose.
+
+        Averages `sample_count` raw readings (sensor must be held still).
+        Gyro's ideal at-rest value is (0,0,0) on every axis regardless of
+        orientation. Accel's ideal is a unit-g vector on whichever single
+        axis is closest to vertical right now (the axis with the largest
+        |average|) and zero on the other two -- so this calibration is tied
+        to the sensor's CURRENT orientation; re-run it if remounted.
+        Returns the offset dict (does not persist it -- call
+        save_calibration() separately once you're happy with the result).
+        """
+        if not self._initialized and not self.begin():
+            raise RuntimeError("MPU6050 not initialized -- cannot calibrate")
+
+        sums = {'ax': 0.0, 'ay': 0.0, 'az': 0.0, 'gx': 0.0, 'gy': 0.0, 'gz': 0.0}
+        for _ in range(sample_count):
+            raw = self._read_raw()
+            for k in sums:
+                sums[k] += raw[k]
+            time.sleep(CALIBRATE_DELAY_S)
+        avg = {k: v / sample_count for k, v in sums.items()}
+
+        up_axis = max(('ax', 'ay', 'az'), key=lambda k: abs(avg[k]))
+        ideal = {'ax': 0.0, 'ay': 0.0, 'az': 0.0}
+        ideal[up_axis] = 1.0 if avg[up_axis] > 0 else -1.0
+
+        offsets = {
+            'ax': avg['ax'] - ideal['ax'], 'ay': avg['ay'] - ideal['ay'], 'az': avg['az'] - ideal['az'],
+            'gx': avg['gx'], 'gy': avg['gy'], 'gz': avg['gz'],
+        }
+        self._offsets = offsets
+        return offsets
 
     @staticmethod
     def _empty() -> dict:

@@ -209,7 +209,8 @@ class BuellLogger:
             try:
                 if not hasattr(self, '_ups_bus'):
                     self._ups_bus = _smbus2.SMBus(1)
-                _mpu = _MPU6050(i2c_dev=self._ups_bus)
+                _mpu_cal_path = self.buell_dir / 'mpu6050_calibration.json'
+                _mpu = _MPU6050(i2c_dev=self._ups_bus, calibration_path=_mpu_cal_path)
                 if _mpu.begin():
                     self._mpu6050 = _mpu
                     self.logger.info("MPU6050 initialized OK i2c-1 (0x68)")
