@@ -184,6 +184,46 @@ Relacionado: BL-GPS-06 (mismo modulo resuelve el CSV dedicado que ahi se proponi
 
 ---
 
+### BL-GPS-MGA -- restaurar UBX-MGA-DBD tras un coldboot (script de restore pendiente, 2026-09-13)
+
+Contexto: durante la sesion de hoy, un `ubxtool -p SAVE` (guardar config del M8N en
+BBR+Flash tras el fix de UART) forzo un recalculo interno que dejo el receptor en
+`cno:0` sostenido; al escalar a `HOTBOOT` y luego `COLDBOOT` para diagnosticar,
+`COLDBOOT` borro el almanaque/efemeride acumulados (navBbrMask=0xFFFF), mandando al
+receptor a una busqueda en frio real de ~30+ minutos -- el mismo tiempo que tardo la
+primera vez que se energizo hoy. Root cause completo en CHANGELOG v2.7.305-306 y en
+esta conversacion.
+
+Tambien se encontro (git log) que el codigo SI programaba el M8N directo por pyserial
+en abril: 5Hz (850bf18), SBAS habilitado (c80d188), NMEA reducido a RMC+GGA (bb6e893)
+-- todo eso se perdio 12 minutos despues al migrar a gpsd (17b0c6e, "reemplaza pyserial
+directo"), y ademas nunca se guardo a flash (`"GPS 5Hz configurado (solo RAM)"` en el
+log de ese commit). Pendiente: reaplicar esas 3 configs via ubxtool +now+ SAVE a flash
+(no solo RAM), con el receptor ya estable, no apurado.
+
+Mitigacion para el problema de esta sesion (perder el almanaque en un coldboot futuro):
+`gps/mga_dbd_backup.sh` ya hace el respaldo (poll UBX-MGA-DBD via `ubxtool -R`, cron/timer
+cada rato, solo lectura, sin riesgo). Falta el script de restore:
+
+- [ ] `ubxtool -R` graba TODO el trafico crudo del poll (NAV-PVT/NAV-DOP/etc mezclado,
+      no solo las tramas MGA-DBD) -- hay que parsear el framing UBX (0xB5 0x62 ... clase
+      0x13 id 0x80) y quedarse solo con esas tramas antes de poder reinyectarlas.
+- [ ] Script de restore: parar gpsd, escribir las tramas filtradas de vuelta al puerto
+      serie, arrancar gpsd. Probar con el receptor ya con fix estable, no en medio de
+      una emergencia -- si el restore mismo sale mal, no queremos otro coldboot accidental
+      encima de uno real.
+- [ ] Decidir cuando correr el restore automaticamente (ej. al arrancar buell-logger,
+      antes de que gpsd tome el puerto) vs solo manual cuando se sepa que hubo un
+      coldboot.
+
+Impacto: MEDIO -- reduce TTFF de ~20-30min a segundos/pocos minutos tras un coldboot
+accidental o una perdida de energia real del modulo. No aplica al arranque normal
+(gpsd + almanaque intacto ya da fix rapido).
+Esfuerzo: BAJO-MEDIO -- el backup ya existe, falta el parser UBX + script de restore.
+Relacionado: BL-GPS-06, BL-GPS-HZ.
+
+---
+
 ## METODOLOGIA -- Gaps y oportunidades de mejora (2026-06-28)
 
 Analisis de lo que existe en la literatura/industria que no esta implementado.

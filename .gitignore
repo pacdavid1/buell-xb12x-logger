@@ -28,6 +28,10 @@ slope_reference.json
 gear_profile.json
 fuel_tracking.json
 system_health.json
+# Respaldo del M8N (UBX-MGA-DBD, caduca en horas, especifico del receptor)
+gps/mga_dbd_backup.ubx
+gps/mga_dbd_backup.ubx.tmp
+
 # Archivos de debug temporales
 fix_*.py.save
 *.save.*

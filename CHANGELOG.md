@@ -25,6 +25,28 @@ PROMPT_END -->
 
 
 
+## [v2.7.308] — 2026-09-13
+### Added
+- **`gps/mga_dbd_backup.sh`**: periodic read-only backup of the M8N's UBX-MGA-DBD
+  navigation database (almanac + ephemeris), so a future accidental coldboot
+  doesn't cost another ~20-30 min cold search like tonight's did. Backup only
+  for now — the restore side needs a UBX-framing parser first (`ubxtool -R`
+  captures all raw traffic during the poll, not just the MGA-DBD frames), see
+  BACKLOG.md BL-GPS-MGA. Output file is Pi-local and gitignored
+  (`gps/mga_dbd_backup.ubx*`) — it's receiver state that goes stale in hours,
+  not something with meaningful git history.
+- Also found (git archaeology, prompted by a user recollection of an earlier
+  similar issue) that the M8N used to be configured for 5Hz + SBAS + reduced
+  NMEA via direct pyserial commands (850bf18, c80d188, bb6e893, April 2026) —
+  lost 12 minutes later in the same session when the code moved to gpsd
+  (17b0c6e). Never saved to flash even before that (`"solo RAM"` in the
+  original commit log), so it wouldn't have survived a power cycle either way.
+  Logged as follow-up work in BL-GPS-MGA: reapply via ubxtool once the
+  receiver has a stable fix again, this time with a proper flash SAVE.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.307] — 2026-09-13
 ### Added
 - **Dashboard now shows visible vs. used GPS satellites, not just used**: the SAT
