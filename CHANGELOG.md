@@ -25,6 +25,26 @@ PROMPT_END -->
 
 
 
+## [v2.7.307] — 2026-09-13
+### Added
+- **Dashboard now shows visible vs. used GPS satellites, not just used**: the SAT
+  tile used to show only `uSat` (satellites actually in the position solution),
+  which reads "0" both when there's genuinely no antenna signal and when there
+  are weak-but-visible satellites gpsd can't use yet — indistinguishable from
+  the dashboard alone. Found this gap while live-debugging today's antenna
+  reception issue (had to SSH in and run `gpspipe` to see that 1-2 satellites
+  *were* visible at weak signal, `used:false`). `gps/reader.py`'s `GPSFix` now
+  also captures `nSat` (visible) and `hdop` from gpsd SKY messages
+  (`gps_sat_visible`, `gps_hdop`); the SAT tile shows `used/visible` (e.g.
+  "4/11") with HDOP in the tooltip, and turns yellow when satellites are
+  visible but none are usable yet (vs. red/gray for genuinely nothing visible).
+  No backend plumbing changes needed — `ecu/logger_process.py`'s `live.json`
+  filter passes through by type, not a key whitelist, so the new scalar fields
+  flow to the frontend the same way `gps_satellites` already did.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.306] — 2026-09-13
 ### Fixed
 - **Applied the M8N UART routing fix planned in v2.7.305**: added `dtoverlay=disable-bt`

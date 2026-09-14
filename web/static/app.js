@@ -426,10 +426,14 @@ function updateHeader(d) {
   const satEl = $id('hSat');
   if(satEl){
     const sat = lv.gps_satellites != null ? lv.gps_satellites : 0;
+    const visible = lv.gps_sat_visible != null ? lv.gps_sat_visible : 0;
     const fix = lv.gps_valid === true || lv.gps_valid === 'True';
-    satEl.textContent = sat;
-    const _sc = 'hs-val ' + (fix ? 'gn' : sat > 0 ? 'yw' : 'ac');
+    satEl.textContent = visible > 0 ? sat + '/' + visible : sat;
+    // gn = fix usable, yw = satelites a la vista pero sin fix (antena debil/geometria mala), ac = nada visible
+    const _sc = 'hs-val ' + (fix ? 'gn' : visible > 0 ? 'yw' : 'ac');
     if(satEl.className !== _sc) satEl.className = _sc;
+    const hdop = lv.gps_hdop;
+    satEl.title = hdop != null ? ('usados/visibles · HDOP ' + hdop) : 'usados/visibles';
   }
   const serialEl = $id('hSerial');
   if(serialEl) serialEl.textContent = d.bike_serial ? '#'+d.bike_serial : '--';

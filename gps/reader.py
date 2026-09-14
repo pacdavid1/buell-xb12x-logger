@@ -17,13 +17,13 @@ class GPSConfig:
                 "min_snr": self.min_snr}
 
 class GPSFix:
-    __slots__ = ("lat","lon","alt_m","speed_kmh","heading","satellites","timestamp_utc","valid",
-                 "epx","epy","epv","mode","stale","stale_ts",
+    __slots__ = ("lat","lon","alt_m","speed_kmh","heading","satellites","sat_visible","timestamp_utc","valid",
+                 "epx","epy","epv","hdop","mode","stale","stale_ts",
                  "snr_avg","heading_rate","turning","heading_prev","heading_ts")
     def __init__(self):
         self.lat=None;self.lon=None;self.alt_m=None;self.speed_kmh=None
-        self.heading=None;self.satellites=0;self.timestamp_utc=None;self.valid=False
-        self.epx=None;self.epy=None;self.epv=None;self.mode=0;self.stale=False;self.stale_ts=0.0
+        self.heading=None;self.satellites=0;self.sat_visible=0;self.timestamp_utc=None;self.valid=False
+        self.epx=None;self.epy=None;self.epv=None;self.hdop=None;self.mode=0;self.stale=False;self.stale_ts=0.0
         self.snr_avg=None;self.heading_rate=None;self.turning=False
         self.heading_prev=None;self.heading_ts=0.0
     def as_dict(self):
@@ -33,11 +33,13 @@ class GPSFix:
            "gps_speed_kmh":round(self.speed_kmh,1) if self.speed_kmh is not None else None,
            "gps_heading":round(self.heading,1) if self.heading is not None else None,
            "gps_satellites":self.satellites,
+           "gps_sat_visible":self.sat_visible,
            "gps_valid":self.valid,
            "gps_mode":self.mode}
         if self.epx is not None: d["gps_epx"]=round(self.epx,2)
         if self.epy is not None: d["gps_epy"]=round(self.epy,2)
         if self.epv is not None: d["gps_epv"]=round(self.epv,2)
+        if self.hdop is not None: d["gps_hdop"]=round(self.hdop,1)
         if self.snr_avg is not None: d["gps_snr_avg"]=round(self.snr_avg,1)
         if self.heading_rate is not None: d["gps_heading_rate"]=round(self.heading_rate,1)
         d["gps_turning"]=self.turning
@@ -139,11 +141,19 @@ class GPSReader:
                     elif cls=='SKY':
                         sat_list=msg.get('satellites',[])
                         usat=msg.get('uSat')
+                        nsat=msg.get('nSat')
+                        hdop=msg.get('hdop')
                         with self._lock:
                             if usat is not None:
                                 self._fix.satellites=int(usat)
                             elif sat_list:
                                 self._fix.satellites=sum(1 for s in sat_list if s.get('used'))
+                            if nsat is not None:
+                                self._fix.sat_visible=int(nsat)
+                            elif sat_list:
+                                self._fix.sat_visible=len(sat_list)
+                            if hdop is not None:
+                                self._fix.hdop=hdop
                             snr = self._snr_from_sat_list(sat_list)
                             self._fix.snr_avg = snr
                             if self.config.min_snr > 0 and snr is not None and snr < self.config.min_snr:
