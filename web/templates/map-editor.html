@@ -5,6 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Map Editor -- --LOGGER_VERSION--</title>
+<script src="/static/report_export.js"></script>
 <style>
 :root{
   --bg:#0a0a0b;--p:#111114;--bd:#1e1e24;--ac:#e8420a;--a2:#f5a623;
@@ -42,6 +43,8 @@ body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px;
 .sess-sel select:focus{outline:none;border-color:var(--ac)}
 #importXprBtn{font-family:var(--mn);font-size:var(--fs-md);padding:4px 10px;background:transparent;color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer}
 #importXprBtn:hover{color:var(--tx);border-color:var(--ac)}
+#exportReportBtn{font-family:var(--mn);font-size:var(--fs-md);padding:4px 10px;background:transparent;color:var(--dm);border:1px solid var(--bd);border-radius:2px;cursor:pointer}
+#exportReportBtn:hover{color:var(--tx);border-color:var(--bl)}
 
 /* burn bar */
 .burn-bar{display:flex;align-items:center;gap:6px}
@@ -166,6 +169,8 @@ table.em td input{position:absolute;inset:0;width:100%;height:100%;background:rg
       <button id="importXprBtn" onclick="document.getElementById('xprFileInput').click()"
         title="Import an .xpr (ECMSpy) or raw EEPROM .bin as a new session">Import XPR</button>
       <input type="file" id="xprFileInput" accept=".xpr,.bin" style="display:none" onchange="importXprFile(this.files[0])">
+      <button id="exportReportBtn" onclick="exportMapReport()"
+        title="Download a standalone HTML report of the current maps -- rotatable 3D views included, no Pi/server needed to view it">Export Report</button>
     </div>
     <div class="fs-ctrl">
       <span class="fs-lbl">A</span>
