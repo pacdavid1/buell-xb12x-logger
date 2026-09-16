@@ -6,6 +6,7 @@
 <html lang="es"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Buell Tuner Studio</title>
+<script src="/static/report_export_tuner.js"></script>
 <style>
 :root{--bg:#0a0a0b;--p:#111114;--bd:#1e1e24;--ac:#e8420a;--a2:#f5a623;--bl:#3d9eff;--dm:#555;--tx:#c8c8cc;--rd:#ff4444;--mn:'JetBrains Mono',monospace}
 *{margin:0;padding:0;box-sizing:border-box}
@@ -141,6 +142,7 @@ table.v td{width:26px;height:16px;border:1px solid rgba(255,255,255,.03);text-al
 <span class="vb" id="invY" onclick="toggleInv('Y')">Y</span>
 <span class="vb" id="invZ" onclick="toggleInv('Z')">Z</span>
 <span class="vb" onclick="snapshotAll3D()" title="Export 3D views as PNG" style="margin-left:8px;color:var(--a2)">PNG</span>
+<span class="vb" onclick="exportTunerReport()" title="Download a standalone HTML report -- tables + rotatable 3D views, no Pi/server needed to view it" style="color:var(--bl)">REPORT</span>
 </div>
 <div class="g3">
 <div class="g3c"><div class="g3t">BASE 3D</div><canvas id="c3b"></canvas><div class="leg" id="lb"></div></div>
