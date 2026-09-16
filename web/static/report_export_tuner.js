@@ -1,66 +1,91 @@
 // DEV NOTE: All code, comments, and variable names must be in English.
 // Standalone Tuner report export.
 //
-// Bundles the currently-compared session pair (base vs mod, for the map
-// tab and diff mode on screen right now) plus a self-contained,
-// dependency-free copy of the BASE/DELTA/MOD 3D renderer and the
-// BASE/DELTA/MOD/MERGED comparison tables from tuner.html into a single
-// downloadable .html file. No external references -- opens and rotates
-// the same whether the Pi is reachable or not.
+// Bundles EVERY 2D map tab (fuel/spark front+rear, whatever tuner.html's
+// own tab bar lists) for the currently-compared session pair, plus a
+// self-contained, dependency-free copy of the BASE/DELTA/MOD 3D renderer
+// and the BASE/DELTA/MOD/MERGED comparison tables, into one downloadable
+// .html file. No external references -- opens and rotates the same
+// whether the Pi is reachable or not.
 //
-// This is a read-only snapshot: no burn/reset/merge-recompute/INV-toggle
-// controls are carried over, only the 3D drag-to-rotate + wheel-to-zoom
-// interaction (synced across all three canvases, same as the live page).
-// Keep this in sync with tuner.html's render()/drawSurf()/drawDelta() if
-// those change shape.
+// Each map gets its own independent 3D camera (drag-to-rotate + wheel-to-
+// zoom stays synced across that map's BASE/DELTA/MOD trio, same as the
+// live page, but does not affect other maps' cameras).
+//
+// Read-only snapshot: no burn/reset/merge-recompute/INV-toggle controls
+// are carried over, only viewing + rotation, matching the Map Editor
+// report export. Keep this in sync with tuner.html's render()/drawSurf()/
+// drawDelta()/the ks2d tab-list logic if those change shape.
 
 function _tunerReportBuildPayload() {
-  var bMap = (mB.maps || {})[cur], mMap = (mM.maps || {})[cur];
-  if (!bMap || !mMap) return null;
-  var xk = bMap.xaxis, yk = bMap.yaxis;
-  var rpmAxis = xk && mB.axes[xk] ? mB.axes[xk] : { data: [], units: '' };
-  var lodAxis = yk && mB.axes[yk] ? mB.axes[yk] : { data: [], units: '' };
+  if (!mB || !mM || !mB.maps) return null;
+  var ks2d = Object.keys(mB.maps).filter(function(k) {
+    return mB.maps[k].yaxis && (mB.maps[k].rows || 0) > 1 && mM.maps && mM.maps[k];
+  });
+  ks2d.sort(function(a, b) {
+    var af = a.indexOf('fuel') >= 0, bf = b.indexOf('fuel') >= 0;
+    if (af && !bf) return -1;
+    if (!af && bf) return 1;
+    return 0;
+  });
+  if (!ks2d.length) return null;
+
+  function tabLabel(k) {
+    if (k.indexOf('fuel') >= 0 && k.indexOf('rear') >= 0) return 'FUEL REAR';
+    if (k.indexOf('fuel') >= 0) return 'FUEL FRONT';
+    if (k.indexOf('rear') >= 0) return 'SPARK REAR';
+    return 'SPARK FRONT';
+  }
+
+  var mapsOut = ks2d.map(function(k) {
+    var bMap = mB.maps[k], mMap = mM.maps[k];
+    var xk = bMap.xaxis, yk = bMap.yaxis;
+    var rpmAxis = xk && mB.axes[xk] ? mB.axes[xk] : { data: [], units: '' };
+    var lodAxis = yk && mB.axes[yk] ? mB.axes[yk] : { data: [], units: '' };
+    var merge = null;
+    if (mMerge && mMerge.maps && mMerge.maps[k]) merge = { mode: mergeMode, merged: mMerge.maps[k].merged };
+    return {
+      key: k, label: tabLabel(k), units: bMap.units || '',
+      rpm: rpmAxis.data || [], rpmUnits: rpmAxis.units || 'RPM',
+      lod: lodAxis.data || [], lodUnits: lodAxis.units || 'TPS',
+      bD: bMap.data, mD: mMap.data,
+      staged: Object.keys(STAGE[k] || {}),
+      sc: SC[k] || 0.4,
+      merge: merge
+    };
+  });
+
   var sB = document.getElementById('sB'), sM = document.getElementById('sM');
   var baseLabel = sB && sB.options[sB.selectedIndex] ? sB.options[sB.selectedIndex].textContent : '';
   var modLabel = sM && sM.options[sM.selectedIndex] ? sM.options[sM.selectedIndex].textContent : '';
-  var merge = null;
-  if (mMerge && mMerge.maps && mMerge.maps[cur]) {
-    merge = { mode: mergeMode, merged: mMerge.maps[cur].merged };
-  }
+
   return {
-    cur: cur, dm: DM,
-    label: cur.toUpperCase().replace(/_/g, ' '),
-    units: bMap.units || '',
-    baseLabel: baseLabel, modLabel: modLabel,
+    dm: DM, baseLabel: baseLabel, modLabel: modLabel,
     generated: new Date().toISOString(),
-    rpm: rpmAxis.data || [], rpmUnits: rpmAxis.units || 'RPM',
-    lod: lodAxis.data || [], lodUnits: lodAxis.units || 'TPS',
-    bD: bMap.data, mD: mMap.data,
-    staged: Object.keys(STAGE[cur] || {}),
-    sc: SC[cur] || 0.4, scDelta: SC['delta'] || 0.08,
+    maps: mapsOut,
+    scDelta: SC['delta'] || 0.08,
     inv: { X: !!INV.X, Y: !!INV.Y, Z: !!INV.Z },
     zoomAlt: parseFloat((document.getElementById('inZoom') || {}).value) || 0.7,
     opa: (parseFloat((document.getElementById('inOpa') || {}).value) || 20) / 100,
-    cam: { ang: C3.base.ang, tilt: C3.base.tilt, roll: C3.base.roll, zoom: CAM.zoom },
-    merge: merge
+    cam: { ang: C3.base.ang, tilt: C3.base.tilt, roll: C3.base.roll, zoom: CAM.zoom }
   };
 }
 
 function exportTunerReport() {
-  if (!mB || !mM || !cur) { st('Load base and mod sessions first'); return; }
+  if (!mB || !mM) { st('Load base and mod sessions first'); return; }
   var payload = _tunerReportBuildPayload();
-  if (!payload) { st('Current map not available in both sessions'); return; }
+  if (!payload) { st('No 2D maps available in both sessions'); return; }
   var html = _tunerReportBuildHtml(payload);
   var blob = new Blob([html], { type: 'text/html' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
-  a.download = 'tuner_report_' + payload.cur + '_' + payload.generated.slice(0, 10) + '.html';
+  a.download = 'tuner_report_' + payload.generated.slice(0, 10) + '.html';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
-  st('Tuner report downloaded');
+  st('Tuner report downloaded (' + payload.maps.length + ' maps)');
 }
 
 function _tunerReportBuildHtml(payload) {
@@ -70,7 +95,7 @@ function _tunerReportBuildHtml(payload) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Tuner Report -- ${payload.label}</title>
+<title>Tuner Report -- ${payload.generated.slice(0, 10)}</title>
 <style>
 :root{--bg:#0a0a0b;--p:#111114;--bd:#1e1e24;--ac:#e8420a;--a2:#f5a623;--bl:#3d9eff;--dm:#555;--tx:#c8c8cc;--rd:#ff4444;--staged:#a07800;--mn:'JetBrains Mono',monospace}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -80,7 +105,11 @@ body{background:var(--bg);color:var(--tx);font-family:sans-serif;font-size:13px}
 .rpt-meta{font-family:var(--mn);font-size:11px;color:var(--dm);margin-top:4px;letter-spacing:.04em}
 .rpt-meta b{color:var(--a2)}
 .hint{font-family:var(--mn);font-size:10px;color:var(--dm);padding:6px 20px;letter-spacing:.04em}
-.tblbar{display:flex;gap:0;overflow-x:auto;padding:8px 20px;flex-wrap:wrap}
+.map-section{border-top:1px solid var(--bd);padding-bottom:8px}
+.map-hd{display:flex;align-items:center;gap:8px;padding:8px 20px 4px;flex-wrap:wrap}
+.map-name{font-family:var(--mn);font-size:13px;font-weight:700;color:var(--ac);letter-spacing:.1em;text-transform:uppercase}
+.staged-badge{font-family:var(--mn);font-size:10px;color:var(--staged);background:rgba(160,120,0,.18);border:1px solid rgba(160,120,0,.35);padding:1px 5px;border-radius:2px}
+.tblbar{display:flex;gap:0;overflow-x:auto;padding:4px 20px}
 .tw{display:flex;flex-direction:column;flex-shrink:0}
 .tw.tb table{border-right:2px solid var(--a2)}
 .tw.tm table{border-left:2px solid var(--a2)}
@@ -92,10 +121,10 @@ table.v td{width:30px;height:18px;border:1px solid rgba(255,255,255,.03);text-al
 .dpp{color:#fff;background:rgba(255,50,50,.25)!important}.dp{color:var(--rd)}
 .dnn{color:#fff;background:rgba(50,130,255,.25)!important}.dn{color:var(--bl)}
 .dzz{color:#444!important;background:rgba(255,255,255,.01)!important}
-.g3{display:flex;gap:0;min-height:280px;border-top:1px solid rgba(255,255,255,.03)}
+.g3{display:flex;gap:0;min-height:260px;border-top:1px solid rgba(255,255,255,.03)}
 .g3c{flex:1;min-width:220px;display:flex;flex-direction:column;background:var(--p)}
 .g3t{font-family:var(--mn);font-size:10px;font-weight:700;color:var(--a2);padding:3px 6px;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid var(--bd);background:rgba(255,255,255,.02)}
-.g3c canvas{display:block;flex:1;touch-action:none;width:100%;min-height:260px;cursor:grab}
+.g3c canvas{display:block;flex:1;touch-action:none;width:100%;min-height:240px;cursor:grab}
 .leg{display:flex;align-items:center;gap:4px;font-family:var(--mn);font-size:8px;color:var(--dm);padding:3px 6px;border-top:1px solid var(--bd)}
 .leg .bar{flex:1;height:6px;border-radius:2px}
 #cellTip{position:fixed;pointer-events:none;z-index:50;display:none;background:var(--p);border:1px solid var(--bd);padding:3px 8px;border-radius:2px;font-family:var(--mn);font-size:11px;color:var(--tx);line-height:1.7;white-space:nowrap}
@@ -104,34 +133,24 @@ table.v td{width:30px;height:18px;border:1px solid rgba(255,255,255,.03);text-al
 <body>
 <div class="rpt-hd">
   <div class="rpt-title">&#9670; Tuner Report</div>
-  <div class="rpt-meta">${payload.label} &middot; base <b>${payload.baseLabel || '?'}</b> vs mod <b>${payload.modLabel || '?'}</b> &middot; mode ${payload.dm.toUpperCase()}${payload.staged.length ? ' &middot; <span style="color:var(--staged)">' + payload.staged.length + ' staged (unburned)</span>' : ''}</div>
+  <div class="rpt-meta">base <b>${payload.baseLabel || '?'}</b> vs mod <b>${payload.modLabel || '?'}</b> &middot; ${payload.maps.length} maps &middot; mode ${payload.dm.toUpperCase()}</div>
   <div class="rpt-meta">generated ${payload.generated.slice(0, 19).replace('T', ' ')} UTC</div>
 </div>
-<div class="hint">Static snapshot &mdash; drag any 3D view to rotate (synced), scroll to zoom. No live data, no server connection needed.</div>
-<div class="tblbar" id="tblbar"></div>
-<div class="g3">
-<div class="g3c"><div class="g3t">BASE 3D</div><canvas id="c3b"></canvas><div class="leg" id="lb"></div></div>
-<div class="g3c"><div class="g3t">DELTA 3D</div><canvas id="c3d"></canvas><div class="leg" id="ld"></div></div>
-<div class="g3c"><div class="g3t">MOD 3D</div><canvas id="c3m"></canvas><div class="leg" id="lm"></div></div>
-</div>
+<div class="hint">Static snapshot &mdash; drag a 3D view to rotate (synced within its own BASE/DELTA/MOD trio), scroll to zoom. No live data, no server connection needed.</div>
+<div id="sections"></div>
 <div id="cellTip"></div>
 <script>
 (function() {
 'use strict';
 var DATA = ${dataJson};
-var bD = DATA.bD, mD = DATA.mD, rpm = DATA.rpm, lod = DATA.lod;
-var rows = lod.length, cols = rpm.length;
-var STAGE = {}; STAGE[DATA.cur] = {};
-DATA.staged.forEach(function(stk) { STAGE[DATA.cur][stk] = true; });
-var SC = {}; SC[DATA.cur] = DATA.sc; SC['delta'] = DATA.scDelta;
-var INV = DATA.inv;
-var DM = DATA.dm;
 var CAM = { zoom: DATA.cam.zoom || 1 };
-var C3 = {
-  base: { ang: DATA.cam.ang, tilt: DATA.cam.tilt, roll: DATA.cam.roll, drag: false, lx: 0, ly: 0 },
-  delta: { ang: DATA.cam.ang, tilt: DATA.cam.tilt, roll: DATA.cam.roll, drag: false, lx: 0, ly: 0 },
-  mod: { ang: DATA.cam.ang, tilt: DATA.cam.tilt, roll: DATA.cam.roll, drag: false, lx: 0, ly: 0 }
-};
+var CAMS = {}; // CAMS[mapKey] = { base:{ang,tilt,roll,drag,lx,ly}, delta:{...}, mod:{...} }
+DATA.maps.forEach(function(m) {
+  CAMS[m.key] = {};
+  ['base', 'delta', 'mod'].forEach(function(part) {
+    CAMS[m.key][part] = { ang: DATA.cam.ang, tilt: DATA.cam.tilt, roll: DATA.cam.roll, drag: false, lx: 0, ly: 0 };
+  });
+});
 
 function axisPositions(vals, count) {
   var arr = [];
@@ -181,45 +200,48 @@ function shadeRGBA(col, f) {
 }
 
 // ── comparison tables (read-only port of tuner.html's render()) ─────────────
-function hdr() { var h = '<tr><th></th>'; for (var j = 0; j < cols; j++) h += '<th>' + rpm[j] + '</th>'; return h + '</tr>'; }
+function hdr(m) { var h = '<tr><th></th>'; for (var j = 0; j < m.rpm.length; j++) h += '<th>' + m.rpm[j] + '</th>'; return h + '</tr>'; }
 function rangeOf(data) { var n = 1e9, x = -1e9; for (var i = 0; i < data.length; i++) for (var j = 0; j < data[0].length; j++) { if (data[i][j] < n) n = data[i][j]; if (data[i][j] > x) x = data[i][j]; } if (x === n) x = n + 1; return [n, x]; }
-function tbl(data, cap) {
+function tbl(m, data, cap, stagedSet) {
+  var rows = m.lod.length, cols = m.rpm.length;
   var rng = rangeOf(data), zN = rng[0], zX = rng[1];
-  var h = '<table class="v"><caption>' + cap + '</caption>' + hdr();
+  var h = '<table class="v"><caption>' + cap + '</caption>' + hdr(m);
   for (var i = rows - 1; i >= 0; i--) {
-    h += '<tr><th class="r">' + lod[i] + '</th>';
+    h += '<tr><th class="r">' + m.lod[i] + '</th>';
     for (var j = 0; j < cols; j++) {
       var t = (data[i][j] - zN) / (zX - zN);
-      var sk = i + ',' + j, isStaged = !!(STAGE[DATA.cur] || {})[sk];
+      var isStaged = !!stagedSet[i + ',' + j];
       var bg = isStaged ? '#a07800' : heatRGB(t);
-      h += '<td data-rpm="' + rpm[j] + '" data-tps="' + lod[i] + '" data-val="' + data[i][j].toFixed(1) + '" style="background:' + bg + '">' + data[i][j].toFixed(0) + '</td>';
+      h += '<td data-rpm="' + m.rpm[j] + '" data-tps="' + m.lod[i] + '" data-rpmu="' + m.rpmUnits + '" data-tpsu="' + m.lodUnits + '" data-val="' + data[i][j].toFixed(1) + '" style="background:' + bg + '">' + data[i][j].toFixed(0) + '</td>';
     }
     h += '</tr>';
   }
   return h + '</table>';
 }
-function dtbl() {
+function dtbl(m) {
+  var rows = m.lod.length, cols = m.rpm.length, bD = m.bD, mD = m.mD;
   var mx = 0;
   for (var i = 0; i < rows; i++) for (var j = 0; j < cols; j++) { var v = Math.abs(mD[i][j] - bD[i][j]); if (v > mx) mx = v; }
-  var h = '<table class="v"><caption>DELTA</caption>' + hdr();
+  var h = '<table class="v"><caption>DELTA</caption>' + hdr(m);
   for (var i2 = rows - 1; i2 >= 0; i2--) {
-    h += '<tr><th class="r">' + lod[i2] + '</th>';
+    h += '<tr><th class="r">' + m.lod[i2] + '</th>';
     for (var j2 = 0; j2 < cols; j2++) {
       var d = mD[i2][j2] - bD[i2][j2], ad = Math.abs(d), cls = 'dzz', txt = '\\u00B7';
       if (ad > 0.3) { txt = (d > 0 ? '+' : '') + d.toFixed(1); var ratio = mx > 0 ? ad / mx : 0; cls = ratio > 0.5 ? (d > 0 ? 'dpp' : 'dnn') : (d > 0 ? 'dp' : 'dn'); }
-      h += '<td class="' + cls + '" data-rpm="' + rpm[j2] + '" data-tps="' + lod[i2] + '" data-val="' + d.toFixed(2) + '">' + txt + '</td>';
+      h += '<td class="' + cls + '" data-rpm="' + m.rpm[j2] + '" data-tps="' + m.lod[i2] + '" data-rpmu="' + m.rpmUnits + '" data-tpsu="' + m.lodUnits + '" data-val="' + d.toFixed(2) + '">' + txt + '</td>';
     }
     h += '</tr>';
   }
   return h + '</table>';
 }
-function mergeTbl() {
-  var md = DATA.merge, mr = md.merged;
+function mergeTbl(m) {
+  var md = m.merge, mr = md.merged;
   var mv = mr.map(function(rw) { return rw.map(function(c) { return c.v; }); });
   var rng = rangeOf(mv), mn = rng[0], mx = rng[1];
-  var h = '<table class="v"><caption>MERGED (' + md.mode + ')</caption>' + hdr();
+  var rows = m.lod.length, cols = m.rpm.length;
+  var h = '<table class="v"><caption>MERGED (' + md.mode + ')</caption>' + hdr(m);
   for (var i = rows - 1; i >= 0; i--) {
-    h += '<tr><th class="r">' + lod[i] + '</th>';
+    h += '<tr><th class="r">' + m.lod[i] + '</th>';
     for (var j = 0; j < cols; j++) {
       var c = mr[i][j], ct = (c.v - mn) / (mx - mn);
       var bg = c.s === 'A' ? 'rgba(50,180,80,0.4)' : c.s === 'B' ? 'rgba(60,120,220,0.4)' : c.s === 'AVG' ? 'rgba(80,80,80,0.25)' : heatRGB(ct);
@@ -229,42 +251,59 @@ function mergeTbl() {
   }
   return h + '</table>';
 }
-function renderTables() {
-  var html = '<div class="tw tb">' + tbl(bD, 'BASE') + '</div>' +
-             '<div class="tw">' + dtbl() + '</div>' +
-             '<div class="tw tm">' + tbl(mD, 'MOD') + '</div>';
-  if (DATA.merge) html += '<div class="tw tm" style="border-left:2px solid var(--a2)">' + mergeTbl() + '</div>';
-  document.getElementById('tblbar').innerHTML = html;
+
+function renderSections() {
+  var root = document.getElementById('sections');
+  DATA.maps.forEach(function(m) {
+    var stagedSet = {}; m.staged.forEach(function(stk) { stagedSet[stk] = true; });
+    var sec = document.createElement('div');
+    sec.className = 'map-section';
+    var stagedBadge = m.staged.length ? '<span class="staged-badge">' + m.staged.length + ' staged (unburned)</span>' : '';
+    var tablesHtml = '<div class="tw tb">' + tbl(m, m.bD, 'BASE', stagedSet) + '</div>' +
+                      '<div class="tw">' + dtbl(m) + '</div>' +
+                      '<div class="tw tm">' + tbl(m, m.mD, 'MOD', stagedSet) + '</div>';
+    if (m.merge) tablesHtml += '<div class="tw tm" style="border-left:2px solid var(--a2)">' + mergeTbl(m) + '</div>';
+    sec.innerHTML =
+      '<div class="map-hd"><span class="map-name">' + m.label + '</span>' + stagedBadge + '</div>' +
+      '<div class="tblbar">' + tablesHtml + '</div>' +
+      '<div class="g3">' +
+      '<div class="g3c"><div class="g3t">BASE 3D</div><canvas id="c3b_' + m.key + '"></canvas><div class="leg" id="lb_' + m.key + '"></div></div>' +
+      '<div class="g3c"><div class="g3t">DELTA 3D</div><canvas id="c3d_' + m.key + '"></canvas><div class="leg" id="ld_' + m.key + '"></div></div>' +
+      '<div class="g3c"><div class="g3t">MOD 3D</div><canvas id="c3m_' + m.key + '"></canvas><div class="leg" id="lm_' + m.key + '"></div></div>' +
+      '</div>';
+    root.appendChild(sec);
+  });
   var tip = document.getElementById('cellTip');
-  document.getElementById('tblbar').addEventListener('mouseover', function(e) {
+  root.addEventListener('mouseover', function(e) {
     var td = e.target.closest('td'); if (!td || !td.dataset.rpm) return;
-    tip.innerHTML = DATA.rpmUnits + ': <b>' + td.dataset.rpm + '</b>  ' + DATA.lodUnits + ': <b>' + td.dataset.tps + '</b>  val: <b>' + td.dataset.val + '</b>';
+    tip.innerHTML = td.dataset.rpmu + ': <b>' + td.dataset.rpm + '</b>  ' + td.dataset.tpsu + ': <b>' + td.dataset.tps + '</b>  val: <b>' + td.dataset.val + '</b>';
     tip.style.display = 'block';
   });
-  document.getElementById('tblbar').addEventListener('mousemove', function(e) { tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY - 30) + 'px'; });
-  document.getElementById('tblbar').addEventListener('mouseleave', function() { tip.style.display = 'none'; });
+  root.addEventListener('mousemove', function(e) { tip.style.left = (e.clientX + 14) + 'px'; tip.style.top = (e.clientY - 30) + 'px'; });
+  root.addEventListener('mouseleave', function() { tip.style.display = 'none'; });
 }
 
 // ── 3D renderer (read-only port of tuner.html's drawSurf/drawDelta) ─────────
-function drawSurf(cid, data, mode, legId, units) {
+function drawSurf(m, cid, data, mode, legId) {
   var el = document.getElementById(cid); if (!el || !data || !data.length) return;
-  var ctx = el.getContext('2d'), key = cid === 'c3b' ? 'base' : cid === 'c3d' ? 'delta' : 'mod';
-  var c = C3[key], W = el.width, H = el.height, R = lod.length, Cl = rpm.length;
+  var ctx = el.getContext('2d'), part = cid.slice(0, 3) === 'c3b' ? 'base' : cid.slice(0, 3) === 'c3d' ? 'delta' : 'mod';
+  var c = CAMS[m.key][part], W = el.width, H = el.height, R = m.lod.length, Cl = m.rpm.length;
   if (W < 10 || H < 10) return;
   ctx.fillStyle = '#111114'; ctx.fillRect(0, 0, W, H);
-  var xPos = axisPositions(rpm, Cl), yPos = axisPositions(lod, R);
-  var range = getRange(units, data);
+  var xPos = axisPositions(m.rpm, Cl), yPos = axisPositions(m.lod, R);
+  var range = getRange(m.units, data);
   var zMinObs = 1e9, zX = -1e9;
   for (var i = 0; i < R; i++) for (var j = 0; j < Cl; j++) { if (data[i][j] < zMinObs) zMinObs = data[i][j]; if (data[i][j] > zX) zX = data[i][j]; }
   var zN = Math.min(range.mn, zMinObs);
   if (zX === zN) zX = zN + 1;
   var pad = 40, sX = Math.min((W - pad) / (Cl - 1), 30) * CAM.zoom, sY = Math.min((H - pad) / (R - 1), 24) * CAM.zoom;
   var zRange = zX - zN; if (zRange < 1) zRange = 1;
-  var sf = SC[DATA.cur] || 0.4; if (mode === 'delta') sf = SC['delta'] || 0.08;
+  var sf = mode === 'delta' ? DATA.scDelta : m.sc;
   var sZ = (H * sf * DATA.zoomAlt * CAM.zoom) / zRange;
   var cy = Math.cos(c.ang), sy = Math.sin(c.ang);
   var cp = Math.cos(c.tilt), sp = Math.sin(c.tilt);
   var cr = Math.cos(c.roll), sr = Math.sin(c.roll);
+  var INV = DATA.inv;
   function project(j, i, z) {
     var mx = (INV.X ? -1 : 1) * (xPos[j] - (Cl - 1) / 2) * sX;
     var my = (INV.Y ? -1 : 1) * (z - zN) * sZ;
@@ -302,7 +341,7 @@ function drawSurf(cid, data, mode, legId, units) {
     faces.push({ p: [p0, p1, p2, p3], z: dz, v: av, sh: 0.55 + 0.45 * lam, i: i3, j: j3 });
   }
   faces.sort(function(a, b) { return a.z - b.z; });
-  var stagd = (cid === 'c3m') ? (STAGE[DATA.cur] || {}) : {};
+  var stagd = (part === 'mod') ? m.staged.reduce(function(acc, stk) { acc[stk] = true; return acc; }, {}) : {};
   for (var f = 0; f < faces.length; f++) {
     var fc = faces[f];
     ctx.beginPath(); ctx.moveTo(fc.p[0][0], fc.p[0][1]);
@@ -326,8 +365,8 @@ function drawSurf(cid, data, mode, legId, units) {
   ctx.fillStyle = '#3399ff'; ctx.fillText('VAL', y3[0] + 3, y3[1] + 3);
   ctx.fillStyle = '#33ff33'; ctx.fillText('TPS', z3[0] + 3, z3[1] - 5);
   ctx.font = '7px monospace'; ctx.fillStyle = '#666';
-  for (var jj = 0; jj < Cl; jj += 2) { var pp = pr(jj, R - 1, zN); ctx.fillText(rpm[jj], pp[0] - 8, pp[1] + 10); }
-  for (var ii = 0; ii < R; ii += 2) { var pp2 = pr(0, ii, zN); ctx.fillText(lod[ii], pp2[0] - 26, pp2[1] + 3); }
+  for (var jj = 0; jj < Cl; jj += 2) { var pp = pr(jj, R - 1, zN); ctx.fillText(m.rpm[jj], pp[0] - 8, pp[1] + 10); }
+  for (var ii = 0; ii < R; ii += 2) { var pp2 = pr(0, ii, zN); ctx.fillText(m.lod[ii], pp2[0] - 26, pp2[1] + 3); }
   var leg = document.getElementById(legId);
   if (mode === 'delta') {
     leg.innerHTML = '<span>-</span><div class="bar" style="background:linear-gradient(to right,rgba(30,60,255,.9),#444,rgba(255,60,60,.9))"></div><span>+</span><span style="margin-left:4px">' + zN.toFixed(1) + '/+' + zX.toFixed(1) + '</span>';
@@ -336,10 +375,9 @@ function drawSurf(cid, data, mode, legId, units) {
   }
 }
 
-function drawDelta(cid, legId) {
+function drawDelta(m, cid, legId) {
   var el = document.getElementById(cid); if (!el) return;
-  var ctx = el.getContext('2d'), key = 'delta';
-  var c = C3[key], W = el.width, H = el.height, R = lod.length, Cl = rpm.length;
+  var ctx = el.getContext('2d'), c = CAMS[m.key].delta, W = el.width, H = el.height, R = m.lod.length, Cl = m.rpm.length, bD = m.bD, mD = m.mD;
   if (W < 10 || H < 10) return;
   ctx.fillStyle = '#111114'; ctx.fillRect(0, 0, W, H);
   var dN = 1e9, dX = -1e9;
@@ -352,12 +390,13 @@ function drawDelta(cid, legId) {
   }
   if (bX === bN) bX = bN + 1; if (mXX === mN) mXX = mN + 1;
   var pad = 40, sX = Math.min((W - pad) / (Cl - 1), 30) * CAM.zoom, sY = Math.min((H - pad) / (R - 1), 24) * CAM.zoom;
-  var xPos = axisPositions(rpm, Cl), yPos = axisPositions(lod, R);
+  var xPos = axisPositions(m.rpm, Cl), yPos = axisPositions(m.lod, R);
   var zRange = mXX - mN; if (zRange < 1) zRange = 1;
-  var sZ = (H * (SC[DATA.cur] || 0.4) * DATA.zoomAlt * CAM.zoom) / zRange;
+  var sZ = (H * m.sc * DATA.zoomAlt * CAM.zoom) / zRange;
   var cy = Math.cos(c.ang), sy = Math.sin(c.ang);
   var cp = Math.cos(c.tilt), sp = Math.sin(c.tilt);
   var cr = Math.cos(c.roll), sr = Math.sin(c.roll);
+  var INV = DATA.inv;
   function proj(j, i, z) {
     var mx = (INV.X ? -1 : 1) * (xPos[j] - (Cl - 1) / 2) * sX;
     var my = (INV.Y ? -1 : 1) * (z - mN) * sZ;
@@ -393,7 +432,7 @@ function drawDelta(cid, legId) {
     faces.sort(function(a, b) { return a.z - b.z; });
     return faces;
   }
-  if (DM === 'delta') {
+  if (DATA.dm === 'delta') {
     var dd = []; for (var i5 = 0; i5 < R; i5++) { dd[i5] = []; for (var j5 = 0; j5 < Cl; j5++) dd[i5][j5] = mD[i5][j5] - bD[i5][j5] + (mN + mXX) * 0.5; }
     var faces = sortedFaces(dd);
     for (var f = 0; f < faces.length; f++) {
@@ -405,7 +444,7 @@ function drawDelta(cid, legId) {
       ctx.fillStyle = dcol(dv); ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; ctx.stroke();
     }
-  } else if (DM === 'overlay') {
+  } else if (DATA.dm === 'overlay') {
     var bf = sortedFaces(bD);
     for (var f2 = 0; f2 < bf.length; f2++) {
       var fc2 = bf[f2];
@@ -425,7 +464,7 @@ function drawDelta(cid, legId) {
       ctx.fillStyle = 'rgba(40,80,220,' + DATA.opa + ')'; ctx.fill();
       ctx.strokeStyle = 'rgba(60,120,255,' + (DATA.opa + 0.2) + ')'; ctx.lineWidth = 1.5; ctx.stroke();
     }
-  } else if (DM === 'spikes') {
+  } else if (DATA.dm === 'spikes') {
     var bf2 = sortedFaces(bD);
     for (var f4 = 0; f4 < bf2.length; f4++) {
       var fc4 = bf2[f4];
@@ -442,7 +481,7 @@ function drawDelta(cid, legId) {
       ctx.strokeStyle = d2 > 0 ? 'rgba(255,60,60,0.85)' : 'rgba(60,130,255,0.85)';
       ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(pBase[0], pBase[1]); ctx.lineTo(pTop[0], pTop[1]); ctx.stroke();
     }
-  } else if (DM === 'wire') {
+  } else if (DATA.dm === 'wire') {
     var mf2 = sortedFaces(mD);
     for (var f5 = 0; f5 < mf2.length; f5++) {
       var fc5 = mf2[f5];
@@ -456,61 +495,73 @@ function drawDelta(cid, legId) {
   leg.innerHTML = '<span>-</span><div class="bar" style="background:linear-gradient(to right,rgba(30,60,255,.9),#444,rgba(255,60,60,.9))"></div><span>+</span><span style="margin-left:4px">' + dN.toFixed(1) + '/+' + dX.toFixed(1) + '</span>';
 }
 
-function drawAll() {
-  try {
-    drawSurf('c3b', bD, 'heat', 'lb', DATA.units);
-    drawDelta('c3d', 'ld');
-    drawSurf('c3m', mD, 'heat', 'lm', DATA.units);
-  } catch (e) { console.error(e); }
+function drawAllFor(m) {
+  drawSurf(m, 'c3b_' + m.key, m.bD, 'heat', 'lb_' + m.key);
+  drawDelta(m, 'c3d_' + m.key, 'ld_' + m.key);
+  drawSurf(m, 'c3m_' + m.key, m.mD, 'heat', 'lm_' + m.key);
 }
+function drawAll() { DATA.maps.forEach(drawAllFor); }
 
-['c3b', 'c3d', 'c3m'].forEach(function(cid) {
-  var el = document.getElementById(cid); if (!el) return;
-  var key = cid === 'c3b' ? 'base' : cid === 'c3d' ? 'delta' : 'mod';
-  function rs() { var r = el.getBoundingClientRect(); el.width = r.width || 300; el.height = r.height || 260; drawAll(); }
-  el.addEventListener('mousedown', function(e) { C3[key].drag = true; C3[key].lx = e.clientX; C3[key].ly = e.clientY; });
-  el.addEventListener('touchstart', function(e) { C3[key].drag = true; C3[key].lx = e.touches[0].clientX; C3[key].ly = e.touches[0].clientY; }, { passive: true });
-  el.addEventListener('wheel', function(e) { e.preventDefault(); CAM.zoom = Math.min(2.5, Math.max(0.3, Math.round((CAM.zoom + (e.deltaY < 0 ? 0.05 : -0.05)) * 100) / 100)); drawAll(); }, { passive: false });
-  rs();
-});
-window.addEventListener('resize', function() {
-  ['c3b', 'c3d', 'c3m'].forEach(function(cid) {
-    var el = document.getElementById(cid); if (!el) return;
-    el.width = el.parentElement.clientWidth || 300;
-    var r = el.getBoundingClientRect(); el.height = r.height || 260;
+function wireCanvases() {
+  DATA.maps.forEach(function(m) {
+    ['c3b', 'c3d', 'c3m'].forEach(function(prefix) {
+      var cid = prefix + '_' + m.key;
+      var el = document.getElementById(cid); if (!el) return;
+      var part = prefix === 'c3b' ? 'base' : prefix === 'c3d' ? 'delta' : 'mod';
+      function rs() { var r = el.getBoundingClientRect(); el.width = r.width || 300; el.height = r.height || 240; drawAllFor(m); }
+      el.addEventListener('mousedown', function(e) { CAMS[m.key][part].drag = true; CAMS[m.key][part].lx = e.clientX; CAMS[m.key][part].ly = e.clientY; });
+      el.addEventListener('touchstart', function(e) { CAMS[m.key][part].drag = true; CAMS[m.key][part].lx = e.touches[0].clientX; CAMS[m.key][part].ly = e.touches[0].clientY; }, { passive: true });
+      el.addEventListener('wheel', function(e) { e.preventDefault(); CAM.zoom = Math.min(2.5, Math.max(0.3, Math.round((CAM.zoom + (e.deltaY < 0 ? 0.05 : -0.05)) * 100) / 100)); drawAll(); }, { passive: false });
+      rs();
+    });
   });
-  drawAll();
-});
+  window.addEventListener('resize', function() {
+    DATA.maps.forEach(function(m) {
+      ['c3b', 'c3d', 'c3m'].forEach(function(prefix) {
+        var el = document.getElementById(prefix + '_' + m.key); if (!el) return;
+        el.width = el.parentElement.clientWidth || 300;
+        var r = el.getBoundingClientRect(); el.height = r.height || 240;
+      });
+    });
+    drawAll();
+  });
+}
 document.addEventListener('mousemove', function(e) {
-  for (var k in C3) {
-    var c = C3[k];
-    if (c.drag) {
-      var da = (e.clientX - c.lx) * 0.005, dt = (e.clientY - c.ly) * 0.005;
-      for (var kk in C3) { C3[kk].ang += da; C3[kk].tilt += dt; }
-      c.lx = e.clientX; c.ly = e.clientY;
-      drawAll();
-      break;
+  DATA.maps.forEach(function(m) {
+    var parts = CAMS[m.key];
+    for (var k in parts) {
+      var c = parts[k];
+      if (c.drag) {
+        var da = (e.clientX - c.lx) * 0.005, dt = (e.clientY - c.ly) * 0.005;
+        for (var kk in parts) { parts[kk].ang += da; parts[kk].tilt += dt; }
+        c.lx = e.clientX; c.ly = e.clientY;
+        drawAllFor(m);
+        return;
+      }
     }
-  }
+  });
 });
-document.addEventListener('mouseup', function() { for (var k in C3) C3[k].drag = false; });
+document.addEventListener('mouseup', function() { DATA.maps.forEach(function(m) { for (var k in CAMS[m.key]) CAMS[m.key][k].drag = false; }); });
 document.addEventListener('touchmove', function(e) {
-  for (var k in C3) {
-    var c = C3[k];
-    if (c.drag) {
-      var da = (e.touches[0].clientX - c.lx) * 0.005, dt = (e.touches[0].clientY - c.ly) * 0.005;
-      for (var kk in C3) { C3[kk].ang += da; C3[kk].tilt += dt; }
-      c.lx = e.touches[0].clientX; c.ly = e.touches[0].clientY;
-      drawAll();
-      e.preventDefault();
-      break;
+  DATA.maps.forEach(function(m) {
+    var parts = CAMS[m.key];
+    for (var k in parts) {
+      var c = parts[k];
+      if (c.drag) {
+        var da = (e.touches[0].clientX - c.lx) * 0.005, dt = (e.touches[0].clientY - c.ly) * 0.005;
+        for (var kk in parts) { parts[kk].ang += da; parts[kk].tilt += dt; }
+        c.lx = e.touches[0].clientX; c.ly = e.touches[0].clientY;
+        drawAllFor(m);
+        e.preventDefault();
+        return;
+      }
     }
-  }
+  });
 }, { passive: false });
-document.addEventListener('touchend', function() { for (var k in C3) C3[k].drag = false; });
+document.addEventListener('touchend', function() { DATA.maps.forEach(function(m) { for (var k in CAMS[m.key]) CAMS[m.key][k].drag = false; }); });
 
-renderTables();
-drawAll();
+renderSections();
+wireCanvases();
 })();
 </script>
 </body>
