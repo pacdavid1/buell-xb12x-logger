@@ -491,6 +491,21 @@ function buildCell(key, m, ri, ci, range) {
 }
 
 // ── 3D surface renderer (ported from tuner.html) ─────────────────────────────
+// Maps positions to onscreen distance by actual axis VALUE, not by column/row
+// index. DDFI2 axes are non-uniform (e.g. RPM steps every ~400 below 3400,
+// then every 1000 above) -- plotting by index alone spaces every step equally
+// and makes the surface between closely-packed real points look artificially
+// flat. Output stays normalized to [0, count-1] so it drops into the existing
+// sX/sY scale factors unchanged.
+function axisPositions(vals, count) {
+  var arr = [];
+  for (var k = 0; k < count; k++) arr.push(vals[k] !== undefined ? vals[k] : k);
+  var mn = Math.min.apply(null, arr), mx = Math.max.apply(null, arr);
+  if (mx === mn) mx = mn + 1;
+  var span = mx - mn;
+  return arr.map(function(v) { return (v - mn) / span * (count - 1); });
+}
+
 function wire3D(cv, key) {
   cv.addEventListener('mousedown', function(e) {
     CAMS[key].drag = true; CAMS[key].lx = e.clientX; CAMS[key].ly = e.clientY;
@@ -544,6 +559,8 @@ function drawSurf3D(key) {
   var rpm = xAxis.data || [];
   var lod = yAxis.data || [];
   var R = m.rows, Cl = m.cols;
+  var xPos = axisPositions(rpm, Cl);
+  var yPos = axisPositions(lod, R);
 
   // subtle vertical gradient background for depth
   var bgGrad = ctx.createLinearGradient(0, 0, 0, H);
@@ -552,13 +569,19 @@ function drawSurf3D(key) {
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  var zN = 1e9, zX = -1e9;
+  // Floor sits at the axis's true minimum (e.g. 0 for a 0-255 byte map), not
+  // at whichever cell happens to be smallest in THIS map -- otherwise a map
+  // whose lowest value is 30 renders with that 30 touching the floor, same
+  // as a real 0 would, hiding how far off the true axis origin it actually is.
+  var range = getRange(m.units, data);
+  var zMinObs = 1e9, zX = -1e9;
   for (var i = 0; i < R; i++)
     for (var j = 0; j < Cl; j++) {
       var v = ((STAGE[key] || {})[i + ',' + j] !== undefined) ? STAGE[key][i + ',' + j] : data[i][j];
-      if (v < zN) zN = v;
+      if (v < zMinObs) zMinObs = v;
       if (v > zX) zX = v;
     }
+  var zN = Math.min(range.mn, zMinObs);
   if (zX === zN) zX = zN + 1;
   var zRange = zX - zN; if (zRange < 1) zRange = 1;
 
@@ -574,9 +597,9 @@ function drawSurf3D(key) {
   var cp = Math.cos(c.tilt), sp = Math.sin(c.tilt);
 
   function project(j, i, z) {
-    var mx = (j - (Cl - 1) / 2) * sX;
+    var mx = (xPos[j] - (Cl - 1) / 2) * sX;
     var my = (z - zN) * sZ;
-    var mz = ((R - 1) - i - (R - 1) / 2) * sY;
+    var mz = ((R - 1) / 2 - yPos[i]) * sY;
     var x1 = mx * cy + mz * sy;
     var y1 = my;
     var z1 = -mx * sy + mz * cy;
@@ -728,13 +751,16 @@ function drawBar1D(key) {
 
   var n = items.length;
   if (!n) return;
-  var mn = Math.min.apply(null, items.map(function(x){ return x.val; }));
-  var mx = Math.max.apply(null, items.map(function(x){ return x.val; }));
+  // Bar baseline sits at the axis's true minimum (e.g. 0), not the smallest
+  // value among these particular bars -- see the matching fix in drawSurf3D.
+  var range = getRange(m.units, m.data);
+  var mxObs = Math.max.apply(null, items.map(function(x){ return x.val; }));
+  var mn = Math.min(range.mn, Math.min.apply(null, items.map(function(x){ return x.val; })));
+  var mx = mxObs;
   if (mx === mn) mx = mn + 1;
 
   var padL = 14 + CANVAS_FS * 2.2, padR = 12, padT = 8 + CANVAS_FS, padB = 14 + CANVAS_FS * 1.4;
   var bW = Math.floor((W - padL - padR) / n) - 4;
-  var range = getRange(m.units, m.data);
 
   items.forEach(function(item, idx) {
     var t = (item.val - mn) / (mx - mn);

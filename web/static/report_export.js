@@ -163,6 +163,18 @@ function shadeRGBA(col, f) {
   return 'rgba(' + Math.round(m[1] * f) + ',' + Math.round(m[2] * f) + ',' + Math.round(m[3] * f) + ',0.9)';
 }
 
+// Maps positions to onscreen distance by actual axis VALUE, not by column/row
+// index -- see the matching function in map-editor.html for why (non-uniform
+// DDFI2 axis steps otherwise render as falsely flat/uniform).
+function axisPositions(vals, count) {
+  var arr = [];
+  for (var k = 0; k < count; k++) arr.push(vals[k] !== undefined ? vals[k] : k);
+  var mn = Math.min.apply(null, arr), mx = Math.max.apply(null, arr);
+  if (mx === mn) mx = mn + 1;
+  var span = mx - mn;
+  return arr.map(function(v) { return (v - mn) / span * (count - 1); });
+}
+
 function wire3D(cv, key) {
   cv.addEventListener('mousedown', function(e) { CAMS[key].drag = true; CAMS[key].lx = e.clientX; CAMS[key].ly = e.clientY; });
   cv.addEventListener('wheel', function(e) {
@@ -205,6 +217,8 @@ function drawSurf3D(key) {
   var yAxis = AXES_DATA[m.yaxis] || { data: [] };
   var rpm = xAxis.data || [], lod = yAxis.data || [];
   var R = m.rows, Cl = m.cols;
+  var xPos = axisPositions(rpm, Cl);
+  var yPos = axisPositions(lod, R);
   var staged = {};
   (m.staged || []).forEach(function(stk) { staged[stk] = true; });
 
@@ -212,8 +226,12 @@ function drawSurf3D(key) {
   bgGrad.addColorStop(0, '#0e0e13'); bgGrad.addColorStop(1, '#060608');
   ctx.fillStyle = bgGrad; ctx.fillRect(0, 0, W, H);
 
-  var zN = 1e9, zX = -1e9;
-  for (var i = 0; i < R; i++) for (var j = 0; j < Cl; j++) { var v = data[i][j]; if (v < zN) zN = v; if (v > zX) zX = v; }
+  // Floor sits at the axis's true minimum, not this map's smallest cell --
+  // see the matching fix in map-editor.html's drawSurf3D.
+  var range = getRange(m.units, data);
+  var zMinObs = 1e9, zX = -1e9;
+  for (var i = 0; i < R; i++) for (var j = 0; j < Cl; j++) { var v = data[i][j]; if (v < zMinObs) zMinObs = v; if (v > zX) zX = v; }
+  var zN = Math.min(range.mn, zMinObs);
   if (zX === zN) zX = zN + 1;
   var zRange = zX - zN; if (zRange < 1) zRange = 1;
 
@@ -229,9 +247,9 @@ function drawSurf3D(key) {
   var cp = Math.cos(c.tilt), sp = Math.sin(c.tilt);
 
   function project(j, i, z) {
-    var mx = (j - (Cl - 1) / 2) * sX;
+    var mx = (xPos[j] - (Cl - 1) / 2) * sX;
     var my = (z - zN) * sZ;
-    var mz = ((R - 1) - i - (R - 1) / 2) * sY;
+    var mz = ((R - 1) / 2 - yPos[i]) * sY;
     var x1 = mx * cy + mz * sy, y1 = my, z1 = -mx * sy + mz * cy;
     var x2 = x1, y2 = y1 * cp - z1 * sp, z2 = y1 * sp + z1 * cp;
     return [x2, y2, z2];
@@ -326,12 +344,14 @@ function drawBar1D(key) {
     for (var ri = 0; ri < m.rows; ri++) { var stk2 = ri + ',0'; items.push({ label: yAxis.data[ri] !== undefined ? String(yAxis.data[ri]) : String(ri), val: m.data[ri][0], stk: stk2 }); }
   }
   var n = items.length; if (!n) return;
-  var mn = Math.min.apply(null, items.map(function(x) { return x.val; }));
+  // Baseline sits at the axis's true minimum -- see the matching fix in
+  // map-editor.html's drawBar1D.
+  var range = getRange(m.units, m.data);
   var mx = Math.max.apply(null, items.map(function(x) { return x.val; }));
+  var mn = Math.min(range.mn, Math.min.apply(null, items.map(function(x) { return x.val; })));
   if (mx === mn) mx = mn + 1;
   var padL = 14 + CANVAS_FS * 2.2, padR = 12, padT = 8 + CANVAS_FS, padB = 14 + CANVAS_FS * 1.4;
   var bW = Math.floor((W - padL - padR) / n) - 4;
-  var range = getRange(m.units, m.data);
   items.forEach(function(item, idx) {
     var t = (item.val - mn) / (mx - mn);
     var barH = Math.max(4, Math.round(t * (H - padT - padB)));
