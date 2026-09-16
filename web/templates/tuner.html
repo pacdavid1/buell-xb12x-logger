@@ -330,9 +330,9 @@ function drawAll(){
   if(!bD||!mD)return;
   var rpm=bMap.xaxis&&mB.axes[bMap.xaxis]?mB.axes[bMap.xaxis].data:[],lod=bMap.yaxis&&mB.axes[bMap.yaxis]?mB.axes[bMap.yaxis].data:[];
   var dd=[];for(var i=0;i<bD.length;i++){dd[i]=[];for(var j=0;j<bD[0].length;j++)dd[i][j]=mD[i][j]-bD[i][j]}
-  drawSurf('c3b',bD,rpm,lod,'heat','lb');
+  drawSurf('c3b',bD,rpm,lod,'heat','lb',bMap.units);
   drawDelta('c3d',bD,mD,rpm,lod,'ld');
-  drawSurf('c3m',mD,rpm,lod,'heat','lm');}catch(e){var el=document.getElementById('st');if(el)el.textContent='DRAW_ERR:'+e.message;console.error(e);}
+  drawSurf('c3m',mD,rpm,lod,'heat','lm',mMap.units);}catch(e){var el=document.getElementById('st');if(el)el.textContent='DRAW_ERR:'+e.message;console.error(e);}
 }
 
 function shadeRGBA(col,f){
@@ -340,23 +340,55 @@ function shadeRGBA(col,f){
   if(!m)return col;
   return 'rgba('+Math.round(m[1]*f)+','+Math.round(m[2]*f)+','+Math.round(m[3]*f)+','+(m[4]!==undefined?m[4]:1)+')';
 }
-function drawSurf(cid,data,rpm,lod,mode,legId){
+// Maps column/row index to onscreen position by actual axis VALUE, not
+// index -- DDFI2's non-uniform RPM steps (short below ~3400, 1000-wide
+// above) otherwise render as evenly spaced, making the surface between
+// closely-packed real points look falsely flat. See map-editor.html's
+// drawSurf3D for the same fix.
+function axisPositions(vals,count){
+  var arr=[];for(var k=0;k<count;k++)arr.push(vals[k]!==undefined?vals[k]:k);
+  var mn=Math.min.apply(null,arr),mx=Math.max.apply(null,arr);
+  if(mx===mn)mx=mn+1;
+  var span=mx-mn;
+  return arr.map(function(v){return(v-mn)/span*(count-1);});
+}
+var MAP_RANGES={fuel:{mn:0,mx:200},timing:{mn:0,mx:50},dflt:{mn:0,mx:255}};
+function computeDataRange(data){
+  var mn=Infinity,mx=-Infinity;
+  (data||[]).forEach(function(row){(Array.isArray(row)?row:[row]).forEach(function(v){var n=parseFloat(v);if(!isNaN(n)){mn=Math.min(mn,n);mx=Math.max(mx,n)}})});
+  if(!isFinite(mn))return MAP_RANGES.dflt;
+  var span=mx-mn;if(span<1){mn-=1;mx+=1}
+  return{mn:mn,mx:mx};
+}
+function getRange(units,data){
+  if(!units)return computeDataRange(data);
+  var u=units.toLowerCase();
+  if(u.indexOf('fuel')>=0)return MAP_RANGES.fuel;
+  if(u.indexOf('timing')>=0||u.indexOf('spark')>=0||u.indexOf('degree')>=0)return MAP_RANGES.timing;
+  return computeDataRange(data);
+}
+function drawSurf(cid,data,rpm,lod,mode,legId,units){
   var el=document.getElementById(cid);if(!el||!data||!data.length)return;
   var ctx=el.getContext('2d'),key=cid==='c3b'?'base':cid==='c3d'?'delta':'mod';
   var c=C3[key],W=el.width,H=el.height,R=lod.length,Cl=rpm.length;
   if(W<10||H<10)return;
   ctx.fillStyle='#111114';ctx.fillRect(0,0,W,H);
-  var zN=1e9,zX=-1e9;
-  for(var i=0;i<R;i++)for(var j=0;j<Cl;j++){if(data[i][j]<zN)zN=data[i][j];if(data[i][j]>zX)zX=data[i][j]}
+  var xPos=axisPositions(rpm,Cl),yPos=axisPositions(lod,R);
+  // Floor sits at the axis's true minimum (e.g. 0 for a 0-255 byte map),
+  // not this map's own observed minimum -- see map-editor.html's drawSurf3D.
+  var range=getRange(units,data);
+  var zMinObs=1e9,zX=-1e9;
+  for(var i=0;i<R;i++)for(var j=0;j<Cl;j++){if(data[i][j]<zMinObs)zMinObs=data[i][j];if(data[i][j]>zX)zX=data[i][j]}
+  var zN=Math.min(range.mn,zMinObs);
   if(zX===zN)zX=zN+1;
   var pad=40,sX=Math.min((W-pad)/(Cl-1),30)*CAM.zoom,sY=Math.min((H-pad)/(R-1),24)*CAM.zoom;var zRange=zX-zN;if(zRange<1)zRange=1;var sf=SC[cur]||0.4;if(mode==="delta"){sf=SC["delta"]||0.08}var zoom=parseFloat(document.getElementById("inZoom").value)||0.7;var sZ=(H*sf*zoom*CAM.zoom)/zRange;
   var cy=Math.cos(c.ang),sy=Math.sin(c.ang);
   var cp=Math.cos(c.tilt),sp=Math.sin(c.tilt);
   var cr=Math.cos(c.roll),sr=Math.sin(c.roll);
   function project(j,i,z){
-    var mx=(INV.X?-1:1)*(j-(Cl-1)/2)*sX;
+    var mx=(INV.X?-1:1)*(xPos[j]-(Cl-1)/2)*sX;
     var my=(INV.Y?-1:1)*(z-zN)*sZ;
-    var mz=(INV.Z?-1:1)*((R-1)-i-(R-1)/2)*sY;
+    var mz=(INV.Z?-1:1)*((R-1)/2-yPos[i])*sY;
     var x1=mx*cy+mz*sy,y1=my,z1=-mx*sy+mz*cy;
     var x2=x1,y2=y1*cp-z1*sp,z2=y1*sp+z1*cp;
     var fx=x2*cr-y2*sr,fy=x2*sr+y2*cr;
@@ -458,7 +490,7 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
   }
   if(bX===bN)bX=bN+1;if(mXX===mN)mXX=mN+1;
   var pad=40,sX=Math.min((W-pad)/(Cl-1),30)*CAM.zoom,sY=Math.min((H-pad)/(R-1),24)*CAM.zoom;
-  
+  var xPos=axisPositions(rpm,Cl),yPos=axisPositions(lod,R);
   var zoom=parseFloat(document.getElementById('inZoom').value)||1;
   var zRange=mXX-mN;if(zRange<1)zRange=1;
   var sZ=(H*(SC[cur]||0.4)*zoom*CAM.zoom)/zRange;
@@ -466,9 +498,9 @@ function drawDelta(cid,bD,mD,rpm,lod,legId){
   var cp=Math.cos(c.tilt),sp=Math.sin(c.tilt);
   var cr=Math.cos(c.roll),sr=Math.sin(c.roll);
   function proj(j,i,z){
-    var mx=(INV.X?-1:1)*(j-(Cl-1)/2)*sX;
+    var mx=(INV.X?-1:1)*(xPos[j]-(Cl-1)/2)*sX;
     var my=(INV.Y?-1:1)*(z-mN)*sZ;
-    var mz=(INV.Z?-1:1)*((R-1)-i-(R-1)/2)*sY;
+    var mz=(INV.Z?-1:1)*((R-1)/2-yPos[i])*sY;
     var x1=mx*cy+mz*sy,y1=my,z1=-mx*sy+mz*cy;
     var x2=x1,y2=y1*cp-z1*sp,z2=y1*sp+z1*cp;
     var fx=x2*cr-y2*sr,fy=x2*sr+y2*cr;
