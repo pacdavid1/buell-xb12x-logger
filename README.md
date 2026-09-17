@@ -2,7 +2,7 @@
 
 > **LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR**  
 > Raspberry Pi · Python 3 · Delphi DDFI2 ECU · Alpha-N · Open Loop  
-> **v2.7.322** — 16 Sep 2026 · 474 changelog entries · [MIT licensed](LICENSE)
+> **v2.7.325** — 16 Sep 2026 · 477 changelog entries · [MIT licensed](LICENSE)
 
 <p align="center">
   <img src="docs/assets/pipeline.svg" alt="Tuning Pipeline" width="800">
@@ -21,6 +21,26 @@ and presents a full tuning dashboard accessible from any browser.
 <p align="center">
   <img src="docs/assets/architecture.svg" alt="System Architecture" width="800">
 </p>
+
+---
+
+## Minimum Hardware to Get Started
+
+You don't need the full sensor stack to start logging and tuning. All you need is:
+
+- **Raspberry Pi Zero 2 W**
+- **Isolated CH343 USB-to-serial adapter** — galvanic isolation matters here; the ECU's
+  serial line shares electrical space with the ignition system, and isolation protects
+  both the Pi and your readings from that noise.
+- **4-pin Deutsch connector** — matches the DDFI2 diagnostic connector on the bike.
+- **External battery pack** — powers the Pi independently while riding.
+
+That's it. Plug into the bike's diagnostic connector, power the Pi from the battery pack, and
+you can log rides and burn map changes the same day. Everything else in the
+[Hardware](#hardware) table below — the IMU, the extra temperature sensors, the battery
+gauge, GPS — is optional. They add more data to look at, not more capability to tune.
+If you're building your own setup for your own Buell, start minimal and add sensors only
+once you know you want what they measure.
 
 ---
 
