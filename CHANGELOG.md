@@ -25,6 +25,33 @@ PROMPT_END -->
 
 
 
+## [v2.7.324] — 2026-09-16
+### Added
+- **Community-release documentation**: `LICENSE` (MIT), `CONTRIBUTING.md` (dev
+  setup, coding conventions, PR process), and a refreshed `README.md` (was
+  frozen at v2.7.130/13 Jun with a truncated Documentation table -- now
+  current, lists every doc file, and adds a Community/Sharing Note about
+  the old Tailscale IP and email address already sitting in CHANGELOG.md
+  history from before this repo went public).
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.323] — 2026-09-16
+### Fixed
+- **Hotspot WiFi password was a hardcoded shared default** (`buell2024`,
+  in both `network/manager.py` and `install.sh`) -- every fork/install of
+  this now-public repo would have shipped the identical password. Each
+  install now generates its own random password on first use and persists
+  it to a gitignored `hotspot_password.txt`; `install.sh` and
+  `network/manager.py`'s runtime fallback (`ensure_hotspot_profile`) read
+  the same file, so whichever runs first generates it and the other
+  reuses it. Already flagged in BACKLOG.md's low-priority list; resolved
+  as part of the community-release pass alongside LICENSE/CONTRIBUTING.md.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.322] — 2026-09-16
 ### Added
 - **Standalone XPR/EEPROM viewer -- no Pi, no server, opens as a plain

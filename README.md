@@ -2,7 +2,7 @@
 
 > **LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR**  
 > Raspberry Pi · Python 3 · Delphi DDFI2 ECU · Alpha-N · Open Loop  
-> **v2.7.130** — 13 Jun 2026 · 284 changelog entries · ~13K lines Python + JS
+> **v2.7.322** — 16 Sep 2026 · 474 changelog entries · [MIT licensed](LICENSE)
 
 <p align="center">
   <img src="docs/assets/pipeline.svg" alt="Tuning Pipeline" width="800">
@@ -47,6 +47,11 @@ EEPROM changes are burned directly from the browser. The **Burn Ledger** (VDYNO 
 
 | Version | Date | Highlights |
 |---------|------|-----------|
+| **v2.7.322** | 2026-09-16 | Standalone XPR/EEPROM viewer — decode maps + config fully offline, no Pi needed |
+| **v2.7.321** | 2026-09-16 | Replaced a misbehaving 1-Wire thermocouple sensor (MAX31850) with an SPI one (MAX6675) |
+| **v2.7.317–318** | 2026-09-16 | Standalone HTML report export (Tuner + Map Editor) — rotatable 3D maps, view offline |
+| **v2.7.314–316** | 2026-09-16 | 3D map renderer fix — non-uniform RPM axis steps were rendering as falsely flat |
+| **v2.7.312** | 2026-09-14 | MPU-6050/6500 IMU integration — accel/gyro logging at 10Hz, offset-calibrated |
 | **v2.7.130** | 2026-06-13 | Fixed fuel status poller in history view (JS Robustness) |
 | **v2.7.129** | 2026-06-13 | Removed dead saveObj() JS function (cross-AI dead-code audit) |
 | **v2.7.128** | 2026-06-13 | Fixed real logger version detection + per-ride version tracking |
@@ -65,7 +70,7 @@ EEPROM changes are burned directly from the browser. The **Burn Ledger** (VDYNO 
 | **v2.7.101** | 2026-06-08 | Reserve-aware fuel calibration + onboarding banner |
 | **v2.7.83–85** | 2026-06-07 | Fuel tracking system: full tank reset, ride consumption, header fuel bar |
 
-Full history: **[CHANGELOG.md](CHANGELOG.md)** (284 entries, 166 KB)
+Full history: **[CHANGELOG.md](CHANGELOG.md)** (474 entries)
 
 ---
 
@@ -77,7 +82,9 @@ Full history: **[CHANGELOG.md](CHANGELOG.md)** (284 entries, 166 KB)
 | **Session Events** | `/session_events` | F7 event detection, DTW clustering, cross-session matching |
 | **Sessions VS** | `/sessions_vs` | Cross-session cell comparison (SWEET/SPICY/BITTER) |
 | **Sessions Launch** | `/sessions_launch` | Launch detection and analysis |
-| **Tuner** | `/tuner` | Map viewer/editor, 3D fuel/spark visualization |
+| **Tuner** | `/tuner` | Base/mod session comparison, 3D fuel/spark visualization |
+| **Map Editor** | `/map-editor` | Edit and burn map cells directly, standalone HTML report export |
+| **GPS Analysis** | `/gps_analysis` | Route/altitude/slope analysis, rotatable 3D track view |
 | **Fuel** | `/fuel` | Fill-up tracking, consumption, range estimation |
 | **Error Log** | `/errorlog_viz` | Diagnostic tool for serial errors and ECU events |
 
@@ -97,7 +104,7 @@ Full history: **[CHANGELOG.md](CHANGELOG.md)** (284 entries, 166 KB)
 | **ECU** | Delphi DDFI2 (BUEIB), Alpha-N fueling, Open Loop |
 | **Logger** | Raspberry Pi at pi-ecm, port 8080 |
 | **Serial** | CH343P USB-Serial, 9600 8N1 |
-| **Sensors** | BMP280 (baro/temp), AHT20 (humidity), CW2015 (battery), UBX GPS |
+| **Sensors** | BMP280 (baro/temp), AHT20 (humidity), CW2015 (battery), MPU-6050/6500 (IMU), MAX6675 (thermocouple), UBX GPS |
 
 ### Software Modules
 
@@ -115,10 +122,11 @@ main.py                          — Entry point: sensors, sysmon, web, network
 +-- web/launch.py                — Launch detection
 +-- web/gear_detect.py           — Post-ride gear detection
 +-- web/burn_ledger.py           — VDYNO burn records
-+-- web/static/app.js            — Frontend JS (3,048 lines)
++-- web/static/app.js            — Frontend JS
 +-- gps/reader.py                — UBX GPS serial reader
-+-- sensors/                     — AHT20, CW2015
++-- sensors/                     — AHT20, BMP280, CW2015, MPU6050, MAX6675
 +-- network/manager.py           — WiFi/hotspot management
++-- tools/xpr_viewer.html        — Standalone offline EEPROM map/config viewer
 +-- docs/                        — Architecture docs, assets
 ```
 
@@ -175,7 +183,25 @@ Open **http://pi-ecm:8080** in your browser.
 
 | Document | Description |
 |----------|-------------|
-| [CHANGELOG.md](CHANGELOG.md) | Full version history (284 entries) |
+| [CHANGELOG.md](CHANGELOG.md) | Full version history (474 entries) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Detailed architecture reference |
 | [CLAUDE.md](CLAUDE.md) | Instructions for Claude Code AI agent |
-| [FREEBUFF.md
+| [FREEBUFF.md](FREEBUFF.md) | Instructions for the freebuff analyst/validator agent |
+| [BACKLOG.md](BACKLOG.md) | Known issues and planned work |
+| [HARDWARE_INVENTORY.md](HARDWARE_INVENTORY.md) | Parts on hand, tools, open hardware questions |
+| [DESIGN.md](DESIGN.md) | UI design tokens and conventions |
+| [ecu_defs/README.md](ecu_defs/README.md) | ECU firmware definition files (offsets, scales, maps) |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
+| [LICENSE](LICENSE) | MIT |
+
+---
+
+## Community / Sharing Note
+
+This started as a single-bike tuning tool and still carries some of that history — CHANGELOG.md
+has old entries mentioning a since-decommissioned Tailscale IP and a personal email from early
+development. They're artifacts of already-public commit history, not live secrets: nothing in
+the current codebase depends on them, and no ride/GPS data is or has ever been committed
+(`sessions/` is gitignored). If you're forking this for your own bike, you don't need to touch
+any of that — just point `--sessions-dir`/`--buell-dir` at your own paths and the hotspot
+password is generated fresh per install (see [CONTRIBUTING.md](CONTRIBUTING.md)).
