@@ -25,6 +25,133 @@ PROMPT_END -->
 
 
 
+## [v2.7.321] — 2026-09-16
+### Changed
+- **TC1 sensor replaced: MAX31850 (1-Wire) out, MAX6675 (SPI) in.** The
+  MAX31850 gave erratic, drifting `thermo1_c` readings (-21C to -160C) that
+  never tripped its own fault bit, reproducible across two different
+  physical MAX31850 units and two different thermocouple probes. Ruled out
+  software three independent ways: diffed clean against the original
+  integration commit, manually decoded the raw 1-Wire scratchpad bytes (the
+  chip's own cold-junction register read a sane ~25-27C the whole time,
+  proving the chip/kernel/driver pipeline itself was healthy), and actually
+  ran that original commit's code live against the same hardware -- same
+  result every time. Never found the exact root cause on the 1-Wire side.
+  New `sensors/max6675.py` (SPI0 CE0, 12-bit/0.25C-per-LSB, explicit
+  open-circuit fault bit) matched the ECU's own CLT within 0.5-1.2C across
+  repeated live comparisons, so switching was the practical call. `main.py`
+  now inits/reads `MAX6675` instead of `MAX31850`; `thermo1_c` stays the
+  same field name throughout `sysmon.json`, `CSV_COLUMNS`, the dashboard
+  tile, and the report exports, so nothing downstream needed touching.
+  `sensors/max31850.py` is left in place, unused, in case the 1-Wire
+  mystery is worth revisiting later.
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.320] — 2026-09-16
+### Fixed
+- **`thermo1_c` (MAX31850, now MAX6675) missing from ride CSVs**: same
+  missing-wire bug as the IMU fields below -- `sysmon.json` carried it,
+  but `ecu/logger_process.py` never copied it into each row's dict and
+  `CSV_COLUMNS` never listed it, so `DictWriter(extrasaction="ignore")`
+  silently dropped it even after the copy was added.
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.319] — 2026-09-16
+### Fixed
+- **IMU fields (`imu_accel_*`, `imu_gyro_*`, `imu_temp_c`) missing from
+  ride CSVs.** `sysmon.json` has carried these since the IMU thread was
+  added (v2.7.312), and the live dashboard tile read them fine, but
+  `ecu/logger_process.py` -- the separate subprocess that actually writes
+  ride CSVs -- never copied them into each row, and `CSV_COLUMNS` never
+  listed them, so `DictWriter(extrasaction="ignore")` would have dropped
+  them even if it had. Confirmed live (`sysmon.json` on the Pi already had
+  real `imu_accel_x_g` etc. values) before fixing, so this was purely a
+  missing wire, not a sensor problem. Two test rides recorded before this
+  fix (`DF5F5F_001`/`002`) have no IMU columns -- not recoverable.
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.318] — 2026-09-16
+### Fixed
+- **Tuner report export only captured the active map tab.** The first cut
+  of the Tuner's standalone HTML report only exported whichever map (`cur`)
+  was selected when clicked, so Fuel Rear/Spark Front/Rear each needed a
+  separate export. Rebuilt the payload/renderer around the same `ks2d`
+  list the live tab bar itself uses, so one report now stacks a section
+  per map (BASE/DELTA/MOD tables + 3D views), each with its own
+  independent camera -- rotating one map's 3D views does not affect
+  another's (verified by dragging one map's canvas and confirming the
+  other's pixels are untouched via `toDataURL()` diffing).
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.317] — 2026-09-16
+### Added
+- **Standalone HTML report export for the Tuner.** New REPORT button next
+  to the existing PNG snapshot downloads a self-contained `.html` snapshot
+  of the current base/mod comparison -- BASE/DELTA/MOD tables plus a
+  dependency-free port of the BASE 3D/DELTA 3D/MOD 3D renderer (all 4
+  delta sub-modes: delta/overlay/spikes/wire), with synced drag-to-rotate
+  and wheel-to-zoom. Opens and rotates identically offline. Read-only
+  snapshot -- burn/reset/merge-recompute/INV-toggle controls are not
+  carried over, matching the Map Editor report export below.
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.316] — 2026-09-16
+### Fixed
+- **3D renderer axis scale and value-floor origin, ported to `/tuner`.**
+  Same distortion as Map Editor's `drawSurf3D` (v2.7.315), independently
+  duplicated in `tuner.html`'s own renderer: BASE 3D/MOD 3D panels
+  (`drawSurf`) now position columns/rows by real axis value via
+  `axisPositions()` instead of raw index, and the floor comes from
+  `getRange().mn` instead of the map's own observed minimum. DELTA 3D
+  panel (`drawDelta`, all 4 sub-modes) got the axis-spacing fix only --
+  its floor is intentionally centered on the delta midpoint, not a true
+  value minimum, so that part was left alone.
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.315] — 2026-09-16
+### Fixed
+- **3D map renderer axis scale and value-floor origin were both wrong.**
+  `drawSurf3D`/`drawBar1D` (Map Editor) positioned columns/rows by their
+  raw index instead of the axis's real value, so DDFI2's non-uniform RPM
+  steps (short below ~3400, 1000-wide above) rendered as evenly spaced --
+  the surface looked falsely flat in the dense region. New
+  `axisPositions()` maps index to onscreen position by actual value
+  instead. Separately, the surface/bar floor sat at the map's own observed
+  minimum instead of the axis's true minimum (0 for a 0-255 byte map), so
+  a map whose lowest cell is e.g. 30 rendered flush with the floor same as
+  a real 0 would -- floor now comes from `getRange().mn`. Both fixes
+  applied to the live renderer and its port in `report_export.js`.
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.314] — 2026-09-16
+### Added
+- **Standalone HTML report export for the Map Editor.** New Export Report
+  button downloads a self-contained `.html` snapshot of the current
+  session's maps (base values plus any staged/unburned edits) -- table +
+  rotatable/zoomable 3D surface per map, with a dependency-free port of
+  `drawSurf3D`'s renderer inlined (no external libraries, no server
+  connection needed to view it afterward). Built after realizing the
+  existing `/eeprom/import_xpr` + Map Editor pipeline already let a
+  session be viewed without SSH, but not shared/archived as a standalone
+  file.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.313] — 2026-09-14
 ### Added
 - **MPU6050 accel/gyro offset calibration**: uncalibrated cheap MEMS parts
