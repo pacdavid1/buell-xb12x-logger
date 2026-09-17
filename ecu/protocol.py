@@ -386,6 +386,7 @@ CSV_COLUMNS: list[str] = [
     "gps_heading_rate", "gps_turning", "gps_stale",
     "baro_hPa", "baro_temp_c",
         "humidity_pct",
+    "thermo1_c",
     "bat_voltage", "bat_soc", "bat_charging",
     "imu_accel_x_g", "imu_accel_y_g", "imu_accel_z_g",
     "imu_gyro_x_dps", "imu_gyro_y_dps", "imu_gyro_z_dps", "imu_temp_c",
