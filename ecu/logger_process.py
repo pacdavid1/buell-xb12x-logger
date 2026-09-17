@@ -398,6 +398,13 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                 data['bat_voltage']  = ss.get('bat_voltage')
                 data['bat_soc']      = ss.get('bat_soc')
                 data['bat_charging'] = ss.get('bat_charging')
+                data['imu_accel_x_g']  = ss.get('imu_accel_x_g')
+                data['imu_accel_y_g']  = ss.get('imu_accel_y_g')
+                data['imu_accel_z_g']  = ss.get('imu_accel_z_g')
+                data['imu_gyro_x_dps'] = ss.get('imu_gyro_x_dps')
+                data['imu_gyro_y_dps'] = ss.get('imu_gyro_y_dps')
+                data['imu_gyro_z_dps'] = ss.get('imu_gyro_z_dps')
+                data['imu_temp_c']     = ss.get('imu_temp_c')
             except Exception as e:
                 log.debug(f"sysmon IPC: {e}")
 
