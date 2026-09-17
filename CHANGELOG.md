@@ -25,6 +25,25 @@ PROMPT_END -->
 
 
 
+## [v2.7.322] — 2026-09-16
+### Added
+- **Standalone XPR/EEPROM viewer -- no Pi, no server, opens as a plain
+  local file.** `tools/xpr_viewer.html` is a JS port of
+  `ecu/ecm_defs.py` + `ecu/eeprom_params.py`'s decode logic (XML entry
+  parsing via `DOMParser`, offset/scale/rows/cols math) plus the report
+  renderer from `web/static/report_export.js`, with all 14
+  `ecu_defs/*.xml` ECU definitions embedded so it works fully offline --
+  drop in an `.xpr`/`.bin`, pick (or auto-detect from the filename) the
+  ECU version, and get the same rotatable 3D maps plus a searchable
+  configuration-parameters table. Verified byte-for-byte against the
+  Python decoders on a real `.xpr` file: 0 mismatches across all maps,
+  axes, and 173 config params. `tools/build_xpr_viewer.py` regenerates
+  it from `tools/xpr_viewer_template.html` + the current `ecu_defs/`
+  contents -- rerun after any definition change.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.321] — 2026-09-16
 ### Changed
 - **TC1 sensor replaced: MAX31850 (1-Wire) out, MAX6675 (SPI) in.** The
