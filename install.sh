@@ -80,7 +80,17 @@ chown -R "${INSTALL_USER}:${INSTALL_USER}" /home/pi/buell
 # ─────────────────────────────────────────────────────────────
 
 SSID="buell-$(hostname -s | tail -c 5)"
-PASSWORD="buell2024"
+# Each install gets its own random hotspot password, persisted locally and
+# gitignored -- a public repo must not ship one shared default WiFi password
+# for every fork/install. network/manager.py's runtime fallback reads the
+# same file, so a password generated here is reused, not regenerated.
+HOTSPOT_PW_FILE="/home/pi/buell/hotspot_password.txt"
+if [ -f "$HOTSPOT_PW_FILE" ]; then
+    PASSWORD=$(cat "$HOTSPOT_PW_FILE")
+else
+    PASSWORD=$(tr -dc 'A-Za-z0-9' </dev/urandom | head -c 12)
+    echo "$PASSWORD" > "$HOTSPOT_PW_FILE"
+fi
 
 # Asegurar que NetworkManager gestiona las interfaces (imagen limpia viene con managed=false)
 echo -e "${YELLOW}Configurando NetworkManager...${NC}"

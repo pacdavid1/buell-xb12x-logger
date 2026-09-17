@@ -22,6 +22,8 @@ __pycache__/
 *.save
 # Estado de red (específico de cada instalación)
 network_state.json
+# Contraseña del hotspot, generada al azar por instalación (nunca compartida)
+hotspot_password.txt
 # Caches de referencia local y aprendizaje (específicos de cada instalación)
 route_reference.json
 slope_reference.json

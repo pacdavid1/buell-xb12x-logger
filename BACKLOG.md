@@ -1440,7 +1440,6 @@ Track how avg_l100 evolves over time to correlate tuning changes with fuel effic
 - network/manager.py: multiple threads can launch nmcli simultaneously (no lock on _switch_status). Fix: add threading.Lock around nmcli calls.
 - web/static/app.js: 37 fetch() calls without AbortSignal — requests hang forever if server stops responding. Fix: use AbortController with 10s timeout on all fetch() calls.
 - web/vs_engine.py: _compare_sessions_cached uses total_samples as cache key — stale if data changes without sample count change. Fix: include file mtime or content hash in key.
-- install.sh: hotspot password hardcoded as "buell2024" — consider reading from env or config file.
 - web/static/app.js: renderCobertGrid() calls getElementById in nested loops (line ~2450) — cache the element reference outside the loop to avoid repeated DOM lookups.
 - web/static/app.js: showTab() uses setTimeout(loadFn, 0) for defer — potential race if user switches tabs faster than 0ms render cycle.
 

@@ -3,6 +3,7 @@ NetworkManager - Gestión de WiFi/Hotspot via nmcli
 v2.1.0 - Switch con redirect URL + network_state.json
 """
 
+import secrets
 import subprocess
 import threading
 import time
@@ -20,10 +21,10 @@ NETWORK_STATUS_CACHE_TTL_S = 3.0  # see _refresh_status_cache() for why
 
 class NetworkManager:
 
-    HOTSPOT_CON      = "buell-hotspot"
-    HOTSPOT_IP       = "10.42.0.1"
-    WIFI_TIMEOUT_S   = 35
-    DEFAULT_PASSWORD = "buell2024"
+    HOTSPOT_CON           = "buell-hotspot"
+    HOTSPOT_IP            = "10.42.0.1"
+    WIFI_TIMEOUT_S        = 35
+    HOTSPOT_PASSWORD_FILE = "hotspot_password.txt"
 
     def __init__(self, buell_dir=None):
         self.logger          = logging.getLogger("NetworkManager")
@@ -31,6 +32,7 @@ class NetworkManager:
         self._monitor_active = False
         self._switch_status  = {}
         self._state_lock     = threading.Lock()
+        self._buell_dir      = Path(buell_dir) if buell_dir else _DEFAULT_BUELL_DIR
         state_file = Path(buell_dir) / 'network_state.json' if buell_dir else _STATE_FILE_DEFAULT
         self._state_file = state_file
         self._status_cache    = {"mode": "none", "ip": "0.0.0.0"}
@@ -173,6 +175,24 @@ class NetworkManager:
             "ts":    time.time()
         }
 
+    def _get_hotspot_password(self) -> str:
+        """Each install generates and persists its own random hotspot
+        password on first use (gitignored) -- a public repo must not ship
+        one shared default WiFi password for every fork/install."""
+        pw_path = self._buell_dir / self.HOTSPOT_PASSWORD_FILE
+        try:
+            existing = pw_path.read_text().strip()
+            if existing:
+                return existing
+        except FileNotFoundError:
+            pass
+        new_password = secrets.token_urlsafe(9)
+        try:
+            pw_path.write_text(new_password)
+        except Exception as e:
+            self.logger.warning(f"Could not persist hotspot password: {e}")
+        return new_password
+
     def ensure_hotspot_profile(self):
         ok, _ = self._run(["nmcli", "con", "show", self.HOTSPOT_CON])
         if ok:
@@ -188,7 +208,7 @@ class NetworkManager:
             "ifname", "wlan0", "mode", "ap",
             "con-name", self.HOTSPOT_CON,
             "ssid", ssid,
-            "password", self.DEFAULT_PASSWORD
+            "password", self._get_hotspot_password()
         ], timeout=20)
 
         if not ok:
