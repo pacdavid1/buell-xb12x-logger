@@ -25,6 +25,24 @@ PROMPT_END -->
 
 
 
+## [v2.7.325] — 2026-09-16
+### Fixed
+- **`ensure_hotspot_profile()` could never actually create a working hotspot
+  on its own** -- passing `password` as an `nmcli con add` property is
+  invalid (`Error: invalid <setting>.<property> 'password'`); it needs
+  `wifi-sec.key-mgmt wpa-psk` and `wifi-sec.psk <password>` as separate
+  `con modify` calls afterward, same as `install.sh`'s already-working
+  sequence. This was a pre-existing bug, silently masked because
+  `install.sh` always created the profile correctly first and this
+  function's `if ok: return True` early-exit meant it never ran the
+  broken path -- surfaced only when rotating the hotspot password required
+  deleting and recreating the profile at runtime, with no `install.sh` to
+  fall back on. Verified live: profile now creates correctly, `wifi-sec.
+  key-mgmt=wpa-psk` confirmed via `nmcli -g`.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.324] — 2026-09-16
 ### Added
 - **Community-release documentation**: `LICENSE` (MIT), `CONTRIBUTING.md` (dev

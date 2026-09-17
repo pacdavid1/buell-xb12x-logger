@@ -203,12 +203,15 @@ class NetworkManager:
         ssid     = f"buell-{suffix}"
 
         self.logger.info(f"Creando perfil hotspot: SSID={ssid}")
+        # "password" is not a valid con-add property -- wifi-sec.key-mgmt/psk
+        # must be set via separate con-modify calls afterward (matches
+        # install.sh's proven-working sequence; a bare "password" arg here
+        # fails with "invalid <setting>.<property> 'password'").
         ok, out = self._run([
             "sudo", "nmcli", "con", "add", "type", "wifi",
             "ifname", "wlan0", "mode", "ap",
             "con-name", self.HOTSPOT_CON,
             "ssid", ssid,
-            "password", self._get_hotspot_password()
         ], timeout=20)
 
         if not ok:
@@ -217,6 +220,10 @@ class NetworkManager:
 
         self._run(["sudo", "nmcli", "con", "modify", self.HOTSPOT_CON,
                    "802-11-wireless.band", "bg"])
+        self._run(["sudo", "nmcli", "con", "modify", self.HOTSPOT_CON,
+                   "wifi-sec.key-mgmt", "wpa-psk"])
+        self._run(["sudo", "nmcli", "con", "modify", self.HOTSPOT_CON,
+                   "wifi-sec.psk", self._get_hotspot_password()])
         self._run(["sudo", "nmcli", "con", "modify", self.HOTSPOT_CON,
                    "ipv4.method", "shared"])
         self._run(["sudo", "nmcli", "con", "modify", self.HOTSPOT_CON,
