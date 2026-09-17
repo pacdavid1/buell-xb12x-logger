@@ -24,6 +24,37 @@ and presents a full tuning dashboard accessible from any browser.
 
 ---
 
+## What It Actually Does
+
+The short version: it logs as much data as possible from every ride, then turns those logs
+into tuning decisions instead of guesswork.
+
+- **Virtual dyno** — calculates torque and power at the wheel from logged data under specific
+  riding conditions, without needing an actual dyno.
+- **Event detection** — automatically finds comparable moments across different rides
+  (steady-state cruising, wide-open-throttle pulls) using statistical detection and
+  curve-matching, so you're comparing like-for-like, not noise. See [The Tuning Cycle](#the-tuning-cycle)
+  below for how this feeds into map changes.
+- **Cross-session comparison** — takes two rides (e.g. before/after a map change) and compares
+  them cell-by-cell across the RPM × load map, showing exactly where the fuel/spark tables
+  diverged and by how much.
+- **Map proposal + editing** — auto-suggests tune changes from accumulated ride data, or edit
+  cells by hand with smoothing tools and burn straight to the ECU from the browser. Every burn
+  is logged with full before/after lineage, so the tuning history is fully traceable.
+- **Fuel injector health check** — fill the tank, ride until the low-fuel light comes on, and
+  compare the fuel usage calculated from injector pulse width against how much fuel you
+  actually put back in. If the numbers diverge significantly, that's a sign an injector isn't
+  delivering what the ECU thinks it is.
+- **GPS analysis** *(optional, if you have a GPS module)* — 2D/3D route visualization colored
+  by speed, altitude, or slope, plus automatic gear detection from GPS speed vs. RPM.
+- **Offline tools** — a standalone HTML map/report viewer that works without the Pi running at
+  all, so maps and tunes can be reviewed or shared without needing the bike or a live connection.
+
+Everything beyond the core ECU connection — GPS, IMU, extra temperature sensors, battery
+monitoring — is optional. They add more data to look at, not more capability to tune.
+
+---
+
 ## Minimum Hardware to Get Started
 
 You don't need the full sensor stack to start logging and tuning. All you need is:
