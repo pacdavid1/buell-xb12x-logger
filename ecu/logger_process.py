@@ -395,6 +395,7 @@ def run(port: str, sessions_dir: Path, buell_dir: Path, ipc_dir: Path):
                 data['baro_hPa']     = ss.get('baro_hPa')
                 data['baro_temp_c']  = ss.get('baro_temp_c')
                 data['humidity_pct'] = ss.get('humidity_pct')
+                data['thermo1_c']    = ss.get('thermo1_c')
                 data['bat_voltage']  = ss.get('bat_voltage')
                 data['bat_soc']      = ss.get('bat_soc')
                 data['bat_charging'] = ss.get('bat_charging')
