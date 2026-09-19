@@ -5,7 +5,7 @@ meant to grow into something the wider Buell/DDFI2 community can use and extend.
 
 ## Before you start
 
-This targets a **Delphi DDFI2 ECU** (Buell XB/1125 series). If you're working with a
+This targets an **IDS DDFI2 ECU** (Buell XB/1125 series). If you're working with a
 different ECU family, the serial protocol (`ecu/protocol.py`) and EEPROM map layout
 (`ecu_defs/*.xml`) will need their own definitions — see [ecu_defs/README.md](ecu_defs/README.md).
 

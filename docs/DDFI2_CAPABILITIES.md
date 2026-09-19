@@ -11,7 +11,7 @@
 > to this bike. Say so in the first line of any finding.**
 
 Bike: **Buell XB12** — air/oil/fan-cooled **45° V-twin**, ~1203cc, Harley Sportster-derived.
-ECU: **Delphi DDFI2**, firmware family **BUEIB** (e.g. "BUEIB310"). Serial data logger on a
+ECU: **IDS DDFI2**, firmware family **BUEIB** (e.g. "BUEIB310"). Serial data logger on a
 Raspberry Pi. Runs **Open Loop** on this bike (see "This bike's config").
 
 ---

@@ -25,6 +25,20 @@ PROMPT_END -->
 
 
 
+## [v2.7.329] — 2026-09-19
+### Fixed
+- **ECU manufacturer corrected: Delphi → IDS.** A community reviewer pointed
+  out that Delphi never made EFI systems for Buell — the DDFI/DDFI-2 ECU was
+  designed by IDS (Intelligent Design Solutions), confirmed against idspd.com
+  and the EcmSpy Buell tuning guide. Fixed all 6 references across
+  `README.md`, `CONTRIBUTING.md`, `docs/presentation.html`,
+  `docs/DDFI2_CAPABILITIES.md`, `docs/assets/architecture.svg`, and
+  `docs/10_DDFI2_PROTOCOL.md`. Code (`ecu_defs/*.xml`, `.py`) never had the
+  wrong label — this was a docs-only error.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.328] — 2026-09-19
 ### Added
 - **README Quick Start now documents running with no Pi at all**:

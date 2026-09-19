@@ -1,7 +1,7 @@
 # Buell XB12X — DDFI2 Datalogger + AI Tuning Platform
 
 > **LOG → ACOTAR → COMPARAR → PROPONER → QUEMAR**  
-> Raspberry Pi · Python 3 · Delphi DDFI2 ECU · Alpha-N · Open Loop  
+> Raspberry Pi · Python 3 · IDS DDFI2 ECU · Alpha-N · Open Loop  
 > **v2.7.325** — 16 Sep 2026 · 477 changelog entries · [MIT licensed](LICENSE)
 
 <p align="center">
@@ -12,7 +12,7 @@
 
 ## What this project is
 
-A **Raspberry Pi datalogger + web dashboard** for tuning a **Buell XB12X** with a Delphi DDFI2 ECU.
+A **Raspberry Pi datalogger + web dashboard** for tuning a **Buell XB12X** with an IDS DDFI2 ECU.
 No dyno needed — tuning is entirely data-driven from real street rides.
 
 The Pi connects to the ECU via serial (CH343P USB-Serial, 9600 8N1), reads 80+ parameters at 8Hz,
@@ -152,7 +152,7 @@ Full history: **[CHANGELOG.md](CHANGELOG.md)** (474 entries)
 | Component | Detail |
 |-----------|--------|
 | **Bike** | Buell XB12X (2009), 1203cc Thunderstorm V-Twin |
-| **ECU** | Delphi DDFI2 (BUEIB), Alpha-N fueling, Open Loop |
+| **ECU** | IDS DDFI2 (BUEIB), Alpha-N fueling, Open Loop |
 | **Logger** | Raspberry Pi at pi-ecm, port 8080 |
 | **Serial** | CH343P USB-Serial, 9600 8N1 |
 | **Sensors** | BMP280 (baro/temp), AHT20 (humidity), CW2015 (battery), MPU-6050/6500 (IMU), MAX6675 (thermocouple), UBX GPS |

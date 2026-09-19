@@ -7,7 +7,7 @@ Status: Read confirmed in production. Write confirmed experimentally (2026-05-31
 
 ## Overview
 
-The Buell XB12X uses a **Delphi DDFI-2** ECU connected via serial at 9600,8N1.
+The Buell XB12X uses an **IDS DDFI-2** ECU connected via serial at 9600,8N1.
 The Pi communicates through a CH343P USB-to-serial adapter symlinked to `/dev/ttyECU`.
 
 EcmSpy (the reference Windows tool) reads and writes the ECU using this same protocol.
