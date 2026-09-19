@@ -25,6 +25,38 @@ PROMPT_END -->
 
 
 
+## [v2.7.328] — 2026-09-19
+### Added
+- **README Quick Start now documents running with no Pi at all**:
+  `serve_local.py --serve` → `http://127.0.0.1:8080`, same address for
+  anyone on their own machine since `127.0.0.1` always means "this
+  computer." Also documents the honest caveat: `sessions/` is gitignored,
+  so a fresh clone has no ride data to look at until you bring your own
+  (or use `tools/xpr_viewer.html`, which needs no session data at all).
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.327] — 2026-09-16
+### Added
+- **README "What It Actually Does" section** — plain-language feature
+  summary (virtual dyno, event detection, cross-session comparison, map
+  proposal/editing, fuel injector health check, GPS analysis, offline
+  tools) for readers who want the pitch before the technical breakdown.
+
+### AI
+- Claude Sonnet 5
+
+## [v2.7.326] — 2026-09-16
+### Added
+- **README "Minimum Hardware to Get Started" section** — Pi Zero 2 W +
+  isolated CH343 + 4-pin Deutsch connector + external battery is enough
+  to log and tune; every other sensor (IMU, extra temp probes, battery
+  gauge, GPS) is optional.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.325] — 2026-09-16
 ### Fixed
 - **`ensure_hotspot_profile()` could never actually create a working hotspot

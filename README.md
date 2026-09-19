@@ -207,6 +207,8 @@ Two AI agents work in parallel:
 
 ## Quick Start
 
+**On the Pi**, with an ECU connected — logs live rides and serves the dashboard:
+
 ```bash
 ssh pi@pi-ecm
 cd /home/pi/buell
@@ -215,6 +217,25 @@ curl -s http://localhost:8080/live
 ```
 
 Open **http://pi-ecm:8080** in your browser.
+
+**No Pi at all** — the dashboard and every analysis tool (Sessions VS, Map Editor, Tuner,
+F7 event detection, VDYNO) run as pure Python over already-recorded session data, no hardware
+needed:
+
+```bash
+git clone https://github.com/pacdavid1/buell-xb12x-logger.git
+cd buell-xb12x-logger
+python3 -m pip install -r requirements.txt
+python3 serve_local.py --serve
+```
+
+Open **http://127.0.0.1:8080** in your browser — same address on any machine, since
+`127.0.0.1` always means "this computer."
+
+> **Note:** `sessions/` is gitignored, so a fresh clone has no ride data — the dashboard loads
+> but has nothing to show until you copy in session data of your own (`scp` it from a Pi
+> running this project, or record some) or paste an `.xpr`/`.bin` EEPROM dump into
+> [tools/xpr_viewer.html](tools/xpr_viewer.html) instead, which needs no session data at all.
 
 ---
 
