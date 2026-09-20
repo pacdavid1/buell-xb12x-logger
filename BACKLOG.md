@@ -2339,6 +2339,28 @@ pages 70-71 (Airbox Pressure Configuration logic) and the byte 0x10e-0x132
 parameter table (~page 165 equivalent in the extracted text, search "Baro"
 in the .md).
 
+**Update 2026-09-20 — candidate physical pin found, unverified on this bike:**
+
+`ecu_defs/BUEIB.xml` confirms **"Active Muffler" is a real feature in this
+exact firmware** (`Active Muffler Motor Minimum On/Off Time`, `Active
+Muffler Valve Switching Points`, `Active Muffler Controller Max Feedback
+Time`) — a motorized exhaust valve with position feedback, not just a
+solenoid. Cross-referenced against the community pinout
+([pinoutguide.com](https://pinoutguide.com/CarElectronics/buell_ecm_bike_pinout.shtml)):
+pin **b9, black connector, tan/violet wire = "EVA feedback" (Exhaust valve
+activator feedback)**. This matches the unresolved forum comment from
+earlier ("plug into the existing exhaust valve connector under the seat")
+almost exactly — same theory, now with a specific pin identified.
+
+**Not confirmed:** whether this bike (XB12X Ulysses) actually has the
+Active Muffler motor/valve physically installed — the Ulysses exhaust
+routing differs from the Firebolt/Lightning models this feature is more
+commonly associated with (unverified recollection, not sourced — check the
+actual muffler for a servo motor before assuming the pin is free). If it's
+not physically installed, pin b9 is a genuine spare, populated in the
+harness but going nowhere, which would make it an excellent no-splice tap
+point for a Baro sensor.
+
 ### BL-WB-01 — Wideband O2 signal-through for real AFR logging + tuning (2026-09-19)
 **Priority:** MEDIUM (real technique, real ECM-damage risk if done wrong)
 
