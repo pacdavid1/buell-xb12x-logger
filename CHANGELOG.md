@@ -25,6 +25,22 @@ PROMPT_END -->
 
 
 
+## [v2.7.330] — 2026-09-19
+### Fixed
+- **`F_Pp_ADC` (raw fuel pump feedback signal) was decoded but never logged.**
+  `ecu_defs/rtdata.xml` tags it DDFI-2, so `decode_rt_packet()` was already
+  computing it into every live sample dict — it just wasn't in `CSV_COLUMNS`,
+  so `DictWriter(extrasaction="ignore")` silently dropped it from every ride
+  CSV. Same class of gap as the earlier IMU/thermo1_c fix. While auditing this,
+  confirmed `fl_ignition` (key-on), `fl_engine_run`, and `do_fuel_pump` were
+  already both decoded AND logged — no gap there, nothing to fix. Also
+  confirmed "Fuel Pressure" and the low-fuel cluster fault bits exist in
+  `rtdata.xml` but are tagged DDFI-3 only — genuinely absent from this bike's
+  DDFI-2 protocol, not a logging bug.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.329] — 2026-09-19
 ### Fixed
 - **ECU manufacturer corrected: Delphi → IDS.** A community reviewer pointed

@@ -367,7 +367,7 @@ CSV_COLUMNS: list[str] = [
     "Unk63_b0", "Unk63_b1", "Unk63_b2", "Unk63_b3", "Unk63_b4", "Unk63_b5", "Unk63_b6", "Unk63_b7",
     "CDiag0", "CDiag1", "CDiag2", "CDiag3", "CDiag4",
     "HDiag0", "HDiag1", "HDiag2", "HDiag3", "HDiag4",
-    "Rides", "DIn", "DOut", "ETS_ADC", "IAT_ADC", "BAS_ADC", "SysConfig",
+    "Rides", "DIn", "DOut", "ETS_ADC", "IAT_ADC", "BAS_ADC", "F_Pp_ADC", "SysConfig",
     "TPS_V", "TPS_pct",
     "VSS_Count", "VS_KPH", "Fan_Duty_Pct", "VSS_RPM_Ratio", "Gear",
     "dirty_byte_hex", "dirty_byte_name", "forensic_event",
