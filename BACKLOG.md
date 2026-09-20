@@ -2261,6 +2261,35 @@ Not started. Need to confirm the exact ECU harness pin for the Baro Sensor
 circuit (not yet located in the wiring diagrams reviewed so far) before
 wiring anything in — don't guess the pin from the RT protocol offset alone.
 
+**Update 2026-09-19 — dug into this further, it's harder than "plug and
+play":**
+- Found the actual community thread this idea traces back to:
+  [badweatherbikers.com "MAP/Baro sensor on XB Mod help"](http://www.badweatherbikers.com/buell/messages/32777/856314.html) —
+  **unresolved**. OP asks for the exact pin, only gets "add one pin at gray
+  ECU connector" + "enable this mod by ecmspy", no wire color, no pin
+  number, no one with experience answers.
+- Cross-checked against the full 24-pin ECM pinout
+  ([pinoutguide.com](https://pinoutguide.com/CarElectronics/buell_ecm_bike_pinout.shtml),
+  black 12-pin + gray 12-pin Deutsch DT connectors) — **all 24 pins are
+  already assigned to other signals, none free for Baro.** Confirms "add
+  one pin" is literal: it means inserting a new pin into an empty cavity of
+  the ECU's own connector shell with the correct crimp tool, then running a
+  new wire to the ECU's internal Baro ADC trace — not splicing into an
+  existing harness wire. More invasive than the product marketing implies.
+  (Also re-confirmed independently on this pinout: BAS = Bank Angle Sensor,
+  pin b10, black connector — NOT barometric, as already corrected earlier.)
+- **Connector type is unconfirmed for this specific bike.** The 2008 XB
+  Electrical Diagnostics manual (`MANUALES BUELL MD/2008_XB_Electrical_Diagnostics/`)
+  shows a 34-pin Amp/Tyco ECM connector; the community pinout sources
+  describe two 12-pin Deutsch DT connectors and say they apply to 2003-2007
+  models specifically. Don't assume either — physically check this bike's
+  actual ECM connector before buying any crimp pins/tools.
+- Confirmed both community threads agree a physical connection alone isn't
+  enough — an EEPROM/calibration change ("install the provided EEPROM
+  file" / "enable this mod by ecmspy") is also required to make the ECU
+  actually use the input. Worth searching `ecu_defs/*.xml` config params
+  (not `rtdata.xml`, already checked) for a Baro-enable bit — not done yet.
+
 ### BL-WB-01 — Wideband O2 signal-through for real AFR logging + tuning (2026-09-19)
 **Priority:** MEDIUM (real technique, real ECM-damage risk if done wrong)
 
