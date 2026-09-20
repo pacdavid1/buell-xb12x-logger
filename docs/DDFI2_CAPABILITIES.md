@@ -6,6 +6,10 @@
 > - `ecu_defs/rtdata.xml` — the real-time serial protocol fields
 > - a real ride CSV header — what is actually logged (98 columns)
 > - the decoded `eeprom.bin` of session 248AE2 — actual values on this bike
+> - `MANUALES BUELL MD/EcmSpy_Tuning_Guide/EcmSpy_Tuning_Guide_EN.md` — third-party
+>   community reference (ecmspy.com), NOT an OEM Buell/HD document — used only to
+>   cross-check/explain what's already in the artifacts above, never as a standalone
+>   source of truth on its own
 >
 > **If a technique needs a capability NOT listed under "What the ECU HAS", it does not apply
 > to this bike. Say so in the first line of any finding.**
@@ -85,9 +89,12 @@ Raspberry Pi. Runs **Open Loop** on this bike (see "This bike's config").
 
 - ❌ **No knock/detonation sensor** — none. No piezo, no knock flag, no knock retard. `spark1`/
   `spark2` are map-computed advance, never adjusted for detonation. Any knock-based method
-  requires ADDED hardware. (Detonation can only be caught by rider ear, plug reads, or EGT.)
+  requires ADDED hardware, and even then it's Pi-side logging only — see `BACKLOG.md`
+  `BL-KNOCK-01` (also needs CKP crank-angle correlation, its own dedicated MCU).
 - ❌ **No wideband O2** — the O2 system is narrowband (switching) only. It cannot quantify AFR;
   at WOT (rich) it saturates and reports nothing useful. This is the core project constraint.
+  A real fix exists (signal-through a wideband controller into the stock O2 input) — see
+  `BACKLOG.md` `BL-WB-01` for the real ECM-damage risk if the voltage isn't scaled first.
 - ❌ **No MAP-sensor speed-density fuel calc** — Alpha-N. (It DOES have baro + airbox pressure
   *corrections*, see the gotcha below — but the primary fuel table is TPS×RPM, not MAP.)
 - ❌ **No EGT / exhaust temp sensor** from the factory. (`ETS_ADC` is logged but its meaning is
@@ -135,8 +142,29 @@ sysmon (`cpu_temp` etc.), and the flag/DO/DI bits (`fl_*`, `do_*`, `di_*`).
   than that trim table. Decode carefully before assuming its exact effect.
 - **Narrowband ≠ nothing at WOT.** Even if the O2 were connected, a narrowband can't tune WOT
   (it saturates rich). The WOT blind spot is universal, not unique to our disconnected setup.
+- **Baro/Airbox correction is gated by specific bits, not "on because the tables are
+  non-zero."** The `Airbox Pressure Sensor Configuration` byte (`ecu_defs/BUEIB.xml` offset
+  0x121/289) has: bit1 = enable baro read at key-on, bit8 = enable baro correction feature,
+  bit7 = enable ABP (airbox) correction (requires bit8 also set), bit2 = skip key-on read if
+  engine already running. Related params: `Baro Pressure Sensor Delay` (0x10f), `Barometric
+  Feature Region` (0x110, table), `MAP Barometric Correction` (0x118, table), `Baro Pressure
+  Sensor Moving Average Factor` (0x120), `Barometric Pressure Key-On Min/Max Value`
+  (0x122/0x123), `Airbox Pressure Sensor Data` (0x124, ADC-to-pressure conversion table),
+  `Baro Correction` (0x132, the fuel correction curve). Design: baro is read ONCE at key-on
+  (engine off) as an atmospheric baseline; if bit7 is also set, the ECU separately samples a
+  continuous Airbox Pressure reading synchronized to Cam Position Sensor edges, and corrects
+  fuel from the ratio (live airbox / stored key-on baro). Two features, one config byte.
+  **No physical baro/MAP sensor is installed on this bike**, so these bits' current state and
+  effect are unconfirmed for THIS tune specifically — check the live bits before assuming
+  either is on or off. *[Source: EcmSpy Tuning Guide pp.70-71 + EEPROM parameter table;
+  cross-checked bit-for-bit against `ecu_defs/BUEIB.xml` ~line 4166-4178. See BACKLOG.md
+  BL-BARO-01 for the still-open hardware/wiring question.]*
 
 ---
 
 *Generated 2026-07-04 from BUEIB.xml (238 params), rtdata.xml, ride CSV (98 cols), and the
-decoded 248AE2 eeprom.bin. Re-verify against `ecu_defs/<firmware>.xml` if the firmware differs.*
+decoded 248AE2 eeprom.bin. Re-verify against `ecu_defs/<firmware>.xml` if the firmware differs.
+Baro/Airbox section added 2026-09-20 from the EcmSpy Tuning Guide, cross-checked against
+`ecu_defs/BUEIB.xml` — see that section for the citation. When adding a new claim to this file,
+cite where it came from (artifact + line/page) the same way, so it stays checkable instead of
+becoming another thing to take on faith.*
