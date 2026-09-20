@@ -2191,3 +2191,95 @@ wired PC-to-Pi (cross TX/RX + GND, check TTL levels), run
 `bench/scenarios/accel_faults.json`, audit with `bench/verify.py`. Checklist
 in `buell_fable5/bench/README.md` — not duplicated here, just pointing at it
 since it's the same rider/bike project.
+
+### BL-KNOCK-01 — Knock sensor: separate project, needs dedicated MCU (2026-09-19)
+**Priority:** IDEA (not scoped, do not start without a fresh planning pass)
+
+Confirmed via `ecu_defs/` audit: the DDFI2 ECU has **zero knock provision** —
+no `knock` field anywhere in `rtdata.xml` or any `ecu_defs/*.xml` map, in any
+DDFI generation. Whatever gets built here is pure Pi-side logging, never
+closed-loop retard — the ECU has no mechanism to accept a knock input and
+react to it.
+
+A real knock sensor is a resonant piezo accelerometer tuned near this
+engine's knock frequency (function of bore diameter), torqued to a specific
+spec on the block — not a general-purpose vibration sensor, and NOT a
+substitute for the existing MPU-6050/6500 (that's chassis dynamics at low
+frequency; knock content is several kHz, mounted on the block, different
+sensor entirely).
+
+**Architecture, decided in conversation before scoping starts:**
+- Raw piezo output is kHz-range AC — cannot go directly into ADS1115 (~860
+  SPS ceiling) or be read in Python on the Pi.
+- Needs analog front end (bandpass filter tuned to knock frequency + envelope/
+  peak detector) to reduce it to a slow intensity signal the Pi can sample —
+  OR a dedicated fast microcontroller (STM32/ESP32/similar) doing the
+  detection in firmware and handing the Pi only processed events.
+- **This is the same project as CKP capture, not a separate one** — a knock
+  event is meaningless without knowing the crank angle it occurred at (real
+  detonation vs. mechanical/road noise). Both signals need to land on the
+  same MCU, time-correlated, before anything reaches the Pi. See CKP notes:
+  the CKP sensor (`[79]`, confirmed via OEM wiring diagram) is a 2-wire
+  "Crank position sensor +/-" — almost certainly variable-reluctance, needs
+  its own signal conditioning (comparator + hysteresis) before any digital
+  capture, same reasoning as the knock piezo.
+- Raspberry Pi Linux/Python is not real-time — GPIO interrupt jitter is not
+  acceptable for either crank-angle-resolved knock localization or raw CKP
+  tooth capture. Any fine-timing capture belongs on the MCU, not the Pi.
+
+Sourcing: generic aftermarket automotive knock sensors (GM-style, ~$15-30,
+single wire + shield) are commonly used in DIY projects for this.
+
+Not started. Needs its own planning pass (sensor selection, analog front-end
+design, MCU selection, firmware scope) before any hardware is bought.
+
+### BL-BARO-01 — Populate the unused barometric input on the DDFI2 ECU (2026-09-19)
+**Priority:** MEDIUM (cheap, low-risk, commercial kit exists)
+
+Confirmed via `ecu_defs/rtdata.xml` (DDFI-2, offset 63, export "Baro ADC")
+and independently corroborated by Buell forum posts + a real commercial
+product: **the DDFI2 ECU has a real, factory-designed barometric/altitude
+fuel-compensation input that Buell never populated with hardware at the
+factory.** Not signal injection into an occupied circuit — this input is
+genuinely unused, waiting for a sensor.
+
+This codebase has been logging that exact channel the whole time under a
+legacy cryptic name: `Unk63` in `ecu/protocol.py` `CSV_COLUMNS` (see
+`ecu/rt_defs.py` `_NAME_OVERRIDES`: `"Baro_ADC": "Unk63"`). It's almost
+certainly floating/noise today since nothing is wired to that pin. Buy a
+sensor, wire it to the correct ECU pin, and `Unk63` starts reading real
+atmospheric pressure with zero code changes. Rename it to something less
+cryptic once confirmed populated — optional polish, not required to work.
+
+Commercial plug-and-play option found: **Revision Moto "Baro Sensor Kit —
+XB Models"**, $70 — <https://www.rev-mo.com/tuning> (per user, product page
+content pasted 2026-09-19; matches independently-confirmed community
+description verbatim). Cheaper/lower-risk than reverse-engineering the pin
+and sensor spec from scratch.
+
+Not started. Need to confirm the exact ECU harness pin for the Baro Sensor
+circuit (not yet located in the wiring diagrams reviewed so far) before
+wiring anything in — don't guess the pin from the RT protocol offset alone.
+
+### BL-WB-01 — Wideband O2 signal-through for real AFR logging + tuning (2026-09-19)
+**Priority:** MEDIUM (real technique, real ECM-damage risk if done wrong)
+
+Confirmed via Buell forum threads (buellxb.com) this is an established
+community technique, not novel: feed a wideband O2 controller's analog
+output into the ECU's stock narrowband O2 input, configure EcmSpy's
+Wideband O2→AFR as "Custom Linear" (**the Buell ECU only reads up to ~1V**
+from the lambda input — a wideband controller's raw output must be scaled/
+attenuated to stay under that), and **disable the ECU's internal O2
+correction interpretation before connecting** — skipping that step risks
+ECM damage from the wideband controller's higher output voltage.
+
+Commercial option found: **Revision Moto "TunaBuell Wideband Sensor Kit"**,
+$180 (or $275 bundled with 4 remote tuning sessions + Bosch LSU 4.9 lambda
+sensor) — <https://www.rev-mo.com/tuning>. Likely handles the voltage
+scaling/safety properly out of the box — safer than a DIY signal-through if
+budget allows.
+
+This is the actual unlock for closing the loop this project has been
+missing (`README.md` / project memory: "No wideband O2 yet — OL mode").
+Not started — needs a decision: buy the TunaBuell kit vs. DIY signal-through
+with a separate wideband controller.
