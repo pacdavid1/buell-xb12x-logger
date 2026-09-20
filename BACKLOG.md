@@ -2290,6 +2290,55 @@ play":**
   actually use the input. Worth searching `ecu_defs/*.xml` config params
   (not `rtdata.xml`, already checked) for a Baro-enable bit — not done yet.
 
+**Update 2026-09-20 — the enable-bit question is SOLVED, software side is
+done:**
+
+Downloaded and full-text-indexed the EcmSpy tuning guide PDF
+(`MANUALES BUELL MD/EcmSpy_Tuning_Guide/`, see its own README entry) and it
+documents the complete EEPROM parameter set for this feature, byte-for-byte
+matching what's already decoded in this repo's `ecu_defs/BUEIB.xml`:
+
+| Parameter | Offset (hex/dec) | What it does |
+|---|---|---|
+| Airbox Pressure Sensor Configuration | 0x121 / 289 | **bit1 = Enable baro read at key-on, bit8 = Enable baro correction feature, bit7 = Enable ABP (airbox) correction (needs bit8 also set), bit2 = skip key-on read if engine already running** |
+| Baro Pressure Sensor Delay | 0x10f / 271 | delay before key-on baro read |
+| Barometric Feature Region | 0x110 / 272 | table, feature region lower boundary |
+| MAP Barometric Correction | 0x118 / 280 | table, baro adjustment of MAP reads |
+| Baro Pressure Sensor Moving Average Factor | 0x120 / 288 | smoothing |
+| Barometric Pressure Key-On Min/Max Value | 0x122/0x123 / 290-291 | valid-range gate for the key-on reading |
+| Airbox Pressure Sensor Data | 0x124 / 292 | table, ADC-to-pressure conversion |
+| Baro Correction | 0x132 / 306 | table, the actual fuel correction curve |
+
+**All of these already exist, decoded, in `ecu_defs/BUEIB.xml`** (confirmed
+by grep — `Airbox Pressure Sensor Configuration` bit definitions at line
+~4166-4178 of that file match the guide's bit descriptions exactly). This
+means: **this project's own Map Editor / `tools/xpr_viewer.html` can already
+read and flip these bits today** — no vendor "provided EEPROM file" needed,
+no more reverse engineering required on the software side.
+
+Design detail worth knowing before touching this: it's not just a static
+altitude reading. The ECU reads Baro **once at key-on** (engine off = true
+atmospheric pressure) as a baseline, then — if bit7/ABP is also enabled —
+continuously samples a **real-time Airbox Pressure reading, synchronized to
+the Cam Position Sensor's rising/falling edges**, and corrects fueling from
+the ratio of (live Airbox Pressure / stored key-on Baro) via the [Airbox
+Pressure Compensation] table. So a single physical MAP-style sensor can, in
+principle, serve both the static altitude-compensation role AND (if wired
+into the airbox with the ABP feature enabled) a dynamic pressure-sensing
+role — two different features gated by two different bits on the same byte.
+
+**Still open, hardware side unchanged from the note above:** exact ECU pin/
+connector location for this signal remains undocumented everywhere checked
+so far (OEM manual, community forums, and now this guide too — searched it
+for pin/connector/wire near "baro", zero hits). The guide is thorough on
+the EEPROM/software side but silent on physical wiring. Still needs a
+physical check of this bike's actual ECU connector before buying anything.
+
+Source: `MANUALES BUELL MD/EcmSpy_Tuning_Guide/EcmSpy_Tuning_Guide_EN.md`,
+pages 70-71 (Airbox Pressure Configuration logic) and the byte 0x10e-0x132
+parameter table (~page 165 equivalent in the extracted text, search "Baro"
+in the .md).
+
 ### BL-WB-01 — Wideband O2 signal-through for real AFR logging + tuning (2026-09-19)
 **Priority:** MEDIUM (real technique, real ECM-damage risk if done wrong)
 
@@ -2307,6 +2356,15 @@ $180 (or $275 bundled with 4 remote tuning sessions + Bosch LSU 4.9 lambda
 sensor) — <https://www.rev-mo.com/tuning>. Likely handles the voltage
 scaling/safety properly out of the box — safer than a DIY signal-through if
 budget allows.
+
+**Update 2026-09-20:** the EcmSpy tuning guide (see BL-BARO-01 update,
+`MANUALES BUELL MD/EcmSpy_Tuning_Guide/`) has a full appendix (14 — Narrow
+Band and Wide Band Lambda Sensors) confirming the "Custom Linear" EcmSpy
+config from a primary source, not just forum posts. Also documents a real
+timing detail worth knowing if DIY-ing this: the ECM reads the O2 signal at
+90° after TDC in the expansion stroke, then ignores it for 2 full crank
+revolutions — so any wideband signal substitution only needs to be valid
+at that specific sample instant, not continuously.
 
 This is the actual unlock for closing the loop this project has been
 missing (`README.md` / project memory: "No wideband O2 yet — OL mode").
