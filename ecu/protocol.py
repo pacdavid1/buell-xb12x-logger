@@ -358,16 +358,17 @@ LOAD_BINS: list[float] = [10, 15, 20, 30, 40, 50, 60, 80, 100, 125, 175, 255]
 
 # ── Columnas CSV — orden canónico del archivo de log ─────────
 CSV_COLUMNS: list[str] = [
-    "ride_num", "timestamp_iso", "time_elapsed_s",
+    "ride_num", "timestamp_iso", "time_elapsed_s", "MilliSec", "Seconds",
     "RPM", "Load", "TPD", "TPS_10Bit", "CLT", "MAT", "Batt_V",
-    "spark1", "spark2", "veCurr1_RAW", "veCurr2_RAW", "pw1", "pw2",
+    "spark1", "spark2", "veCurr1_RAW", "veCurr1", "veCurr2_RAW", "veCurr2", "pw1", "pw2",
     "EGO_Corr", "WUE", "AFV", "IAT_Corr", "Accel_Corr", "Decel_Corr",
-    "WOT_Corr", "Idle_Corr", "OL_Corr", "O2_ADC",
+    "WOT_Corr", "Idle_Corr", "OL_Corr", "Batt_Corr", "O2_ADC", "O2",
     "Flags0", "Flags1", "Flags2", "Flags3", "Flags4", "Flags5", "Flags6", "Unk63",
     "Unk63_b0", "Unk63_b1", "Unk63_b2", "Unk63_b3", "Unk63_b4", "Unk63_b5", "Unk63_b6", "Unk63_b7",
     "CDiag0", "CDiag1", "CDiag2", "CDiag3", "CDiag4",
     "HDiag0", "HDiag1", "HDiag2", "HDiag3", "HDiag4",
-    "Rides", "DIn", "DOut", "ETS_ADC", "IAT_ADC", "BAS_ADC", "F_Pp_ADC", "SysConfig",
+    "Rides", "DIn", "DOut", "ETS_ADC", "IAT_ADC", "BAS_ADC", "F_Pp_ADC",
+    "Coil1_ADC", "Coil2_ADC", "Inj1_ADC", "Inj2_ADC", "Fan_ADC", "Batt_ADC", "SysConfig",
     "TPS_V", "TPS_pct",
     "VSS_Count", "VS_KPH", "Fan_Duty_Pct", "VSS_RPM_Ratio", "Gear",
     "dirty_byte_hex", "dirty_byte_name", "forensic_event",

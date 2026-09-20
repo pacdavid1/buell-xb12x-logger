@@ -25,6 +25,32 @@ PROMPT_END -->
 
 
 
+## [v2.7.331] — 2026-09-20
+### Fixed
+- **Systematic audit of `ecu/rt_defs.py` vs `CSV_COLUMNS` found 23 of 75
+  decoded real-time fields were silently dropped from every ride CSV**
+  (`DictWriter(extrasaction="ignore")` — same class of gap as `F_Pp_ADC` in
+  v2.7.330, just never checked exhaustively before). Cross-referenced
+  against the EcmSpy Tuning Guide's own "Appendix L — Realtime parameters"
+  table (`MANUALES BUELL MD/EcmSpy_Tuning_Guide/`) to confirm what each
+  field actually is before deciding whether to add it.
+- Added the 12 that are real, non-redundant signals: `MilliSec`, `Seconds`
+  (ECU's own internal clock), `veCurr1`/`veCurr2` (millisecond-scaled fuel
+  table lookup, complementing the existing `_RAW` columns), `Batt_Corr`
+  (battery-voltage fuel/dead-time correction — a real tuning-relevant value
+  that was completely invisible until now), `O2` (volts-scaled O2, next to
+  the existing raw `O2_ADC`), and six health-monitoring feedback ADCs:
+  `Coil1_ADC`/`Coil2_ADC` (coils), `Inj1_ADC`/`Inj2_ADC` (injectors),
+  `Fan_ADC` (cooling fan), `Batt_ADC` (raw battery ADC).
+- Left out 11 fields on purpose: `TPS_Voltg`/`ETS_Voltg`/`IAT_Voltg`/
+  `BAS_Voltg`/`CLT_F`/`MAT_F` duplicate values already logged under other
+  names/units; `Unk79`-`Unk82` and `unknown_63` are genuinely undocumented
+  even in EcmSpy's own Appendix L (the byte numbering itself jumps 78→83,
+  skipping them) — confirmed unknown, not a gap in our own decoding.
+
+### AI
+- Claude Sonnet 5
+
 ## [v2.7.330] — 2026-09-19
 ### Fixed
 - **`F_Pp_ADC` (raw fuel pump feedback signal) was decoded but never logged.**

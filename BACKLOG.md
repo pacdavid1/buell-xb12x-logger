@@ -2392,3 +2392,51 @@ This is the actual unlock for closing the loop this project has been
 missing (`README.md` / project memory: "No wideband O2 yet — OL mode").
 Not started — needs a decision: buy the TunaBuell kit vs. DIY signal-through
 with a separate wideband controller.
+
+### BL-RTFIELDS-01 — 12 new RT fields now logged (v2.7.331) — put them to work (2026-09-20)
+**Priority:** MEDIUM (data is already flowing, analysis side not built yet)
+
+Systematic audit of `ecu/rt_defs.py` vs `CSV_COLUMNS` found 23 of 75 decoded
+real-time fields were silently dropped from every ride (same gap class as
+IMU/thermo1_c and `F_Pp_ADC` earlier). Fixed in v2.7.331 — see CHANGELOG for
+the full field list and why 11 others were deliberately left out (redundant
+units or genuinely undocumented even in EcmSpy's own reference). New rides
+from now on have these columns; **old rides don't** — anything built on top
+of them needs to handle their absence in historical sessions gracefully.
+
+The columns exist now, but nothing in the dashboard/analysis pipeline reads
+them yet. Ideas worth scoping (not started, pick what's actually useful
+before building):
+
+- **`Batt_Corr` → feed the existing fuel-injector health check.** This is
+  the ECU's own battery-voltage dead-time compensation — separating it out
+  from `pw1`/`pw2` tells you how much of the commanded pulse is "battery
+  sag compensation" vs. real fueling. Relevant given this project's whole
+  CW2015 battery saga — low/sagging battery voltage during cranking could
+  otherwise get misread as a fueling anomaly.
+- **`Coil1_ADC`/`Coil2_ADC`/`Inj1_ADC`/`Inj2_ADC`/`Fan_ADC` → an actuator
+  health trend panel.** These are the ECU's own feedback-diagnostic ADCs
+  for each actuator. Tracking their trend across rides (not just current
+  value) could catch a degrading coil/injector/fan *before* the ECU's own
+  DTC system throws a stored code — same spirit as the fuel-pump-feedback
+  discussion (`F_Pp_ADC`) a few turns back.
+- **`veCurr1`/`veCurr2` (ms) vs. `pw1`/`pw2` → feeds `BL-PWMODEL-01`
+  directly.** Table lookup value vs. final commanded pulse, same units —
+  the delta IS the total correction stack (WUE + IAT + baro + battery)
+  applied on top of the base map. This is exactly the kind of signal the
+  PW/thermal modeling work (`BL-PWMODEL-01`) needs and didn't have before.
+- **`O2` (volts) → a proper narrowband gauge, and a real answer to the
+  open O2/closed-loop question.** Same units as Figure 41 in the EcmSpy
+  guide (0-1V). Could resolve the still-open puzzle from this session: the
+  bimodal `O2_ADC` pattern found in session 248AE2 that looked like real
+  narrowband switching despite `docs/DDFI2_CAPABILITIES.md` claiming O2 is
+  disconnected on this bike. Plot `O2` directly against the reference curve
+  once enough new rides exist with it logged.
+- **`MilliSec`/`Seconds` → a data-integrity check.** ECU-side elapsed time
+  vs. the Pi's own `time_elapsed_s` — a gap between the two flags dropped
+  serial samples or polling delay, independent of `buf_in`.
+
+Not started. Needs a decision on priority — probably `Batt_Corr` + the
+actuator-feedback panel first (cheapest, most directly useful), `veCurr`
+delta next (feeds an existing project, `BL-PWMODEL-01`), `O2` last (needs
+enough new-format rides accumulated first to be worth analyzing).
